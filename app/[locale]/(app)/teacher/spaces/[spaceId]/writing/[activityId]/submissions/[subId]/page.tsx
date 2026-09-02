@@ -176,15 +176,7 @@ function formatSourceEntry(entry: SourceEntry): string {
 function buildSourceListText(submission: SubmissionData | null) {
   const answers = submission?.answersByFieldId ?? {};
   const entries = parseSourceEntries(textValue(answers.sources_entries_json));
-  const webUrl = textValue(answers.source_web_url);
-  const webTitle = textValue(answers.source_web_title);
-  const bookTitle = textValue(answers.source_book_title);
-  const author = textValue(answers.source_author);
-  const notes = textValue(answers.sources_list);
-  const webLine = [webTitle, webUrl].filter(Boolean).join(" - ");
-  const bookLine = [bookTitle, author].filter(Boolean).join(" - ");
-
-  return [...entries.map(formatSourceEntry), webLine, bookLine, notes].filter(Boolean).join("\n");
+  return entries.map(formatSourceEntry).filter(Boolean).join("\n");
 }
 
 function getFieldAnswer(submission: SubmissionData | null, field: WritingFieldTemplate, section: WritingSectionTemplate): string {
@@ -256,18 +248,18 @@ function buildFinalText(activity: WritingActivity | null, submission: Submission
   const saved = textValue(submission?.finalText);
   const title = getDraftTitle(activity, submission);
   if (saved) {
-    if (title && !saved.trim().startsWith(title)) return `${title}\n\n${saved}`;
+    if (title && saved.trim().startsWith(title)) {
+      return saved.trim().slice(title.length).trimStart();
+    }
     return saved;
   }
   const drafts = submission?.sectionDrafts ?? {};
-  const body = (activity?.rooms ?? [])
+  return (activity?.rooms ?? [])
     .flatMap((room) => room.sections)
     .filter((section) => section.id !== "title" && section.fields.some((field) => field.id.includes("_draft") || field.id === "draft_text" || field.id === "final_text"))
     .map((section) => textValue(drafts[section.id]))
     .filter(Boolean)
     .join("\n\n");
-
-  return [title, body].filter(Boolean).join("\n\n");
 }
 
 function roomsByPhase(rooms: WritingRoomTemplate[], phase: WritingRoomTemplate["phase"]) {
@@ -845,6 +837,14 @@ export default function TeacherWritingSubmissionDetailPage() {
               </div>
               <div className={["mt-3 grid gap-4", !isPlanningReview ? "lg:grid-cols-[minmax(0,1fr)_380px]" : ""].join(" ")}>
                 <article className="writingPrintProduct rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                  <div className="mb-5 flex justify-end">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/logo321ny.png"
+                      alt="321 Skole"
+                      className="h-8 w-auto object-contain"
+                    />
+                  </div>
                   {textValue(printProfile.imageUrl) ? (
                     <figure className="m-0 mb-6">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -853,7 +853,6 @@ export default function TeacherWritingSubmissionDetailPage() {
                         alt=""
                         className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"
                       />
-                      <figcaption className="mt-2 text-xs leading-5 text-slate-500">{t("printProduct.imageNote")}</figcaption>
                     </figure>
                   ) : null}
                   <header className="border-b border-slate-200 pb-5">
@@ -876,9 +875,8 @@ export default function TeacherWritingSubmissionDetailPage() {
                   </div>
                   {hasSourceNotes ? (
                     <footer className="mt-8 border-t border-slate-200 pt-4 text-sm leading-6 text-slate-800">
-                      <h3 className="m-0 text-base font-bold text-slate-950">{t("sources.title")}</h3>
                       {sourceListText ? (
-                        <div className="mt-3">
+                        <div>
                           <div className="text-xs font-bold uppercase text-slate-500">{t("sources.list")}</div>
                           <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
                         </div>

@@ -76,6 +76,22 @@ function isAdminProfile(profile: unknown): boolean {
   return isRecord(profile.roles) && profile.roles.admin === true;
 }
 
+function isActiveMember(member: unknown): boolean {
+  if (!isRecord(member)) return false;
+  const status = safeString(member.status).toLowerCase();
+  if (member.archived === true || member.active === false) return false;
+  return !status || status === "active";
+}
+
+function getOwnerUid(space: Record<string, unknown>, activity?: Record<string, unknown>): string {
+  return (
+    safeString(activity?.ownerUid) ||
+    safeString(space.ownerUid) ||
+    safeString(space.ownerId) ||
+    safeString(space.teacherId)
+  );
+}
+
 function findSection(activity: WritingActivity, sectionId: string): WritingSectionTemplate | null {
   for (const room of activity.rooms ?? []) {
     const section = room.sections.find((item) => item.id === sectionId);
@@ -110,15 +126,31 @@ function completedSectionIds(activity: WritingActivity, args: {
   return completed;
 }
 
-function normalizeSectionAiPolicy(policy: WritingAiPolicy): WritingAiPolicy {
+function normalizeSectionAiPolicy(policy: WritingAiPolicy, action: WritingAiAction): WritingAiPolicy {
   if (policy.unlockRequirement?.type !== "min_fields") return policy;
   return {
     ...policy,
     unlockRequirement: {
       ...policy.unlockRequirement,
-      value: Math.min(policy.unlockRequirement.value, 1),
+      value:
+        action === "ask_questions" || action === "suggest_words"
+          ? 0
+          : Math.min(policy.unlockRequirement.value, 1),
     },
   };
+}
+
+function unlockErrorMessage(unlock: ReturnType<typeof canUseWritingAi>) {
+  if (unlock.reason === "min_words") {
+    return "Skriv litt selv først, så kan KI hjelpe deg videre.";
+  }
+  if (unlock.reason === "min_fields") {
+    return "Fyll ut litt i denne delen først, så kan KI hjelpe deg videre.";
+  }
+  if (unlock.reason === "required_sections") {
+    return "Gjør ferdig de tidligere delene først, så kan KI hjelpe deg videre.";
+  }
+  return "KI-støtte er ikke tilgjengelig for denne delen ennå.";
 }
 
 function actionLabel(action: WritingAiAction) {
@@ -258,16 +290,24 @@ export async function POST(
 
     const profile = (profileSnap.data() ?? {}) as Record<string, unknown>;
     const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-    const isOwner = safeString(space.ownerId) === uid;
+    const activityData = (activitySnap.data() ?? {}) as Record<string, unknown>;
+    const ownerUid = getOwnerUid(space, activityData);
+    const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
+    const isOwner = ownerUid === uid;
     const isAdmin = isAdminProfile(profile);
+    const hasMemberAccess = memberSnap.exists && isActiveMember(member);
 
-    if (!isOwner && !isAdmin && !memberSnap.exists) {
+    if (!ownerUid) {
+      return json({ error: "Space owner missing" }, 403);
+    }
+
+    if (!isOwner && !isAdmin && !hasMemberAccess) {
       return json({ error: "No access to this space" }, 403);
     }
 
     const activity = upgradeWritingActivityForRuntime({
       id: activitySnap.id,
-      ...(activitySnap.data() as Record<string, unknown>),
+      ...activityData,
     } as WritingActivity);
 
     if (activity.aiPolicy?.enabled === false) {
@@ -281,7 +321,7 @@ export async function POST(
     if (!rawSectionPolicy?.enabled) {
       return json({ error: "AI support is disabled for this section" }, 403);
     }
-    const sectionPolicy = normalizeSectionAiPolicy(rawSectionPolicy);
+    const sectionPolicy = normalizeSectionAiPolicy(rawSectionPolicy, action);
 
     if (!sectionPolicy.allowedActions.includes(action)) {
       return json({ error: "AI action is not allowed for this section" }, 400);
@@ -295,26 +335,29 @@ export async function POST(
     });
 
     if (!unlock.allowed) {
-      return json({ error: "AI support is locked", unlock }, 403);
+      return json({ error: unlockErrorMessage(unlock), unlock }, 403);
     }
 
-    const role = readRole(profile);
+    const quotaUid = isOwner || isAdmin ? uid : ownerUid;
+    const quotaProfileSnap = quotaUid === uid ? profileSnap : await db.collection("users").doc(quotaUid).get();
+    const quotaProfile = (quotaProfileSnap.data() ?? {}) as Record<string, unknown>;
+    const role = readRole(quotaProfile);
     const billing =
-      profile.billing && typeof profile.billing === "object"
-        ? (profile.billing as { plan?: string | null; status?: string | null })
+      quotaProfile.billing && typeof quotaProfile.billing === "object"
+        ? (quotaProfile.billing as { plan?: string | null; status?: string | null })
         : null;
 
     const featureStatus = await getServerFeatureStatusFromProfile({
       db,
-      uid,
+      uid: quotaUid,
       role,
-      plan: safeString(profile.plan) || "free",
+      plan: safeString(quotaProfile.plan) || "free",
       billing,
-      schoolId: safeString(profile.schoolId) || null,
-      schoolRole: safeString(profile.schoolRole) || null,
-      schoolStatus: safeString(profile.schoolStatus) || null,
-      partnerAccess: profile.partnerAccess === true,
-      partnerStatus: safeString(profile.partnerStatus) || null,
+      schoolId: safeString(quotaProfile.schoolId) || null,
+      schoolRole: safeString(quotaProfile.schoolRole) || null,
+      schoolStatus: safeString(quotaProfile.schoolStatus) || null,
+      partnerAccess: quotaProfile.partnerAccess === true,
+      partnerStatus: safeString(quotaProfile.partnerStatus) || null,
       feature: "writing_station_ai_support",
     });
 
@@ -398,7 +441,7 @@ export async function POST(
 
     await consumeServerFeature({
       db,
-      uid,
+      uid: quotaUid,
       feature: "writing_station_ai_support",
       amount: 1,
     });

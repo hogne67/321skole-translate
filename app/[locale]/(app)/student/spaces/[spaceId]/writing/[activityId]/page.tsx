@@ -184,14 +184,11 @@ function buildFinalText(rooms: WritingRoomTemplate[], answers: AnswersByFieldId,
   const draftingRoom = rooms.find((room) => room.phase === "drafting");
   if (!draftingRoom) return "";
 
-  const title = getDraftTitle(rooms, answers, sectionDrafts);
-  const body = draftingRoom.sections
+  return draftingRoom.sections
     .filter((section) => section.id !== "title")
     .map((section) => safeString(sectionDrafts[section.id]).trim())
     .filter(Boolean)
     .join("\n\n");
-
-  return [title, body].filter(Boolean).join("\n\n");
 }
 
 function parseSourceEntries(raw: string): SourceEntry[] {
@@ -238,15 +235,7 @@ function formatSourceEntry(entry: SourceEntry): string {
 
 function buildSourceListText(answers: AnswersByFieldId) {
   const entries = parseSourceEntries(safeString(answers.sources_entries_json));
-  const webUrl = safeString(answers.source_web_url).trim();
-  const webTitle = safeString(answers.source_web_title).trim();
-  const bookTitle = safeString(answers.source_book_title).trim();
-  const author = safeString(answers.source_author).trim();
-  const notes = safeString(answers.sources_list).trim();
-  const webLine = [webTitle, webUrl].filter(Boolean).join(" - ");
-  const bookLine = [bookTitle, author].filter(Boolean).join(" - ");
-
-  return [...entries.map(formatSourceEntry), webLine, bookLine, notes].filter(Boolean).join("\n");
+  return entries.map(formatSourceEntry).filter(Boolean).join("\n");
 }
 
 function countWords(text: string): number {
@@ -538,7 +527,6 @@ export default function StudentWritingActivityPage() {
     () => draftingSections.reduce((sum, section) => sum + sectionWordCount(section.id, sectionDrafts), 0),
     [draftingSections, sectionDrafts]
   );
-  const finalWordTotal = useMemo(() => countWords(finalText), [finalText]);
 
   function updateField(section: WritingSectionTemplate, fieldId: string, value: string) {
     setAnswersByFieldId((current) => ({ ...current, [fieldId]: value }));
@@ -1703,6 +1691,14 @@ export default function StudentWritingActivityPage() {
               </div>
 
               <article className="writingPrintProduct mx-auto mt-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                <div className="mb-5 flex justify-end">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logo321ny.png"
+                    alt="321 Skole"
+                    className="h-8 w-auto object-contain"
+                  />
+                </div>
                 {printProfile.imageUrl ? (
                   <figure className="m-0 mb-6">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1711,7 +1707,6 @@ export default function StudentWritingActivityPage() {
                       alt=""
                       className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"
                     />
-                    <figcaption className="mt-2 text-xs leading-5 text-slate-500">{t("printProduct.imageNote")}</figcaption>
                   </figure>
                 ) : null}
                 <header className="border-b border-slate-200 pb-5">
@@ -1729,7 +1724,6 @@ export default function StudentWritingActivityPage() {
                     {printProfile.writtenDate ? (
                       <div><span className="font-semibold text-slate-500">{t("printProduct.writtenDate")}:</span> {printProfile.writtenDate}</div>
                     ) : null}
-                    <div><span className="font-semibold text-slate-500">{t("printProduct.length")}:</span> {t("wordStats.total", { count: finalWordTotal })}</div>
                   </div>
                 </header>
                 <div className="mt-6 whitespace-pre-wrap text-base leading-8 text-slate-950 sm:text-[17px]">
@@ -1737,9 +1731,8 @@ export default function StudentWritingActivityPage() {
                 </div>
                 {hasSourceNotes ? (
                   <footer className="mt-8 border-t border-slate-200 pt-4 text-sm leading-6 text-slate-800">
-                    <h3 className="m-0 text-base font-bold text-slate-950">{t("sources.title")}</h3>
                     {sourceListText ? (
-                      <div className="mt-3">
+                      <div>
                         <div className="text-xs font-bold uppercase text-slate-500">{t("sources.list")}</div>
                         <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
                       </div>
