@@ -6,9 +6,9 @@
       "openSubmission": "Open submission"
     },
     "hub": {
-      "title": "Text in Use",
+      "title": "321 studio",
       "beta": "Beta",
-      "subtitle": "Plan, build, and assign text activities where students work with text production, feedback, and finished products.",
+      "subtitle": "Plan, create, and assign activities where students work with text, images, and audio production.",
       "videoTitle": "Instruction video",
       "videoSubtitle": "Space for a short video about text activities.",
       "videoPlay": "▶",
@@ -17,6 +17,9 @@
       "imageWritingTitle": "Image writing",
       "imageWritingSubtitle": "Create a writing task where the image opens the way into text, vocabulary, and conversation.",
       "imageWritingAction": "Open image writing",
+      "podcastWorkshopTitle": "Podcast workshop",
+      "podcastWorkshopSubtitle": "Create an audio task where students plan, write a script, and record a podcast.",
+      "podcastWorkshopAction": "Open Podcast workshop",
       "contentTitle": "Writing activities in My content",
       "contentSubtitle": "Saved writing activities live in My content. Edit and assign them to spaces from there.",
       "libraryTitle": "My writing activities",

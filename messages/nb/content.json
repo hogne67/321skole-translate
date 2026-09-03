@@ -109,7 +109,7 @@
       "newWritingActivity": "Ny skriveaktivitet",
       "startQuiz": "Start livequiz",
       "startImageLive": "Start live",
-      "shareToBoard": "Del til tavle",
+      "shareToBoard": "Del til live",
       "shareQuizPublic": "Del lenke/QR",
       "pdf": "PDF",
       "delete": "Slett",
@@ -119,7 +119,7 @@
       "copyJoinCode": "Kopier kode",
       "copyJoinLink": "Kopier lenke",
       "shareLinkQr": "Del (lenke + QR)",
-      "board": "Tavle",
+      "board": "Live",
       "deleteFromArchive": "Slett fra arkiv"
     },
     "errors": {
@@ -232,7 +232,7 @@
       "createsLabel": "Oppretter:"
     },
     "shareToBoard": {
-      "title": "Del til tavle",
+      "title": "Del til live",
       "createsLabel": "Sender til:"
     },
     "confirm": {

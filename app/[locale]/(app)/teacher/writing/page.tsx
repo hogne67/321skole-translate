@@ -73,9 +73,6 @@ function TeacherWritingInner() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-black text-slate-950 sm:text-3xl">{t("hub.title")}</h1>
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-black uppercase text-amber-800">
-                {t("hub.beta")}
-              </span>
             </div>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t("hub.subtitle")}</p>
           </div>
@@ -126,6 +123,21 @@ function TeacherWritingInner() {
               className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white hover:bg-sky-800"
             >
               {isGuestPreview ? guestText.loginCreate : t("hub.imageWritingAction")}
+            </Link>
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-violet-200 bg-violet-50 p-4 shadow-sm sm:p-5">
+          <div className="flex h-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-violet-950">{t("hub.podcastWorkshopTitle")}</h2>
+              <p className="mt-1 text-sm leading-5 text-violet-900">{t("hub.podcastWorkshopSubtitle")}</p>
+            </div>
+            <Link
+              href={isGuestPreview ? loginHref : withLocale(locale, "/tools/podcast-workshop")}
+              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white hover:bg-violet-800"
+            >
+              {isGuestPreview ? guestText.loginCreate : t("hub.podcastWorkshopAction")}
             </Link>
           </div>
         </article>

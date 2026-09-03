@@ -47,7 +47,7 @@
       "count": "{count} · {label}"
     },
     "writingStation": {
-      "title": "Writing Station",
+      "title": "321 studio",
       "subtitle": "Writing activities assigned to this space.",
       "manageTitle": "Create and assign from Writing Station",
       "manageText": "Writing activities are created in their own tab, then assigned here when the class will use them.",
@@ -87,7 +87,7 @@
       },
       "actions": {
         "submissions": "Submissions",
-        "openHub": "Open Writing Station"
+        "openHub": "Open Studio"
       }
     },
     "assignTrainingVideo": {

@@ -6,9 +6,9 @@
       "openSubmission": "Åpne innlevering"
     },
     "hub": {
-      "title": "Teksten i bruk",
+      "title": "321 studio",
       "beta": "Beta",
-      "subtitle": "Planlegg, bygg og del tekstaktiviteter der elevene arbeider med tekstproduksjon, respons og ferdig produkt.",
+      "subtitle": "Planlegg, lag og del aktiviteter der elevene arbeider med tekst, bilde og lydproduksjon.",
       "videoTitle": "Instruksjonsvideo",
       "videoSubtitle": "Plass til en kort video om tekstaktivitetene.",
       "videoPlay": "▶",
@@ -17,6 +17,9 @@
       "imageWritingTitle": "Skriv til bilde",
       "imageWritingSubtitle": "Lag en skriveoppgave der bildet er inngangen til tekst, ordforråd og samtale.",
       "imageWritingAction": "Åpne Skriv til bilde",
+      "podcastWorkshopTitle": "Podcastverksted",
+      "podcastWorkshopSubtitle": "Lag en lydoppgave der elevene planlegger, skriver manus og spiller inn podcast.",
+      "podcastWorkshopAction": "Åpne Podcastverksted",
       "contentTitle": "Skriveaktiviteter i Mitt innhold",
       "contentSubtitle": "Lagrede skriveaktiviteter ligger i Mitt innhold. Derfra kan du redigere og dele dem til spaces.",
       "libraryTitle": "Mine skriveaktiviteter",

@@ -47,7 +47,7 @@
       "count": "{count} · {label}"
     },
     "writingStation": {
-      "title": "Estação de escrita",
+      "title": "321 studio",
       "subtitle": "Atividades de escrita atribuídas a este space.",
       "manageTitle": "Criar e atribuir pela Estação de escrita",
       "manageText": "As atividades de escrita são criadas em uma aba própria e depois atribuídas aqui quando a turma for usar.",
@@ -87,7 +87,7 @@
       },
       "actions": {
         "submissions": "Respostas",
-        "openHub": "Abrir Estação de escrita"
+        "openHub": "Abrir Studio"
       }
     },
     "assignTrainingVideo": {

@@ -6,9 +6,9 @@
       "openSubmission": "Abrir resposta"
     },
     "hub": {
-      "title": "Texto em uso",
+      "title": "321 studio",
       "beta": "Beta",
-      "subtitle": "Planeje, construa e atribua atividades de texto em que os alunos trabalham com produção textual, feedback e produto final.",
+      "subtitle": "Planeje, crie e atribua atividades em que os alunos trabalham com texto, imagem e produção de áudio.",
       "videoTitle": "Vídeo de instrução",
       "videoSubtitle": "Espaço para um vídeo curto sobre atividades de texto.",
       "videoPlay": "▶",
@@ -17,6 +17,9 @@
       "imageWritingTitle": "Escrita com imagem",
       "imageWritingSubtitle": "Crie uma tarefa em que a imagem abre caminho para texto, vocabulário e conversa.",
       "imageWritingAction": "Abrir escrita com imagem",
+      "podcastWorkshopTitle": "Oficina de podcast",
+      "podcastWorkshopSubtitle": "Crie uma tarefa de áudio em que os alunos planejam, escrevem roteiro e gravam um podcast.",
+      "podcastWorkshopAction": "Abrir oficina de podcast",
       "contentTitle": "Atividades de escrita em Conteúdo",
       "contentSubtitle": "As atividades de escrita salvas ficam em Conteúdo. Edite e atribua aos spaces a partir dali.",
       "libraryTitle": "Minhas atividades de escrita",

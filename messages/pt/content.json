@@ -109,7 +109,7 @@
       "newWritingActivity": "Nova atividade de escrita",
       "startQuiz": "Iniciar quiz ao vivo",
       "startImageLive": "Iniciar ao vivo",
-      "shareToBoard": "Compartilhar com quadro",
+      "shareToBoard": "Compartilhar com Live",
       "shareQuizPublic": "Compartilhar link/QR",
       "pdf": "PDF",
       "delete": "Excluir",
@@ -119,7 +119,7 @@
       "copyJoinCode": "Copiar código",
       "copyJoinLink": "Copiar link",
       "shareLinkQr": "Compartilhar (link + QR)",
-      "board": "Quadro",
+      "board": "Live",
       "deleteFromArchive": "Remover do arquivo"
     },
     "errors": {
@@ -232,7 +232,7 @@
       "createsLabel": "Cria:"
     },
     "shareToBoard": {
-      "title": "Compartilhar com quadro",
+      "title": "Compartilhar com Live",
       "createsLabel": "Envia para:"
     },
     "confirm": {

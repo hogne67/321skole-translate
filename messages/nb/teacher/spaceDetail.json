@@ -47,7 +47,7 @@
       "count": "{count} · {label}"
     },
     "writingStation": {
-      "title": "Teksten i bruk",
+      "title": "321 studio",
       "subtitle": "Skriveaktiviteter som er tildelt dette spacet.",
       "manageTitle": "Lag og tildel tekstaktivitet",
       "manageText": "Skriveaktiviteter lages i egen fane, og tildeles hit når klassen skal bruke dem.",
@@ -87,7 +87,7 @@
       },
       "actions": {
         "submissions": "Innleveringer",
-        "openHub": "Åpne Tekst"
+        "openHub": "Åpne Studio"
       }
     },
     "assignTrainingVideo": {

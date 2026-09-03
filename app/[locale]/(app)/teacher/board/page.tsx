@@ -8,7 +8,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { ArrowLeft, ArrowRight, BarChart3, ChevronDown, Clock3, ImageIcon, MonitorUp, Play, Radio, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, ChevronDown, Clock3, ImageIcon, Play, Radio, Sparkles, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 type SpaceRow = { id: string; data: SpaceDoc & { createdAt?: unknown } };
@@ -1440,34 +1440,6 @@ function TeacherBoardIndexInner() {
           </div>
         </div>
       </CollapsibleActivitySection>
-
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <MonitorUp className="h-5 w-5 text-slate-700" aria-hidden="true" />
-              <h2 className="text-xl font-black text-slate-950 sm:text-2xl">{t("rooms.title")}</h2>
-            </div>
-            <p className="mt-1 text-sm leading-5 text-slate-600">{t("rooms.text")}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (requireTeacherLogin()) return;
-              setSpacePickerOpen(true);
-            }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 sm:w-auto"
-          >
-            {isGuestPreview ? guestText.loginOpenBoard : t("rooms.openPicker")}
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-
-        {spaces.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">{t("rooms.empty")}</div>
-        ) : null}
-      </section>
 
 
       <CollapsibleActivitySection tone="violet" icon={<BarChart3 className="h-4 w-4" aria-hidden="true" />} kicker={pollText.kicker} title={pollText.title} text={pollText.text}>
