@@ -29,14 +29,156 @@ function safeString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-function normalizeSession(value: unknown): ImageSession | null {
+function imageLiveCopy(locale: string) {
+  if (locale === "en") {
+    return {
+      defaultPrompt: "Look at the image and write what you notice.",
+      fallbackTitle: "Image activity",
+      fetchFailed: "Could not load the image activity.",
+      loginStart: "Sign in as a teacher to start the activity.",
+      startFailed: "Could not start the image activity.",
+      pdfFailed: "Could not create PDF.",
+      code: "Code",
+      brand: "321school image activity",
+      participantsReady: (count: number) => `${count} ${count === 1 ? "participant" : "participants"} ready`,
+      answersSubmitted: (count: number) => `${count} ${count === 1 ? "answer" : "answers"} submitted`,
+      timeUp: "Time is up",
+      timeLeft: "Time left",
+      closeTitle: "Close big screen",
+      join: "Join",
+      goTo: "Go to",
+      makingQr: "Making QR...",
+      hideImage: "Hide image",
+      showImage: "Show image",
+      moveAnswers: "Move answers",
+      making: "Creating...",
+      print: "Print",
+      readyTitle: "The image activity is ready",
+      readyText: "Students enter a name and mark themselves ready. Start when everyone has joined.",
+      starting: "Starting...",
+      startImage: "Start image activity",
+      hiddenTitle: "The image is hidden",
+      hiddenText: "The image is still fixed for the students. Here you can focus on the answers.",
+      waitingImage: "Waiting for image...",
+      waitingParticipants: "Waiting for participants...",
+      studentHint: "Students use the code or QR.",
+      waitingAnswers: "Waiting for answers...",
+      markAnswer: "Feature answer",
+      holdAnswer: "Pin answer",
+      pdfSubtitle: "Answers from live image activity",
+      answerName: (index: number) => `Answer ${index + 1}`,
+      generatedAt: "Created",
+      prompt: "Task",
+      responses: "Responses",
+      space: "Room",
+      featured: "Featured answer",
+      pinned: "Pinned answers",
+      allSentences: "All answers",
+      noSentences: "No answers yet",
+    };
+  }
+  if (locale === "pt") {
+    return {
+      defaultPrompt: "Observe a imagem e escreva o que você percebe.",
+      fallbackTitle: "Atividade com imagem",
+      fetchFailed: "Não foi possível carregar a atividade com imagem.",
+      loginStart: "Entre como professor para iniciar a atividade.",
+      startFailed: "Não foi possível iniciar a atividade com imagem.",
+      pdfFailed: "Não foi possível criar o PDF.",
+      code: "Código",
+      brand: "321school atividade com imagem",
+      participantsReady: (count: number) => `${count} ${count === 1 ? "participante pronto" : "participantes prontos"}`,
+      answersSubmitted: (count: number) => `${count} ${count === 1 ? "resposta enviada" : "respostas enviadas"}`,
+      timeUp: "O tempo acabou",
+      timeLeft: "Tempo restante",
+      closeTitle: "Fechar tela grande",
+      join: "Entrar",
+      goTo: "Ir para",
+      makingQr: "Criando QR...",
+      hideImage: "Ocultar imagem",
+      showImage: "Mostrar imagem",
+      moveAnswers: "Mover respostas",
+      making: "Criando...",
+      print: "Imprimir",
+      readyTitle: "A atividade com imagem está pronta",
+      readyText: "Os alunos escrevem o nome e marcam que estão prontos. Inicie quando todos estiverem dentro.",
+      starting: "Iniciando...",
+      startImage: "Iniciar atividade",
+      hiddenTitle: "A imagem está oculta",
+      hiddenText: "A imagem continua fixa para os alunos. Aqui vocês podem focar nas respostas.",
+      waitingImage: "Aguardando imagem...",
+      waitingParticipants: "Aguardando participantes...",
+      studentHint: "Os alunos usam o código ou QR.",
+      waitingAnswers: "Aguardando respostas...",
+      markAnswer: "Destacar resposta",
+      holdAnswer: "Fixar resposta",
+      pdfSubtitle: "Respostas da atividade com imagem ao vivo",
+      answerName: (index: number) => `Resposta ${index + 1}`,
+      generatedAt: "Criado",
+      prompt: "Tarefa",
+      responses: "Respostas",
+      space: "Sala",
+      featured: "Resposta destacada",
+      pinned: "Respostas fixadas",
+      allSentences: "Todas as respostas",
+      noSentences: "Ainda não há respostas",
+    };
+  }
+  return {
+    defaultPrompt: "Se på bildet og skriv hva du legger merke til.",
+    fallbackTitle: "Bildeaktivitet",
+    fetchFailed: "Kunne ikke hente bildeaktiviteten.",
+    loginStart: "Logg inn som lærer for å starte aktiviteten.",
+    startFailed: "Kunne ikke starte bildeaktiviteten.",
+    pdfFailed: "Kunne ikke lage PDF.",
+    code: "Kode",
+    brand: "321school bildeaktivitet",
+    participantsReady: (count: number) => `${count} deltakere klare`,
+    answersSubmitted: (count: number) => `${count} svar sendt inn`,
+    timeUp: "Tiden er ute",
+    timeLeft: "Tid igjen",
+    closeTitle: "Lukk storskjerm",
+    join: "Bli med",
+    goTo: "Gå til",
+    makingQr: "Lager QR...",
+    hideImage: "Skjul bilde",
+    showImage: "Vis bilde",
+    moveAnswers: "Flytt svar",
+    making: "Lager...",
+    print: "Skriv ut",
+    readyTitle: "Bildeaktiviteten er klar",
+    readyText: "Elevene skriver navn og trykker klar. Start når alle er med.",
+    starting: "Starter...",
+    startImage: "Start bildeaktivitet",
+    hiddenTitle: "Bildet er skjult",
+    hiddenText: "Elevenes bilde står fortsatt fast. Her kan dere fokusere på svarene.",
+    waitingImage: "Venter på bilde...",
+    waitingParticipants: "Venter på deltakere...",
+    studentHint: "Elevene bruker kode eller QR.",
+    waitingAnswers: "Venter på svar...",
+    markAnswer: "Marker svar",
+    holdAnswer: "Hold svar",
+    pdfSubtitle: "Svar fra live bildeaktivitet",
+    answerName: (index: number) => `Svar ${index + 1}`,
+    generatedAt: "Laget",
+    prompt: "Oppgave",
+    responses: "Svar",
+    space: "Rom",
+    featured: "Markert svar",
+    pinned: "Holdte svar",
+    allSentences: "Alle svar",
+    noSentences: "Ingen svar enda",
+  };
+}
+
+function normalizeSession(value: unknown, defaultPrompt: string): ImageSession | null {
   if (!isRecord(value) || !isRecord(value.session)) return null;
   const session = value.session;
   return {
     id: safeString(session.id),
     code: safeString(session.code),
     status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
-    prompt: safeString(session.prompt, "Se på bildet og skriv hva du legger merke til."),
+    prompt: safeString(session.prompt, defaultPrompt),
     imageUrl: safeString(session.imageUrl),
     timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
     endsAt: typeof session.endsAt === "number" && session.endsAt > 0 ? session.endsAt : null,
@@ -78,6 +220,7 @@ export default function ImageActivityDisplayPage() {
   const params = useParams<{ locale: string; sessionId: string }>();
   const router = useRouter();
   const locale = params.locale;
+  const copy = useMemo(() => imageLiveCopy(locale), [locale]);
   const sessionId = params.sessionId;
   const [session, setSession] = useState<ImageSession | null>(null);
   const [qrUrl, setQrUrl] = useState("");
@@ -101,12 +244,12 @@ export default function ImageActivityDisplayPage() {
     const res = await fetch(`/api/image-sessions/${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as unknown;
     if (!res.ok) {
-      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke hente bildeaktiviteten.");
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : copy.fetchFailed);
       return;
     }
-    setSession(normalizeSession(data));
+    setSession(normalizeSession(data, copy.defaultPrompt));
     setError("");
-  }, [sessionId]);
+  }, [copy.defaultPrompt, copy.fetchFailed, sessionId]);
 
   useEffect(() => {
     void load();
@@ -144,17 +287,17 @@ export default function ImageActivityDisplayPage() {
     setError("");
     try {
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error("Logg inn som lærer for å starte aktiviteten.");
+      if (!token) throw new Error(copy.loginStart);
       const res = await fetch(`/api/image-sessions/${encodeURIComponent(sessionId)}/control`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: "start" }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke starte bildeaktiviteten.");
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : copy.startFailed);
       await load();
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke starte bildeaktiviteten.");
+      setError(event instanceof Error ? event.message : copy.startFailed);
     } finally {
       setStartBusy(false);
     }
@@ -211,35 +354,35 @@ export default function ImageActivityDisplayPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
-            title: session.prompt || "Bildeaktivitet",
-            subtitle: "Svar fra live bildeaktivitet",
+            title: session.prompt || copy.fallbackTitle,
+            subtitle: copy.pdfSubtitle,
             prompt: session.prompt,
             imageUrl: session.imageUrl,
             generatedAt: new Date().toLocaleString(locale === "nb" ? "nb-NO" : locale === "pt" ? "pt-BR" : "en-GB"),
             responseCount: session.total,
             sentences: orderedResponses.map((item, index) => ({
               id: item.id,
-              name: item.displayName || `Svar ${index + 1}`,
+              name: item.displayName || copy.answerName(index),
               text: item.text,
               pinned: pinnedIds.includes(item.id),
               featured: featuredId === item.id,
             })),
             labels: {
-              generatedAt: "Laget",
-              prompt: "Oppgave",
-              responses: "Svar",
-              space: "Rom",
-              featured: "Markert svar",
-              pinned: "Holdte svar",
-              allSentences: "Alle svar",
-              noSentences: "Ingen svar enda",
+              generatedAt: copy.generatedAt,
+              prompt: copy.prompt,
+              responses: copy.responses,
+              space: copy.space,
+              featured: copy.featured,
+              pinned: copy.pinned,
+              allSentences: copy.allSentences,
+              noSentences: copy.noSentences,
               site: "321school",
             },
           },
         }),
       });
       const blob = await response.blob();
-      if (!response.ok) throw new Error("Kunne ikke lage PDF.");
+      if (!response.ok) throw new Error(copy.pdfFailed);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -249,7 +392,7 @@ export default function ImageActivityDisplayPage() {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke lage PDF.");
+      setError(event instanceof Error ? event.message : copy.pdfFailed);
     } finally {
       setPrintBusy(false);
     }
@@ -260,23 +403,23 @@ export default function ImageActivityDisplayPage() {
       <div className="mx-auto flex h-full max-w-[1800px] flex-col">
         <header className="relative flex items-start justify-center gap-6 text-center">
           <div className="absolute left-0 top-0 rounded-2xl bg-white/10 px-5 py-3 text-left">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Kode</div>
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{copy.code}</div>
             <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
           </div>
           <div>
-            <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">321school bildeaktivitet</div>
-            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? "Bildeaktivitet"}</h1>
+            <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">{copy.brand}</div>
+            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? copy.fallbackTitle}</h1>
             <p className="mt-2 text-lg font-bold text-white/60">
-              {isLobby ? `${session?.participantCount ?? 0} deltakere klare` : `${session?.total ?? 0} svar sendt inn`}
+              {isLobby ? copy.participantsReady(session?.participantCount ?? 0) : copy.answersSubmitted(session?.total ?? 0)}
             </p>
           </div>
           {hasTimer ? (
             <div className={["absolute right-16 top-0 rounded-2xl px-5 py-3 text-right", timerDone ? "bg-rose-500/20 text-rose-100" : "bg-white/10 text-white"].join(" ")}>
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{timerDone ? "Tiden er ute" : "Tid igjen"}</div>
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{timerDone ? copy.timeUp : copy.timeLeft}</div>
               <div className="text-3xl font-black tabular-nums">{formatRemaining(remaining ?? 0)}</div>
             </div>
           ) : null}
-          <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title="Lukk storskjerm">
+          <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title={copy.closeTitle}>
             <X className="h-5 w-5" />
           </button>
         </header>
@@ -285,16 +428,16 @@ export default function ImageActivityDisplayPage() {
 
         <section className="grid min-h-0 flex-1 gap-6 py-6 xl:grid-cols-[minmax(260px,0.32fr)_minmax(0,0.9fr)_minmax(360px,0.55fr)]">
           <aside className="self-start rounded-[2rem] bg-white/[0.08] p-4">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/50">Bli med</div>
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/50">{copy.join}</div>
             <div className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white/80">
-              Gå til {liveUrlText}
+              {copy.goTo} {liveUrlText}
             </div>
             <div className="mt-3 inline-flex max-w-full rounded-[1.5rem] bg-white p-2">
               {qrUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={qrUrl} alt="" className="block" style={{ width: "min(15rem, 24vw, 28vh)", height: "min(15rem, 24vw, 28vh)" }} />
               ) : (
-                <div className="flex items-center justify-center text-slate-500" style={{ width: "min(15rem, 24vw, 28vh)", height: "min(15rem, 24vw, 28vh)" }}>Lager QR...</div>
+                <div className="flex items-center justify-center text-slate-500" style={{ width: "min(15rem, 24vw, 28vh)", height: "min(15rem, 24vw, 28vh)" }}>{copy.makingQr}</div>
               )}
             </div>
           </aside>
@@ -308,7 +451,7 @@ export default function ImageActivityDisplayPage() {
                   className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-sm font-black text-white backdrop-blur hover:bg-black/60"
                 >
                   {showImage ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  {showImage ? "Skjul bilde" : "Vis bilde"}
+                  {showImage ? copy.hideImage : copy.showImage}
                 </button>
                 <button
                   type="button"
@@ -316,7 +459,7 @@ export default function ImageActivityDisplayPage() {
                   className={["inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black backdrop-blur", moveMode ? "bg-amber-300 text-amber-950" : "bg-black/45 text-white hover:bg-black/60"].join(" ")}
                 >
                   <GripVertical className="h-4 w-4" />
-                  Flytt svar
+                  {copy.moveAnswers}
                 </button>
                 <button
                   type="button"
@@ -325,7 +468,7 @@ export default function ImageActivityDisplayPage() {
                   className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-sm font-black text-white backdrop-blur hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Download className="h-4 w-4" />
-                  {printBusy ? "Lager..." : "Skriv ut"}
+                  {printBusy ? copy.making : copy.print}
                 </button>
               </div>
             ) : null}
@@ -336,15 +479,15 @@ export default function ImageActivityDisplayPage() {
             ) : null}
             {isLobby ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="text-5xl font-black">Bildeaktiviteten er klar</div>
-                <p className="mt-3 max-w-2xl text-xl font-bold text-white/60">Elevene skriver navn og trykker klar. Start når alle er med.</p>
+                <div className="text-5xl font-black">{copy.readyTitle}</div>
+                <p className="mt-3 max-w-2xl text-xl font-bold text-white/60">{copy.readyText}</p>
                 <button
                   type="button"
                   onClick={() => void startImageActivity()}
                   disabled={startBusy}
                   className="mt-8 rounded-3xl bg-emerald-500 px-10 py-5 text-2xl font-black text-white shadow-2xl shadow-emerald-950/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-500"
                 >
-                  {startBusy ? "Starter..." : "Start bildeaktivitet"}
+                  {startBusy ? copy.starting : copy.startImage}
                 </button>
               </div>
             ) : showImage && session?.imageUrl ? (
@@ -353,12 +496,12 @@ export default function ImageActivityDisplayPage() {
             ) : !showImage ? (
               <div className="flex h-full items-center justify-center text-center">
                 <div>
-                  <div className="text-5xl font-black">Bildet er skjult</div>
-                  <p className="mt-3 max-w-2xl text-xl font-bold text-white/60">Elevenes bilde står fortsatt fast. Her kan dere fokusere på svarene.</p>
+                  <div className="text-5xl font-black">{copy.hiddenTitle}</div>
+                  <p className="mt-3 max-w-2xl text-xl font-bold text-white/60">{copy.hiddenText}</p>
                 </div>
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-3xl font-black text-white/50">Venter på bilde...</div>
+              <div className="flex h-full items-center justify-center text-3xl font-black text-white/50">{copy.waitingImage}</div>
             )}
           </div>
 
@@ -375,8 +518,8 @@ export default function ImageActivityDisplayPage() {
               ) : (
                 <div className="flex h-full items-center justify-center text-center">
                   <div>
-                    <div className="text-5xl font-black">Venter på deltakere...</div>
-                    <p className="mt-3 text-xl font-bold text-white/60">Elevene bruker kode eller QR.</p>
+                    <div className="text-5xl font-black">{copy.waitingParticipants}</div>
+                    <p className="mt-3 text-xl font-bold text-white/60">{copy.studentHint}</p>
                   </div>
                 </div>
               )
@@ -407,7 +550,7 @@ export default function ImageActivityDisplayPage() {
                           type="button"
                           onClick={() => setFeaturedId((current) => current === item.id ? "" : item.id)}
                           className={["inline-flex h-9 w-9 items-center justify-center rounded-full", featured ? "bg-amber-500 text-white" : "bg-white/70 text-slate-800"].join(" ")}
-                          title="Marker svar"
+                          title={copy.markAnswer}
                         >
                           <Star className="h-4 w-4" />
                         </button>
@@ -415,7 +558,7 @@ export default function ImageActivityDisplayPage() {
                           type="button"
                           onClick={() => togglePinned(item.id)}
                           className={["inline-flex h-9 w-9 items-center justify-center rounded-full", pinned ? "bg-slate-950 text-white" : "bg-white/70 text-slate-800"].join(" ")}
-                          title="Hold svar"
+                          title={copy.holdAnswer}
                         >
                           <Pin className="h-4 w-4" />
                         </button>
@@ -428,8 +571,8 @@ export default function ImageActivityDisplayPage() {
             ) : (
               <div className="flex h-full items-center justify-center text-center">
                 <div>
-                  <div className="text-5xl font-black">Venter på svar...</div>
-                  <p className="mt-3 text-xl font-bold text-white/60">Elevene bruker kode eller QR.</p>
+                  <div className="text-5xl font-black">{copy.waitingAnswers}</div>
+                  <p className="mt-3 text-xl font-bold text-white/60">{copy.studentHint}</p>
                 </div>
               </div>
             )}

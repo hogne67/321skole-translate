@@ -29,14 +29,138 @@ function safeString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-function normalizeSession(value: unknown): WordwallSession | null {
+function wordwallCopy(locale: string) {
+  if (locale === "en") {
+    return {
+      defaultPrompt: "Write one word that fits.",
+      participantFallback: "Participant",
+      fallbackTitle: "Word cloud",
+      fetchFailed: "Could not load the word cloud.",
+      loginStart: "You must be signed in to start.",
+      startFailed: "Could not start the word cloud.",
+      pdfFailed: "Could not create PDF.",
+      code: "Code",
+      brand: "321school word cloud",
+      participantsReady: (count: number) => `${count} ${count === 1 ? "participant" : "participants"} ready`,
+      wordsSubmitted: (count: number) => `${count} ${count === 1 ? "word" : "words"} submitted`,
+      timeUp: "Time is up",
+      timeLeft: "Time left",
+      closeTitle: "Close big screen",
+      join: "Join",
+      goTo: "Go to",
+      makingQr: "Making QR...",
+      starting: "Starting...",
+      startWordwall: "Start word cloud",
+      moveModeOn: "Move mode on",
+      moveWords: "Move words",
+      makingPdf: "Creating PDF...",
+      printPdf: "Print PDF",
+      waitingParticipants: "Waiting for participants...",
+      lobbyHint: "Students scan the QR or enter the code. Start when the class is ready.",
+      ready: "ready",
+      waitingWords: "Waiting for words...",
+      studentHint: "Students use the code or QR.",
+      pdfTitle: "Word cloud",
+      generatedAt: "Created",
+      prompt: "Task",
+      responses: "Responses",
+      space: "Room",
+      featured: "Focus words",
+      pinned: "Pinned words",
+      allWords: "All words",
+      noWords: "No words yet",
+    };
+  }
+  if (locale === "pt") {
+    return {
+      defaultPrompt: "Escreva uma palavra que combine.",
+      participantFallback: "Participante",
+      fallbackTitle: "Nuvem de palavras",
+      fetchFailed: "Não foi possível carregar a nuvem de palavras.",
+      loginStart: "Você precisa estar conectado para iniciar.",
+      startFailed: "Não foi possível iniciar a nuvem de palavras.",
+      pdfFailed: "Não foi possível criar o PDF.",
+      code: "Código",
+      brand: "321school nuvem de palavras",
+      participantsReady: (count: number) => `${count} ${count === 1 ? "participante pronto" : "participantes prontos"}`,
+      wordsSubmitted: (count: number) => `${count} ${count === 1 ? "palavra enviada" : "palavras enviadas"}`,
+      timeUp: "O tempo acabou",
+      timeLeft: "Tempo restante",
+      closeTitle: "Fechar tela grande",
+      join: "Entrar",
+      goTo: "Ir para",
+      makingQr: "Criando QR...",
+      starting: "Iniciando...",
+      startWordwall: "Iniciar nuvem",
+      moveModeOn: "Modo mover ativo",
+      moveWords: "Mover palavras",
+      makingPdf: "Criando PDF...",
+      printPdf: "Imprimir PDF",
+      waitingParticipants: "Aguardando participantes...",
+      lobbyHint: "Os alunos escaneiam o QR ou digitam o código. Inicie quando a turma estiver pronta.",
+      ready: "prontos",
+      waitingWords: "Aguardando palavras...",
+      studentHint: "Os alunos usam o código ou QR.",
+      pdfTitle: "Nuvem de palavras",
+      generatedAt: "Criado",
+      prompt: "Tarefa",
+      responses: "Respostas",
+      space: "Sala",
+      featured: "Palavras em foco",
+      pinned: "Palavras marcadas",
+      allWords: "Todas as palavras",
+      noWords: "Ainda não há palavras",
+    };
+  }
+  return {
+    defaultPrompt: "Skriv ett ord som passer.",
+    participantFallback: "Deltaker",
+    fallbackTitle: "Ordsky",
+    fetchFailed: "Kunne ikke hente ordskyen.",
+    loginStart: "Du må være innlogget for å starte.",
+    startFailed: "Kunne ikke starte ordskyen.",
+    pdfFailed: "Kunne ikke lage PDF.",
+    code: "Kode",
+    brand: "321school ordsky",
+    participantsReady: (count: number) => `${count} deltakere klare`,
+    wordsSubmitted: (count: number) => `${count} ord sendt inn`,
+    timeUp: "Tiden er ute",
+    timeLeft: "Tid igjen",
+    closeTitle: "Lukk storskjerm",
+    join: "Bli med",
+    goTo: "Gå til",
+    makingQr: "Lager QR...",
+    starting: "Starter...",
+    startWordwall: "Start ordsky",
+    moveModeOn: "Flyttemodus på",
+    moveWords: "Flytt ord",
+    makingPdf: "Lager PDF...",
+    printPdf: "Skriv ut PDF",
+    waitingParticipants: "Venter på deltakere...",
+    lobbyHint: "Elevene skanner QR eller skriver kode. Start når klassen er klar.",
+    ready: "klare",
+    waitingWords: "Venter på ord...",
+    studentHint: "Elevene bruker kode eller QR.",
+    pdfTitle: "Ordsky",
+    generatedAt: "Laget",
+    prompt: "Oppgave",
+    responses: "Svar",
+    space: "Rom",
+    featured: "Fokusord",
+    pinned: "Markerte ord",
+    allWords: "Alle ord",
+    noWords: "Ingen ord ennå",
+  };
+}
+
+function normalizeSession(value: unknown, defaultPrompt: string, participantFallback: string): WordwallSession | null {
   if (!isRecord(value) || !isRecord(value.session)) return null;
   const session = value.session;
   return {
     id: safeString(session.id),
     code: safeString(session.code),
     status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
-    prompt: safeString(session.prompt, "Skriv ett ord som passer."),
+    prompt: safeString(session.prompt, defaultPrompt),
     motion: session.motion === "calm" || session.motion === "energy" ? session.motion : "alive",
     timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
     endsAt: typeof session.endsAt === "number" && session.endsAt > 0 ? session.endsAt : null,
@@ -51,7 +175,7 @@ function normalizeSession(value: unknown): WordwallSession | null {
     participants: Array.isArray(session.participants)
       ? session.participants.filter(isRecord).map((participant) => ({
         id: safeString(participant.id),
-        displayName: safeString(participant.displayName, "Deltaker"),
+        displayName: safeString(participant.displayName, participantFallback),
       })).filter((participant) => participant.id)
       : [],
   };
@@ -93,6 +217,7 @@ export default function WordwallDisplayPage() {
   const params = useParams<{ locale: string; sessionId: string }>();
   const router = useRouter();
   const locale = params.locale;
+  const copy = useMemo(() => wordwallCopy(locale), [locale]);
   const sessionId = params.sessionId;
   const [session, setSession] = useState<WordwallSession | null>(null);
   const [qrUrl, setQrUrl] = useState("");
@@ -117,12 +242,12 @@ export default function WordwallDisplayPage() {
     const res = await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as unknown;
     if (!res.ok) {
-      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke hente ordskyen.");
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : copy.fetchFailed);
       return;
     }
-    setSession(normalizeSession(data));
+    setSession(normalizeSession(data, copy.defaultPrompt, copy.participantFallback));
     setError("");
-  }, [sessionId]);
+  }, [copy.defaultPrompt, copy.fetchFailed, copy.participantFallback, sessionId]);
 
   useEffect(() => {
     void load();
@@ -155,7 +280,7 @@ export default function WordwallDisplayPage() {
     if (startBusy || !session || session.status !== "lobby") return;
     const current = auth.currentUser;
     if (!current) {
-      setError("Du må være innlogget for å starte.");
+      setError(copy.loginStart);
       return;
     }
     setStartBusy(true);
@@ -168,10 +293,10 @@ export default function WordwallDisplayPage() {
         body: JSON.stringify({ action: "start" }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke starte ordskyen.");
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : copy.startFailed);
       await load();
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke starte ordskyen.");
+      setError(event instanceof Error ? event.message : copy.startFailed);
     } finally {
       setStartBusy(false);
     }
@@ -191,27 +316,27 @@ export default function WordwallDisplayPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
-            title: "Ordsky",
+            title: copy.pdfTitle,
             subtitle: session.prompt,
             prompt: session.prompt,
             generatedAt,
             responseCount: session.total,
             words: session.words,
             labels: {
-              generatedAt: "Laget",
-              prompt: "Oppgave",
-              responses: "Svar",
-              space: "Rom",
-              featured: "Fokusord",
-              pinned: "Markerte ord",
-              allWords: "Alle ord",
-              noWords: "Ingen ord ennå",
+              generatedAt: copy.generatedAt,
+              prompt: copy.prompt,
+              responses: copy.responses,
+              space: copy.space,
+              featured: copy.featured,
+              pinned: copy.pinned,
+              allWords: copy.allWords,
+              noWords: copy.noWords,
               site: "321school.com",
             },
           },
         }),
       });
-      if (!res.ok) throw new Error("Kunne ikke lage PDF.");
+      if (!res.ok) throw new Error(copy.pdfFailed);
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -222,7 +347,7 @@ export default function WordwallDisplayPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke lage PDF.");
+      setError(event instanceof Error ? event.message : copy.pdfFailed);
     } finally {
       setPrintBusy(false);
     }
@@ -249,23 +374,23 @@ export default function WordwallDisplayPage() {
       <div className="mx-auto flex h-full max-w-[1800px] flex-col">
         <header className="relative flex items-start justify-center gap-6 text-center">
           <div className="absolute left-0 top-0 rounded-2xl bg-white/10 px-5 py-3 text-left">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Kode</div>
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{copy.code}</div>
             <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
           </div>
           <div>
-            <div className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">321school ordsky</div>
-            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? "Ordsky"}</h1>
+            <div className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">{copy.brand}</div>
+            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? copy.fallbackTitle}</h1>
             <p className="mt-2 text-lg font-bold text-white/60">
-              {isLobby ? `${session?.participantCount ?? 0} deltakere klare` : `${session?.total ?? 0} ord sendt inn`}
+              {isLobby ? copy.participantsReady(session?.participantCount ?? 0) : copy.wordsSubmitted(session?.total ?? 0)}
             </p>
           </div>
           {hasTimer ? (
             <div className={["absolute right-16 top-0 rounded-2xl px-5 py-3 text-right", timerDone ? "bg-rose-500/20 text-rose-100" : "bg-white/10 text-white"].join(" ")}>
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{timerDone ? "Tiden er ute" : "Tid igjen"}</div>
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">{timerDone ? copy.timeUp : copy.timeLeft}</div>
               <div className="text-3xl font-black tabular-nums">{formatRemaining(remaining ?? 0)}</div>
             </div>
           ) : null}
-          <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title="Lukk storskjerm">
+          <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title={copy.closeTitle}>
             <X className="h-5 w-5" />
           </button>
         </header>
@@ -274,16 +399,16 @@ export default function WordwallDisplayPage() {
 
         <section className="grid min-h-0 flex-1 gap-6 py-6 xl:grid-cols-[minmax(260px,0.38fr)_minmax(0,1fr)]">
           <aside className="self-start rounded-[2rem] bg-white/[0.08] p-4">
-            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/50">Bli med</div>
+            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/50">{copy.join}</div>
             <div className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white/80">
-              Gå til {liveUrlText}
+              {copy.goTo} {liveUrlText}
             </div>
             <div className="mt-3 inline-flex max-w-full rounded-[1.5rem] bg-white p-2">
               {qrUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={qrUrl} alt="" className="block" style={{ width: "min(15rem, 26vw, 30vh)", height: "min(15rem, 26vw, 30vh)" }} />
               ) : (
-                <div className="flex items-center justify-center text-slate-500" style={{ width: "min(15rem, 26vw, 30vh)", height: "min(15rem, 26vw, 30vh)" }}>Lager QR...</div>
+                <div className="flex items-center justify-center text-slate-500" style={{ width: "min(15rem, 26vw, 30vh)", height: "min(15rem, 26vw, 30vh)" }}>{copy.makingQr}</div>
               )}
             </div>
             {isLobby ? (
@@ -293,7 +418,7 @@ export default function WordwallDisplayPage() {
                 disabled={startBusy}
                 className="mt-4 w-full rounded-2xl bg-emerald-500 px-5 py-4 text-lg font-black text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/50"
               >
-                {startBusy ? "Starter..." : "Start ordsky"}
+                {startBusy ? copy.starting : copy.startWordwall}
               </button>
             ) : null}
             {words.length ? (
@@ -304,7 +429,7 @@ export default function WordwallDisplayPage() {
                   className={["inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black", moveMode ? "bg-sky-300 text-slate-950" : "bg-white/10 text-white hover:bg-white/15"].join(" ")}
                 >
                   <Move className="h-4 w-4" aria-hidden="true" />
-                  {moveMode ? "Flyttemodus på" : "Flytt ord"}
+                  {moveMode ? copy.moveModeOn : copy.moveWords}
                 </button>
                 <button
                   type="button"
@@ -313,7 +438,7 @@ export default function WordwallDisplayPage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950 hover:bg-sky-100 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50"
                 >
                   <Download className="h-4 w-4" aria-hidden="true" />
-                  {printBusy ? "Lager PDF..." : "Skriv ut PDF"}
+                  {printBusy ? copy.makingPdf : copy.printPdf}
                 </button>
               </div>
             ) : null}
@@ -333,10 +458,10 @@ export default function WordwallDisplayPage() {
             {isLobby ? (
               <div className="flex h-full items-center justify-center text-center">
                 <div className="w-full max-w-5xl">
-                  <div className="text-5xl font-black">Venter på deltakere...</div>
-                  <p className="mt-3 text-xl font-bold text-white/60">Elevene skanner QR eller skriver kode. Start når klassen er klar.</p>
+                  <div className="text-5xl font-black">{copy.waitingParticipants}</div>
+                  <p className="mt-3 text-xl font-bold text-white/60">{copy.lobbyHint}</p>
                   <div className="mt-6 inline-flex rounded-2xl bg-white/10 px-6 py-4 text-3xl font-black text-sky-200">
-                    {session?.participantCount ?? 0} klare
+                    {session?.participantCount ?? 0} {copy.ready}
                   </div>
                   {participants.length ? (
                     <div className="mt-8 flex max-h-[42vh] flex-wrap justify-center gap-3 overflow-hidden">
@@ -376,8 +501,8 @@ export default function WordwallDisplayPage() {
             ) : (
               <div className="flex h-full items-center justify-center text-center">
                 <div>
-                  <div className="text-5xl font-black">Venter på ord...</div>
-                  <p className="mt-3 text-xl font-bold text-white/60">Elevene bruker kode eller QR.</p>
+                  <div className="text-5xl font-black">{copy.waitingWords}</div>
+                  <p className="mt-3 text-xl font-bold text-white/60">{copy.studentHint}</p>
                 </div>
               </div>
             )}

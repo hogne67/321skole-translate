@@ -1,7 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { isRecord, makeUniquePollCode, normalizePollOptions, safeString, safeTimerSeconds } from "@/lib/pollSessions";
 
@@ -39,17 +39,16 @@ export async function POST(req: Request) {
     if (options.length < 2) return json({ error: "Legg inn minst to alternativer." }, 400);
 
     const timerSeconds = safeTimerSeconds(body.timerSeconds);
-    const now = Date.now();
     const code = await makeUniquePollCode(db);
     const sessionRef = db.collection("pollSessions").doc();
     await sessionRef.set({
       ownerId: uid,
       code,
-      status: "active",
+      status: "ready",
       question,
       options,
       timerSeconds,
-      endsAt: timerSeconds ? Timestamp.fromMillis(now + timerSeconds * 1000) : null,
+      endsAt: null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

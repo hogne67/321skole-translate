@@ -16,7 +16,7 @@
       "title": "Dagens spørsmål",
       "prompt": "Skriv med egne ord: Hva betyr teller og nevner?",
       "pollQuestion": "Hva mener du?",
-      "pollOptions": "Ja, Nei, Usikker",
+      "pollOptions": "Ja, Nei, Vet ikke",
       "wordwallPrompt": "Skriv ett ord som passer til temaet.",
       "imagePrompt": "Skriv en setning om bildet.",
       "clockTitle": "Klasseklokke",

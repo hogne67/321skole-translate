@@ -7,7 +7,7 @@ type PollOption = { option: string; count: number };
 type PollSession = {
   id: string;
   code: string;
-  status: "active" | "finished";
+  status: "ready" | "active" | "finished";
   question: string;
   options: PollOption[];
   timerSeconds: number | null;
@@ -29,7 +29,7 @@ function normalizeSession(value: unknown): PollSession | null {
   return {
     id: safeString(session.id),
     code: safeString(session.code),
-    status: session.status === "finished" ? "finished" : "active",
+    status: session.status === "finished" ? "finished" : session.status === "ready" ? "ready" : "active",
     question: safeString(session.question, "Hva mener du?"),
     options: Array.isArray(session.options)
       ? session.options.filter(isRecord).map((item) => ({
@@ -101,11 +101,12 @@ export default function PublicPollPage() {
   }, []);
 
   const hasTimer = typeof session?.endsAt === "number";
+  const pollIsReady = session?.status === "ready";
   const remaining = hasTimer ? Math.max(0, Math.ceil(((session?.endsAt ?? 0) - now) / 1000)) : null;
   const timeIsUp = hasTimer && remaining === 0;
 
   async function vote(choice: string) {
-    if (!choice || !participantId || timeIsUp) return;
+    if (!choice || !participantId || timeIsUp || pollIsReady) return;
     setSelected(choice);
     setBusy(true);
     setError("");
@@ -135,7 +136,9 @@ export default function PublicPollPage() {
         <section className="rounded-[2rem] border border-violet-100 bg-white p-6 shadow-sm">
           <div className="text-sm font-black uppercase tracking-[0.2em] text-violet-700">321school live</div>
           <h1 className="mt-3 text-3xl font-black leading-tight">{session?.question ?? "Avstemming"}</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-600">Velg ett alternativ. Du kan endre stemmen mens avstemmingen er åpen.</p>
+          <p className="mt-2 text-sm font-semibold text-slate-600">
+            {pollIsReady ? "Vent på at læreren starter avstemmingen." : "Velg ett alternativ. Du kan endre stemmen mens avstemmingen er åpen."}
+          </p>
           {hasTimer ? (
             <div className={["mt-4 rounded-2xl border px-4 py-3 text-sm font-black", timeIsUp ? "border-rose-200 bg-rose-50 text-rose-700" : "border-violet-200 bg-violet-50 text-violet-900"].join(" ")}>
               {timeIsUp ? "Tiden er ute." : `Tid igjen: ${formatRemaining(remaining ?? 0)}`}
@@ -153,7 +156,7 @@ export default function PublicPollPage() {
                 key={item.option}
                 type="button"
                 onClick={() => void vote(item.option)}
-                disabled={busy || session?.status === "finished" || timeIsUp}
+                disabled={busy || session?.status === "finished" || timeIsUp || pollIsReady}
                 className={["rounded-2xl border px-5 py-4 text-left text-lg font-black transition", selected === item.option ? "border-violet-600 bg-violet-100 text-violet-950" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50", "disabled:cursor-not-allowed disabled:opacity-60"].join(" ")}
               >
                 {item.option}

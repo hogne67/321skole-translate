@@ -5,7 +5,7 @@ import type { Firestore } from "firebase-admin/firestore";
 export type PollSessionDoc = {
   ownerId?: string;
   code?: string;
-  status?: "active" | "finished";
+  status?: "ready" | "active" | "finished";
   question?: string;
   options?: string[];
   timerSeconds?: number | null;

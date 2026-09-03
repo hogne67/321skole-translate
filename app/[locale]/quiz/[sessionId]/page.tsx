@@ -51,7 +51,107 @@ function safeString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-function normalizeSession(value: unknown): SessionView | null {
+function publicQuizCopy(locale: string) {
+  if (locale === "en") {
+    return {
+      participantFallback: "Participant",
+      fetchFailed: "Could not find the quiz session.",
+      joinFailed: "Could not join.",
+      answerFailed: "Could not send answer.",
+      changeName: "Change name or group name",
+      enterName: "Enter name or group name",
+      resultListHint: "This is shown in the result list.",
+      namePlaceholder: "For example: Team 3",
+      saveName: "Save name",
+      join: "Join",
+      joined: "You are in",
+      waitingHost: "Waiting for the host to start the quiz.",
+      editName: "Change name",
+      questionProgress: (current: number, total: number) => `Question ${current} of ${total}`,
+      nextQuestion: "Next question",
+      result: "Result",
+      correctAnswer: "Correct answer",
+      timeLeft: "Time left",
+      resultsOnScreen: "Results are shown on the screen.",
+      nextStartsSoon: "The next question starts soon.",
+      answerSent: "Answer sent",
+      sendAnswer: "Send answer",
+      loading: "Loading...",
+      winnerTitle: "Congratulations!",
+      winnerText: (score: number) => `You won the quiz with ${score} points.`,
+      winnerDetail: (correct: number) => `${correct} correct answers. Very well done.`,
+      placeTitle: (rank: number) => `${rank}${rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th"} place!`,
+      scoreText: (score: number, correct: number) => `You got ${score} points and ${correct} correct.`,
+      quizFinished: "The quiz is finished!",
+    };
+  }
+  if (locale === "pt") {
+    return {
+      participantFallback: "Participante",
+      fetchFailed: "Não encontramos a sessão do quiz.",
+      joinFailed: "Não foi possível entrar.",
+      answerFailed: "Não foi possível enviar a resposta.",
+      changeName: "Alterar nome ou nome do grupo",
+      enterName: "Escreva nome ou nome do grupo",
+      resultListHint: "Isso aparece na lista de resultados.",
+      namePlaceholder: "Por exemplo: Equipe 3",
+      saveName: "Salvar nome",
+      join: "Entrar",
+      joined: "Você entrou",
+      waitingHost: "Aguardando o anfitrião iniciar o quiz.",
+      editName: "Alterar nome",
+      questionProgress: (current: number, total: number) => `Pergunta ${current} de ${total}`,
+      nextQuestion: "Próxima pergunta",
+      result: "Resultado",
+      correctAnswer: "Resposta correta",
+      timeLeft: "Tempo restante",
+      resultsOnScreen: "Os resultados aparecem na tela.",
+      nextStartsSoon: "A próxima pergunta começa em breve.",
+      answerSent: "Resposta enviada",
+      sendAnswer: "Enviar resposta",
+      loading: "Carregando...",
+      winnerTitle: "Parabéns!",
+      winnerText: (score: number) => `Você venceu o quiz com ${score} pontos.`,
+      winnerDetail: (correct: number) => `${correct} respostas corretas. Muito bem.`,
+      placeTitle: (rank: number) => `${rank}. lugar!`,
+      scoreText: (score: number, correct: number) => `Você fez ${score} pontos e acertou ${correct}.`,
+      quizFinished: "O quiz terminou!",
+    };
+  }
+  return {
+    participantFallback: "Deltaker",
+    fetchFailed: "Fant ikke quizøkten.",
+    joinFailed: "Kunne ikke bli med.",
+    answerFailed: "Kunne ikke sende svar.",
+    changeName: "Endre navn eller gruppenavn",
+    enterName: "Skriv navn eller gruppenavn",
+    resultListHint: "Dette vises i resultatlisten.",
+    namePlaceholder: "F.eks. Team 3",
+    saveName: "Lagre navn",
+    join: "Bli med",
+    joined: "Du er med",
+    waitingHost: "Venter på at host starter quizen.",
+    editName: "Endre navn",
+    questionProgress: (current: number, total: number) => `Spørsmål ${current} av ${total}`,
+    nextQuestion: "Neste spørsmål",
+    result: "Resultat",
+    correctAnswer: "Riktig svar",
+    timeLeft: "Tid igjen",
+    resultsOnScreen: "Resultat vises på skjermen.",
+    nextStartsSoon: "Neste spørsmål starter straks.",
+    answerSent: "Svar sendt",
+    sendAnswer: "Send svar",
+    loading: "Laster...",
+    winnerTitle: "Gratulerer!",
+    winnerText: (score: number) => `Du vant quizen med ${score} poeng.`,
+    winnerDetail: (correct: number) => `${correct} riktige svar. Skikkelig godt jobbet.`,
+    placeTitle: (rank: number) => `${rank}. plass!`,
+    scoreText: (score: number, correct: number) => `Du fikk ${score} poeng og ${correct} riktige.`,
+    quizFinished: "Quizen er ferdig!",
+  };
+}
+
+function normalizeSession(value: unknown, participantFallback: string): SessionView | null {
   if (!isRecord(value)) return null;
   const session = isRecord(value.session) ? value.session : {};
   const questions = Array.isArray(session.questions) ? session.questions : [];
@@ -81,7 +181,7 @@ function normalizeSession(value: unknown): SessionView | null {
     })),
     scores: scores.filter(isRecord).map((score) => ({
       participantId: safeString(score.participantId),
-      alias: safeString(score.alias, "Deltaker"),
+      alias: safeString(score.alias, participantFallback),
       emoji: safeString(score.emoji),
       score: typeof score.score === "number" ? score.score : 0,
       correct: typeof score.correct === "number" ? score.correct : 0,
@@ -91,7 +191,9 @@ function normalizeSession(value: unknown): SessionView | null {
 }
 
 export default function PublicQuizSessionPage() {
-  const params = useParams<{ sessionId: string }>();
+  const params = useParams<{ locale: string; sessionId: string }>();
+  const locale = params.locale;
+  const copy = useMemo(() => publicQuizCopy(locale), [locale]);
   const sessionId = params.sessionId;
   const storageKey = `quizSessionParticipant:${sessionId}`;
 
@@ -133,12 +235,12 @@ export default function PublicQuizSessionPage() {
     const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}`);
     const data = (await res.json().catch(() => ({}))) as unknown;
     if (!res.ok) {
-      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Fant ikke quizøkten.");
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : copy.fetchFailed);
       return;
     }
-    setSession(normalizeSession(data));
+    setSession(normalizeSession(data, copy.participantFallback));
     setError(null);
-  }, [sessionId]);
+  }, [copy.fetchFailed, copy.participantFallback, sessionId]);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(storageKey);
@@ -180,13 +282,13 @@ export default function PublicQuizSessionPage() {
         body: JSON.stringify({ alias, emoji, participantId }),
       });
       const data = (await res.json().catch(() => ({}))) as { participantId?: unknown; error?: unknown };
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke bli med.");
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : copy.joinFailed);
       const nextId = safeString(data.participantId);
       setParticipantId(nextId);
       window.localStorage.setItem(storageKey, JSON.stringify({ participantId: nextId, alias, emoji }));
       setEditingIdentity(false);
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke bli med.");
+      setError(event instanceof Error ? event.message : copy.joinFailed);
     } finally {
       setBusy(false);
     }
@@ -203,11 +305,11 @@ export default function PublicQuizSessionPage() {
         body: JSON.stringify({ participantId, questionIndex: session.currentIndex, choice }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
-      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke sende svar.");
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : copy.answerFailed);
       setSentKey(currentKey);
       await load();
     } catch (event) {
-      setError(event instanceof Error ? event.message : "Kunne ikke sende svar.");
+      setError(event instanceof Error ? event.message : copy.answerFailed);
     } finally {
       setBusy(false);
     }
@@ -226,13 +328,13 @@ export default function PublicQuizSessionPage() {
 
         {!participantId || editingIdentity ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-3xl font-black">{participantId ? "Endre navn eller gruppenavn" : "Skriv navn eller gruppenavn"}</h2>
-            <p className="mt-2 text-slate-600">Dette vises i resultatlisten.</p>
+            <h2 className="text-3xl font-black">{participantId ? copy.changeName : copy.enterName}</h2>
+            <p className="mt-2 text-slate-600">{copy.resultListHint}</p>
             <input
               value={alias}
               onChange={(event) => setAlias(event.target.value)}
               className="mt-6 w-full rounded-2xl border border-slate-300 px-4 py-4 text-xl font-bold outline-none focus:border-violet-500"
-              placeholder="F.eks. Team 3"
+              placeholder={copy.namePlaceholder}
               autoFocus
             />
             <div className="mt-5 grid grid-cols-6 gap-2">
@@ -243,12 +345,12 @@ export default function PublicQuizSessionPage() {
               ))}
             </div>
             <button onClick={join} disabled={busy || !alias.trim()} className="mt-6 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-              {participantId ? "Lagre navn" : "Bli med"}
+              {participantId ? copy.saveName : copy.join}
             </button>
           </section>
         ) : session?.status === "finished" ? (
           <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
-            <PersonalResult rank={ownRank} score={ownScore} />
+            <PersonalResult rank={ownRank} score={ownScore} copy={copy} />
             <div className="mt-6 grid gap-2">
               {session.scores.slice(0, 5).map((score, index) => (
                 <div key={score.participantId} className={["flex items-center justify-between rounded-2xl p-4", score.participantId === participantId ? "bg-emerald-50 ring-2 ring-emerald-200" : "bg-slate-50"].join(" ")}>
@@ -261,20 +363,20 @@ export default function PublicQuizSessionPage() {
         ) : session?.status === "lobby" ? (
           <section className="rounded-[2rem] border border-violet-100 bg-white p-8 text-center shadow-sm">
             <Clock3 className="mx-auto h-10 w-10 text-violet-700" />
-            <h2 className="mt-4 text-3xl font-black">Du er med</h2>
-            <p className="mt-2 text-slate-600">Venter på at host starter quizen.</p>
-            <button onClick={() => setEditingIdentity(true)} className="mt-5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold">Endre navn</button>
+            <h2 className="mt-4 text-3xl font-black">{copy.joined}</h2>
+            <p className="mt-2 text-slate-600">{copy.waitingHost}</p>
+            <button onClick={() => setEditingIdentity(true)} className="mt-5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold">{copy.editName}</button>
           </section>
         ) : question ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3 text-sm font-bold text-slate-500">
-              <span>Spørsmål {(session?.currentIndex ?? 0) + 1} av {session?.questions.length ?? 0}</span>
+              <span>{copy.questionProgress((session?.currentIndex ?? 0) + 1, session?.questions.length ?? 0)}</span>
               <span>{emoji} {alias}</span>
             </div>
             {secondsLeft !== null ? (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                 <div className="mb-2 flex items-center justify-between text-base font-black text-slate-700">
-                  <span>{session?.phase === "next" ? "Neste spørsmål" : session?.phase === "results" ? "Resultat" : session?.phase === "reveal" ? "Riktig svar" : "Tid igjen"}</span>
+                  <span>{session?.phase === "next" ? copy.nextQuestion : session?.phase === "results" ? copy.result : session?.phase === "reveal" ? copy.correctAnswer : copy.timeLeft}</span>
                   <span className="rounded-full bg-slate-950 px-3 py-1 text-white">{secondsLeft}s</span>
                 </div>
                 <div className="h-4 overflow-hidden rounded-full bg-white">
@@ -292,12 +394,12 @@ export default function PublicQuizSessionPage() {
             ) : null}
             {session?.phase === "results" ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-black text-amber-950">
-                Resultat vises på skjermen.
+                {copy.resultsOnScreen}
               </div>
             ) : null}
             {session?.phase === "next" ? (
               <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-black text-violet-950">
-                Neste spørsmål starter straks.
+                {copy.nextStartsSoon}
               </div>
             ) : null}
             <h2 className="mt-4 text-3xl font-black leading-tight">{question.question}</h2>
@@ -321,18 +423,18 @@ export default function PublicQuizSessionPage() {
             </div>
             {session?.showAnswer && question.explanation ? <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-950">{question.explanation}</div> : null}
             <button onClick={sendAnswer} disabled={busy || !choice || session?.showAnswer} className="mt-6 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-              {sent ? "Svar sendt" : "Send svar"}
+              {sent ? copy.answerSent : copy.sendAnswer}
             </button>
           </section>
         ) : (
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">Laster...</section>
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">{copy.loading}</section>
         )}
       </div>
     </main>
   );
 }
 
-function PersonalResult({ rank, score }: { rank: number | null; score: ScoreRow | null }) {
+function PersonalResult({ rank, score, copy }: { rank: number | null; score: ScoreRow | null; copy: ReturnType<typeof publicQuizCopy> }) {
   if (rank === 1 && score) {
     return (
       <div className="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-center">
@@ -341,12 +443,12 @@ function PersonalResult({ rank, score }: { rank: number | null; score: ScoreRow 
         <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-300 text-slate-950 shadow-lg">
           <Trophy className="h-10 w-10" />
         </div>
-        <h2 className="relative mt-5 text-4xl font-black">Gratulerer!</h2>
+        <h2 className="relative mt-5 text-4xl font-black">{copy.winnerTitle}</h2>
         <p className="relative mt-2 text-lg font-black text-amber-950">
-          Du vant quizen med {score.score} poeng.
+          {copy.winnerText(score.score)}
         </p>
         <p className="relative mt-1 text-sm font-bold text-slate-700">
-          {score.correct} riktige svar. Skikkelig godt jobbet.
+          {copy.winnerDetail(score.correct)}
         </p>
       </div>
     );
@@ -358,9 +460,9 @@ function PersonalResult({ rank, score }: { rank: number | null; score: ScoreRow 
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-200 text-violet-950">
           <Medal className="h-8 w-8" />
         </div>
-        <h2 className="mt-5 text-3xl font-black">{rank}. plass!</h2>
+        <h2 className="mt-5 text-3xl font-black">{copy.placeTitle(rank)}</h2>
         <p className="mt-2 text-lg font-bold text-slate-700">
-          Du fikk {score.score} poeng og {score.correct} riktige.
+          {copy.scoreText(score.score, score.correct)}
         </p>
       </div>
     );
@@ -371,10 +473,10 @@ function PersonalResult({ rank, score }: { rank: number | null; score: ScoreRow 
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
         <Award className="h-8 w-8" />
       </div>
-      <h2 className="mt-5 text-3xl font-black">Quizen er ferdig!</h2>
+      <h2 className="mt-5 text-3xl font-black">{copy.quizFinished}</h2>
       {score ? (
         <p className="mt-2 text-lg font-bold text-slate-700">
-          Du fikk {score.score} poeng og {score.correct} riktige.
+          {copy.scoreText(score.score, score.correct)}
         </p>
       ) : null}
     </div>

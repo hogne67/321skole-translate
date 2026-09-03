@@ -241,6 +241,7 @@ function pollCopy(locale: string) {
       question: "Question",
       questionPlaceholder: "For example: Which strategy should we try first?",
       options: "Options",
+      defaultOptions: "Yes\nNo\nNot sure",
       optionsPlaceholder: "One option per line",
       timer: "Timer",
       noTimer: "No timer",
@@ -259,6 +260,7 @@ function pollCopy(locale: string) {
       question: "Pergunta",
       questionPlaceholder: "Por exemplo: Qual estratégia devemos tentar primeiro?",
       options: "Opções",
+      defaultOptions: "Sim\nNão\nNão tenho certeza",
       optionsPlaceholder: "Uma opção por linha",
       timer: "Temporizador",
       noTimer: "Sem timer",
@@ -276,6 +278,7 @@ function pollCopy(locale: string) {
     question: "Spørsmål",
     questionPlaceholder: "For eksempel: Hvilken strategi skal vi prøve først?",
     options: "Alternativer",
+    defaultOptions: "Ja\nNei\nVet ikke",
     optionsPlaceholder: "Ett alternativ per linje",
     timer: "Timer",
     noTimer: "Uten timer",
@@ -603,7 +606,7 @@ function TeacherBoardIndexInner() {
   const [wordwallBusy, setWordwallBusy] = useState(false);
   const [wordwallError, setWordwallError] = useState("");
   const [pollQuestion, setPollQuestion] = useState("");
-  const [pollOptionsRaw, setPollOptionsRaw] = useState("");
+  const [pollOptionsRaw, setPollOptionsRaw] = useState(() => pollCopy(locale).defaultOptions);
   const [pollTimerSeconds, setPollTimerSeconds] = useState<number | null>(null);
   const [pollCustomTimerSeconds, setPollCustomTimerSeconds] = useState("");
   const [pollBusy, setPollBusy] = useState(false);
