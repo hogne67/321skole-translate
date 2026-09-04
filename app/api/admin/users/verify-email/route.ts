@@ -46,11 +46,20 @@ export async function POST(req: Request) {
     await auth.updateUser(uid, { emailVerified: true });
 
     const userRecord = await auth.getUser(uid);
-    await db.collection("users").doc(uid).set(
+    const userRef = db.collection("users").doc(uid);
+    const existingUserSnap = await userRef.get();
+    const existingUser = existingUserSnap.exists ? existingUserSnap.data() || {} : {};
+    const existingDisplayName = typeof existingUser.displayName === "string" && existingUser.displayName.trim()
+      ? existingUser.displayName.trim()
+      : null;
+    const authDisplayName = typeof userRecord.displayName === "string" && userRecord.displayName.trim()
+      ? userRecord.displayName.trim()
+      : null;
+    await userRef.set(
       {
         uid,
         email: userRecord.email ?? null,
-        displayName: userRecord.displayName ?? null,
+        displayName: existingDisplayName ?? authDisplayName ?? null,
         emailVerified: true,
         emailVerifiedAt: verifiedAt,
         updatedAt: verifiedAt,

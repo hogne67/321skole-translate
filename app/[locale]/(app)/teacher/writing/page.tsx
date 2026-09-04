@@ -105,7 +105,7 @@ function TeacherWritingInner() {
             </div>
             <Link
               href={isGuestPreview ? loginHref : withLocale(locale, "/producer/text/new")}
-              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800"
+              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white no-underline hover:bg-emerald-800"
             >
               {isGuestPreview ? guestText.loginCreate : t("hub.form.create")}
             </Link>
@@ -120,7 +120,7 @@ function TeacherWritingInner() {
             </div>
             <Link
               href={isGuestPreview ? loginHref : withLocale(locale, "/producer/image-writing")}
-              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white hover:bg-sky-800"
+              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white no-underline hover:bg-sky-800"
             >
               {isGuestPreview ? guestText.loginCreate : t("hub.imageWritingAction")}
             </Link>
@@ -135,7 +135,7 @@ function TeacherWritingInner() {
             </div>
             <Link
               href={isGuestPreview ? loginHref : withLocale(locale, "/tools/podcast-workshop")}
-              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white hover:bg-violet-800"
+              className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-black text-white no-underline hover:bg-violet-800"
             >
               {isGuestPreview ? guestText.loginCreate : t("hub.podcastWorkshopAction")}
             </Link>
