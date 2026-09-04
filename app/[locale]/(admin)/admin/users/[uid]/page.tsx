@@ -311,6 +311,7 @@ export default function AdminUserDetailPage() {
   const [editRole, setEditRole] = useState<Role>("student");
   const [editAdminLevel, setEditAdminLevel] = useState<"" | AdminLevel>("");
   const [editDisabled, setEditDisabled] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -353,6 +354,7 @@ export default function AdminUserDetailPage() {
       setEditRole(next.role ?? "student");
       setEditAdminLevel(next.adminLevel ?? "");
       setEditDisabled(next.disabled === true);
+      setEditDisplayName(next.displayName ?? "");
     } catch (e: unknown) {
       setErr(errorMessage(e));
       setData(null);
@@ -389,6 +391,7 @@ export default function AdminUserDetailPage() {
         nextRole === "admin" && editAdminLevel ? editAdminLevel : null;
 
       await updateDoc(ref, {
+        displayName: editDisplayName.trim() || null,
         role: nextRole,
         adminLevel: nextAdminLevel,
         disabled: editDisabled,
@@ -686,6 +689,32 @@ export default function AdminUserDetailPage() {
                 gap: 14,
               }}
             >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.65,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                  }}
+                >
+                  DISPLAY NAME
+                </div>
+                <input
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  disabled={!canWrite || saving || passwordSaving || emailVerifying}
+                  placeholder="Full name"
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.12)",
+                    background: canWrite ? "white" : "rgba(0,0,0,0.03)",
+                  }}
+                />
+              </div>
+
               <div>
                 <div
                   style={{
