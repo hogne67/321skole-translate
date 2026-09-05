@@ -1011,6 +1011,22 @@ function getSoundLadderLabels(languageName: string): {
   };
 }
 
+function getSoundLadderExplanationLines(languageName: string, focusSound: string): string[] {
+  const labels = getSoundLadderLabels(languageName);
+  const normalizedSound = focusSound.trim().toLocaleLowerCase();
+  if (languageName === "Norwegian" && normalizedSound === "æ") {
+    return [
+      labels.explanationLine(focusSound),
+      "Noen vanlige ord har æ-lyd selv om de skrives med e, for eksempel her, der og er.",
+      labels.examplesLine(focusSound),
+    ];
+  }
+  return [
+    labels.explanationLine(focusSound),
+    labels.examplesLine(focusSound),
+  ];
+}
+
 function buildA1StartSoundLadderPrompt(languageName: string, config: A1StartConfig): string {
   const focusSound = String(config.focusSound || "").trim();
   const theme = String(config.topic || "").trim() || "everyday life";
@@ -1090,6 +1106,7 @@ Word training guidance:
 - For Norwegian s, examples such as "pappa", "far" and "leke" are invalid because they do not contain s. "hus" is not valid for the first group because s is not first.
 - For Norwegian k, do not use words with kj or skj, such as "kjøkken" or "skjorte". They belong to a different focus sound.
 - For Norwegian kj, use words with kj, such as "kjøkken", "kjole", "kjeks", "kjøpe" and "kjøre". Do not mix with plain k words such as "katt", "kopp" or "kake".
+- For Norwegian æ, explain briefly that some common words have the æ sound even when they are written with e, such as "her", "der" and "er".
 
 Sound sentence guidance:
 - Use simple, natural A1 sentences.
@@ -1111,8 +1128,7 @@ Text guidance:
 - For Norwegian A1, avoid words such as "øl", "røyk", "sjel" and idiomatic phrases such as "øre for musikk".
 
 Explanation guidance:
-- ${labels.explanationLine(focusSound)}
-- ${labels.examplesLine(focusSound)}
+${getSoundLadderExplanationLines(languageName, focusSound).map((line) => `- ${line}`).join("\n")}
 - Mention 2-4 concrete words from the word training list.
 
 Return valid JSON only:
@@ -1140,16 +1156,16 @@ function getSoundTrainingWords(languageName: string, focusSound: string, count: 
     d: ["dag", "du", "din", "dyr", "dør", "dans", "dukke", "drue", "drikke", "dele", "der", "dame", "datter", "data", "dusj"],
     f: ["far", "fisk", "fot", "fin", "fugl", "fem", "frokost", "frukt", "farge", "får", "familie", "finner", "fart", "fryser", "følge"],
     g: ["gå", "god", "gul", "gris", "gutt", "gate", "gave", "genser", "glass", "glede", "grøt", "grønn", "gammel", "gitar", "gulrot"],
-    k: ["katt", "kake", "kopp", "kul", "kan", "kommer", "kald", "kort", "kino", "kjøkken", "klasse", "klokke", "kropp", "klem", "kveld"],
+    k: ["katt", "kake", "kopp", "kul", "kan", "kommer", "kald", "kort", "klasse", "klokke", "kropp", "klem", "kveld", "ku"],
     n: ["natt", "nese", "navn", "ni", "ny", "norsk", "nøkkel", "nabo", "natur", "nå", "nær", "ned", "noen", "Nina", "notat"],
     e: ["egg", "en", "et", "eple", "elefant", "elleve", "etter", "elev", "egen", "enkel", "elsker", "eske", "elv", "ende", "er"],
     o: ["ost", "ord", "orm", "Ole", "Oda", "opp", "ovn", "over", "ofte", "onkel", "onsdag", "område", "orange", "ostekake", "okse"],
-    u: ["ut", "ull", "ung", "uke", "under", "ute", "uten", "ulv", "unge", "Ulla", "ugle", "usikker", "univers", "unik", "utstyr"],
-    æ: ["bær", "vær", "nær", "kjær", "lærer", "sær", "tær", "ærlig", "ærend", "været", "klær"],
+    u: ["ut", "ull", "uke", "under", "ute", "uten", "ulv", "Ulla", "ugle", "usikker", "univers", "unik", "utstyr"],
+    æ: ["ærlig", "ærend", "her", "der", "er", "bær", "vær", "nær", "kjær", "lærer", "stjerne", "klær"],
     ø: ["øl", "øye", "øre", "øy", "øve", "ønske", "søt", "brød", "grøt", "følge", "møte", "rød", "grønn", "løpe", "høre"],
     å: ["å", "år", "åtte", "ål", "båt", "blå", "får", "går", "står", "må", "nå", "så", "på", "låne", "måne"],
     sj: ["sjø", "sjokolade", "sju", "sjef", "sjakk", "sjal", "sjåfør", "sjampo", "sjelden", "sjarm"],
-    kj: ["kjole", "kjøkken", "kjøtt", "kjeks", "kjekk", "kjenne", "kjære", "kjøpe", "kjøre", "kjede", "kjeller", "kjølig"],
+    kj: ["kjole", "kjøkken", "kjøtt", "kjeks", "kjekk", "kjenne", "kjøpe", "kjøre", "kjede", "kjeller", "kjølig"],
   };
   const en: Record<string, string[]> = {
     s: ["sun", "sit", "see", "sand", "sock", "soup", "sad", "sing", "school", "small", "sister", "six", "soon", "story", "sleep"],
@@ -1290,7 +1306,7 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
       "Kroppen er kald.",
       "Kvelden kommer snart.",
       "Knut gir en klem.",
-      "Kinoen er kul.",
+      "Kua er rolig.",
       "Katten ser en kopp.",
     ],
     n: [
@@ -1333,11 +1349,11 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
       "Ulla går ut.",
       "Ugle sitter ute.",
       "Ulla har ull.",
-      "Ulven er ung.",
+      "Ulla bruker ull.",
       "Vi går under brua.",
       "Uka er lang.",
       "Uten sko blir jeg kald.",
-      "Ungen går ut.",
+      "Ugla sitter ute.",
       "Utstyret ligger ute.",
       "Ulla er usikker.",
     ],
@@ -1934,7 +1950,7 @@ function getInsideSoundFallbackWords(languageName: string, focusSound: string): 
     s: ["hus", "pose", "lese", "reise", "is", "ost", "lys", "fisk", "kasse", "buss"],
     m: ["rom", "hjem", "lampe", "sammen", "svømme", "klemme", "komme", "tomat", "sommer", "familie"],
     b: ["jobb", "jobbe", "nabo", "baby", "robot", "sebra", "krabbe", "kebab", "kube", "labb"],
-    d: ["med", "bad", "rød", "glad", "brød", "bord", "hund", "sand", "bade", "middag"],
+    d: ["skade", "bilde", "side", "hode", "middag", "bade", "nede", "redde", "rydde", "lyd"],
     f: ["sofa", "kaffe", "vaffel", "telefon", "saft", "løfte", "hjelpe", "skuff", "tøff", "graf"],
     g: ["dag", "sag", "tog", "hage", "mage", "farge", "morgen", "legge", "ligge", "fugl"],
     k: ["bok", "tak", "pakke", "sokker", "drikke", "skole", "voksen", "lek", "kake", "frokost"],
@@ -1943,11 +1959,11 @@ function getInsideSoundFallbackWords(languageName: string, focusSound: string): 
     e: ["se", "leke", "lese", "seng", "bestemor", "eple", "venn", "melk", "hest", "lek"],
     o: ["sol", "sko", "bok", "bord", "mor", "bror", "pose", "jobb", "robot", "ost"],
     u: ["hus", "buss", "suppe", "gul", "ut", "tur", "hund", "lunsj", "frukt", "brun"],
-    æ: ["lærer", "vær", "bær", "nær", "kjær", "klær", "tær", "ærlig"],
+    æ: ["her", "der", "er", "lærer", "vær", "bær", "nær", "kjær", "klær", "tær", "ærlig", "stjerne"],
     ø: ["søt", "brød", "grøt", "rød", "grønn", "møte", "høre", "løpe", "søster", "følge", "bøker", "dør"],
     å: ["båt", "blå", "får", "går", "står", "må", "nå", "på", "måne", "låne"],
     sj: ["kanskje", "skjorte", "skje", "sjø", "sjokolade", "sju", "sjef", "sjampo"],
-    kj: ["kjøkken", "kjole", "kjeks", "kjøpe", "kjøre", "kjenne", "kjære", "kjøtt"],
+    kj: ["kjøkken", "kjole", "kjeks", "kjøpe", "kjøre", "kjenne", "kjøtt"],
   };
   const en: Record<string, string[]> = {
     s: ["bus", "house", "pencil", "listen", "dress", "yes", "horse", "mouse", "class", "music"],
@@ -2007,12 +2023,25 @@ function simpleSoundSentence(languageName: string, word: string): string {
     brosjyre: "Læreren har en brosjyre.",
     massasje: "Massasje kan hjelpe.",
     spørsmål: "Jeg har et spørsmål.",
+    her: "Jeg er her.",
+    der: "Boka ligger der.",
+    er: "Dette er bra.",
+    stjerne: "Jeg ser en stjerne.",
     dør: "Døra er åpen.",
+    skade: "Jeg har en liten skade.",
     datamaskin: "Jeg bruker datamaskin.",
     drikk: "Vi har drikk i sekken.",
     dagbok: "Jeg skriver i dagboka.",
     deilig: "Maten er deilig.",
     bilde: "Jeg ser et bilde.",
+    side: "Jeg leser en side.",
+    hode: "Hodet mitt er varmt.",
+    middag: "Vi spiser middag.",
+    bade: "Vi kan bade.",
+    nede: "Boka ligger nede.",
+    redde: "Vi må redde katten.",
+    rydde: "Jeg skal rydde rommet.",
+    lyd: "Jeg hører en lyd.",
     skolegård: "Vi leker i skolegården.",
     med: "Jeg er med Sara.",
     bad: "Vi går på badet.",
@@ -2026,7 +2055,6 @@ function simpleSoundSentence(languageName: string, word: string): string {
     kjeks: "Jeg spiser kjeks.",
     kjekk: "Han er kjekk.",
     kjenne: "Jeg kan kjenne på den.",
-    kjære: "Kjære mamma, hei.",
     kjøpe: "Jeg skal kjøpe mat.",
     kjøre: "Hun kan kjøre bil.",
     kjede: "Jeg har et kjede.",
@@ -2053,6 +2081,12 @@ function simpleSoundSentence(languageName: string, word: string): string {
     ord: "Jeg skriver et ord.",
     sko: "Jeg tar på sko.",
     bok: "Jeg leser en bok.",
+    ku: "Jeg ser en ku.",
+    to: "Jeg har to bøker.",
+    ro: "Vi har ro i klassen.",
+    bo: "Jeg vil bo her.",
+    bor: "Ole bor her.",
+    stor: "Bilen er stor.",
     god: "Maten er god.",
     lomme: "Jeg har en lomme.",
     sol: "Sola skinner.",
@@ -2847,8 +2881,7 @@ function normalizeA1StartSoundLadderResult(
   const lowerText = normalizedText.toLocaleLowerCase();
   const explanation = [
     labels.explanation,
-    labels.explanationLine(focusSound),
-    labels.examplesLine(focusSound),
+    ...getSoundLadderExplanationLines(languageName, focusSound),
   ].join("\n");
   const soundWords = [
     labels.wordTraining,
