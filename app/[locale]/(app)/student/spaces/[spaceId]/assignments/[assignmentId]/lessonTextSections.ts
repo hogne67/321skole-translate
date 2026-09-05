@@ -17,6 +17,12 @@ export type LessonTextSection = {
     text: string;
 };
 
+type HighFrequencyExtraSections = {
+    word?: string;
+    readingSentences?: string;
+    explanation?: string;
+};
+
 function normalizeHeading(value: string) {
     return value
         .trim()
@@ -98,11 +104,28 @@ const HIGH_FREQUENCY_HEADING_KEYS: Record<string, "highfreq_explanation" | "high
     "frases de exemplo": "highfreq_examples",
 };
 
-function getHighFrequencyTitles(language?: string) {
+function getHighFrequencyTitles(language?: string, word?: string) {
     const lang = String(language || "").trim().toLocaleLowerCase();
-    if (lang === "en") return { text: "Text", explanation: "Explanation", examples: "Example sentences" };
-    if (lang === "pt" || lang === "pt-br") return { text: "Texto", explanation: "Explicação", examples: "Frases de exemplo" };
-    return { text: "Tekst", explanation: "Forklaring", examples: "Eksempelsetninger" };
+    const cleanWord = String(word || "").trim();
+    if (lang === "en") {
+        return {
+            text: "Text",
+            explanation: "Explanation",
+            examples: cleanWord ? `Sentences with "${cleanWord}"` : "Sentences with the word",
+        };
+    }
+    if (lang === "pt" || lang === "pt-br") {
+        return {
+            text: "Texto",
+            explanation: "Explicação",
+            examples: cleanWord ? `Frases com "${cleanWord}"` : "Frases com a palavra",
+        };
+    }
+    return {
+        text: "Tekst",
+        explanation: "Forklaring",
+        examples: cleanWord ? `Setninger med "${cleanWord}"` : "Setninger med ordet",
+    };
 }
 
 function highFrequencyTextKey(index: number): LessonTextSectionKey {
@@ -165,8 +188,40 @@ function splitHighFrequencySections(text: string, language?: string): LessonText
     return [...mainSections, ...restSections];
 }
 
-export function splitLessonTextSections(text: string, language?: string): LessonTextSection[] {
+export function splitLessonTextSections(
+    text: string,
+    language?: string,
+    highFrequencyExtraSections?: HighFrequencyExtraSections
+): LessonTextSection[] {
     const soundTrainingSections = splitSoundTrainingSections(text, language);
     if (soundTrainingSections.length) return soundTrainingSections;
+    const extraReading = String(highFrequencyExtraSections?.readingSentences || "").trim();
+    const extraExplanation = String(highFrequencyExtraSections?.explanation || "").trim();
+    if (extraReading || extraExplanation) {
+        const titles = getHighFrequencyTitles(language, highFrequencyExtraSections?.word);
+        return [
+            text.trim()
+                ? {
+                    key: "highfreq_text_1",
+                    title: titles.text,
+                    text: text.trim(),
+                }
+                : null,
+            extraReading
+                ? {
+                    key: "highfreq_examples",
+                    title: titles.examples,
+                    text: extraReading,
+                }
+                : null,
+            extraExplanation
+                ? {
+                    key: "highfreq_explanation",
+                    title: titles.explanation,
+                    text: extraExplanation,
+                }
+                : null,
+        ].filter(Boolean) as LessonTextSection[];
+    }
     return splitHighFrequencySections(text, language);
 }

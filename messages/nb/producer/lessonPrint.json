@@ -28,6 +28,8 @@
     },
     "sections": {
       "readingText": "Lesetekst",
+      "highFrequencyReadingSentences": "Setninger med \"{word}\"",
+      "highFrequencyExplanation": "Ordklasseforklaring",
       "tasks": "Oppgaver"
     },
     "answers": {

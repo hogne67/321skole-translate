@@ -30,6 +30,9 @@ type Lesson = {
   title: string;
   level?: string;
   sourceText: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   status?: "draft" | "published";
   tasks?: Task[];
 
@@ -70,6 +73,14 @@ function isTruthyString(v: unknown) {
 function normalizeTextSize(value: unknown): TextSize {
   if (value === "large" || value === "xlarge") return value;
   return "normal";
+}
+
+function highFrequencyWordFromLesson(lesson?: Lesson | null): string {
+  const stored = safeText(lesson?.highFrequencyWord).trim();
+  if (stored) return stored;
+  const title = safeText(lesson?.title);
+  const dashParts = title.split(/[–-]/);
+  return dashParts.length > 1 ? dashParts.at(-1)?.trim() || "" : "";
 }
 
 function getErrorMessage(err: unknown): string {
@@ -212,6 +223,9 @@ export default function ProducerPrintPage() {
   }, [lesson]);
 
   const textSize = normalizeTextSize(lesson?.textSize);
+  const highFrequencyWord = highFrequencyWordFromLesson(lesson);
+  const highFrequencyReadingSentences = safeText(lesson?.highFrequencyReadingSentences).trim();
+  const highFrequencyExplanation = safeText(lesson?.highFrequencyExplanation).trim();
 
   if (loading) {
     return <main style={{ padding: 20 }}>{t("states.loading")}</main>;
@@ -334,6 +348,34 @@ export default function ProducerPrintPage() {
                 ))}
             </div>
           </section>
+
+          {highFrequencyReadingSentences ? (
+            <section className="pdf-section pdf-reading-extra">
+              <h2 className="pdf-h2">
+                {t("sections.highFrequencyReadingSentences", { word: highFrequencyWord })}
+              </h2>
+              <div className={`pdf-reading is-${textSize}`}>
+                {highFrequencyReadingSentences
+                  .split("\n")
+                  .map((p, i) => (
+                    <p key={i}>{p.trim() ? p : "\u00A0"}</p>
+                  ))}
+              </div>
+            </section>
+          ) : null}
+
+          {highFrequencyExplanation ? (
+            <section className="pdf-section pdf-teacher-note">
+              <h2 className="pdf-h2">{t("sections.highFrequencyExplanation")}</h2>
+              <div className="pdf-explanation">
+                {highFrequencyExplanation
+                  .split("\n")
+                  .map((p, i) => (
+                    <p key={i}>{p.trim() ? p : "\u00A0"}</p>
+                  ))}
+              </div>
+            </section>
+          ) : null}
 
           <div className="page-break" />
 
@@ -613,6 +655,31 @@ export default function ProducerPrintPage() {
 
         .pdf-reading p {
           margin: 0 0 3.2mm 0;
+          white-space: pre-wrap;
+        }
+
+        .pdf-reading-extra {
+          padding: 5mm;
+          border: 1px solid #bfdbfe;
+          border-radius: 10px;
+          background: #eff6ff;
+        }
+
+        .pdf-teacher-note {
+          padding: 5mm;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          background: #f8fafc;
+          color: #475569;
+        }
+
+        .pdf-explanation {
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .pdf-explanation p {
+          margin: 0 0 2.2mm 0;
           white-space: pre-wrap;
         }
 

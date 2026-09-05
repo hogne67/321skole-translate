@@ -59,6 +59,9 @@ type Lesson = {
   releaseMode?: ReleaseMode;
   textSize?: TextSize;
   textType?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
 
   producerName?: string;
   coverImageUrl?: string;
@@ -326,6 +329,9 @@ export default function ProducerLessonEditorPage() {
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState("");
   const [sourceText, setSourceText] = useState("");
+  const [highFrequencyWord, setHighFrequencyWord] = useState("");
+  const [highFrequencyReadingSentences, setHighFrequencyReadingSentences] = useState("");
+  const [highFrequencyExplanation, setHighFrequencyExplanation] = useState("");
 
   const [status, setStatus] = useState<LessonStatus>("draft");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -467,6 +473,13 @@ export default function ProducerLessonEditorPage() {
         setTitle(typeof data.title === "string" ? data.title : "");
         setLevel(normalizeLevelValue(data.level));
         setSourceText(typeof data.sourceText === "string" ? data.sourceText : "");
+        setHighFrequencyWord(typeof data.highFrequencyWord === "string" ? data.highFrequencyWord : "");
+        setHighFrequencyReadingSentences(
+          typeof data.highFrequencyReadingSentences === "string" ? data.highFrequencyReadingSentences : ""
+        );
+        setHighFrequencyExplanation(
+          typeof data.highFrequencyExplanation === "string" ? data.highFrequencyExplanation : ""
+        );
         setStatus(normalizeStatus(data.status));
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
 
@@ -678,6 +691,9 @@ export default function ProducerLessonEditorPage() {
           title: title.trim(),
           level: level.trim(),
           sourceText,
+          highFrequencyWord: highFrequencyWord.trim(),
+          highFrequencyReadingSentences: highFrequencyReadingSentences.trim(),
+          highFrequencyExplanation: highFrequencyExplanation.trim(),
           status,
           tasks: normalized,
 
@@ -1644,6 +1660,40 @@ export default function ProducerLessonEditorPage() {
                   charsWithSpaces: charCountWithSpaces,
                 })}
               </div>
+            </label>
+
+            <label style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyWord")}</div>
+              <input
+                value={highFrequencyWord}
+                onChange={(e) => setHighFrequencyWord(e.target.value)}
+                style={fieldStyle}
+                placeholder={t("placeholders.highFrequencyWord")}
+              />
+            </label>
+
+            <label style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyReadingSentences")}</div>
+              <textarea
+                value={highFrequencyReadingSentences}
+                onChange={(e) => setHighFrequencyReadingSentences(e.target.value)}
+                rows={5}
+                style={fieldStyle}
+                placeholder={t("placeholders.highFrequencyReadingSentences")}
+              />
+              <div style={smallHelpStyle}>{t("fields.highFrequencyReadingSentencesHelp")}</div>
+            </label>
+
+            <label style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyExplanation")}</div>
+              <textarea
+                value={highFrequencyExplanation}
+                onChange={(e) => setHighFrequencyExplanation(e.target.value)}
+                rows={4}
+                style={{ ...fieldStyle, color: "#475569" }}
+                placeholder={t("placeholders.highFrequencyExplanation")}
+              />
+              <div style={smallHelpStyle}>{t("fields.highFrequencyExplanationHelp")}</div>
             </label>
           </div>
         </section>

@@ -24,6 +24,9 @@ export type PdfLesson = {
   coverImageUrl?: string;
   logoUrl?: string;
   sourceText?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   textSize?: TextSize;
 
   includeAnswerKey?: boolean;
@@ -140,6 +143,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 1.6,
   },
+  readingExtra: {
+    marginTop: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 4,
+    backgroundColor: "#eff6ff",
+  },
+  teacherNote: {
+    marginTop: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 4,
+    backgroundColor: "#f8fafc",
+  },
+  explanationParagraph: {
+    fontSize: 10,
+    lineHeight: 1.35,
+    color: "#475569",
+  },
 
   // Tasks
   tasksHeading: {
@@ -236,6 +260,8 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
 
   const tasks = (lesson.tasks || []).filter((t) => (t.prompt ?? "").trim().length > 0);
   const showText = (lesson.sourceText ?? "").trim().length > 0;
+  const highFrequencyReadingSentences = (lesson.highFrequencyReadingSentences ?? "").trim();
+  const highFrequencyExplanation = (lesson.highFrequencyExplanation ?? "").trim();
   const textSize = normalizeTextSize(lesson.textSize);
 
   const logoSrc =
@@ -292,6 +318,24 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
             {showText ? normalizeText(lesson.sourceText) : " "}
           </Text>
         </View>
+
+        {highFrequencyReadingSentences ? (
+          <View style={styles.readingExtra}>
+            <Text style={styles.textHeading}>
+              {lesson.highFrequencyWord?.trim()
+                ? `Sentences with "${lesson.highFrequencyWord.trim()}"`
+                : "Sentences with the high-frequency word"}
+            </Text>
+            <Text style={getPdfParagraphStyle(textSize)}>{highFrequencyReadingSentences}</Text>
+          </View>
+        ) : null}
+
+        {highFrequencyExplanation ? (
+          <View style={styles.teacherNote}>
+            <Text style={styles.textHeading}>Word class explanation</Text>
+            <Text style={styles.explanationParagraph}>{highFrequencyExplanation}</Text>
+          </View>
+        ) : null}
       </Page>
 
       {/* Side 2 */}

@@ -397,8 +397,24 @@ export default function StudentAssignmentPage() {
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isPodcastWorkshop ? "" : sourceTextSafe;
 
   const lessonTextSections = useMemo(
-    () => splitLessonTextSections(displayedSourceTextSafe, lesson?.language || assignment?.language),
-    [assignment?.language, displayedSourceTextSafe, lesson?.language]
+    () =>
+      splitLessonTextSections(displayedSourceTextSafe, lesson?.language || assignment?.language, {
+        word: lesson?.highFrequencyWord || assignment?.highFrequencyWord,
+        readingSentences:
+          lesson?.highFrequencyReadingSentences || assignment?.highFrequencyReadingSentences,
+        explanation: lesson?.highFrequencyExplanation || assignment?.highFrequencyExplanation,
+      }),
+    [
+      assignment?.highFrequencyExplanation,
+      assignment?.highFrequencyReadingSentences,
+      assignment?.highFrequencyWord,
+      assignment?.language,
+      displayedSourceTextSafe,
+      lesson?.highFrequencyExplanation,
+      lesson?.highFrequencyReadingSentences,
+      lesson?.highFrequencyWord,
+      lesson?.language,
+    ]
   );
 
   const translatedSectionMap = useMemo(() => {
@@ -727,6 +743,33 @@ export default function StudentAssignmentPage() {
 
         if (hasSnapshotContent(aDoc)) {
           resolvedLesson = assignmentToLesson(aDoc);
+          const sourceId = String(aDoc.sourceId ?? "").trim();
+          const needsHighFrequencyFields =
+            sourceId &&
+            (!resolvedLesson.highFrequencyReadingSentences?.trim() ||
+              !resolvedLesson.highFrequencyExplanation?.trim());
+
+          if (needsHighFrequencyFields) {
+            const srcType = (aDoc.sourceType ?? "library") as SourceType;
+            const lSnap =
+              srcType === "library"
+                ? await getDoc(doc(db, "published_lessons", sourceId))
+                : await getDoc(doc(db, "lessons", sourceId));
+
+            if (!alive) return;
+
+            if (lSnap.exists()) {
+              const d = lSnap.data() as Lesson;
+              resolvedLesson = {
+                ...resolvedLesson,
+                highFrequencyWord: resolvedLesson.highFrequencyWord ?? d.highFrequencyWord,
+                highFrequencyReadingSentences:
+                  resolvedLesson.highFrequencyReadingSentences ?? d.highFrequencyReadingSentences,
+                highFrequencyExplanation:
+                  resolvedLesson.highFrequencyExplanation ?? d.highFrequencyExplanation,
+              };
+            }
+          }
         } else {
           const srcType = (aDoc.sourceType ?? "library") as SourceType;
           const srcId = String(aDoc.sourceId ?? "").trim();
@@ -769,6 +812,10 @@ export default function StudentAssignmentPage() {
             language: aDoc.language ?? d.language,
             sourceText: d.sourceText,
             text: d.text,
+            highFrequencyWord: aDoc.highFrequencyWord ?? d.highFrequencyWord,
+            highFrequencyReadingSentences:
+              aDoc.highFrequencyReadingSentences ?? d.highFrequencyReadingSentences,
+            highFrequencyExplanation: aDoc.highFrequencyExplanation ?? d.highFrequencyExplanation,
             tasks: d.tasks,
             coverImageUrl: aDoc.coverImageUrl ?? d.coverImageUrl,
             status: d.status,

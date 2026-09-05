@@ -102,6 +102,11 @@
       "releaseModeHelp": "Escolha se o texto e as atividades devem aparecer juntos ou o texto primeiro.",
       "status": "Status",
       "text": "Texto",
+      "highFrequencyWord": "Palavra de alta frequência",
+      "highFrequencyReadingSentences": "Frases com a palavra de alta frequência",
+      "highFrequencyReadingSentencesHelp": "Aparecem como texto de leitura abaixo do texto principal e entram na impressão.",
+      "highFrequencyExplanation": "Explicação da classe gramatical",
+      "highFrequencyExplanationHelp": "Texto de apoio para o professor. Aparece apenas na versão do professor para impressão.",
       "coverImageCredit": "Fonte da imagem"
     },
     "textSizes": {
@@ -124,6 +129,9 @@
       "language": "Por exemplo inglês, norueguês, português…",
       "tags": "Por exemplo escola, gramática, leitura",
       "sourceText": "Cole ou escreva o texto da atividade aqui…",
+      "highFrequencyWord": "Por exemplo e, com, de…",
+      "highFrequencyReadingSentences": "Frases que os alunos também devem ler…",
+      "highFrequencyExplanation": "Explicação curta para o professor…",
       "taskPrompt": "Escreva o enunciado da atividade aqui…",
       "mcqCorrectAnswer": "Escreva a resposta correta",
       "coverImageCredit": "Ex.: Foto: John Doe / Unsplash / Imagem própria"

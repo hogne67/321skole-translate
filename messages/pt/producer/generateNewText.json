@@ -23,10 +23,21 @@
       "title": "Iniciação à leitura – A1 Start",
       "tasksHeading": "Atividades",
       "customVerb": "Outro verbo",
-      "description": "Comece e termine com a mesma frase na primeira pessoa. Repita cada sujeito três vezes com o mesmo verbo.",
-      "highFrequencyDescription": "Crie um texto A1 coerente usando uma palavra funcional de alta frequência, seguido de uma explicação simples.",
+      "description": "Comece com uma frase na primeira pessoa. Faça grupos de três frases com o mesmo sujeito e verbo, e termine com a primeira pessoa outra vez.",
+      "highFrequencyDescription": "Crie um texto A1 coerente usando uma palavra funcional de alta frequência. A explicação e as frases de exemplo aparecem abaixo do texto.",
       "soundLadderDescription": "Crie um texto A1 com foco em um som, palavras de som e frases curtas.",
       "reviewReminder": "Verifique o texto com atenção. Substitua algumas palavras ou frases se necessário.",
+      "sentencesWithWordTitle": "Frases com \"{word}\"",
+      "wordClassExplanationTitle": "Explicação da classe gramatical",
+      "topicHelp": "O tema é opcional e deve combinar com o verbo. A IA tentará ligar o verbo ao tema quando soar natural.",
+      "taskSelectionTitle": "Escolher atividades",
+      "sentenceCounts": {
+        "8": "8 - muito curto",
+        "11": "11 - curto",
+        "14": "14 - padrão",
+        "17": "17 - extra",
+        "20": "20 - mais prática de leitura"
+      },
       "fields": {
         "type": "Tipo",
         "verb": "Verbo",
@@ -62,6 +73,7 @@
         "long": "Texto longo (cerca de 150 palavras)"
       },
       "highFrequencyThemes": {
+        "none": "Sem tema",
         "familie": "Família",
         "jobb": "Trabalho",
         "skole": "Escola",
@@ -77,7 +89,7 @@
         "helse": "Saúde",
         "custom": "Tema próprio"
       },
-      "highFrequencyHelp": "A IA cria um texto A1 coerente. A boa linguagem vem primeiro. O texto termina com Explicação e Frases de exemplo.",
+      "highFrequencyHelp": "A IA cria um texto A1 coerente. A boa linguagem vem primeiro. A explicação e as frases de exemplo aparecem em uma caixa separada abaixo do texto.",
       "soundLadderHelp": "A IA cria primeiro palavras de som, uma frase por palavra e depois um texto curto com várias dessas palavras.",
       "soundTasksPreview": {
         "title": "Atividades que serão criadas",
@@ -93,9 +105,8 @@
       },
       "placeholders": {
         "verb": "Escreva ou escolha um verbo",
-        "topic": "Por exemplo comida, escola ou família"
+        "topic": "Opcional: usado apenas quando for natural"
       },
-      "verbSuggestions": "Sugestões: {verbs}",
       "errors": {
         "verbRequired": "Insira um verbo para A1 Start."
       }

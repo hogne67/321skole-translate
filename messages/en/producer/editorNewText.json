@@ -102,6 +102,11 @@
       "releaseModeHelp": "Choose whether text and tasks should be shown together or text first.",
       "status": "Status",
       "text": "Text",
+      "highFrequencyWord": "High-frequency word",
+      "highFrequencyReadingSentences": "Sentences with the high-frequency word",
+      "highFrequencyReadingSentencesHelp": "Shown as reading material below the main text and included in print.",
+      "highFrequencyExplanation": "Word class explanation",
+      "highFrequencyExplanationHelp": "Teacher support text. Shown only in the teacher print version.",
       "coverImageCredit": "Image source"
     },
     "textSizes": {
@@ -124,6 +129,9 @@
       "language": "For example English, Norwegian, Portuguese…",
       "tags": "For example school, grammar, reading",
       "sourceText": "Paste or write the lesson text here…",
+      "highFrequencyWord": "For example and, with, from…",
+      "highFrequencyReadingSentences": "Sentences students should also read…",
+      "highFrequencyExplanation": "Short explanation for the teacher…",
       "taskPrompt": "Write the task prompt here…",
       "mcqCorrectAnswer": "Write the correct answer",
       "coverImageCredit": "E.g. Photo: John Doe / Unsplash / Own image"

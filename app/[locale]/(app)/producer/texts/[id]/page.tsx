@@ -42,6 +42,9 @@ type LessonDraft = {
 
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
 
   tasks?: unknown; // array or stringified json
   coverImageUrl?: string;
@@ -194,6 +197,9 @@ export default function ProducerTextDetailPage() {
       const normalized: LessonDraft = {
         ...data,
         sourceText: String(data.sourceText ?? data.text ?? ""),
+        highFrequencyWord: String(data.highFrequencyWord ?? ""),
+        highFrequencyReadingSentences: String(data.highFrequencyReadingSentences ?? ""),
+        highFrequencyExplanation: String(data.highFrequencyExplanation ?? ""),
         textType: normalizeTextType(data) || undefined,
         publish: { state: (data.publish?.state as PublishState) || "draft" },
         moderation: data.moderation
@@ -244,6 +250,9 @@ export default function ProducerTextDetailPage() {
         texttype: textType || "",
 
         sourceText: draft.sourceText ?? "",
+        highFrequencyWord: draft.highFrequencyWord ?? "",
+        highFrequencyReadingSentences: draft.highFrequencyReadingSentences ?? "",
+        highFrequencyExplanation: draft.highFrequencyExplanation ?? "",
         tasks: draft.tasks ?? [],
 
         coverImageUrl: draft.coverImageUrl ?? "",
@@ -550,6 +559,37 @@ export default function ProducerTextDetailPage() {
                   onChange={(e) => setDraft({ ...draft, sourceText: e.target.value })}
                   rows={10}
                   style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label>
+                High-frequency word
+                <input
+                  value={draft.highFrequencyWord ?? ""}
+                  onChange={(e) => setDraft({ ...draft, highFrequencyWord: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                Reading sentences with the high-frequency word
+                <textarea
+                  value={draft.highFrequencyReadingSentences ?? ""}
+                  onChange={(e) =>
+                    setDraft({ ...draft, highFrequencyReadingSentences: e.target.value })
+                  }
+                  rows={5}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                Word class explanation
+                <textarea
+                  value={draft.highFrequencyExplanation ?? ""}
+                  onChange={(e) => setDraft({ ...draft, highFrequencyExplanation: e.target.value })}
+                  rows={4}
+                  style={{ width: "100%", padding: 8, marginTop: 6, color: "#475569" }}
                 />
               </label>
             </section>

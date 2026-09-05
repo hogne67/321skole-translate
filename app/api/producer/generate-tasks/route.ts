@@ -354,6 +354,14 @@ function buildA1StartWordPrompt(languageName: string, count: number, word: strin
   return `Write ${count} sentences using the word "${word}".`;
 }
 
+function normalizeA1StartTaskVerb(languageName: string, verb: string): string {
+  const cleaned = verb.trim();
+  if (languageName !== "Norwegian") return cleaned;
+  const normalized = cleaned.toLocaleLowerCase();
+  if (normalized === "spille") return "spiller";
+  return cleaned;
+}
+
 function buildA1StartSoundFallbackTasks(languageName: string, focusSound: string, soundWordCount: number): string[] {
   if (languageName === "Norwegian") {
     return [
@@ -387,21 +395,39 @@ function buildA1StartTrueFalseFallback(text: string, count: number): TasksOnly["
   );
   if (lines.length === 0) return [];
 
+  const punctuate = (statement: string) => {
+    const cleaned = statement.trim().replace(/[.!?]+$/, "");
+    return cleaned ? `${cleaned}.` : "";
+  };
+
   return Array.from({ length: count }, (_, index) => {
     const source = lines[index % lines.length];
     if (index % 2 === 0 || lines.length === 1) {
-      return { statement: source, answer: true };
+      return { statement: punctuate(source), answer: true };
     }
 
     const words = source.split(/\s+/);
     const replacement = lines[(index + 1) % lines.length].split(/\s+/).at(-1);
     if (words.length >= 3 && replacement && replacement !== words.at(-1)) {
       words[words.length - 1] = replacement;
-      return { statement: words.join(" "), answer: false };
+      return { statement: punctuate(words.join(" ")), answer: false };
     }
 
-    return { statement: source, answer: true };
+    return { statement: punctuate(source), answer: true };
   });
+}
+
+function normalizeA1StartTrueFalseItems(
+  items: TasksOnly["trueFalse"],
+  count: number
+): TasksOnly["trueFalse"] {
+  return items.slice(0, count).map((item) => {
+    const statement = String(item.statement || "").trim().replace(/[.!?]+$/, "");
+    return {
+      statement: statement ? `${statement}.` : "",
+      answer: item.answer === true,
+    };
+  }).filter((item) => item.statement);
 }
 
 export async function POST(req: Request) {
@@ -571,7 +597,10 @@ Counts:
       const requestedTrueFalse = clampCount(Number(body.a1Start?.trueFalseCount ?? 5), 0, 10, 5);
       const requestedImageSentences = clampCount(Number(body.a1Start?.imageSentenceCount ?? 5), 0, 10, 5);
       const requestedVerbSentences = clampCount(Number(body.a1Start?.verbSentenceCount ?? 5), 0, 10, 5);
-      const selectedVerb = String(body.a1Start?.verb || "").trim();
+      const selectedVerb = normalizeA1StartTaskVerb(
+        languageName,
+        String(body.a1Start?.verb || "")
+      );
       const selectedWord = String(body.a1Start?.word || "").trim();
       const isHighFrequency = body.a1Start?.type === "high_frequency_words";
       const isSoundLadder = body.a1Start?.type === "sound_reading_ladder";
@@ -581,7 +610,7 @@ Counts:
           ? Number(body.a1Start?.soundWordCount)
           : 10;
         const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
-          ? parsed.tasks.trueFalse.slice(0, 5)
+          ? normalizeA1StartTrueFalseItems(parsed.tasks.trueFalse, 5)
           : [];
         const fallbackTrueFalse = buildA1StartTrueFalseFallback(text, 5);
         parsed.tasks = {
@@ -599,7 +628,7 @@ Counts:
         };
       } else {
       const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
-        ? parsed.tasks.trueFalse.slice(0, requestedTrueFalse)
+        ? normalizeA1StartTrueFalseItems(parsed.tasks.trueFalse, requestedTrueFalse)
         : [];
       const fallbackTrueFalse = buildA1StartTrueFalseFallback(text, requestedTrueFalse);
       parsed.tasks = {

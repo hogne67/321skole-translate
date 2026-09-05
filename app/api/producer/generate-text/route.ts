@@ -40,7 +40,15 @@ type A1StartConfig = {
 type GenerateTextResult = {
   title: string;
   text: unknown;
+  highFrequencyReadingSentences?: unknown;
+  highFrequencyExplanation?: unknown;
   factCheckReport?: unknown;
+};
+
+type A1StartVerbPattern = {
+  first: string;
+  other: string;
+  complements: string[];
 };
 
 type RequestUserContext = {
@@ -342,10 +350,12 @@ function buildA1StartPatternPrompt(languageName: string, config: A1StartConfig):
   const tense = ["present", "past", "future"].includes(String(config.tense))
     ? String(config.tense)
     : "present";
-  const sentenceCount = [10, 13, 16, 19].includes(Number(config.sentenceCount))
+  const sentenceCount = [8, 11, 14, 17, 20].includes(Number(config.sentenceCount))
     ? Number(config.sentenceCount)
-    : 10;
-  const additionalSubjectCount = (sentenceCount - 4) / 3;
+    : 11;
+  const additionalSubjectCount = (sentenceCount - 5) / 3;
+  const firstOtherSentence = 5;
+  const lastOtherSentence = sentenceCount - 1;
   const topic = String(config.topic || "").trim();
 
   if (!verb) throw new Error("Verb is required for A1 Start.");
@@ -360,25 +370,47 @@ Number of sentences: ${sentenceCount}
 Optional theme: ${topic || "No specific theme"}
 
 Strict reading-practice rules:
-- Write exactly ${sentenceCount} lines using the structure below.
-- Use the same verb "${verb}" in every sentence, conjugated naturally for the requested tense.
+- Write exactly ${sentenceCount} sentences using the structure below. Blank separator lines do not count as sentences.
+- Do not write fewer or more than ${sentenceCount} sentences. Stop immediately after sentence ${sentenceCount}.
+- Exact layout:
+  Sentence 1: first-person introduction.
+  Blank line.
+  Sentences 2-4: same first-person subject as sentence 1, with three different complements.
+  Blank line.
+  Sentences ${firstOtherSentence}-${lastOtherSentence}: exactly ${additionalSubjectCount} new subject groups. Each group has 3 sentences with the same subject.
+  Blank line.
+  Sentence ${sentenceCount}: exact copy of sentence 1.
+- The teacher may supply the verb in an infinitive or present form. Do not copy it blindly.
+- Use the same verb meaning in every sentence, conjugated naturally for the requested tense.
+- If the requested tense is past, every sentence must use a natural past-tense form. For Norwegian, examples: "lager" -> "lagde", "spiller" -> "spilte", "går" -> "gikk".
+- If the requested tense is future, every sentence must use a natural future construction. For Norwegian, examples: "skal lage", "skal spille", "skal gå".
 - Keep the same verb meaning clearly recognizable in every sentence, even when its form changes with the subject.
 - For Brazilian Portuguese, be careful that "ser" and "ir" share preterite forms. If the teacher supplies "ser", use identity or description complements, not movement or destination complements.
 - The first line must be a complete sentence beginning with the first-person singular subject, equivalent to "Jeg" in Norwegian.
-- Every line must be a complete, meaningful sentence using subject + verb + a simple object/complement.
+- The first line must include a natural object or complement after the verb. Do not write bare openings like "I read", "I will read", "Eu vou gostar" or "Jeg leser".
+- Every line must be a complete, meaningful sentence using subject + verb + a natural simple object/complement.
 - For verbs that take an object, prefer a concrete noun phrase. Example: "Jeg ser en katt" and "Katten ser en mus".
-- Treat the theme as a word bank, not decoration. Keep the object/complement in every line connected to the theme when that is natural.
-- For a friends theme, prefer words about friends and friendship. For breakfast/dinner, prefer food and drink words. For school, prefer school objects and activities.
+- For verbs that normally do not take an object, do not add random nouns. Use a natural short complement instead. Example in Norwegian: "Jeg hostet litt", "Jeg hostet i dag", not "Jeg hostet en katt".
+- For movement verbs, use natural place, route or direction complements. Vary prepositions and adverbs when natural. Norwegian examples: "Jeg går hjem", "Jeg går på skolen", "Jeg går i parken", "Jeg går til butikken", not repeated "går til" with random animals or objects.
+- The theme is weak guidance only. Use it when it fits naturally with the verb. Ignore the theme when it would create strange language.
+- Never force the theme in as an object or complement. Bad examples: "Jeg spiller helse", "Jeg drikker familie", "Jeg spiller middag", "Jeg hoster en katt".
+- Choose natural objects/complements for the verb first. Language quality is more important than theme coverage.
+- Do not reuse the same generic object list for every theme. If the theme fits the verb, choose natural theme-related complements. If it does not fit, choose natural verb-related complements instead.
+- For a friends theme, prefer words about friends and friendship only when the verb fits. For breakfast/dinner, prefer food and drink words only when the verb fits. For school, prefer school objects and activities only when the verb fits.
 - The title must be exactly the first complete sentence without final punctuation. Example: "Jeg er snill".
-- Lines 2 and 3 must use the same first-person subject and verb as line 1, but each line must have a different simple object/complement.
-- Then choose exactly ${additionalSubjectCount} varied, simple, single-word subjects. Examples include the equivalents of he, cat, it, Sara, child, or teacher.
+- Line 1 is an introduction sentence with the first-person subject.
+- Lines 2, 3 and 4 must use the same first-person subject and verb as line 1, but each line must have a different simple object/complement.
+- Then choose exactly ${additionalSubjectCount} varied, simple, single-word subjects. Use a mix of pronouns, names and simple nouns when natural. Do not use only the equivalents of he/she.
+- If ${sentenceCount} is 14 or more, at least one of the new subject groups must use a name or a simple noun, not only a pronoun.
 - Use each new subject exactly three times in a row with the same verb, but vary the simple object/complement in all three sentences.
-- Every subject must make logical sense with the verb. For example, do not write "Det liker kaffe"; use a person or animal that can like something.
+- Every subject must make logical sense with the verb. For example, do not write "Det liker kaffe" or "Det drikker melk"; use a person, name or suitable living subject.
 - The final line must stand alone and be an exact copy of the complete first line.
 - Repetition of subject + verb and variation of the final object/complement are both essential.
 - Use only concrete, high-frequency words suitable for a beginning reader.
+- Keep the content suitable for school and children. Do not use alcohol, drugs, smoking/vaping, sexual content, dating/romance, violence, weapons, insults or adult themes.
 - Avoid dialogue, paragraphs, subordinate clauses, explanations, and advanced vocabulary.
-- Put one sentence on each line.
+- Put one sentence on each line, and end every sentence with a period.
+- Put a blank line after line 1, after the first-person group, and between subject groups.
 - Write everything in ${languageName}.
 
 Return valid JSON only:
@@ -389,12 +421,459 @@ Return valid JSON only:
 `.trim();
 }
 
+function getA1StartPatternSentenceCount(config: A1StartConfig): number {
+  return [8, 10, 11, 13, 14, 16, 17, 19, 20].includes(Number(config.sentenceCount))
+    ? Number(config.sentenceCount)
+    : 11;
+}
+
+function getNorwegianA1StartVerbKey(verb: string): string {
+  const normalized = cleanA1StartLine(verb).toLocaleLowerCase();
+  const aliases: Record<string, string> = {
+    lage: "lager",
+    spille: "spiller",
+    spise: "spiser",
+    drikke: "drikker",
+    gå: "går",
+    komme: "kommer",
+    klatre: "klatrer",
+    løpe: "løper",
+    reise: "reiser",
+    lese: "leser",
+    skrive: "skriver",
+    like: "liker",
+    se: "ser",
+    ha: "har",
+    være: "er",
+  };
+  return aliases[normalized] || normalized;
+}
+
+function expectedNorwegianA1StartVerbForm(verb: string, tense: string): string | null {
+  const verbKey = getNorwegianA1StartVerbKey(verb);
+  const normalizedTense = tense === "past" || tense === "future" ? tense : "present";
+  const forms: Record<string, Record<string, string>> = {
+    er: { present: "er", past: "var", future: "skal være" },
+    har: { present: "har", past: "hadde", future: "skal ha" },
+    ser: { present: "ser", past: "så", future: "skal se" },
+    liker: { present: "liker", past: "likte", future: "skal like" },
+    spiser: { present: "spiser", past: "spiste", future: "skal spise" },
+    drikker: { present: "drikker", past: "drakk", future: "skal drikke" },
+    går: { present: "går", past: "gikk", future: "skal gå" },
+    kommer: { present: "kommer", past: "kom", future: "skal komme" },
+    lager: { present: "lager", past: "lagde", future: "skal lage" },
+    leser: { present: "leser", past: "leste", future: "skal lese" },
+    skriver: { present: "skriver", past: "skrev", future: "skal skrive" },
+    spiller: { present: "spiller", past: "spilte", future: "skal spille" },
+    klatrer: { present: "klatrer", past: "klatret", future: "skal klatre" },
+    løper: { present: "løper", past: "løp", future: "skal løpe" },
+    reiser: { present: "reiser", past: "reiste", future: "skal reise" },
+  };
+  return forms[verbKey]?.[normalizedTense] || null;
+}
+
+function norwegianLineHasDirectObjectAfterVerb(line: string, verbForms: string[]): boolean {
+  const lower = cleanA1StartLine(line).toLocaleLowerCase();
+  return verbForms.some((verbForm) => {
+    const escapedVerb = verbForm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escapedVerb}\\s+(?:en|ei|et)\\s+\\p{L}+`, "iu").test(lower);
+  });
+}
+
+function getNorwegianMovementVerbForms(verb: string): string[] | null {
+  const verbKey = getNorwegianA1StartVerbKey(verb);
+  const forms: Record<string, string[]> = {
+    går: ["går", "gikk", "skal gå"],
+    kommer: ["kommer", "kom", "skal komme"],
+    klatrer: ["klatrer", "klatret", "skal klatre"],
+    løper: ["løper", "løp", "skal løpe"],
+    reiser: ["reiser", "reiste", "skal reise"],
+  };
+  return forms[verbKey] || null;
+}
+
+function getNorwegianPrepositionAfterVerb(line: string, verbForms: string[]): string | null {
+  const lower = cleanA1StartLine(line).toLocaleLowerCase();
+  for (const verbForm of verbForms) {
+    const escapedVerb = verbForm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = lower.match(
+      new RegExp(`\\b${escapedVerb}\\s+(i|på|til|fra|over|under|ved|mellom|gjennom|rundt|opp|ned|ut|inn)\\b`, "iu")
+    );
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function norwegianMovementLineHasRandomDestination(line: string, verbForms: string[]): boolean {
+  const lower = cleanA1StartLine(line).toLocaleLowerCase();
+  const randomDestinations = [
+    "katten",
+    "hunden",
+    "boka",
+    "boken",
+    "leken",
+    "ballen",
+    "koppen",
+    "stolen",
+    "lampen",
+    "puta",
+    "puten",
+    "senga",
+    "sengen",
+    "blomsten",
+  ];
+  return verbForms.some((verbForm) => {
+    const escapedVerb = verbForm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escapedVerb}\\s+til\\s+(?:${randomDestinations.join("|")})\\b`, "iu").test(lower);
+  });
+}
+
+function getA1StartLineSubject(line: string): string {
+  return cleanA1StartLine(line).split(/\s+/)[0] || "";
+}
+
+function getA1StartOpeningVerbTokenCount(
+  line: string,
+  selectedVerb: string,
+  tense: string,
+  languageName: string
+): number {
+  const words = cleanA1StartLine(line).toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const normalizedTense = tense === "past" || tense === "future" ? tense : "present";
+
+  if (languageName === "Norwegian") {
+    const expectedForm = expectedNorwegianA1StartVerbForm(selectedVerb, normalizedTense);
+    return expectedForm ? expectedForm.split(/\s+/).length : Math.max(1, cleanA1StartLine(selectedVerb).split(/\s+/).length);
+  }
+
+  if (languageName === "Brazilian Portuguese") {
+    const pattern = getA1StartBrazilianPortugueseVerbPattern(selectedVerb, normalizedTense, "");
+    if (pattern) return pattern.first.split(/\s+/).length;
+    if (normalizedTense === "future" && words[1] === "vou") return 2;
+  }
+
+  if (languageName === "Portuguese" && normalizedTense === "future" && words[1] === "vou") {
+    return 2;
+  }
+
+  if (languageName === "English" && normalizedTense === "future" && words[1] === "will") {
+    return 2;
+  }
+
+  return Math.max(1, cleanA1StartLine(selectedVerb).split(/\s+/).length);
+}
+
+function firstA1StartSentenceHasComplement(
+  line: string,
+  selectedVerb: string,
+  tense: string,
+  languageName: string
+): boolean {
+  const words = cleanA1StartLine(line).split(/\s+/).filter(Boolean);
+  if (!words.length) return false;
+  const verbTokenCount = getA1StartOpeningVerbTokenCount(line, selectedVerb, tense, languageName);
+  return words.length > 1 + verbTokenCount;
+}
+
+function findA1StartBlockedContentLine(lines: string[]): string | null {
+  const blockedPatterns = [
+    /\bøl\b/iu,
+    /\bvin\b/iu,
+    /\bsprit\b/iu,
+    /\bvodka\b/iu,
+    /\bwhisky\b/iu,
+    /\bcider\b/iu,
+    /\bbeer\b/iu,
+    /\bwine\b/iu,
+    /\bliquor\b/iu,
+    /\balcohol\b/iu,
+    /\bcerveja\b/iu,
+    /\bvinho\b/iu,
+    /\bsexo\b/iu,
+    /\bsex\b/iu,
+    /\bnarkotika\b/iu,
+    /\bdop\b/iu,
+    /\bdrugs?\b/iu,
+    /\bdrogas?\b/iu,
+    /\brøyk\b/iu,
+    /\bsigarett/iu,
+    /\bsmok(?:e|ing)\b/iu,
+    /\bvape\b/iu,
+  ];
+  return lines.find((line) => blockedPatterns.some((pattern) => pattern.test(line))) || null;
+}
+
+function getA1StartOtherSubjectGroups(lines: string[]): string[][] {
+  const groups: string[][] = [];
+  for (let index = 4; index < lines.length - 1; index += 3) {
+    const group = lines.slice(index, index + 3);
+    if (group.length === 3) groups.push(group);
+  }
+  return groups;
+}
+
+function isLikelyPronounSubject(languageName: string, subject: string): boolean {
+  const normalized = subject.toLocaleLowerCase();
+  if (languageName === "Norwegian") {
+    return ["jeg", "du", "han", "hun", "det", "den", "vi", "dere", "de"].includes(normalized);
+  }
+  if (languageName === "English") {
+    return ["i", "you", "he", "she", "it", "we", "they"].includes(normalized);
+  }
+  if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
+    return ["eu", "você", "ele", "ela", "nós", "eles", "elas", "isso", "isto"].includes(normalized);
+  }
+  return false;
+}
+
+function findA1StartPatternProblems(
+  result: GenerateTextResult,
+  expectedSentenceCount: number,
+  config: A1StartConfig,
+  languageName: string
+): string[] {
+  const allLines = String(result.text || "")
+    .split(/\r?\n/)
+    .map(cleanA1StartLine)
+    .filter(Boolean);
+  const lines = allLines.slice(0, expectedSentenceCount);
+  const problems: string[] = [];
+  const selectedVerb = cleanA1StartLine(String(config.verb || "")).toLocaleLowerCase();
+  const topic = cleanA1StartLine(String(config.topic || "")).toLocaleLowerCase();
+
+  if (allLines.length < expectedSentenceCount) {
+    problems.push(`The text has ${allLines.length} sentences, but it must have at least ${expectedSentenceCount}.`);
+  }
+  if (lines.length >= expectedSentenceCount && lines[0] !== lines[expectedSentenceCount - 1]) {
+    problems.push("The final sentence must be an exact copy of the first sentence.");
+  }
+  const blockedContentLine = findA1StartBlockedContentLine(lines);
+  if (blockedContentLine) {
+    problems.push(
+      `The sentence "${blockedContentLine}" contains content that is not suitable for A1 Start school material. Use child-safe everyday words instead.`
+    );
+  }
+  if (
+    lines.length > 0 &&
+    !firstA1StartSentenceHasComplement(
+      lines[0],
+      selectedVerb,
+      String(config.tense || "present"),
+      languageName
+    )
+  ) {
+    problems.push(
+      `The first sentence "${lines[0]}" is too bare. Sentence 1 must have a natural object or complement after the verb, because it is also repeated as the final sentence.`
+    );
+  }
+  if (isNewA1StartPatternSentenceCount(expectedSentenceCount)) {
+    const expectedOtherGroupCount = (expectedSentenceCount - 5) / 3;
+    const otherSubjectGroups = getA1StartOtherSubjectGroups(lines);
+    if (otherSubjectGroups.length < expectedOtherGroupCount) {
+      problems.push(
+        `The text has ${otherSubjectGroups.length} new subject groups, but it must have exactly ${expectedOtherGroupCount}. Add the missing 3-sentence subject group(s).`
+      );
+    }
+
+    const malformedSubjectGroup = otherSubjectGroups.find((group) => {
+      const subjects = group.map(getA1StartLineSubject);
+      return new Set(subjects.map((subject) => subject.toLocaleLowerCase())).size !== 1;
+    });
+    if (malformedSubjectGroup) {
+      problems.push(
+        `Each new subject group must repeat the same subject exactly three times. Fix this group: "${malformedSubjectGroup.join(" / ")}".`
+      );
+    }
+
+    if (expectedSentenceCount >= 14 && otherSubjectGroups.length >= expectedOtherGroupCount) {
+      const otherSubjects = otherSubjectGroups
+        .slice(0, expectedOtherGroupCount)
+        .map((group) => getA1StartLineSubject(group[0]))
+        .filter(Boolean);
+      const hasNameOrNoun = otherSubjects.some(
+        (subject) => !isLikelyPronounSubject(languageName, subject)
+      );
+      if (!hasNameOrNoun) {
+        problems.push(
+          "For 14 or more sentences, at least one new subject group must use a name or a simple noun, not only pronouns like he/she."
+        );
+      }
+    }
+  }
+
+  if (languageName === "Norwegian") {
+    const verbKey = getNorwegianA1StartVerbKey(selectedVerb);
+    const badSubjectLine = lines.find((line) => {
+      const subject = getA1StartLineSubject(line);
+      return subject && !isA1StartSubjectAllowed(languageName, selectedVerb, subject);
+    });
+    if (badSubjectLine) {
+      problems.push(
+        `The subject does not fit the Norwegian verb in "${badSubjectLine}". Use a person, name or suitable living subject instead of "det" or "den".`
+      );
+    }
+
+    const expectedVerbForm = expectedNorwegianA1StartVerbForm(
+      selectedVerb,
+      String(config.tense || "present")
+    );
+    if (expectedVerbForm && lines.length > 0) {
+      const linesWithExpectedVerb = lines.filter((line) =>
+        lineContainsA1StartVerb(line, [expectedVerbForm])
+      );
+      if (linesWithExpectedVerb.length < Math.max(1, Math.floor(lines.length * 0.8))) {
+        problems.push(
+          `Wrong tense for Norwegian verb "${selectedVerb}". The requested tense is "${String(config.tense || "present")}", so use "${expectedVerbForm}" in the sentences.`
+        );
+      }
+    }
+
+    if (selectedVerb.endsWith("e")) {
+      const finiteVerbPattern = new RegExp(`^(jeg|du|han|hun|vi|dere|de|[\\p{L}]+)\\s+${selectedVerb.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "iu");
+      const badInfinitiveLine = lines.find((line) => {
+        const lower = line.toLocaleLowerCase();
+        return finiteVerbPattern.test(lower) && !lower.includes(`skal ${selectedVerb}`);
+      });
+      if (badInfinitiveLine) {
+        problems.push(`Norwegian verb form is wrong in "${badInfinitiveLine}". Use a finite form, for example "spiller", not bare infinitive "spille".`);
+      }
+    }
+
+    const themeCanBeNaturalObject = new Set(["liker", "elsker", "hater"]);
+    if (selectedVerb && topic && !themeCanBeNaturalObject.has(verbKey)) {
+      const forcedThemeUses = lines.filter((line) => {
+        const lower = line.toLocaleLowerCase();
+        return lower.includes(` ${selectedVerb} ${topic}`) || lower.endsWith(` ${topic}`);
+      });
+      if (forcedThemeUses.length >= 2) {
+        problems.push(`The theme "${topic}" is being forced into sentence complements. Ignore the theme when it does not fit the verb naturally.`);
+      }
+    }
+
+    const intransitiveVerbForms: Record<string, string[]> = {
+      hoste: ["hoster", "hostet", "skal hoste"],
+      hoster: ["hoster", "hostet", "skal hoste"],
+      sovne: ["sovner", "sovnet", "skal sovne"],
+      sovner: ["sovner", "sovnet", "skal sovne"],
+      gråte: ["gråter", "gråt", "skal gråte"],
+      gråter: ["gråter", "gråt", "skal gråte"],
+      le: ["ler", "lo", "skal le"],
+      ler: ["ler", "lo", "skal le"],
+    };
+    const intransitiveForms = intransitiveVerbForms[selectedVerb];
+    const badObjectLine = intransitiveForms
+      ? lines.find((line) => norwegianLineHasDirectObjectAfterVerb(line, intransitiveForms))
+      : null;
+    if (badObjectLine) {
+      problems.push(
+        `The Norwegian verb "${selectedVerb}" is used with an unnatural direct object in "${badObjectLine}". Use natural short complements instead, for example time/place/manner words, not random nouns.`
+      );
+    }
+
+    const movementVerbForms = getNorwegianMovementVerbForms(selectedVerb);
+    if (movementVerbForms) {
+      const randomDestinationLine = lines.find((line) =>
+        norwegianMovementLineHasRandomDestination(line, movementVerbForms)
+      );
+      if (randomDestinationLine) {
+        problems.push(
+          `The Norwegian movement verb "${selectedVerb}" has an unnatural destination in "${randomDestinationLine}". Use natural places, routes or directions, not random animals or objects.`
+        );
+      }
+
+      const prepositions = lines
+        .map((line) => getNorwegianPrepositionAfterVerb(line, movementVerbForms))
+        .filter((value): value is string => Boolean(value));
+      const prepositionCounts = prepositions.reduce<Record<string, number>>((acc, preposition) => {
+        acc[preposition] = (acc[preposition] || 0) + 1;
+        return acc;
+      }, {});
+      const repeatedPreposition = Object.entries(prepositionCounts).find(
+        ([, count]) => count >= Math.max(4, Math.ceil(lines.length * 0.7))
+      );
+      if (verbKey === "går" && repeatedPreposition) {
+        problems.push(
+          `The Norwegian movement verb "${selectedVerb}" repeats the preposition "${repeatedPreposition[0]}" too mechanically. Vary natural complements such as "hjem", "på skolen", "i parken", "til butikken" and "ut".`
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
+function buildA1StartPatternRepairPrompt(args: {
+  languageName: string;
+  config: A1StartConfig;
+  previous: GenerateTextResult;
+  problems: string[];
+}): string {
+  const sentenceCount = getA1StartPatternSentenceCount(args.config);
+  const otherSubjectGroupCount = isNewA1StartPatternSentenceCount(sentenceCount)
+    ? (sentenceCount - 5) / 3
+    : (sentenceCount - 4) / 3;
+  return `
+Repair this A1 Start pattern-sentence text.
+
+Target language: ${args.languageName}
+Verb supplied by the teacher: ${String(args.config.verb || "").trim()}
+Tense: ${String(args.config.tense || "present")}
+Number of sentences: ${sentenceCount}
+Optional theme: ${String(args.config.topic || "").trim() || "No specific theme"}
+
+Problems to fix:
+${args.problems.map((problem) => `- ${problem}`).join("\n")}
+
+Previous JSON:
+${JSON.stringify(args.previous, null, 2)}
+
+Rules:
+- Return valid JSON only.
+- Keep exactly ${sentenceCount} sentences.
+- Do not write fewer or more than ${sentenceCount} sentences. Stop immediately after sentence ${sentenceCount}.
+- Use this exact layout:
+  Sentence 1: first-person introduction.
+  Blank line.
+  Sentences 2-4: same first-person subject as sentence 1, with three different complements.
+  Blank line.
+  Then exactly ${otherSubjectGroupCount} new subject groups, 3 sentences per subject group.
+  Blank line.
+  Sentence ${sentenceCount}: exact copy of sentence 1.
+- Use a mix of pronouns, names and simple nouns when natural. For 14 or more sentences, at least one new subject group must use a name or a simple noun.
+- Sentence 1 must include a natural object or complement after the verb. Do not write bare openings like "I read", "I will read", "Eu vou gostar" or "Jeg leser".
+- The teacher may supply the verb in an infinitive or present form. Do not copy it blindly.
+- Use the teacher's verb meaning in the requested tense, conjugated naturally in ${args.languageName}.
+- If the previous text used the wrong tense, rewrite every sentence in the requested tense.
+- If the verb is intransitive or cannot naturally take an object, use short natural complements such as time, place, manner or degree. Do not attach random nouns.
+- If the verb is a movement verb, use natural places, routes or directions. Vary prepositions and adverbs when natural; do not repeat one preposition mechanically with random nouns.
+- Use the theme only when it fits naturally. Ignore it if it makes the language strange.
+- Never force the theme in as an object or complement.
+- Keep the content suitable for school and children. Do not use alcohol, drugs, smoking/vaping, sexual content, dating/romance, violence, weapons, insults or adult themes.
+- Put one sentence on each line.
+- End every sentence with a period.
+- Put a blank line after line 1, after the first-person group, and between subject groups.
+- The final sentence must be an exact copy of the first sentence.
+
+Return:
+{
+  "title": "the first sentence without final punctuation",
+  "text": "sentence 1\\n\\nsentence 2"
+}
+`.trim();
+}
+
 function buildA1StartHighFrequencyPrompt(languageName: string, config: A1StartConfig): string {
   const wordClass = String(config.wordClass || "").trim();
   const word = String(config.word || "").trim();
   const textLength = [50, 100, 150].includes(Number(config.highFrequencyLength))
     ? Number(config.highFrequencyLength)
     : 50;
+  const lengthRange =
+    textLength === 150
+      ? { min: 135, ideal: 150, max: 180 }
+      : textLength === 100
+        ? { min: 90, ideal: 105, max: 125 }
+        : { min: 45, ideal: 55, max: 70 };
   const theme = String(config.highFrequencyTheme || config.topic || "").trim() || "familie";
 
   if (!wordClass || !word) throw new Error("Word class and word are required for A1 Start.");
@@ -407,15 +886,16 @@ function buildA1StartHighFrequencyPrompt(languageName: string, config: A1StartCo
     ? `
 PREPOSITIONS - EXTRA ATTENTION:
 - Prepositions are especially language-dependent and need extra checking.
-- When the focus word is a preposition, prioritize natural language over the number of occurrences.
-- Do not use the preposition in every sentence.
+- When the focus word is a preposition, use it in several natural places in the coherent text.
+- For a short text, use the focus preposition at least 3 times when possible. For medium or long texts, use it at least 4-6 times when possible.
+- Do not use the preposition in every sentence, but do not hide it either. This is reading practice for the selected word.
 - Use the preposition only when it fits naturally.
 - Use common expressions that native speakers actually use.
 - Respect fixed expressions, contractions and natural patterns in the target language.
 - When the target language has natural contractions or fixed forms, always use the natural form.
 - Do not translate preposition patterns directly from Norwegian or English.
 - For Brazilian Portuguese, use natural contractions when needed, for example "em + a = na" and "em + o = no".
-- Natural language is more important than grammatical demonstration.
+- Natural language is still more important than grammatical demonstration, but the selected preposition should be visible enough to practise.
 `.trim()
     : "";
 
@@ -427,21 +907,25 @@ Level: A1
 Word class: ${wordClassLabel}
 Focus word: ${word}
 Theme: ${theme}
-Target length for the coherent text before the explanation: about ${textLength} words
+Target length for the coherent text before the explanation: ${lengthRange.ideal} words
 
 Strict rules:
 - Write everything in ${languageName}.
 - Do not make pattern lines or sequences.
 - Do not use chapter headings inside the text.
 - Write one coherent, natural A1 text about the selected theme.
+- The coherent text must be at least ${lengthRange.min} words and should be close to ${lengthRange.ideal} words.
+- It is better to write a little too much than too little, but keep the coherent text under ${lengthRange.max} words.
+- Use enough simple sentences to make the text feel complete, not like a short summary.
 - LANGUAGE QUALITY IS MOST IMPORTANT.
 - The main goal is to write a natural and correct text in ${languageName}.
 - Good, natural language is more important than many occurrences of the focus word.
-- Use the focus word "${word}" several times if it fits naturally, but never force it into sentences.
+- Use the focus word "${word}" several times when it fits naturally. It should be clearly visible as the word being practised.
 - If there is a conflict between natural language and more occurrences of the focus word, always prioritize natural language.
 - Do not force the focus word into a sentence.
 - Prefer short sentences and concrete everyday words.
 - Vary the sentences freely. The text should feel like a small simple text, not a drill.
+- When the theme is family, friends, school, home, food or travel, add several simple everyday details so the text has enough substance.
 - Keep the grammar natural. If a sentence sounds strange, rewrite it.
 - If you are unsure, choose a simpler sentence, a simpler word, or a more common expression.
 - Do not write sentences that sound unnatural to native speakers.
@@ -451,22 +935,28 @@ Strict rules:
 - Write the text as a native speaker would write for a child or a new language learner.
 - Do not explain the word inside the main text.
 ${prepositionGuidance ? `\n${prepositionGuidance}\n` : ""}
-- After the coherent text, add a blank line, then the heading "${languageLabels.explanationHeading}".
+- Put only the coherent reading-practice text in the "text" field.
+- Put the 5 extra reading sentences in the separate "highFrequencyReadingSentences" field.
+- Put only the word-class explanation in the separate "highFrequencyExplanation" field.
+- In "highFrequencyExplanation", start with the heading "${languageLabels.explanationHeading}".
 - Under "${languageLabels.explanationHeading}", write short plain lines without numbering or bullet points:
   ${languageLabels.belongsToWordClass(word, wordClassLabel)}
   ${wordClassExplanation}
   A simple explanation of the focus word "${word}": ${wordExplanation}
   One very simple example sentence with "${word}".
-- After the explanation, add a blank line, then the heading "${languageLabels.exampleHeading}".
-- Under "${languageLabels.exampleHeading}", write exactly 5 simple, correct sentences where "${word}" is used in different natural situations.
-- Do not number the explanation lines or example sentences.
+- In "highFrequencyReadingSentences", write exactly 5 simple, correct sentences where "${word}" is used in different natural situations.
+- Do not include a heading in "highFrequencyReadingSentences".
+- Do not number the explanation lines or reading sentences.
 - The 5 example sentences should vary placement, time, subject or situation when possible.
 - Every example sentence must be grammatically correct and idiomatic ${languageName}.
+- The title must use the exact focus word "${word}", not a translation of it.
 
 Return valid JSON only:
 {
   "title": "${languageLabels.titlePrefix} – ${word}",
-  "text": "coherent text\\n\\n${languageLabels.explanationHeading}\\n...\\n\\n${languageLabels.exampleHeading}\\n..."
+  "text": "coherent reading-practice text only",
+  "highFrequencyReadingSentences": "sentence 1\\nsentence 2\\nsentence 3\\nsentence 4\\nsentence 5",
+  "highFrequencyExplanation": "${languageLabels.explanationHeading}\\n..."
 }
 `.trim();
 }
@@ -1587,6 +2077,7 @@ function getHighFrequencyLanguageLabels(languageName: string): {
   titlePrefix: string;
   explanationHeading: string;
   exampleHeading: string;
+  sentencesWithWordHeading: (word: string) => string;
   belongsToWordClass: (word: string, wordClassLabel: string) => string;
 } {
   if (languageName === "English") {
@@ -1594,6 +2085,7 @@ function getHighFrequencyLanguageLabels(languageName: string): {
       titlePrefix: "High-frequency words",
       explanationHeading: "Explanation",
       exampleHeading: "Example sentences",
+      sentencesWithWordHeading: (word) => `Sentences with "${word}"`,
       belongsToWordClass: (word, wordClassLabel) => `"${word}" belongs to the word class ${wordClassLabel}.`,
     };
   }
@@ -1602,6 +2094,7 @@ function getHighFrequencyLanguageLabels(languageName: string): {
       titlePrefix: "Palavras de alta frequência",
       explanationHeading: "Explicação",
       exampleHeading: "Frases de exemplo",
+      sentencesWithWordHeading: (word) => `Frases com "${word}"`,
       belongsToWordClass: (word, wordClassLabel) => `"${word}" pertence à classe gramatical ${wordClassLabel}.`,
     };
   }
@@ -1609,6 +2102,7 @@ function getHighFrequencyLanguageLabels(languageName: string): {
     titlePrefix: "Høyfrekvente ord",
     explanationHeading: "Forklaring",
     exampleHeading: "Eksempelsetninger",
+    sentencesWithWordHeading: (word) => `Setninger med "${word}"`,
     belongsToWordClass: (word, wordClassLabel) => `"${word}" tilhører ordklassen ${wordClassLabel}.`,
   };
 }
@@ -2085,6 +2579,95 @@ function getHighFrequencyExampleSentences(word: string, languageName: string): s
   ];
 }
 
+function escapeA1StartRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function splitHighFrequencyTextAndExplanation(
+  text: string,
+  labels: ReturnType<typeof getHighFrequencyLanguageLabels>
+): { readingText: string; explanation: string } {
+  const normalizedText = text.trim();
+  const headings = [labels.explanationHeading, labels.exampleHeading].filter(Boolean);
+  let splitIndex = -1;
+
+  for (const heading of headings) {
+    const match = normalizedText.match(
+      new RegExp(`(?:^|\\n)\\s*${escapeA1StartRegExp(heading)}\\s*(?:\\n|$)`, "i")
+    );
+    if (match?.index !== undefined && (splitIndex === -1 || match.index < splitIndex)) {
+      splitIndex = match.index;
+    }
+  }
+
+  if (splitIndex === -1) {
+    return { readingText: normalizedText, explanation: "" };
+  }
+
+  return {
+    readingText: normalizedText.slice(0, splitIndex).trim(),
+    explanation: normalizedText.slice(splitIndex).trim(),
+  };
+}
+
+function splitHighFrequencyExplanationAndReadingSentences(
+  text: string,
+  labels: ReturnType<typeof getHighFrequencyLanguageLabels>,
+  word: string
+): { explanation: string; readingSentences: string } {
+  const normalizedText = text.trim();
+  if (!normalizedText) return { explanation: "", readingSentences: "" };
+
+  const sentenceHeadings = [
+    labels.sentencesWithWordHeading(word),
+    labels.exampleHeading,
+    "Example sentences",
+    "Eksempelsetninger",
+    "Frases de exemplo",
+  ];
+  let splitIndex = -1;
+
+  for (const heading of sentenceHeadings) {
+    const match = normalizedText.match(
+      new RegExp(`(?:^|\\n)\\s*${escapeA1StartRegExp(heading)}\\s*(?:\\n|$)`, "i")
+    );
+    if (match?.index !== undefined && (splitIndex === -1 || match.index < splitIndex)) {
+      splitIndex = match.index;
+    }
+  }
+
+  if (splitIndex === -1) {
+    return { explanation: normalizedText, readingSentences: "" };
+  }
+
+  return {
+    explanation: normalizedText.slice(0, splitIndex).trim(),
+    readingSentences: normalizedText.slice(splitIndex).trim(),
+  };
+}
+
+function removeHighFrequencyReadingHeading(
+  text: string,
+  labels: ReturnType<typeof getHighFrequencyLanguageLabels>,
+  word: string
+): string {
+  const headings = [
+    labels.sentencesWithWordHeading(word),
+    labels.exampleHeading,
+    "Example sentences",
+    "Eksempelsetninger",
+    "Frases de exemplo",
+  ];
+  let cleaned = text.trim();
+  for (const heading of headings) {
+    cleaned = cleaned.replace(
+      new RegExp(`^\\s*${escapeA1StartRegExp(heading)}\\s*(?:\\n|$)`, "i"),
+      ""
+    ).trim();
+  }
+  return cleaned;
+}
+
 function normalizeA1StartHighFrequencyResult(
   result: GenerateTextResult,
   config: A1StartConfig,
@@ -2105,20 +2688,37 @@ function normalizeA1StartHighFrequencyResult(
     getHighFrequencyWordClassExplanation(wordClass, languageName),
     getHighFrequencyWordExplanation(word, languageName),
   ].join("\n");
-  const exampleSentences = [
-    languageLabels.exampleHeading,
-    ...getHighFrequencyExampleSentences(word, languageName),
-  ].join("\n");
-  const hasExplanation = text.toLocaleLowerCase().includes(languageLabels.explanationHeading.toLocaleLowerCase());
-  const hasExampleSentences = text.toLocaleLowerCase().includes(languageLabels.exampleHeading.toLocaleLowerCase());
-  const extraSections = [
+  const exampleSentences = getHighFrequencyExampleSentences(word, languageName).join("\n");
+  const splitText = splitHighFrequencyTextAndExplanation(text, languageLabels);
+  const suppliedExplanation = removeA1StartSectionNumbering(
+    stringifyGeneratedText(result.highFrequencyExplanation)
+  );
+  const suppliedReadingSentences = removeA1StartSectionNumbering(
+    stringifyGeneratedText(result.highFrequencyReadingSentences)
+  );
+  const separatedExplanation = splitHighFrequencyExplanationAndReadingSentences(
+    suppliedExplanation || splitText.explanation,
+    languageLabels,
+    word
+  );
+  const explanationBase = separatedExplanation.explanation;
+  const readingSentencesBase = suppliedReadingSentences || separatedExplanation.readingSentences;
+  const hasExplanation = explanationBase.toLocaleLowerCase().includes(languageLabels.explanationHeading.toLocaleLowerCase());
+  const hasReadingSentences = readingSentencesBase.trim().length > 0;
+  const highFrequencyExplanation = [
+    hasExplanation ? explanationBase : "",
     hasExplanation ? "" : explanation,
-    hasExampleSentences ? "" : exampleSentences,
   ].filter(Boolean).join("\n\n");
+  const normalizedReadingSentences = hasReadingSentences
+    ? removeHighFrequencyReadingHeading(readingSentencesBase, languageLabels, word)
+    : "";
+  const highFrequencyReadingSentences = normalizedReadingSentences || exampleSentences;
 
   return {
     title: `${languageLabels.titlePrefix} – ${word}`,
-    text: extraSections ? `${text}\n\n${extraSections}` : text,
+    text: splitText.readingText,
+    highFrequencyReadingSentences,
+    highFrequencyExplanation,
   };
 }
 
@@ -2198,7 +2798,7 @@ function getA1StartBrazilianPortugueseVerbPattern(
   selectedVerb: string,
   tense: string,
   topic: string
-): { first: string; third: string; complements: string[] } | null {
+): A1StartVerbPattern | null {
   const normalizedVerb = selectedVerb.toLocaleLowerCase();
   const normalizedTense = tense === "past" || tense === "future" ? tense : "present";
   const cleanedTopic = cleanA1StartLine(topic).toLocaleLowerCase();
@@ -2457,7 +3057,168 @@ function getA1StartBrazilianPortugueseVerbPattern(
           ? topicComplements[normalizedVerb]
         : defaultComplements[normalizedVerb];
   if (!forms || !complements) return null;
-  return { ...forms, complements };
+  return { first: forms.first, other: forms.third, complements };
+}
+
+function getA1StartNorwegianVerbPattern(
+  selectedVerb: string,
+  tense: string,
+  topic: string
+): A1StartVerbPattern | null {
+  const normalizedVerb = selectedVerb.toLocaleLowerCase();
+  const verbKey = normalizedVerb === "spille" ? "spiller" : normalizedVerb;
+  const normalizedTense = tense === "past" || tense === "future" ? tense : "present";
+  const cleanedTopic = cleanA1StartLine(topic).toLocaleLowerCase();
+  const isFamilyTopic = cleanedTopic === "familie";
+  const isSchoolTopic = cleanedTopic === "skole";
+  const isBreakfastTopic = cleanedTopic === "frokost";
+  const isDinnerTopic = cleanedTopic === "middag" || cleanedTopic === "mat";
+  const isFriendsTopic = cleanedTopic === "venner";
+  const isHomeTopic = cleanedTopic === "hjem";
+  const isTransportTopic = cleanedTopic === "transport";
+  const isHealthTopic = cleanedTopic === "helse";
+
+  const verbForms: Record<string, Record<string, string>> = {
+    er: { present: "er", past: "var", future: "skal være" },
+    har: { present: "har", past: "hadde", future: "skal ha" },
+    ser: { present: "ser", past: "så", future: "skal se" },
+    liker: { present: "liker", past: "likte", future: "skal like" },
+    spiser: { present: "spiser", past: "spiste", future: "skal spise" },
+    drikker: { present: "drikker", past: "drakk", future: "skal drikke" },
+    går: { present: "går", past: "gikk", future: "skal gå" },
+    kommer: { present: "kommer", past: "kom", future: "skal komme" },
+    lager: { present: "lager", past: "lagde", future: "skal lage" },
+    leser: { present: "leser", past: "leste", future: "skal lese" },
+    skriver: { present: "skriver", past: "skrev", future: "skal skrive" },
+    spiller: { present: "spiller", past: "spilte", future: "skal spille" },
+  };
+
+  const defaultComplements: Record<string, string[]> = {
+    er: ["glad", "snill", "rolig", "klar", "sterk", "her", "trøtt", "våken"],
+    har: ["en bok", "en sekk", "en ball", "en jakke", "en blyant", "en kopp", "et bilde", "et eple"],
+    ser: ["en bil", "en buss", "et tog", "en katt", "en hund", "en skole", "en bok", "et hus"],
+    liker: ["bøker", "musikk", "epler", "brød", "juice", "skolen", "parken", "venner"],
+    spiser: ["brød", "epler", "suppe", "ris", "fisk", "grøt", "mat", "frukt"],
+    drikker: ["vann", "juice", "melk", "te", "kakao", "saft", "vann til maten", "melk til brød"],
+    går: ["til skolen", "til parken", "til butikken", "hjem", "til bussen", "til døra", "ut", "inn"],
+    kommer: ["til skolen", "til parken", "til butikken", "hjem", "til bussen", "til døra", "inn", "ut"],
+    lager: ["mat", "suppe", "et bilde", "en liste", "en kake", "et kort", "en tegning", "en plan"],
+    leser: ["en bok", "en tekst", "et ord", "en setning", "et brev", "en lapp", "en side", "en liste"],
+    skriver: ["et ord", "en setning", "et navn", "et brev", "en lapp", "en liste", "en tekst", "et kort"],
+    spiller: ["fotball", "håndball", "kort", "et spill", "piano", "gitar", "musikk", "teater"],
+  };
+
+  const familyComplements: Partial<Record<string, string[]>> = {
+    er: ["glad", "snill", "hjemme", "sammen med familien", "rolig", "klar", "trøtt", "våken"],
+    har: ["en mamma", "en pappa", "en søster", "en bror", "en bestemor", "en bestefar", "en familie", "et hjem"],
+    ser: ["mamma", "pappa", "søster", "bror", "bestemor", "bestefar", "familien", "et bilde"],
+    liker: ["mamma", "pappa", "søster", "bror", "bestemor", "bestefar", "familien", "hjemmet"],
+    spiser: ["brød med mamma", "suppe med pappa", "mat med søster", "ris med bror", "kake med bestemor", "fisk med bestefar", "middag med familien", "frukt hjemme"],
+    drikker: ["vann med mamma", "juice med pappa", "melk med søster", "te med bror", "kakao med bestemor", "saft med bestefar", "vann hjemme", "melk til maten"],
+    går: ["til mamma", "til pappa", "til søster", "til bror", "til bestemor", "til bestefar", "hjem", "til familien"],
+    kommer: ["til mamma", "til pappa", "til søster", "til bror", "til bestemor", "til bestefar", "hjem", "til familien"],
+    lager: ["mat til mamma", "suppe til pappa", "et kort til søster", "en tegning til bror", "kake til bestemor", "kaffe til bestefar", "middag til familien", "en liste hjemme"],
+    leser: ["en bok med mamma", "en tekst med pappa", "et brev fra søster", "en lapp fra bror", "en bok for bestemor", "et kort fra bestefar", "en setning hjemme", "en historie med familien"],
+    skriver: ["et kort til mamma", "et brev til pappa", "en lapp til søster", "et navn til bror", "en hilsen til bestemor", "et kort til bestefar", "en liste hjemme", "en setning om familien"],
+    spiller: ["kort med mamma", "fotball med pappa", "spill med søster", "musikk med bror", "piano for bestemor", "gitar for bestefar", "et spill med familien", "teater hjemme"],
+  };
+
+  const schoolComplements: Partial<Record<string, string[]>> = {
+    er: ["på skolen", "klar", "rolig", "glad", "snill", "i klassen", "ved pulten", "i timen"],
+    har: ["en bok", "en blyant", "en sekk", "et ark", "en pult", "en lærer", "en time", "en lekse"],
+    ser: ["en bok", "en blyant", "en sekk", "et ark", "en pult", "en lærer", "en tavle", "en skole"],
+    liker: ["skolen", "boka", "blyanten", "klassen", "læreren", "friminuttet", "timen", "lekser"],
+    spiser: ["matpakke", "brød", "frukt", "eple", "banan", "suppe", "lunsj", "grøt"],
+    drikker: ["vann", "melk", "juice", "vann på skolen", "melk til lunsj", "saft i friminuttet", "vann i timen", "kakao"],
+    går: ["til skolen", "til klassen", "til pulten", "til tavla", "til biblioteket", "til friminuttet", "til døra", "hjem fra skolen"],
+    kommer: ["til skolen", "til klassen", "til pulten", "til tavla", "til biblioteket", "til friminuttet", "til døra", "hjem fra skolen"],
+    lager: ["en tegning", "en liste", "en oppgave", "et kort", "et bilde", "en plan", "matpakke", "en bokstav"],
+    leser: ["en bok", "en tekst", "et ord", "en setning", "en side", "en lapp", "en lekse", "en liste"],
+    skriver: ["et ord", "en setning", "et navn", "en lekse", "en lapp", "en liste", "en tekst", "en bokstav"],
+    spiller: ["fotball", "håndball", "et spill", "kort", "musikk", "teater", "piano", "gitar"],
+  };
+
+  const mealComplements: Partial<Record<string, string[]>> = {
+    er: ["sulten", "mett", "glad", "klar", "ved bordet", "på kjøkkenet", "rolig", "hjemme"],
+    har: ["brød", "ost", "frukt", "suppe", "ris", "fisk", "melk", "vann"],
+    ser: ["brød", "ost", "frukt", "suppe", "ris", "fisk", "melk", "vann"],
+    liker: ["brød", "ost", "frukt", "suppe", "ris", "fisk", "melk", "vann"],
+    spiser: ["brød", "ost", "frukt", "suppe", "ris", "fisk", "grøt", "middag"],
+    drikker: ["vann", "melk", "juice", "te", "kakao", "saft", "vann til maten", "melk til brød"],
+    går: ["til bordet", "til kjøkkenet", "for å spise", "for å drikke", "til maten", "til stolen", "hjem til middag", "inn på kjøkkenet"],
+    kommer: ["til bordet", "til kjøkkenet", "for å spise", "for å drikke", "til maten", "til stolen", "hjem til middag", "inn på kjøkkenet"],
+    lager: ["brød", "suppe", "ris", "fisk", "grøt", "kakao", "mat", "middag"],
+    leser: ["en oppskrift", "en liste", "et ord", "en setning", "en lapp", "en tekst", "et navn", "en side"],
+    skriver: ["en oppskrift", "en liste", "et ord", "en setning", "en lapp", "en tekst", "et navn", "en side"],
+    spiller: ["kort etter maten", "et spill etter maten", "musikk på kjøkkenet", "piano før maten", "gitar etter middag", "teater hjemme", "fotball etter frokost", "håndball etter middag"],
+  };
+
+  const topicComplements =
+    isFamilyTopic ? familyComplements
+    : isSchoolTopic ? schoolComplements
+    : isBreakfastTopic || isDinnerTopic ? mealComplements
+    : isFriendsTopic ? {
+      er: ["med en venn", "snill", "glad", "rolig", "klar", "ute", "inne", "sammen"],
+      har: ["en venn", "en ball", "et spill", "en bok", "en sekk", "en sykkel", "et kort", "en plan"],
+      ser: ["en venn", "en ball", "et spill", "en bok", "en sykkel", "et bilde", "parken", "skolen"],
+      liker: ["venner", "spill", "parken", "musikk", "bøker", "fotball", "tegning", "frukt"],
+      spiser: ["brød med en venn", "frukt med en venn", "suppe med Sara", "ris med Ali", "mat i parken", "kake med venner", "eple med Nora", "middag med Omar"],
+      drikker: ["vann med en venn", "juice med Sara", "melk med Ali", "te med Nora", "saft med venner", "kakao med Omar", "vann i parken", "juice hjemme"],
+      går: ["til en venn", "til parken", "til skolen", "til Sara", "til Ali", "ut med venner", "hjem med Nora", "til spillet"],
+      kommer: ["til en venn", "til parken", "til skolen", "til Sara", "til Ali", "inn med venner", "hjem med Nora", "til spillet"],
+      lager: ["et kort til en venn", "en tegning til Sara", "mat med Ali", "en liste med Nora", "et spill med venner", "en plan med Omar", "en kake med Sara", "et bilde til Ali"],
+      leser: ["en bok med en venn", "en tekst med Sara", "et kort fra Ali", "en lapp fra Nora", "en liste med venner", "en setning med Omar", "en side med Sara", "et ord med Ali"],
+      skriver: ["et kort til en venn", "en lapp til Sara", "et navn til Ali", "en setning til Nora", "en liste med venner", "en tekst om Omar", "et ord til Sara", "en hilsen til Ali"],
+      spiller: ["fotball med en venn", "kort med Sara", "et spill med Ali", "musikk med Nora", "piano for venner", "gitar med Omar", "teater med Sara", "håndball med Ali"],
+    }
+    : isHomeTopic ? {
+      er: ["hjemme", "på rommet", "på kjøkkenet", "rolig", "glad", "klar", "i stua", "ved døra"],
+      har: ["en seng", "en stol", "et bord", "en kopp", "en bok", "en jakke", "en dør", "et rom"],
+      ser: ["en seng", "en stol", "et bord", "en kopp", "en bok", "en jakke", "en dør", "et rom"],
+      liker: ["hjemmet", "rommet", "stua", "kjøkkenet", "senga", "stolen", "boka", "bordet"],
+      spiser: ["brød hjemme", "suppe hjemme", "frukt på kjøkkenet", "mat ved bordet", "grøt i stua", "eple på rommet", "middag hjemme", "ris ved bordet"],
+      drikker: ["vann hjemme", "melk hjemme", "juice på kjøkkenet", "te ved bordet", "kakao i stua", "saft på rommet", "vann ved døra", "melk til maten"],
+      går: ["hjem", "til rommet", "til kjøkkenet", "til stua", "til døra", "til bordet", "ut", "inn"],
+      kommer: ["hjem", "til rommet", "til kjøkkenet", "til stua", "til døra", "til bordet", "ut", "inn"],
+      lager: ["mat hjemme", "suppe på kjøkkenet", "en tegning på rommet", "en liste i stua", "en kake hjemme", "et kort ved bordet", "en plan hjemme", "en kopp kakao"],
+      leser: ["en bok hjemme", "en tekst på rommet", "en lapp på kjøkkenet", "en liste i stua", "et ord ved bordet", "en setning hjemme", "et brev på rommet", "en side i boka"],
+      skriver: ["et ord hjemme", "en setning på rommet", "en lapp på kjøkkenet", "en liste i stua", "et navn ved bordet", "en tekst hjemme", "et kort på rommet", "en side i boka"],
+      spiller: ["kort hjemme", "et spill på rommet", "piano i stua", "gitar hjemme", "musikk på rommet", "teater hjemme", "fotball ute", "håndball ute"],
+    }
+    : isTransportTopic ? {
+      er: ["på bussen", "på toget", "i bilen", "ved veien", "klar", "rolig", "ute", "framme"],
+      har: ["en buss", "et tog", "en bil", "en sykkel", "en billett", "en sekk", "et kart", "en hjelm"],
+      ser: ["en buss", "et tog", "en bil", "en sykkel", "en billett", "en vei", "et kart", "en stasjon"],
+      liker: ["bussen", "toget", "bilen", "sykkelen", "veien", "turen", "kartet", "stasjonen"],
+      spiser: ["frukt på bussen", "brød på toget", "mat i bilen", "eple på tur", "banan ved stasjonen", "suppe hjemme", "lunsj på reisen", "grøt før turen"],
+      drikker: ["vann på bussen", "juice på toget", "melk i bilen", "vann på tur", "saft ved stasjonen", "te hjemme", "kakao før turen", "vann ved veien"],
+      går: ["til bussen", "til toget", "til bilen", "til sykkelen", "til stasjonen", "til veien", "hjem", "ut"],
+      kommer: ["til bussen", "til toget", "til bilen", "til sykkelen", "til stasjonen", "til veien", "hjem", "inn"],
+      lager: ["en billett", "et kart", "en plan", "en liste", "en tegning av bussen", "en tegning av toget", "mat til turen", "en rute"],
+      leser: ["en billett", "et kart", "et skilt", "en liste", "en lapp", "et ord", "en setning", "en tekst"],
+      skriver: ["en billett", "et navn", "en liste", "en rute", "en lapp", "et ord", "en setning", "en tekst"],
+      spiller: ["et spill på bussen", "kort på toget", "musikk i bilen", "et spill på tur", "gitar hjemme", "piano hjemme", "fotball etter turen", "håndball etter turen"],
+    }
+    : isHealthTopic ? {
+      er: ["frisk", "rolig", "sterk", "glad", "trøtt", "våken", "hos legen", "hjemme"],
+      har: ["vann", "frukt", "søvn", "energi", "en time", "en lege", "en pause", "en jakke"],
+      ser: ["en lege", "vann", "frukt", "en seng", "en stol", "en jakke", "en kopp", "et eple"],
+      liker: ["vann", "frukt", "søvn", "pauser", "turer", "suppe", "ro", "lek"],
+      spiser: ["frukt", "suppe", "brød", "ris", "fisk", "eple", "banan", "mat"],
+      drikker: ["vann", "melk", "juice", "te", "vann etter tur", "melk til maten", "saft", "kakao"],
+      går: ["til legen", "til skolen", "hjem", "ut på tur", "til senga", "til stolen", "til kjøkkenet", "til døra"],
+      kommer: ["til legen", "til skolen", "hjem", "inn fra tur", "til senga", "til stolen", "til kjøkkenet", "til døra"],
+      lager: ["suppe", "mat", "en pause", "en liste", "en plan", "te", "en matpakke", "en tegning"],
+      leser: ["en lapp", "en liste", "en tekst", "et ord", "en setning", "en bok", "et skilt", "en side"],
+      skriver: ["en lapp", "en liste", "en tekst", "et ord", "en setning", "et navn", "en beskjed", "en side"],
+      spiller: ["fotball", "håndball", "et rolig spill", "kort", "musikk", "piano", "gitar", "teater"],
+    }
+    : null;
+
+  const form = verbForms[verbKey]?.[normalizedTense];
+  const complements = topicComplements?.[verbKey] || defaultComplements[verbKey];
+  if (!form || !complements) return null;
+  return { first: form, other: form, complements };
 }
 
 function getA1StartExpectedVerbForms(
@@ -2465,9 +3226,13 @@ function getA1StartExpectedVerbForms(
   selectedVerb: string,
   tense: string
 ): string[] {
+  if (languageName === "Norwegian") {
+    const pattern = getA1StartNorwegianVerbPattern(selectedVerb, tense, "");
+    if (pattern) return Array.from(new Set([pattern.first, pattern.other]));
+  }
   if (languageName === "Brazilian Portuguese") {
     const pattern = getA1StartBrazilianPortugueseVerbPattern(selectedVerb, tense, "");
-    if (pattern) return [pattern.first, pattern.third];
+    if (pattern) return Array.from(new Set([pattern.first, pattern.other]));
   }
   return [selectedVerb];
 }
@@ -2511,6 +3276,18 @@ function getA1StartFallbackGroups(
 ): string[][] {
   const normalizedVerb = selectedVerb.toLocaleLowerCase();
   const cleanedTopic = cleanA1StartLine(topic);
+
+  if (languageName === "Norwegian") {
+    const pattern = getA1StartNorwegianVerbPattern(selectedVerb, tense, topic);
+    if (pattern) {
+      const subjects = [firstPersonSubject, "Hun", "Han", "Sara", "Ali", "Barnet", "Læreren"];
+      return buildFallbackGroupsFromPattern(
+        subjects,
+        [pattern.first, ...subjects.slice(1).map(() => pattern.other)],
+        pattern.complements
+      );
+    }
+  }
 
   if (languageName === "Norwegian" && normalizedVerb === "ser") {
     return [
@@ -2615,7 +3392,7 @@ function getA1StartFallbackGroups(
       const subjects = [firstPersonSubject, "Ela", "Sara", "Ana", "Paulo", "Bia"];
       return buildFallbackGroupsFromPattern(
         subjects,
-        [pattern.first, ...subjects.slice(1).map(() => pattern.third)],
+        [pattern.first, ...subjects.slice(1).map(() => pattern.other)],
         pattern.complements
       );
     }
@@ -2670,6 +3447,34 @@ function isA1StartSubjectAllowed(
   return true;
 }
 
+function isNewA1StartPatternSentenceCount(count: number): boolean {
+  return [8, 11, 14, 17, 20].includes(count);
+}
+
+function punctuateA1StartSentence(line: string): string {
+  const cleaned = cleanA1StartLine(line);
+  return cleaned ? `${cleaned}.` : "";
+}
+
+function formatA1StartPatternText(lines: string[], expectedSentenceCount: number): string {
+  const punctuatedLines = lines.map(punctuateA1StartSentence).filter(Boolean);
+  if (!isNewA1StartPatternSentenceCount(expectedSentenceCount)) return punctuatedLines.join("\n");
+
+  const groups: string[] = [];
+  groups.push(punctuatedLines[0]);
+  groups.push("");
+  groups.push(punctuatedLines.slice(1, 4).join("\n"));
+
+  for (let index = 4; index < punctuatedLines.length - 1; index += 3) {
+    groups.push("");
+    groups.push(punctuatedLines.slice(index, index + 3).join("\n"));
+  }
+
+  groups.push("");
+  groups.push(punctuatedLines[punctuatedLines.length - 1]);
+  return groups.join("\n");
+}
+
 function normalizeA1StartResult(
   result: GenerateTextResult,
   expectedSentenceCount: number,
@@ -2692,6 +3497,23 @@ function normalizeA1StartResult(
         : languageName === "English"
           ? "I"
           : rawLines.map((line) => line.split(" ")[0]).find(Boolean) || titleLine.split(" ")[0];
+  const usesNewPattern = isNewA1StartPatternSentenceCount(expectedSentenceCount);
+
+  if (usesNewPattern) {
+    if (rawLines.length < expectedSentenceCount) {
+      throw new Error(
+        `A1 Start response had ${rawLines.length} sentences, expected ${expectedSentenceCount}.`
+      );
+    }
+
+    const normalizedLines = rawLines.slice(0, expectedSentenceCount);
+    normalizedLines[expectedSentenceCount - 1] = normalizedLines[0];
+    return {
+      title: normalizedLines[0],
+      text: formatA1StartPatternText(normalizedLines, expectedSentenceCount),
+    };
+  }
+
   const expectedVerbForms = getA1StartExpectedVerbForms(
     languageName,
     selectedVerb,
@@ -2749,16 +3571,12 @@ function normalizeA1StartResult(
 
   return {
     title: firstSentence,
-    text: normalizedLines.join("\n"),
+    text: formatA1StartPatternText(normalizedLines, expectedSentenceCount),
   };
 }
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ error: "Missing API key" }, { status: 500 });
-    }
-
     const user = await getRequestUserContext(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -2826,6 +3644,10 @@ export async function POST(req: Request) {
           extraFactCheck,
         });
 
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "Missing API key" }, { status: 500 });
+    }
+
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const createResponse = async (prompt: string, temperature: number) => {
       const resp = await client.responses.create({
@@ -2869,7 +3691,7 @@ export async function POST(req: Request) {
       return NextResponse.json(parsed);
     }
 
-    const parsed = await createResponse(userPrompt, isA1Start ? 0.2 : 0.45);
+    let parsed = await createResponse(userPrompt, isA1Start ? 0.15 : 0.45);
 
     if (isA1Start) {
       if (isA1StartSoundLadder) {
@@ -2882,9 +3704,40 @@ export async function POST(req: Request) {
           normalizeA1StartHighFrequencyResult(parsed, body.a1Start || {}, languageName)
         );
       }
-      const expectedSentenceCount = [10, 13, 16, 19].includes(Number(body.a1Start?.sentenceCount))
-        ? Number(body.a1Start?.sentenceCount)
-        : 10;
+      const expectedSentenceCount = getA1StartPatternSentenceCount(body.a1Start || {});
+      const patternProblems = findA1StartPatternProblems(
+        parsed,
+        expectedSentenceCount,
+        body.a1Start || {},
+        languageName
+      );
+      if (patternProblems.length) {
+        parsed = await createResponse(
+          buildA1StartPatternRepairPrompt({
+            languageName,
+            config: body.a1Start || {},
+            previous: parsed,
+            problems: patternProblems,
+          }),
+          0.05
+        );
+        const remainingProblems = findA1StartPatternProblems(
+          parsed,
+          expectedSentenceCount,
+          body.a1Start || {},
+          languageName
+        );
+        if (remainingProblems.length) {
+          return NextResponse.json(
+            {
+              error:
+                "A1 Start-teksten ble ikke god nok etter kontroll. Prøv et annet verb, fjern temaet, eller generer på nytt.",
+              details: remainingProblems,
+            },
+            { status: 422 }
+          );
+        }
+      }
       return NextResponse.json(
         normalizeA1StartResult(parsed, expectedSentenceCount, body.a1Start || {}, languageName)
       );

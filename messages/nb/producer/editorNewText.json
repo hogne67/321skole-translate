@@ -102,6 +102,11 @@
       "releaseModeHelp": "Velg om tekst og oppgaver skal vises sammen eller tekst først.",
       "status": "Status",
       "text": "Tekst",
+      "highFrequencyWord": "Høyfrekvent ord",
+      "highFrequencyReadingSentences": "Setninger med høyfrekvent ord",
+      "highFrequencyReadingSentencesHelp": "Vises som lesestoff under hovedteksten og tas med i utskrift.",
+      "highFrequencyExplanation": "Ordklasseforklaring",
+      "highFrequencyExplanationHelp": "Støttetekst til lærer. Vises bare i lærerversjon av utskrift.",
       "coverImageCredit": "Bildekilde"
     },
     "textSizes": {
@@ -124,6 +129,9 @@
       "language": "For eksempel engelsk, norsk, portugisisk…",
       "tags": "For eksempel skole, grammatikk, lesing",
       "sourceText": "Lim inn eller skriv oppgaveteksten her…",
+      "highFrequencyWord": "For eksempel og, med, from…",
+      "highFrequencyReadingSentences": "Setninger som elevene også skal lese…",
+      "highFrequencyExplanation": "Kort forklaring til lærer…",
       "taskPrompt": "Skriv oppgaveteksten her…",
       "mcqCorrectAnswer": "Skriv riktig svar",
       "coverImageCredit": "F.eks. Foto: John Doe / Unsplash / Eget bilde"

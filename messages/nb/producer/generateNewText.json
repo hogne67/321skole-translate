@@ -23,10 +23,21 @@
       "title": "Leseopplæring – A1 Start",
       "tasksHeading": "Oppgaver",
       "customVerb": "Annet verb",
-      "description": "Start og avslutt med samme Jeg-setning. Gjenta hvert subjekt tre ganger med samme verb.",
-      "highFrequencyDescription": "Lag en sammenhengende A1-tekst med ett valgt høyfrekvent funksjonsord og en enkel forklaring etter teksten.",
+      "description": "Start med én Jeg-setning. Lag grupper på tre setninger med samme subjekt og verb, og avslutt med Jeg igjen.",
+      "highFrequencyDescription": "Lag en sammenhengende A1-tekst med ett valgt høyfrekvent funksjonsord. Forklaring og eksempelsetninger vises under teksten.",
       "soundLadderDescription": "Lag en A1-tekst med fokus på én lyd, ord og korte lydsetninger.",
       "reviewReminder": "Sjekk teksten nøye. Bytt gjerne ut enkelte ord eller setninger om nødvendig.",
+      "sentencesWithWordTitle": "Setninger med \"{word}\"",
+      "wordClassExplanationTitle": "Ordklasseforklaring",
+      "topicHelp": "Tema er valgfritt og bør passe verbet. KI prøver å knytte verb og tema sammen når det er naturlig.",
+      "taskSelectionTitle": "Velg oppgaver",
+      "sentenceCounts": {
+        "8": "8 - svært kort",
+        "11": "11 - kort",
+        "14": "14 - vanlig",
+        "17": "17 - ekstra",
+        "20": "20 - mye lesetrening"
+      },
       "fields": {
         "type": "Type",
         "verb": "Verb",
@@ -62,6 +73,7 @@
         "long": "Lang tekst (ca. 150 ord)"
       },
       "highFrequencyThemes": {
+        "none": "Ingen tema",
         "familie": "Familie",
         "jobb": "Jobb",
         "skole": "Skole",
@@ -77,7 +89,7 @@
         "helse": "Helse",
         "custom": "Eget tema"
       },
-      "highFrequencyHelp": "AI lager en sammenhengende A1-tekst. Godt språk er viktigst. Teksten avsluttes med Forklaring og Eksempelsetninger.",
+      "highFrequencyHelp": "AI lager en sammenhengende A1-tekst. Godt språk er viktigst. Forklaring og eksempelsetninger vises i egen boks under teksten.",
       "soundLadderHelp": "AI lager lydord først, én setning per ord og deretter en kort tekst med flere av ordene.",
       "soundTasksPreview": {
         "title": "Oppgaver som lages",
@@ -93,9 +105,8 @@
       },
       "placeholders": {
         "verb": "Skriv eller velg verb",
-        "topic": "For eksempel mat, skole eller familie"
+        "topic": "Valgfritt: brukes bare hvis det passer naturlig"
       },
-      "verbSuggestions": "Forslag: {verbs}",
       "errors": {
         "verbRequired": "Skriv inn et verb for A1 Start."
       }

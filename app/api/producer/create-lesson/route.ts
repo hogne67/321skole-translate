@@ -14,6 +14,9 @@ type Body = {
   topic?: string;
   textType: string;
   sourceText: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks: unknown[];
   aiQuality?: {
     factCheckRequired?: boolean;
@@ -53,6 +56,9 @@ export async function POST(req: Request) {
 
     const title = String(body.title || "").trim();
     const sourceText = String(body.sourceText || "").trim();
+    const highFrequencyWord = String(body.highFrequencyWord || "").trim();
+    const highFrequencyReadingSentences = String(body.highFrequencyReadingSentences || "").trim();
+    const highFrequencyExplanation = String(body.highFrequencyExplanation || "").trim();
 
     if (!title) return json({ error: "Title is required." }, 400);
     if (!sourceText) return json({ error: "Source text is empty." }, 400);
@@ -96,6 +102,9 @@ export async function POST(req: Request) {
       releaseMode: "ALL_AT_ONCE",
 
       sourceText,
+      highFrequencyWord,
+      highFrequencyReadingSentences,
+      highFrequencyExplanation,
       tasks: Array.isArray(body.tasks) ? body.tasks : [],
       aiQuality,
 

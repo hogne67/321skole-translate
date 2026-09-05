@@ -36,6 +36,9 @@ type SourceLessonData = {
   description?: string;
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
   imageTasks?: unknown;
@@ -114,6 +117,9 @@ function pickSourceLessonData(
     description: nonEmptyOrUndefined(d.description),
     sourceText: nonEmptyOrUndefined(d.sourceText),
     text: nonEmptyOrUndefined(d.text),
+    highFrequencyWord: nonEmptyOrUndefined(d.highFrequencyWord),
+    highFrequencyReadingSentences: nonEmptyOrUndefined(d.highFrequencyReadingSentences),
+    highFrequencyExplanation: nonEmptyOrUndefined(d.highFrequencyExplanation),
     tasks: d.tasks,
     coverImageUrl: nonEmptyOrUndefined(d.coverImageUrl),
     imageTasks: d.imageTasks ?? null,
@@ -379,6 +385,9 @@ export async function POST(
         description: source.description ?? null,
         sourceText: source.sourceText ?? null,
         text: source.text ?? null,
+        highFrequencyWord: source.highFrequencyWord ?? null,
+        highFrequencyReadingSentences: source.highFrequencyReadingSentences ?? null,
+        highFrequencyExplanation: source.highFrequencyExplanation ?? null,
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
         imageTasks: source.imageTasks ?? null,

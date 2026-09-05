@@ -23,10 +23,21 @@
       "title": "Reading instruction – A1 Start",
       "tasksHeading": "Tasks",
       "customVerb": "Other verb",
-      "description": "Start and finish with the same first-person sentence. Repeat each subject three times with the same verb.",
-      "highFrequencyDescription": "Create one coherent A1 text using a selected high-frequency function word, followed by a simple explanation.",
+      "description": "Start with one first-person sentence. Make groups of three sentences with the same subject and verb, then finish with the first-person subject again.",
+      "highFrequencyDescription": "Create one coherent A1 text using a selected high-frequency function word. Explanation and example sentences are shown below the text.",
       "soundLadderDescription": "Create an A1 text with one focus sound, sound words, and short sound sentences.",
       "reviewReminder": "Check the text carefully. Replace individual words or sentences if needed.",
+      "sentencesWithWordTitle": "Sentences with \"{word}\"",
+      "wordClassExplanationTitle": "Word class explanation",
+      "topicHelp": "The topic is optional and should fit the verb. The AI will connect the verb and topic when it sounds natural.",
+      "taskSelectionTitle": "Choose tasks",
+      "sentenceCounts": {
+        "8": "8 - very short",
+        "11": "11 - short",
+        "14": "14 - standard",
+        "17": "17 - extra",
+        "20": "20 - more reading practice"
+      },
       "fields": {
         "type": "Type",
         "verb": "Verb",
@@ -62,6 +73,7 @@
         "long": "Long text (about 150 words)"
       },
       "highFrequencyThemes": {
+        "none": "No topic",
         "familie": "Family",
         "jobb": "Work",
         "skole": "School",
@@ -77,7 +89,7 @@
         "helse": "Health",
         "custom": "Custom topic"
       },
-      "highFrequencyHelp": "The AI creates one coherent A1 text. Good language comes first. The text ends with Explanation and Example sentences.",
+      "highFrequencyHelp": "The AI creates one coherent A1 text. Good language comes first. Explanation and example sentences are shown in a separate box below the text.",
       "soundLadderHelp": "AI creates sound words first, one sentence per word, and then a short text using several of the words.",
       "soundTasksPreview": {
         "title": "Tasks that will be created",
@@ -93,9 +105,8 @@
       },
       "placeholders": {
         "verb": "Write or choose a verb",
-        "topic": "For example food, school, or family"
+        "topic": "Optional: used only when it fits naturally"
       },
-      "verbSuggestions": "Suggestions: {verbs}",
       "errors": {
         "verbRequired": "Enter a verb for A1 Start."
       }

@@ -28,6 +28,8 @@
     },
     "sections": {
       "readingText": "Texto de leitura",
+      "highFrequencyReadingSentences": "Frases com \"{word}\"",
+      "highFrequencyExplanation": "Explicação da classe gramatical",
       "tasks": "Atividades"
     },
     "answers": {

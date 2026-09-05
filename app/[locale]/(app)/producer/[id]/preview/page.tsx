@@ -25,6 +25,9 @@ type Lesson = {
   title: string;
   level?: string;
   sourceText: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   status?: "draft" | "published";
   textSize?: TextSize;
   coverImageUrl?: string;
@@ -147,6 +150,16 @@ export default function ProducerLessonPreviewPage() {
   const textSize = normalizeTextSize(lesson.textSize);
   const readingTextStyle = getReadingTextStyle(textSize);
   const coverImageUrl = typeof lesson.coverImageUrl === "string" ? lesson.coverImageUrl.trim() : "";
+  const highFrequencyReadingSentences =
+    typeof lesson.highFrequencyReadingSentences === "string"
+      ? lesson.highFrequencyReadingSentences.trim()
+      : "";
+  const highFrequencyExplanation =
+    typeof lesson.highFrequencyExplanation === "string"
+      ? lesson.highFrequencyExplanation.trim()
+      : "";
+  const highFrequencyWord =
+    typeof lesson.highFrequencyWord === "string" ? lesson.highFrequencyWord.trim() : "";
 
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "28px 16px 112px" }}>
@@ -244,6 +257,50 @@ export default function ProducerLessonPreviewPage() {
             {lesson.sourceText}
           </div>
         </div>
+
+        {highFrequencyReadingSentences ? (
+          <div
+            style={{
+              marginTop: 18,
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderColor: "#bfdbfe",
+              borderRadius: 14,
+              padding: 14,
+              background: "#eff6ff",
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 10, color: "#1e3a8a" }}>
+              {t("fields.highFrequencyReadingSentences")}
+              {highFrequencyWord ? `: ${highFrequencyWord}` : ""}
+            </div>
+            <div style={{ whiteSpace: "pre-wrap", color: "#172554", ...readingTextStyle }}>
+              {highFrequencyReadingSentences}
+            </div>
+          </div>
+        ) : null}
+
+        {highFrequencyExplanation ? (
+          <div
+            style={{
+              marginTop: 12,
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderColor: "#e2e8f0",
+              borderRadius: 14,
+              padding: 14,
+              background: "#f8fafc",
+              color: "#475569",
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 8, color: "#334155" }}>
+              {t("fields.highFrequencyExplanation")}
+            </div>
+            <div style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.5 }}>
+              {highFrequencyExplanation}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section style={{ marginTop: 18 }}>

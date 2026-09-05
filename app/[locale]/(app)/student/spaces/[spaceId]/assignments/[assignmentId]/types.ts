@@ -11,6 +11,9 @@ export type Lesson = {
     language?: string;
     sourceText?: string;
     text?: string;
+    highFrequencyWord?: string;
+    highFrequencyReadingSentences?: string;
+    highFrequencyExplanation?: string;
     tasks?: unknown;
     coverImageUrl?: string;
     imageTasks?: unknown;
@@ -46,6 +49,9 @@ export type AssignmentDoc = {
 
     sourceText?: string;
     text?: string;
+    highFrequencyWord?: string;
+    highFrequencyReadingSentences?: string;
+    highFrequencyExplanation?: string;
     tasks?: unknown;
     coverImageUrl?: string;
     imageTasks?: unknown;

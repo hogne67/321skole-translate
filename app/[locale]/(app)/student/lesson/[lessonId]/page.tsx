@@ -48,6 +48,9 @@ type Lesson = {
   topic?: string;
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks?: unknown;
   status?: "draft" | "published";
   language?: string;
@@ -95,6 +98,9 @@ type PublishedLessonDoc = {
   language?: string;
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
   lessonType?: string;
@@ -113,6 +119,9 @@ type PrivateLessonDoc = {
   language?: string;
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
   lessonType?: string;
@@ -178,6 +187,12 @@ type LessonTextSection = {
   key: LessonTextSectionKey;
   title: string;
   text: string;
+};
+
+type HighFrequencyExtraSections = {
+  word?: string;
+  readingSentences?: string;
+  explanation?: string;
 };
 
 type TtsLang = "no" | "en" | "pt-BR";
@@ -318,26 +333,27 @@ const HIGH_FREQUENCY_HEADING_KEYS: Record<string, "highfreq_explanation" | "high
   "frases de exemplo": "highfreq_examples",
 };
 
-function getHighFrequencyTitles(language?: string) {
+function getHighFrequencyTitles(language?: string, word?: string) {
   const lang = String(language || "").trim().toLocaleLowerCase();
+  const cleanWord = String(word || "").trim();
   if (lang === "en") {
     return {
       text: "Text",
       explanation: "Explanation",
-      examples: "Example sentences",
+      examples: cleanWord ? `Sentences with "${cleanWord}"` : "Sentences with the word",
     };
   }
   if (lang === "pt" || lang === "pt-br") {
     return {
       text: "Texto",
       explanation: "Explicação",
-      examples: "Frases de exemplo",
+      examples: cleanWord ? `Frases com "${cleanWord}"` : "Frases com a palavra",
     };
   }
   return {
     text: "Tekst",
     explanation: "Forklaring",
-    examples: "Eksempelsetninger",
+    examples: cleanWord ? `Setninger med "${cleanWord}"` : "Setninger med ordet",
   };
 }
 
@@ -345,9 +361,40 @@ function highFrequencyTextKey(index: number): LessonTextSectionKey {
   return `highfreq_text_${Math.min(Math.max(index, 1), 5)}` as LessonTextSectionKey;
 }
 
-function splitHighFrequencySections(text: string, language?: string): LessonTextSection[] {
+function splitHighFrequencySections(
+  text: string,
+  language?: string,
+  highFrequencyExtraSections?: HighFrequencyExtraSections
+): LessonTextSection[] {
   const clean = text.trim();
   if (!clean) return [];
+
+  const extraReading = String(highFrequencyExtraSections?.readingSentences || "").trim();
+  const extraExplanation = String(highFrequencyExtraSections?.explanation || "").trim();
+  if (extraReading || extraExplanation) {
+    const titles = getHighFrequencyTitles(language, highFrequencyExtraSections?.word);
+    return [
+      {
+        key: "highfreq_text_1",
+        title: titles.text,
+        text: clean,
+      },
+      extraReading
+        ? {
+            key: "highfreq_examples",
+            title: titles.examples,
+            text: extraReading,
+          }
+        : null,
+      extraExplanation
+        ? {
+            key: "highfreq_explanation",
+            title: titles.explanation,
+            text: extraExplanation,
+          }
+        : null,
+    ].filter(Boolean) as LessonTextSection[];
+  }
 
   const titles = getHighFrequencyTitles(language);
   const sections: LessonTextSection[] = [];
@@ -440,6 +487,11 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     language: typeof d.language === "string" ? d.language : undefined,
     sourceText: typeof d.sourceText === "string" ? d.sourceText : undefined,
     text: typeof d.text === "string" ? d.text : undefined,
+    highFrequencyWord: typeof d.highFrequencyWord === "string" ? d.highFrequencyWord : undefined,
+    highFrequencyReadingSentences:
+      typeof d.highFrequencyReadingSentences === "string" ? d.highFrequencyReadingSentences : undefined,
+    highFrequencyExplanation:
+      typeof d.highFrequencyExplanation === "string" ? d.highFrequencyExplanation : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
@@ -482,6 +534,11 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     language: typeof d.language === "string" ? d.language : undefined,
     sourceText: typeof d.sourceText === "string" ? d.sourceText : undefined,
     text: typeof d.text === "string" ? d.text : undefined,
+    highFrequencyWord: typeof d.highFrequencyWord === "string" ? d.highFrequencyWord : undefined,
+    highFrequencyReadingSentences:
+      typeof d.highFrequencyReadingSentences === "string" ? d.highFrequencyReadingSentences : undefined,
+    highFrequencyExplanation:
+      typeof d.highFrequencyExplanation === "string" ? d.highFrequencyExplanation : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
@@ -1093,8 +1150,19 @@ export default function StudentLessonPage() {
   const highFrequencySections = useMemo(() => {
     return showSoundTrainingSections
       ? []
-      : splitHighFrequencySections(displayedSourceTextSafe, lesson?.language);
-  }, [displayedSourceTextSafe, lesson?.language, showSoundTrainingSections]);
+      : splitHighFrequencySections(displayedSourceTextSafe, lesson?.language, {
+          word: lesson?.highFrequencyWord,
+          readingSentences: lesson?.highFrequencyReadingSentences,
+          explanation: lesson?.highFrequencyExplanation,
+        });
+  }, [
+    displayedSourceTextSafe,
+    lesson?.highFrequencyExplanation,
+    lesson?.highFrequencyReadingSentences,
+    lesson?.highFrequencyWord,
+    lesson?.language,
+    showSoundTrainingSections,
+  ]);
 
   const lessonTextSections = showSoundTrainingSections ? soundTrainingSections : highFrequencySections;
   const showLessonTextSections = lessonTextSections.length >= 2;

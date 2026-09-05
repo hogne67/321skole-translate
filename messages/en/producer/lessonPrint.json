@@ -28,6 +28,8 @@
     },
     "sections": {
       "readingText": "Reading text",
+      "highFrequencyReadingSentences": "Sentences with \"{word}\"",
+      "highFrequencyExplanation": "Word class explanation",
       "tasks": "Tasks"
     },
     "answers": {

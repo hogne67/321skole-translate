@@ -52,6 +52,8 @@ type LessonTask = {
 type GenerateTextResp = {
   title?: string;
   text?: unknown;
+  highFrequencyReadingSentences?: unknown;
+  highFrequencyExplanation?: unknown;
   factCheckReport?: unknown;
   error?: string;
   raw?: string;
@@ -107,6 +109,106 @@ function stringifyGeneratedText(value: unknown): string {
   return String(value).trim();
 }
 
+function highFrequencyWordFromTitle(title: string): string {
+  const parts = title.split(/[–-]/);
+  return parts.length > 1 ? parts.at(-1)?.trim() || "" : "";
+}
+
+function withHighFrequencyTitleWord(title: string, word: string): string {
+  const cleanedWord = word.trim();
+  if (!cleanedWord) return title.trim();
+  const cleanedTitle = title.trim();
+  if (!cleanedTitle) return cleanedWord;
+  if (/[–-]/.test(cleanedTitle)) {
+    return cleanedTitle.replace(/\s*[–-]\s*[^–-]+$/, ` – ${cleanedWord}`);
+  }
+  return `${cleanedTitle} – ${cleanedWord}`;
+}
+
+function getHighFrequencyReadingFallback(word: string, language: string): string {
+  const normalizedWord = word.trim().toLocaleLowerCase();
+  const normalizedLanguage = language.toLocaleLowerCase();
+
+  const examples: Record<string, string[]> = {
+    og: [
+      "Jeg ser en katt og en hund.",
+      "Sara har en bok og en sekk.",
+      "Vi spiser brød og ost.",
+      "Han liker fotball og musikk.",
+      "De går til skolen og parken.",
+    ],
+    and: [
+      "I see a cat and a dog.",
+      "Sara has a book and a bag.",
+      "We eat bread and cheese.",
+      "He likes football and music.",
+      "They go to school and the park.",
+    ],
+    from: [
+      "My friend is from Spain.",
+      "The letter is from my grandmother.",
+      "She got a gift from her uncle.",
+      "We traveled from the city to the beach.",
+      "He is learning English from a teacher.",
+    ],
+    med: [
+      "Jeg går med Sara.",
+      "Han spiser med familien.",
+      "Vi leker med ballen.",
+      "Hun leser med en venn.",
+      "Barnet går med pappa.",
+    ],
+    with: [
+      "I play with my friend.",
+      "She eats with her family.",
+      "We read with the teacher.",
+      "Tom walks with his brother.",
+      "The child writes with a pencil.",
+    ],
+  };
+
+  if (examples[normalizedWord]) return examples[normalizedWord].join("\n");
+
+  if (normalizedLanguage.startsWith("pt")) {
+    return [
+      `Eu leio uma frase com "${word}".`,
+      `Sara escreve uma frase com "${word}".`,
+      `Nós usamos "${word}" em um texto.`,
+      `O professor mostra a palavra "${word}".`,
+      `A criança encontra "${word}" no livro.`,
+    ].join("\n");
+  }
+
+  if (normalizedLanguage === "nb" || normalizedLanguage === "no" || normalizedLanguage === "nn") {
+    return [
+      `Jeg leser en setning med "${word}".`,
+      `Sara skriver en setning med "${word}".`,
+      `Vi bruker "${word}" i en tekst.`,
+      `Læreren viser ordet "${word}".`,
+      `Eleven finner "${word}" i boka.`,
+    ].join("\n");
+  }
+
+  return [
+    `I read a sentence with "${word}".`,
+    `Sara writes a sentence with "${word}".`,
+    `We use "${word}" in a text.`,
+    `The teacher shows the word "${word}".`,
+    `The student finds "${word}" in the book.`,
+  ].join("\n");
+}
+
+function getHighFrequencyExplanationFallback(word: string, wordClass: string, language: string): string {
+  const normalizedLanguage = language.toLocaleLowerCase();
+  if (normalizedLanguage.startsWith("pt")) {
+    return `Explicação\n"${word}" é uma palavra de alta frequência. Ela pertence à classe gramatical ${wordClass}.`;
+  }
+  if (normalizedLanguage === "nb" || normalizedLanguage === "no" || normalizedLanguage === "nn") {
+    return `Forklaring\n"${word}" er et høyfrekvent ord. Det tilhører ordklassen ${wordClass}.`;
+  }
+  return `Explanation\n"${word}" is a high-frequency word. It belongs to the word class ${wordClass}.`;
+}
+
 function hasAnyTerm(value: string, terms: string[]) {
   const normalized = value.toLocaleLowerCase();
   return terms.some((term) => normalized.includes(term));
@@ -126,7 +228,7 @@ function looksLikeNamedPersonTopic(value: string) {
 
 type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type A1StartTense = "present" | "past" | "future";
-type A1StartSentenceCount = 10 | 13 | 16 | 19;
+type A1StartSentenceCount = 8 | 11 | 14 | 17 | 20;
 type A1StartHighFrequencyLength = 50 | 100 | 150;
 type A1StartType = "pattern_sentences" | "high_frequency_words" | "sound_reading_ladder";
 type A1StartWordClass = keyof typeof A1_START_HIGH_FREQUENCY_WORDS;
@@ -191,7 +293,7 @@ function getA1StartSoundChoices(language: string): readonly string[] {
 }
 
 const A1_START_VERB_SUGGESTIONS: Record<string, readonly string[]> = {
-  nb: ["er", "har", "ser", "liker", "spiser", "drikker", "går", "kommer", "lager", "leser", "skriver"],
+  nb: ["er", "har", "ser", "liker", "spiser", "drikker", "går", "kommer", "lager", "leser", "skriver", "spiller"],
   en: ["be", "have", "see", "like", "eat", "drink", "go", "come", "make", "read", "write"],
   "pt-br": ["ser", "ter", "ver", "gostar", "comer", "beber", "ir", "vir", "fazer", "ler", "escrever"],
 };
@@ -748,8 +850,8 @@ export default function NewTextPage() {
   const [a1StartSoundWordCount, setA1StartSoundWordCount] = useState(10);
   const [a1StartTense, setA1StartTense] = useState<A1StartTense>("present");
   const [a1StartSentenceCount, setA1StartSentenceCount] =
-    useState<A1StartSentenceCount>(10);
-  const [a1StartTopic, setA1StartTopic] = useState("familie");
+    useState<A1StartSentenceCount>(11);
+  const [a1StartTopic, setA1StartTopic] = useState("");
   const [a1StartCustomTopic, setA1StartCustomTopic] = useState("");
   const [a1StartTrueFalseCount, setA1StartTrueFalseCount] = useState(5);
   const [a1StartImageSentenceCount, setA1StartImageSentenceCount] = useState(5);
@@ -776,6 +878,8 @@ export default function NewTextPage() {
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
+  const [highFrequencyReadingSentences, setHighFrequencyReadingSentences] = useState("");
+  const [highFrequencyExplanation, setHighFrequencyExplanation] = useState("");
   const [approvedSourceText, setApprovedSourceText] = useState("");
   const [lastFactCheckedText, setLastFactCheckedText] = useState("");
   const [factCheckReport, setFactCheckReport] = useState("");
@@ -834,6 +938,12 @@ export default function NewTextPage() {
     // This should only follow the page language, not reset a manual language choice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
+
+  useEffect(() => {
+    if (!isA1StartHighFrequency) return;
+    if (a1StartWords.includes(a1StartWord)) return;
+    setA1StartWord(a1StartWords[0] || "");
+  }, [a1StartWord, a1StartWords, isA1StartHighFrequency]);
 
   const factCheckReason = useMemo(() => {
     if (isA1Start) return "";
@@ -1189,12 +1299,23 @@ export default function NewTextPage() {
 
       const nextTitle = String(data.title || "").trim();
       const nextText = stringifyGeneratedText(data.text);
+      const nextHighFrequencyWord = a1StartWord || highFrequencyWordFromTitle(nextTitle);
+      const nextHighFrequencyReadingSentences =
+        stringifyGeneratedText(data.highFrequencyReadingSentences) ||
+        (isA1StartHighFrequency ? getHighFrequencyReadingFallback(nextHighFrequencyWord, language) : "");
+      const nextHighFrequencyExplanation =
+        stringifyGeneratedText(data.highFrequencyExplanation) ||
+        (isA1StartHighFrequency
+          ? getHighFrequencyExplanationFallback(nextHighFrequencyWord, a1StartWordClass, language)
+          : "");
       if (!nextText) throw new Error("Missing text in response.");
 
       if (extraFactCheck) {
         const nextReport = stringifyGeneratedText(data.factCheckReport);
         if (nextTitle) setTitle(nextTitle);
         setSourceText(nextText);
+        setHighFrequencyReadingSentences("");
+        setHighFrequencyExplanation("");
         setApprovedSourceText("");
         setFactCheckReport(nextReport || t("warnings.factCheckCompleted"));
         setLastGeneratedWith("factcheck");
@@ -1204,8 +1325,10 @@ export default function NewTextPage() {
         return;
       }
 
-      setTitle(nextTitle);
+      setTitle(isA1StartHighFrequency ? withHighFrequencyTitleWord(nextTitle, a1StartWord) : nextTitle);
       setSourceText(nextText);
+      setHighFrequencyReadingSentences(isA1StartHighFrequency ? nextHighFrequencyReadingSentences : "");
+      setHighFrequencyExplanation(isA1StartHighFrequency ? nextHighFrequencyExplanation : "");
       setApprovedSourceText("");
       setFactCheckReport("");
       setLastGeneratedWith(extraFactCheck ? "factcheck" : "standard");
@@ -1363,6 +1486,9 @@ export default function NewTextPage() {
         topic: effectiveTopic,
         textType: effectiveTextType,
         sourceText: sourceText || "",
+        highFrequencyWord: isA1StartHighFrequency ? a1StartWord || highFrequencyWordFromTitle(title) : "",
+        highFrequencyReadingSentences: isA1StartHighFrequency ? visibleHighFrequencyReadingSentences : "",
+        highFrequencyExplanation: isA1StartHighFrequency ? visibleHighFrequencyExplanation : "",
         tasks: renumberOrders(lessonTasks),
         aiQuality: {
           factCheckRequired: publishFactCheckRequired,
@@ -1445,6 +1571,17 @@ export default function NewTextPage() {
     : null;
 
   const hasText = sourceText.trim().length > 0;
+  const visibleHighFrequencyWord = a1StartWord || highFrequencyWordFromTitle(title);
+  const visibleHighFrequencyReadingSentences =
+    isA1StartHighFrequency && hasText
+      ? highFrequencyReadingSentences.trim() ||
+        getHighFrequencyReadingFallback(visibleHighFrequencyWord, language)
+      : "";
+  const visibleHighFrequencyExplanation =
+    isA1StartHighFrequency && hasText
+      ? highFrequencyExplanation.trim() ||
+        getHighFrequencyExplanationFallback(visibleHighFrequencyWord, a1StartWordClass, language)
+      : "";
   const hasTasks = lessonTasks.length > 0;
   const textApproved = hasText && approvedSourceText.trim() === sourceText.trim();
   const step1Done = textApproved;
@@ -1683,6 +1820,7 @@ export default function NewTextPage() {
                       setLevel(nextLevel);
                       if (nextLevel === "A1_START") {
                         setA1StartVerb(getA1StartVerbSuggestions(language)[0] || "");
+                        setA1StartWord(getA1StartHighFrequencyWords(a1StartWordClass, language)[0] || "");
                       }
                     }}
                     style={fieldStyle}
@@ -1827,11 +1965,6 @@ export default function NewTextPage() {
                         style={{ ...fieldStyle, marginTop: 8 }}
                       />
                     )}
-                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                      {t("a1Start.verbSuggestions", {
-                        verbs: a1StartVerbSuggestions.join(", "),
-                      })}
-                    </div>
                   </label>}
                   {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
                     {t("a1Start.fields.tense")}
@@ -1854,8 +1987,10 @@ export default function NewTextPage() {
                       }
                       style={fieldStyle}
                     >
-                      {[10, 13, 16, 19].map((count) => (
-                        <option key={count} value={count}>{count}</option>
+                      {[8, 11, 14, 17, 20].map((count) => (
+                        <option key={count} value={count}>
+                          {t(`a1Start.sentenceCounts.${count}`)}
+                        </option>
                       ))}
                     </select>
                   </label>}
@@ -1973,6 +2108,7 @@ export default function NewTextPage() {
                           onChange={(e) => setA1StartTopic(e.target.value)}
                           style={fieldStyle}
                         >
+                          <option value="">{t("a1Start.highFrequencyThemes.none")}</option>
                           {A1_START_THEMES.map((theme) => (
                             <option key={theme} value={theme}>
                               {t(`a1Start.highFrequencyThemes.${theme}`)}
@@ -1988,9 +2124,24 @@ export default function NewTextPage() {
                             style={fieldStyle}
                           />
                         )}
+                        <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.45 }}>
+                          {t("a1Start.topicHelp")}
+                        </div>
                       </div>
                     )}
                   </label>
+                  {!isA1StartSoundLadder && (
+                    <div
+                      style={{
+                        gridColumn: isNarrow ? "auto" : "1 / -1",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        marginTop: 2,
+                      }}
+                    >
+                      {t("a1Start.taskSelectionTitle")}
+                    </div>
+                  )}
                   {!isA1StartSoundLadder && <label>
                     {t("a1Start.fields.trueFalseCount")}
                     <select
@@ -2144,6 +2295,24 @@ export default function NewTextPage() {
                       {t("warnings.factCheckCompleted")}
                     </div>
                   )}
+                  {error && (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: 10,
+                        border: "1px solid #fecdd3",
+                        borderRadius: 12,
+                        background: "#fff1f2",
+                        color: "#be123c",
+                        padding: "10px 12px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {error}
+                    </div>
+                  )}
                   {isA1Start && (
                     <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8, lineHeight: 1.45 }}>
                       {t("a1Start.reviewReminder")}
@@ -2186,8 +2355,12 @@ export default function NewTextPage() {
                       setFactCheckReport("");
                       if (lessonTasks.length > 0) setTasksDirty(true);
                     }}
-                    rows={14}
-                    style={{ ...fieldStyle, resize: "vertical" }}
+                    rows={isA1StartHighFrequency ? 7 : 14}
+                    style={{
+                      ...fieldStyle,
+                      resize: "vertical",
+                      minHeight: isA1StartHighFrequency ? 150 : undefined,
+                    }}
                   />
                   <div
                     style={{
@@ -2204,6 +2377,71 @@ export default function NewTextPage() {
                     <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
                   </div>
                 </label>
+                {isA1StartHighFrequency && visibleHighFrequencyReadingSentences && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      border: "1px solid #bfdbfe",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      background: "#eff6ff",
+                      color: "#1e3a8a",
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800 }}>
+                      {t("a1Start.sentencesWithWordTitle", {
+                        word: visibleHighFrequencyWord,
+                      })}
+                    </div>
+                    <textarea
+                      value={visibleHighFrequencyReadingSentences}
+                      onChange={(e) => {
+                        setHighFrequencyReadingSentences(e.target.value);
+                        if (lessonTasks.length > 0) setTasksDirty(true);
+                      }}
+                      rows={5}
+                      style={{
+                        ...fieldStyle,
+                        marginTop: 6,
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                        color: "#172554",
+                        background: "#ffffff",
+                        resize: "vertical",
+                      }}
+                    />
+                  </div>
+                )}
+                {isA1StartHighFrequency && visibleHighFrequencyExplanation && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      background: "#f8fafc",
+                      color: "#475569",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#334155" }}>
+                      {t("a1Start.wordClassExplanationTitle")}
+                    </div>
+                    <textarea
+                      value={visibleHighFrequencyExplanation}
+                      onChange={(e) => setHighFrequencyExplanation(e.target.value)}
+                      rows={4}
+                      style={{
+                        ...fieldStyle,
+                        marginTop: 5,
+                        fontSize: 12,
+                        lineHeight: 1.45,
+                        color: "#475569",
+                        background: "#ffffff",
+                        resize: "vertical",
+                      }}
+                    />
+                  </div>
+                )}
                 {factCheckReport.trim() && (
                   <div
                     style={{
@@ -2740,7 +2978,6 @@ export default function NewTextPage() {
             )}
 
             {savedId && <span style={{ color: "green" }}>{t("status.saved", { id: savedId })}</span>}
-            {error && <span style={{ color: "crimson" }}>{error}</span>}
           </div>
         </section>
 

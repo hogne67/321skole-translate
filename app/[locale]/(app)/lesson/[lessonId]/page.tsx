@@ -28,6 +28,9 @@ type Lesson = {
   language?: string;
   sourceText?: string;
   text?: string;
+  highFrequencyWord?: string;
+  highFrequencyReadingSentences?: string;
+  highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
   imageUrl?: string;
@@ -120,6 +123,35 @@ function pickImageUrl(l: Lesson): string | null {
 
 function toStringOrEmpty(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+function highFrequencyWordFromLesson(lesson?: Lesson | null): string {
+  const stored = toStringOrEmpty(lesson?.highFrequencyWord).trim();
+  if (stored) return stored;
+  const title = toStringOrEmpty(lesson?.title);
+  const dashParts = title.split(/[–-]/);
+  return dashParts.length > 1 ? dashParts.at(-1)?.trim() || "" : "";
+}
+
+function getHighFrequencyTitles(language?: string, word?: string) {
+  const lang = String(language || "").trim().toLocaleLowerCase();
+  const cleanWord = String(word || "").trim();
+  if (lang === "en") {
+    return {
+      examples: cleanWord ? `Sentences with "${cleanWord}"` : "Sentences with the word",
+      explanation: "Explanation",
+    };
+  }
+  if (lang === "pt" || lang === "pt-br") {
+    return {
+      examples: cleanWord ? `Frases com "${cleanWord}"` : "Frases com a palavra",
+      explanation: "Explicação",
+    };
+  }
+  return {
+    examples: cleanWord ? `Setninger med "${cleanWord}"` : "Setninger med ordet",
+    explanation: "Forklaring",
+  };
 }
 
 function sortTasksByOrder(a: Task, b: Task) {
@@ -232,6 +264,10 @@ export default function LessonPreviewPage() {
           language: toStringOrEmpty(raw?.language) || undefined,
           text: toStringOrEmpty(raw?.text) || undefined,
           sourceText,
+          highFrequencyWord: toStringOrEmpty(raw?.highFrequencyWord) || undefined,
+          highFrequencyReadingSentences:
+            toStringOrEmpty(raw?.highFrequencyReadingSentences) || undefined,
+          highFrequencyExplanation: toStringOrEmpty(raw?.highFrequencyExplanation) || undefined,
           tasks: raw?.tasks,
           coverImageUrl: toStringOrEmpty(raw?.coverImageUrl) || undefined,
           imageUrl: toStringOrEmpty(raw?.imageUrl) || undefined,
@@ -271,6 +307,10 @@ export default function LessonPreviewPage() {
 
   const topics = useMemo(() => coerceTopics(lesson ?? { title: "" }), [lesson]);
   const img = useMemo(() => (lesson ? pickImageUrl(lesson) : null), [lesson]);
+  const highFrequencyWord = highFrequencyWordFromLesson(lesson);
+  const highFrequencyTitles = getHighFrequencyTitles(lesson?.language, highFrequencyWord);
+  const highFrequencyReadingSentences = toStringOrEmpty(lesson?.highFrequencyReadingSentences).trim();
+  const highFrequencyExplanation = toStringOrEmpty(lesson?.highFrequencyExplanation).trim();
 
   async function addToMyContent() {
     if (!lessonId || !lesson) return;
@@ -431,6 +471,40 @@ export default function LessonPreviewPage() {
             <div style={{ opacity: 0.65 }}>{t("noCover")}</div>
           )}
         </div>
+
+        {highFrequencyReadingSentences ? (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid rgba(59,130,246,0.24)",
+              borderRadius: 12,
+              background: "rgba(239,246,255,0.88)",
+              lineHeight: 1.55,
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>{highFrequencyTitles.examples}</h3>
+            <div style={{ whiteSpace: "pre-wrap" }}>{highFrequencyReadingSentences}</div>
+          </div>
+        ) : null}
+
+        {highFrequencyExplanation ? (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid rgba(100,116,139,0.20)",
+              borderRadius: 12,
+              background: "rgba(248,250,252,0.92)",
+              color: "#475569",
+              fontSize: 13,
+              lineHeight: 1.45,
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px", fontSize: 14 }}>{highFrequencyTitles.explanation}</h3>
+            <div style={{ whiteSpace: "pre-wrap" }}>{highFrequencyExplanation}</div>
+          </div>
+        ) : null}
       </section>
 
       <section style={{ marginTop: 16 }}>
