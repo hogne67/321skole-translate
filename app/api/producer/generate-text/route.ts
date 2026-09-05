@@ -7,6 +7,14 @@ import {
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import {
+  getNorwegianInsideSoundWords,
+  getNorwegianSoundBank,
+  getNorwegianSoundWords,
+  isApprovedNorwegianSoundWord,
+  norwegianSoundWordContainsSound,
+  norwegianSoundWordStartsWithSound,
+} from "@/lib/a1start/soundWords";
 
 export const runtime = "nodejs";
 
@@ -1012,6 +1020,19 @@ function buildA1StartSoundLadderPrompt(languageName: string, config: A1StartConf
   const firstGroupCount = Math.floor(soundWordCount / 2);
   const secondGroupCount = soundWordCount - firstGroupCount;
   const labels = getSoundLadderLabels(languageName);
+  const norwegianSoundBank =
+    languageName === "Norwegian" ? getNorwegianSoundBank(focusSound) : null;
+  const norwegianSoundBankWords = norwegianSoundBank
+    ? norwegianSoundBank.words.map((item) => item.word).join(", ")
+    : "";
+  const norwegianSoundBankGuidance = norwegianSoundBank
+    ? `
+Norwegian sound bank:
+- Use these approved A1-friendly words for "${focusSound}" when possible: ${norwegianSoundBankWords}
+- The word bank is the source of truth for vulnerable Norwegian sounds. Some approved words may not contain the letters "${focusSound}" even though they practise the sound.
+- Do not add random theme words to the word and sentence sections unless they practise the focus sound.
+`.trim()
+    : "";
 
   if (!focusSound) throw new Error("Focus sound is required for A1 Start sound ladder.");
 
@@ -1024,6 +1045,8 @@ Theme: ${theme}
 Number of sound words: ${soundWordCount}
 Number of sound sentences: ${soundWordCount}
 Short text length: about 80-110 words
+
+${norwegianSoundBankGuidance}
 
 The goal is to build a coherent sound ladder:
 sound words -> one sentence per word -> one short A1 text using several of the same words.
@@ -1057,9 +1080,9 @@ Language quality rules:
 Word training guidance:
 - Make the words fit the theme "${theme}" as much as possible.
 - Aim for about 40% nouns/names/things, 40% verbs/actions, and 20% adjectives/simple describing words.
-- HARD RULE: Every word in "${labels.wordTraining}" must contain the exact focus sound "${focusSound}". A word without "${focusSound}" is invalid.
-- HARD RULE: The first ${firstGroupCount} words must start with "${focusSound}". Do not use words where "${focusSound}" only appears later in the word in this first group.
-- The last ${secondGroupCount} words must contain "${focusSound}" and should preferably have the sound inside or later in the word.
+- HARD RULE: Every word in "${labels.wordTraining}" must practise the focus sound "${focusSound}". ${norwegianSoundBank ? "For Norwegian, use the approved word bank above as the main check." : `A word without "${focusSound}" is invalid.`}
+- HARD RULE: The first ${firstGroupCount} words must have the focus sound first or very early in the word.
+- The last ${secondGroupCount} words must contain the focus sound inside or later in the word when possible.
 - For vowels, the first group should contain words where the vowel comes first or early, and the second group should contain words where the vowel comes inside the word.
 - Do not repeat a word.
 - Write the words as comma-separated lines, preferably 5 words per line.
@@ -1103,6 +1126,12 @@ Return valid JSON only:
 function getSoundTrainingWords(languageName: string, focusSound: string, count: number): string[] {
   if (count <= 0) return [];
   const key = focusSound.toLocaleLowerCase();
+  if (languageName === "Norwegian") {
+    const source = getNorwegianSoundWords(key, count);
+    const fallback = source.length ? source : [focusSound];
+    return Array.from({ length: count }, (_, index) => fallback[index % fallback.length]);
+  }
+
   const nb: Record<string, string[]> = {
     s: ["sol", "saft", "seng", "sekk", "sko", "suppe", "sitte", "se", "si", "sang", "sulten", "søt", "sommer", "skole", "stol"],
     m: ["mat", "mor", "mus", "melk", "mål", "mye", "min", "mitt", "måne", "mann", "mamma", "morgen", "munn", "med", "møter"],
@@ -1801,6 +1830,11 @@ function isNorwegianWordCompatibleWithFocusSound(word: string, focusSound: strin
     return false;
   }
 
+  const soundBank = getNorwegianSoundBank(normalizedSound);
+  if (soundBank?.risk === "sensitive") {
+    return isApprovedNorwegianSoundWord(normalizedSound, normalizedWord);
+  }
+
   if (normalizedSound === "k") {
     return !normalizedWord.includes("kj") && !normalizedWord.includes("skj");
   }
@@ -1818,6 +1852,13 @@ function isNorwegianWordCompatibleWithFocusSound(word: string, focusSound: strin
 }
 
 function startsWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  if (languageName === "Norwegian" && getNorwegianSoundBank(focusSound)) {
+    return (
+      isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+      norwegianSoundWordStartsWithSound(focusSound, word)
+    );
+  }
+
   return (
     isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
     word.toLocaleLowerCase().startsWith(focusSound.toLocaleLowerCase())
@@ -1825,6 +1866,13 @@ function startsWithFocusSound(word: string, focusSound: string, languageName: st
 }
 
 function containsFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  if (languageName === "Norwegian" && getNorwegianSoundBank(focusSound)) {
+    return (
+      isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+      norwegianSoundWordContainsSound(focusSound, word)
+    );
+  }
+
   return (
     isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
     word.toLocaleLowerCase().includes(focusSound.toLocaleLowerCase())
@@ -1880,6 +1928,8 @@ function normalizeSoundWords(words: string[], languageName: string, focusSound: 
 
 function getInsideSoundFallbackWords(languageName: string, focusSound: string): string[] {
   const key = focusSound.toLocaleLowerCase();
+  if (languageName === "Norwegian") return getNorwegianInsideSoundWords(key);
+
   const nb: Record<string, string[]> = {
     s: ["hus", "pose", "lese", "reise", "is", "ost", "lys", "fisk", "kasse", "buss"],
     m: ["rom", "hjem", "lampe", "sammen", "svømme", "klemme", "komme", "tomat", "sommer", "familie"],
@@ -1922,17 +1972,39 @@ function simpleSoundSentence(languageName: string, word: string): string {
   const norwegianSpecificPhrases: Record<string, string> = {
     sjø: "Vi går til sjøen.",
     sjokolade: "Jeg liker sjokolade.",
+    sjokoladepudding: "Vi lager sjokoladepudding.",
     sju: "Jeg ser sju biler.",
     sjef: "Hun er sjef.",
+    sjekk: "Vi tar en sjekk.",
     sjakk: "Vi spiller sjakk.",
     sjal: "Hun har et sjal.",
     sjåfør: "Han er sjåfør.",
+    sjømann: "Han er sjømann.",
     sjampo: "Jeg bruker sjampo.",
     sjelden: "Det skjer sjelden.",
     sjarm: "Hun har sjarm.",
     sjiraff: "Jeg ser en sjiraff.",
     sjekke: "Vi kan sjekke det.",
+    sjekkliste: "Hun har en sjekkliste.",
     sjansen: "Vi får sjansen.",
+    skjegg: "Far har skjegg.",
+    skje: "Jeg har en skje.",
+    skjell: "Vi finner skjell.",
+    skjerm: "Jeg ser på skjermen.",
+    skjorte: "Han har en skjorte.",
+    skjørt: "Hun har et skjørt.",
+    skjære: "Vi skal skjære brød.",
+    ski: "Vi går på ski.",
+    skilt: "Jeg ser et skilt.",
+    skinke: "Jeg spiser skinke.",
+    skinn: "Skinnet er mykt.",
+    sky: "Jeg ser en sky.",
+    skygge: "Vi sitter i skyggen.",
+    kanskje: "Kanskje vi går ut.",
+    maskin: "Jeg bruker en maskin.",
+    dusje: "Jeg skal dusje.",
+    garasje: "Bilen står i garasjen.",
+    brosjyre: "Læreren har en brosjyre.",
     massasje: "Massasje kan hjelpe.",
     spørsmål: "Jeg har et spørsmål.",
     dør: "Døra er åpen.",
@@ -1949,6 +2021,27 @@ function simpleSoundSentence(languageName: string, word: string): string {
     ønske: "Jeg ønsker meg en bok.",
     øse: "Jeg øser suppe.",
     kjøtt: "Vi spiser kjøtt.",
+    kjole: "Hun har en kjole.",
+    kjøkken: "Vi er på kjøkkenet.",
+    kjeks: "Jeg spiser kjeks.",
+    kjekk: "Han er kjekk.",
+    kjenne: "Jeg kan kjenne på den.",
+    kjære: "Kjære mamma, hei.",
+    kjøpe: "Jeg skal kjøpe mat.",
+    kjøre: "Hun kan kjøre bil.",
+    kjede: "Jeg har et kjede.",
+    kjeller: "Boka er i kjelleren.",
+    kjølig: "Det er kjølig ute.",
+    kjapp: "Han er kjapp.",
+    kjell: "Kjell er hjemme.",
+    kjele: "Kjelen står på bordet.",
+    kjæledyr: "Jeg har et kjæledyr.",
+    kjøleskap: "Melka står i kjøleskapet.",
+    kjempe: "Vi kan kjempe i spillet.",
+    kjempefin: "Dagen er kjempefin.",
+    kjent: "Hun er kjent.",
+    kjenner: "Jeg kjenner Sara.",
+    bikkje: "Jeg ser en bikkje.",
     grønnsaker: "Vi spiser grønnsaker.",
     søt: "Kaken er søt.",
     høne: "Høna går i hagen.",
