@@ -524,6 +524,113 @@ export const NORWEGIAN_SOUND_WORD_BANKS: Record<string, SoundWordBank> = {
   },
 };
 
+export const PORTUGUESE_SOUND_WORD_BANKS: Record<string, SoundWordBank> = {
+  nh: {
+    risk: "sensitive",
+    notes: "The Brazilian Portuguese nh sound is usually written nh and rarely starts a word.",
+    words: [
+      entry("ninho", "initial"),
+      entry("minha", "initial"),
+      entry("manhã", "initial"),
+      entry("banho", "initial"),
+      entry("sonho", "initial"),
+      entry("tenho", "initial"),
+      entry("venha", "initial"),
+      entry("unha", "initial"),
+      entry("cozinha", "inside"),
+      entry("galinha", "inside"),
+      entry("caminho", "inside"),
+      entry("sozinho", "inside"),
+      entry("desenho", "inside"),
+      entry("carinho", "inside"),
+      entry("dinheiro", "inside"),
+      entry("vizinho", "inside"),
+      entry("sobrinha", "inside"),
+      entry("sobrinho", "inside"),
+      entry("companhia", "inside", "extra"),
+      entry("linha", "inside", "extra"),
+    ],
+  },
+  lh: {
+    risk: "sensitive",
+    notes: "The Brazilian Portuguese lh sound is written lh and rarely starts a word.",
+    words: [
+      entry("olho", "initial"),
+      entry("filho", "initial"),
+      entry("filha", "initial"),
+      entry("milho", "initial"),
+      entry("folha", "initial"),
+      entry("molho", "initial"),
+      entry("velho", "initial"),
+      entry("toalha", "initial"),
+      entry("abelha", "inside"),
+      entry("ilha", "inside"),
+      entry("trabalho", "inside"),
+      entry("barulho", "inside"),
+      entry("agulha", "inside"),
+      entry("colher", "inside"),
+      entry("melhor", "inside"),
+      entry("molhado", "inside"),
+      entry("vermelho", "inside"),
+      entry("espelho", "inside"),
+      entry("bilhete", "inside", "extra"),
+      entry("alho", "inside", "extra"),
+    ],
+  },
+  ch: {
+    risk: "sensitive",
+    notes: "For Brazilian Portuguese ch, use words written with ch and avoid mixing with x words for now.",
+    words: [
+      entry("chá", "initial"),
+      entry("chave", "initial"),
+      entry("chuva", "initial"),
+      entry("chão", "initial"),
+      entry("chapéu", "initial"),
+      entry("chefe", "initial"),
+      entry("cheio", "initial"),
+      entry("chegar", "initial"),
+      entry("chamar", "initial"),
+      entry("chorar", "initial"),
+      entry("chutar", "initial"),
+      entry("chocolate", "initial"),
+      entry("mochila", "inside"),
+      entry("lanche", "inside"),
+      entry("cachorro", "inside"),
+      entry("bolacha", "inside"),
+      entry("fechado", "inside"),
+      entry("machucado", "inside"),
+      entry("fichário", "inside", "extra"),
+      entry("bicho", "inside", "extra"),
+    ],
+  },
+  "ão": {
+    risk: "sensitive",
+    notes: "Use common Brazilian Portuguese words with the nasal ão ending.",
+    words: [
+      entry("pão", "initial"),
+      entry("mão", "initial"),
+      entry("chão", "initial"),
+      entry("cão", "initial"),
+      entry("irmão", "initial"),
+      entry("mamão", "initial"),
+      entry("limão", "initial"),
+      entry("fogão", "initial"),
+      entry("balão", "inside"),
+      entry("coração", "inside"),
+      entry("avião", "inside"),
+      entry("lição", "inside"),
+      entry("canção", "inside"),
+      entry("atenção", "inside"),
+      entry("refeição", "inside"),
+      entry("estação", "inside"),
+      entry("televisão", "inside"),
+      entry("informação", "inside"),
+      entry("brincalhão", "inside", "extra"),
+      entry("caminhão", "inside", "extra"),
+    ],
+  },
+};
+
 function normalizeSound(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
@@ -569,4 +676,43 @@ export function norwegianSoundWordContainsSound(sound: string, word: string): bo
 
 export function getNorwegianSoundBank(sound: string): SoundWordBank | null {
   return NORWEGIAN_SOUND_WORD_BANKS[normalizeSound(sound)] ?? null;
+}
+
+export function getPortugueseSoundWordEntries(sound: string): SoundWordEntry[] {
+  return PORTUGUESE_SOUND_WORD_BANKS[normalizeSound(sound)]?.words ?? [];
+}
+
+export function getPortugueseSoundWords(sound: string, count: number): string[] {
+  if (count <= 0) return [];
+  const entries = getPortugueseSoundWordEntries(sound);
+  return entries.slice(0, count).map((item) => item.word);
+}
+
+export function getPortugueseInsideSoundWords(sound: string): string[] {
+  return getPortugueseSoundWordEntries(sound)
+    .filter((item) => item.position === "inside")
+    .map((item) => item.word);
+}
+
+export function isApprovedPortugueseSoundWord(sound: string, word: string): boolean {
+  const normalizedWord = normalizeWord(word);
+  return getPortugueseSoundWordEntries(sound).some((item) => normalizeWord(item.word) === normalizedWord);
+}
+
+export function portugueseSoundWordStartsWithSound(sound: string, word: string): boolean {
+  const normalizedWord = normalizeWord(word);
+  const normalizedSound = normalizeSound(sound);
+  const entry = getPortugueseSoundWordEntries(sound).find((item) => normalizeWord(item.word) === normalizedWord);
+  if (entry) return entry.position === "initial";
+  return normalizedWord.startsWith(normalizedSound);
+}
+
+export function portugueseSoundWordContainsSound(sound: string, word: string): boolean {
+  const normalizedWord = normalizeWord(word);
+  const normalizedSound = normalizeSound(sound);
+  return isApprovedPortugueseSoundWord(sound, word) || normalizedWord.includes(normalizedSound);
+}
+
+export function getPortugueseSoundBank(sound: string): SoundWordBank | null {
+  return PORTUGUESE_SOUND_WORD_BANKS[normalizeSound(sound)] ?? null;
 }

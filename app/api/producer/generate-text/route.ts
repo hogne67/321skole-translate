@@ -8,12 +8,17 @@ import {
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 import {
+  getPortugueseInsideSoundWords,
+  getPortugueseSoundBank,
+  getPortugueseSoundWords,
   getNorwegianInsideSoundWords,
   getNorwegianSoundBank,
   getNorwegianSoundWords,
   isApprovedNorwegianSoundWord,
   norwegianSoundWordContainsSound,
   norwegianSoundWordStartsWithSound,
+  portugueseSoundWordContainsSound,
+  portugueseSoundWordStartsWithSound,
 } from "@/lib/a1start/soundWords";
 
 export const runtime = "nodejs";
@@ -1038,8 +1043,13 @@ function buildA1StartSoundLadderPrompt(languageName: string, config: A1StartConf
   const labels = getSoundLadderLabels(languageName);
   const norwegianSoundBank =
     languageName === "Norwegian" ? getNorwegianSoundBank(focusSound) : null;
+  const portugueseSoundBank =
+    languageName === "Brazilian Portuguese" ? getPortugueseSoundBank(focusSound) : null;
   const norwegianSoundBankWords = norwegianSoundBank
     ? norwegianSoundBank.words.map((item) => item.word).join(", ")
+    : "";
+  const portugueseSoundBankWords = portugueseSoundBank
+    ? portugueseSoundBank.words.map((item) => item.word).join(", ")
     : "";
   const norwegianSoundBankGuidance = norwegianSoundBank
     ? `
@@ -1049,6 +1059,18 @@ Norwegian sound bank:
 - Do not add random theme words to the word and sentence sections unless they practise the focus sound.
 `.trim()
     : "";
+  const portugueseSoundBankGuidance = portugueseSoundBank
+    ? `
+Brazilian Portuguese sound bank:
+- Use these approved A1-friendly words for "${focusSound}" when possible: ${portugueseSoundBankWords}
+- The word bank is the source of truth for vulnerable Brazilian Portuguese sounds and spellings.
+- Keep spellings stable. For "ch", use ch words and avoid x words for now. For "ão", use common words with the nasal ão ending.
+- Do not add random theme words to the word and sentence sections unless they practise the focus sound.
+`.trim()
+    : "";
+  const soundBankGuidance = [norwegianSoundBankGuidance, portugueseSoundBankGuidance]
+    .filter(Boolean)
+    .join("\n\n");
 
   if (!focusSound) throw new Error("Focus sound is required for A1 Start sound ladder.");
 
@@ -1092,11 +1114,12 @@ Language quality rules:
 - Keep the content school-safe for young learners. Avoid alcohol, smoking, drugs, violence, romance/sexual content and idioms.
 - If the target language is Norwegian, use Norwegian words and natural Norwegian grammar. Do not use English words such as "oven", "shop", "sun", "mom", "dad", "bus", "school", "house" or "book".
 - For Norwegian, be careful with prepositions and definite/indefinite noun forms. Prefer natural phrases such as "i maten", "på bordet", "i boka", "til skolen", "døra", "sjøen" and "dagboka".
+${soundBankGuidance ? `\n${soundBankGuidance}\n` : ""}
 
 Word training guidance:
 - Make the words fit the theme "${theme}" as much as possible.
 - Aim for about 40% nouns/names/things, 40% verbs/actions, and 20% adjectives/simple describing words.
-- HARD RULE: Every word in "${labels.wordTraining}" must practise the focus sound "${focusSound}". ${norwegianSoundBank ? "For Norwegian, use the approved word bank above as the main check." : `A word without "${focusSound}" is invalid.`}
+- HARD RULE: Every word in "${labels.wordTraining}" must practise the focus sound "${focusSound}". ${norwegianSoundBank || portugueseSoundBank ? "Use the approved word bank above as the main check." : `A word without "${focusSound}" is invalid.`}
 - HARD RULE: The first ${firstGroupCount} words must have the focus sound first or very early in the word.
 - The last ${secondGroupCount} words must contain the focus sound inside or later in the word when possible.
 - For vowels, the first group should contain words where the vowel comes first or early, and the second group should contain words where the vowel comes inside the word.
@@ -1146,6 +1169,12 @@ function getSoundTrainingWords(languageName: string, focusSound: string, count: 
     const source = getNorwegianSoundWords(key, count);
     const fallback = source.length ? source : [focusSound];
     return Array.from({ length: count }, (_, index) => fallback[index % fallback.length]);
+  }
+  if (languageName === "Brazilian Portuguese") {
+    const source = getPortugueseSoundWords(key, count);
+    if (source.length) {
+      return Array.from({ length: count }, (_, index) => source[index % source.length]);
+    }
   }
 
   const nb: Record<string, string[]> = {
@@ -1198,6 +1227,8 @@ function getSoundTrainingWords(languageName: string, focusSound: string, count: 
     o: ["ovo", "olho", "onde", "onze", "ontem", "ônibus", "ouvir", "ouro", "osso", "bolo", "gosto", "novo", "porco", "lobo", "roda"],
     u: ["uva", "um", "uma", "urso", "uso", "unha", "último", "azul", "suco", "rua", "lua", "nuvem", "tudo", "mundo", "junto"],
     lh: ["olho", "filho", "filha", "milho", "folha", "molho", "velho", "toalha", "abelha", "ilha", "trabalho", "barulho", "agulha", "colher", "melhor"],
+    ch: ["chá", "chave", "chuva", "chão", "chapéu", "chefe", "cheio", "chegar", "chamar", "chorar", "chutar", "chocolate", "mochila", "lanche", "cachorro"],
+    "ão": ["pão", "mão", "chão", "cão", "irmão", "mamão", "limão", "fogão", "balão", "coração", "avião", "lição", "canção", "atenção", "refeição"],
   };
   const source =
     languageName === "English"
@@ -1757,6 +1788,30 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
       "O barulho vem da rua.",
       "O milho está melhor.",
     ],
+    ch: [
+      "Eu tomo chá.",
+      "A chave está na mesa.",
+      "A chuva cai lá fora.",
+      "O chão está limpo.",
+      "O chapéu é azul.",
+      "A chefe chega cedo.",
+      "O copo está cheio.",
+      "Eu vou chegar cedo.",
+      "Ana chama a mãe.",
+      "O bebê vai chorar.",
+    ],
+    "ão": [
+      "Eu como pão.",
+      "Minha mão está limpa.",
+      "O chão está limpo.",
+      "O cão está feliz.",
+      "Meu irmão está aqui.",
+      "Eu como mamão.",
+      "O limão está na mesa.",
+      "O fogão está desligado.",
+      "O balão é azul.",
+      "Meu coração está feliz.",
+    ],
   };
   const source =
     languageName === "English"
@@ -1874,6 +1929,9 @@ function startsWithFocusSound(word: string, focusSound: string, languageName: st
       norwegianSoundWordStartsWithSound(focusSound, word)
     );
   }
+  if (languageName === "Brazilian Portuguese" && getPortugueseSoundBank(focusSound)) {
+    return portugueseSoundWordStartsWithSound(focusSound, word);
+  }
 
   return (
     isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
@@ -1887,6 +1945,9 @@ function containsFocusSound(word: string, focusSound: string, languageName: stri
       isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
       norwegianSoundWordContainsSound(focusSound, word)
     );
+  }
+  if (languageName === "Brazilian Portuguese" && getPortugueseSoundBank(focusSound)) {
+    return portugueseSoundWordContainsSound(focusSound, word);
   }
 
   return (
@@ -1945,6 +2006,10 @@ function normalizeSoundWords(words: string[], languageName: string, focusSound: 
 function getInsideSoundFallbackWords(languageName: string, focusSound: string): string[] {
   const key = focusSound.toLocaleLowerCase();
   if (languageName === "Norwegian") return getNorwegianInsideSoundWords(key);
+  if (languageName === "Brazilian Portuguese") {
+    const source = getPortugueseInsideSoundWords(key);
+    if (source.length) return source;
+  }
 
   const nb: Record<string, string[]> = {
     s: ["hus", "pose", "lese", "reise", "is", "ost", "lys", "fisk", "kasse", "buss"],
@@ -1974,6 +2039,10 @@ function getInsideSoundFallbackWords(languageName: string, focusSound: string): 
     s: ["casa", "mesa", "massa", "ônibus", "pessoa", "vestido", "doce", "passa", "osso", "salsicha"],
     b: ["bebê", "saber", "cabeça", "trabalho", "robô", "sábado", "abacate", "bobo", "barba", "subir"],
     m: ["comer", "cama", "amigo", "família", "tomate", "mamãe", "limão", "nome", "soma", "mundo"],
+    nh: ["cozinha", "galinha", "caminho", "sozinho", "desenho", "carinho", "dinheiro", "vizinho"],
+    lh: ["abelha", "ilha", "trabalho", "barulho", "agulha", "colher", "melhor", "espelho"],
+    ch: ["mochila", "lanche", "cachorro", "bolacha", "fechado", "machucado"],
+    "ão": ["balão", "coração", "avião", "lição", "canção", "atenção", "refeição"],
   };
   if (languageName === "English") return en[key] || [];
   if (languageName === "Brazilian Portuguese") return pt[key] || [];
@@ -1983,7 +2052,79 @@ function getInsideSoundFallbackWords(languageName: string, focusSound: string): 
 function simpleSoundSentence(languageName: string, word: string): string {
   const normalized = word.toLocaleLowerCase();
   if (languageName === "English") return `I see ${word}.`;
-  if (languageName === "Brazilian Portuguese") return `Eu vejo ${word}.`;
+  if (languageName === "Brazilian Portuguese") {
+    const portugueseSpecificPhrases: Record<string, string> = {
+      ninho: "O ninho está na árvore.",
+      minha: "Minha casa é pequena.",
+      manhã: "Eu estudo de manhã.",
+      banho: "Eu tomo banho.",
+      sonho: "Eu tenho um sonho.",
+      tenho: "Eu tenho uma mochila.",
+      venha: "Venha brincar comigo.",
+      unha: "A unha está limpa.",
+      cozinha: "A cozinha está limpa.",
+      galinha: "A galinha está no quintal.",
+      caminho: "O caminho é curto.",
+      sozinho: "Pedro está sozinho.",
+      desenho: "O desenho é bonito.",
+      carinho: "A mãe faz carinho.",
+      dinheiro: "O dinheiro está na bolsa.",
+      vizinho: "Meu vizinho é bom.",
+      sobrinha: "Minha sobrinha está aqui.",
+      sobrinho: "Meu sobrinho está aqui.",
+      olho: "Meu olho está aberto.",
+      filho: "Meu filho lê um livro.",
+      filha: "Minha filha come milho.",
+      milho: "Eu como milho.",
+      folha: "A folha está no chão.",
+      molho: "O molho está no prato.",
+      velho: "O livro é velho.",
+      toalha: "A toalha está limpa.",
+      abelha: "A abelha está na flor.",
+      ilha: "A ilha é pequena.",
+      trabalho: "O trabalho começa cedo.",
+      barulho: "O barulho vem da rua.",
+      agulha: "A agulha está na caixa.",
+      colher: "A colher está na mesa.",
+      melhor: "Hoje eu estou melhor.",
+      molhado: "O chão está molhado.",
+      vermelho: "O lápis é vermelho.",
+      espelho: "Eu olho no espelho.",
+      chá: "Eu tomo chá.",
+      chave: "A chave está na mesa.",
+      chuva: "A chuva cai lá fora.",
+      chão: "O chão está limpo.",
+      chapéu: "O chapéu é azul.",
+      chefe: "A chefe chega cedo.",
+      cheio: "O copo está cheio.",
+      chegar: "Eu vou chegar cedo.",
+      chamar: "Ana vai chamar a mãe.",
+      chorar: "O bebê vai chorar.",
+      chutar: "Eu vou chutar a bola.",
+      chocolate: "Eu gosto de chocolate.",
+      mochila: "A mochila está na cadeira.",
+      lanche: "Eu como um lanche.",
+      cachorro: "O cachorro está feliz.",
+      bolacha: "Eu como bolacha.",
+      fechado: "O portão está fechado.",
+      machucado: "Meu dedo está machucado.",
+      pão: "Eu como pão.",
+      mão: "Minha mão está limpa.",
+      cão: "O cão está feliz.",
+      irmão: "Meu irmão está aqui.",
+      mamão: "Eu como mamão.",
+      limão: "O limão está na mesa.",
+      fogão: "O fogão está desligado.",
+      balão: "O balão é azul.",
+      coração: "Meu coração está feliz.",
+      avião: "O avião está no céu.",
+      lição: "Eu faço a lição.",
+      canção: "Eu canto uma canção.",
+      atenção: "Eu presto atenção.",
+      refeição: "A refeição está pronta.",
+    };
+    return portugueseSpecificPhrases[normalized] || `Eu vejo ${word}.`;
+  }
 
   const norwegianSpecificPhrases: Record<string, string> = {
     sjø: "Vi går til sjøen.",
