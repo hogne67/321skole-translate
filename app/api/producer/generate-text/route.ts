@@ -1085,8 +1085,6 @@ Number of sound words: ${soundWordCount}
 Number of sound sentences: ${soundWordCount}
 Short text length: about 80-110 words
 
-${norwegianSoundBankGuidance}
-
 The goal is to build a coherent sound ladder:
 sound words -> one sentence per word -> one short A1 text using several of the same words.
 
@@ -3959,7 +3957,33 @@ export async function POST(req: Request) {
       });
 
       const out = resp.output_text?.trim() || "";
-      return JSON.parse(out) as GenerateTextResult;
+      try {
+        return JSON.parse(out) as GenerateTextResult;
+      } catch (error) {
+        const repairResp = await client.responses.create({
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+          text: { format: { type: "json_object" } },
+          temperature: 0,
+          input: [
+            {
+              role: "system",
+              content: "Repair invalid JSON. Return valid JSON only. Do not add, translate, or rewrite content unless required to make the JSON parse.",
+            },
+            {
+              role: "user",
+              content: [
+                "The previous response was intended to be a JSON object, but JSON.parse failed.",
+                `Parse error: ${error instanceof Error ? error.message : "Unknown parse error"}`,
+                "Return the same data as a valid JSON object with these fields when present: title, text, highFrequencyReadingSentences, highFrequencyExplanation, factCheckReport.",
+                "Invalid JSON:",
+                out,
+              ].join("\n\n"),
+            },
+          ],
+        });
+        const repaired = repairResp.output_text?.trim() || "";
+        return JSON.parse(repaired) as GenerateTextResult;
+      }
     };
     if (extraFactCheck) {
       if (!sourceText) {
