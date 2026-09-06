@@ -1033,6 +1033,24 @@ function getSoundLadderExplanationLines(languageName: string, focusSound: string
   ];
 }
 
+function getSoundLadderExplanationText(languageName: string, focusSound: string, words: string[]): string {
+  const labels = getSoundLadderLabels(languageName);
+  const examples = words.slice(0, 3).join(", ");
+  const exampleLine =
+    examples && languageName === "Brazilian Portuguese"
+      ? `Use palavras como ${examples}.`
+      : examples && languageName === "English"
+        ? `Use words such as ${examples}.`
+        : examples
+          ? `Bruk ord som ${examples}.`
+          : "";
+  return [
+    labels.explanation,
+    ...getSoundLadderExplanationLines(languageName, focusSound),
+    exampleLine,
+  ].filter(Boolean).join("\n");
+}
+
 function buildA1StartSoundLadderPrompt(languageName: string, config: A1StartConfig): string {
   const focusSound = String(config.focusSound || "").trim();
   const theme = String(config.topic || "").trim() || "everyday life";
@@ -2059,6 +2077,7 @@ function getInsideSoundFallbackWords(languageName: string, focusSound: string): 
     s: ["casa", "mesa", "massa", "ônibus", "pessoa", "vestido", "doce", "passa", "osso", "salsicha"],
     b: ["bebê", "saber", "cabeça", "trabalho", "robô", "sábado", "abacate", "bobo", "barba", "subir"],
     m: ["comer", "cama", "amigo", "família", "tomate", "mamãe", "limão", "nome", "soma", "mundo"],
+    n: ["menino", "menina", "banana", "janela", "caneta", "panela", "boneca", "telefone", "pequeno", "bonito"],
     nh: ["cozinha", "galinha", "caminho", "sozinho", "desenho", "carinho", "dinheiro", "vizinho"],
     lh: ["abelha", "ilha", "trabalho", "barulho", "agulha", "colher", "melhor", "espelho"],
     ch: ["mochila", "lanche", "cachorro", "bolacha", "fechado", "machucado"],
@@ -2143,6 +2162,34 @@ function simpleSoundSentence(languageName: string, word: string): string {
       canção: "Eu canto uma canção.",
       atenção: "Eu presto atenção.",
       refeição: "A refeição está pronta.",
+      neto: "Meu neto lê bem.",
+      nada: "Nina não quer nada.",
+      nove: "Nina tem nove anos.",
+      novo: "O livro é novo.",
+      nome: "Meu nome é Ana.",
+      noite: "A noite está calma.",
+      nariz: "Meu nariz está frio.",
+      nuvem: "A nuvem é branca.",
+      nadar: "Eu gosto de nadar.",
+      nina: "Nina lê um livro.",
+      nossa: "Nossa casa é pequena.",
+      nunca: "Eu nunca durmo tarde.",
+      nota: "A nota está na mesa.",
+      norte: "O norte fica no mapa.",
+      menino: "O menino brinca.",
+      menina: "A menina canta.",
+      banana: "A banana está na mesa.",
+      janela: "A janela está aberta.",
+      caneta: "A caneta é azul.",
+      panela: "A panela está no fogão.",
+      boneca: "A boneca está na cama.",
+      telefone: "O telefone toca.",
+      pequeno: "O gato é pequeno.",
+      bonito: "O dia está bonito.",
+      cantar: "Eu gosto de cantar.",
+      dançar: "Nós vamos dançar.",
+      ensinar: "A professora vai ensinar.",
+      brincar: "As crianças vão brincar.",
     };
     return portugueseSpecificPhrases[normalized] || `Eu vejo ${word}.`;
   }
@@ -3040,11 +3087,7 @@ function normalizeA1StartSoundLadderResult(
     );
   }
 
-  const lowerText = normalizedText.toLocaleLowerCase();
-  const explanation = [
-    labels.explanation,
-    ...getSoundLadderExplanationLines(languageName, focusSound),
-  ].join("\n");
+  const explanation = getSoundLadderExplanationText(languageName, focusSound, normalizedWords);
   const soundWords = [
     labels.wordTraining,
     formatSoundWords(normalizedWords),
@@ -3057,6 +3100,26 @@ function normalizeA1StartSoundLadderResult(
     labels.soundSentences,
     ...normalizedSentences,
   ].join("\n");
+
+  if (normalizedText.toLocaleLowerCase().includes(labels.soundSentences.toLocaleLowerCase())) {
+    normalizedText = replaceA1StartSection(
+      normalizedText,
+      labels.soundSentences,
+      [labels.story, labels.explanation],
+      normalizedSentences.join("\n")
+    );
+  }
+
+  if (normalizedText.toLocaleLowerCase().includes(labels.explanation.toLocaleLowerCase())) {
+    normalizedText = replaceA1StartSection(
+      normalizedText,
+      labels.explanation,
+      [],
+      explanation.split(/\r?\n/).slice(1).join("\n")
+    );
+  }
+
+  const lowerText = normalizedText.toLocaleLowerCase();
   const extraSections = [
     !lowerText.includes(labels.wordTraining.toLocaleLowerCase()) ? soundWords : "",
     !lowerText.includes(labels.soundSentences.toLocaleLowerCase()) ? soundSentences : "",
