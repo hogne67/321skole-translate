@@ -590,6 +590,7 @@ export const PORTUGUESE_SOUND_WORD_BANKS: Record<string, SoundWordBank> = {
       entry("cheio", "initial"),
       entry("chegar", "initial"),
       entry("chamar", "initial"),
+      entry("fechar", "initial"),
       entry("chorar", "initial"),
       entry("chutar", "initial"),
       entry("chocolate", "initial"),

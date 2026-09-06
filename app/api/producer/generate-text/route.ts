@@ -14,6 +14,7 @@ import {
   getNorwegianInsideSoundWords,
   getNorwegianSoundBank,
   getNorwegianSoundWords,
+  isApprovedPortugueseSoundWord,
   isApprovedNorwegianSoundWord,
   norwegianSoundWordContainsSound,
   norwegianSoundWordStartsWithSound,
@@ -1922,6 +1923,19 @@ function isNorwegianWordCompatibleWithFocusSound(word: string, focusSound: strin
   return true;
 }
 
+function isPortugueseWordCompatibleWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  if (languageName !== "Brazilian Portuguese") return true;
+
+  const normalizedWord = word.toLocaleLowerCase();
+  const normalizedSound = focusSound.toLocaleLowerCase();
+  const soundBank = getPortugueseSoundBank(normalizedSound);
+  if (soundBank?.risk === "sensitive") {
+    return isApprovedPortugueseSoundWord(normalizedSound, normalizedWord);
+  }
+
+  return true;
+}
+
 function startsWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
   if (languageName === "Norwegian" && getNorwegianSoundBank(focusSound)) {
     return (
@@ -1930,11 +1944,15 @@ function startsWithFocusSound(word: string, focusSound: string, languageName: st
     );
   }
   if (languageName === "Brazilian Portuguese" && getPortugueseSoundBank(focusSound)) {
-    return portugueseSoundWordStartsWithSound(focusSound, word);
+    return (
+      isPortugueseWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+      portugueseSoundWordStartsWithSound(focusSound, word)
+    );
   }
 
   return (
     isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+    isPortugueseWordCompatibleWithFocusSound(word, focusSound, languageName) &&
     word.toLocaleLowerCase().startsWith(focusSound.toLocaleLowerCase())
   );
 }
@@ -1947,11 +1965,15 @@ function containsFocusSound(word: string, focusSound: string, languageName: stri
     );
   }
   if (languageName === "Brazilian Portuguese" && getPortugueseSoundBank(focusSound)) {
-    return portugueseSoundWordContainsSound(focusSound, word);
+    return (
+      isPortugueseWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+      portugueseSoundWordContainsSound(focusSound, word)
+    );
   }
 
   return (
     isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+    isPortugueseWordCompatibleWithFocusSound(word, focusSound, languageName) &&
     word.toLocaleLowerCase().includes(focusSound.toLocaleLowerCase())
   );
 }
@@ -2099,6 +2121,7 @@ function simpleSoundSentence(languageName: string, word: string): string {
       cheio: "O copo está cheio.",
       chegar: "Eu vou chegar cedo.",
       chamar: "Ana vai chamar a mãe.",
+      fechar: "Eu vou fechar a porta.",
       chorar: "O bebê vai chorar.",
       chutar: "Eu vou chutar a bola.",
       chocolate: "Eu gosto de chocolate.",
@@ -2114,7 +2137,7 @@ function simpleSoundSentence(languageName: string, word: string): string {
       irmão: "Meu irmão está aqui.",
       mamão: "Eu como mamão.",
       limão: "O limão está na mesa.",
-      fogão: "O fogão está desligado.",
+      fogão: "O fogão está na cozinha.",
       balão: "O balão é azul.",
       coração: "Meu coração está feliz.",
       avião: "O avião está no céu.",
