@@ -1084,7 +1084,7 @@ Brazilian Portuguese sound bank:
 - Use these approved A1-friendly words for "${focusSound}" when possible: ${portugueseSoundBankWords}
 - The word bank is the source of truth for vulnerable Brazilian Portuguese sounds and spellings.
 - Keep spellings stable. For "ch", use ch words and avoid x words for now. For "ão", use common words with the nasal ão ending.
-- For "qu", use que/qui words. For "gu", use hard gu words and avoid ge/gi. For "rr", use words written with rr. For "ç", use words written with ç. For "x", use only approved x words from the bank.
+- For "qu", use que/qui words. For "gu", use hard gu words and avoid ge/gi. For "r", use soft/simple r in clusters or between vowels, not initial r. For "rr", use words written with rr and common words that start with strong r. For "ç", use words written with ç. For "x", use only approved x words from the bank.
 - Do not add random theme words to the word and sentence sections unless they practise the focus sound.
 - In the story, use only 4-6 sound words if that makes the text more natural. A coherent A1 text is better than forcing every sound word into the story.
 - Avoid odd combinations such as a baby eating candy, a teacher's baby at school, a student wanting to sleep in class, a refrigerator key, calling a bus, or a stove making food.
@@ -2255,8 +2255,14 @@ function simpleSoundSentence(languageName: string, word: string): string {
       rio: "O rio é azul.",
       rádio: "O rádio toca música.",
       prato: "O prato está na mesa.",
+      preto: "O lápis é preto.",
+      primeiro: "Eu sou o primeiro.",
       porta: "A porta está aberta.",
       verde: "A folha é verde.",
+      caro: "O livro é caro.",
+      barato: "O pão é barato.",
+      parede: "A parede é branca.",
+      amarelo: "O lápis é amarelo.",
       arroz: "Eu como arroz.",
       carro: "O carro está na rua.",
       garrafa: "A garrafa tem água.",
