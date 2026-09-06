@@ -1084,7 +1084,10 @@ Brazilian Portuguese sound bank:
 - Use these approved A1-friendly words for "${focusSound}" when possible: ${portugueseSoundBankWords}
 - The word bank is the source of truth for vulnerable Brazilian Portuguese sounds and spellings.
 - Keep spellings stable. For "ch", use ch words and avoid x words for now. For "ão", use common words with the nasal ão ending.
+- For "qu", use que/qui words. For "gu", use hard gu words and avoid ge/gi. For "rr", use words written with rr. For "ç", use words written with ç. For "x", use only approved x words from the bank.
 - Do not add random theme words to the word and sentence sections unless they practise the focus sound.
+- In the story, use only 4-6 sound words if that makes the text more natural. A coherent A1 text is better than forcing every sound word into the story.
+- Avoid odd combinations such as a baby eating candy, a teacher's baby at school, a student wanting to sleep in class, a refrigerator key, calling a bus, or a stove making food.
 `.trim()
     : "";
   const soundBankGuidance = [norwegianSoundBankGuidance, portugueseSoundBankGuidance]
@@ -1163,9 +1166,12 @@ Text guidance:
 - Write one small A1 story or factual everyday text about "${theme}".
 - Use several words from the word list, but do not force all words into the text.
 - The text must be coherent and natural, not a list.
+- Use fewer focus words if many focus words make the text strange. Prefer 4-6 natural uses over 10 forced uses.
+- Keep the story grounded in one simple situation. Do not jump between unrelated details just to include more sound words.
 - For Norwegian, double-check prepositions and noun forms. Avoid unnatural phrases such as "spiser olje på maten" if "bruker olje i maten" is more natural.
 - Avoid abstract or awkward sound words if they force unnatural A1 sentences. For Norwegian sj, avoid "sjel" and "sjuke"; choose concrete, common words instead.
 - For Norwegian A1, avoid words such as "øl", "røyk", "sjel" and idiomatic phrases such as "øre for musikk".
+- For Brazilian Portuguese, avoid awkward or unsafe A1 story details such as "o bebê come bala", "eu quero dormir na aula", "a chave da geladeira", "chamar o ônibus", "o motorista é o chefe do ônibus", "o fogão faz comida", and "a lata de leite".
 
 Explanation guidance:
 ${getSoundLadderExplanationLines(languageName, focusSound).map((line) => `- ${line}`).join("\n")}
@@ -2217,6 +2223,84 @@ function simpleSoundSentence(languageName: string, word: string): string {
       guitarra: "A guitarra está no quarto.",
       grupo: "O grupo lê junto.",
       gostar: "Eu vou gostar do livro.",
+      queijo: "Eu como queijo.",
+      quente: "O café está quente.",
+      quarto: "Meu quarto está limpo.",
+      quatro: "Eu tenho quatro lápis.",
+      quintal: "O quintal é grande.",
+      quilo: "Eu compro um quilo de arroz.",
+      quieto: "O menino está quieto.",
+      querer: "Eu vou querer água.",
+      quebrar: "O copo pode quebrar.",
+      quase: "Eu quase cheguei.",
+      aqui: "Eu estou aqui.",
+      esquilo: "O esquilo está na árvore.",
+      máquina: "A máquina está ligada.",
+      parque: "O parque fica perto.",
+      brinquedo: "O brinquedo está no chão.",
+      piquenique: "O piquenique é no parque.",
+      guia: "O guia está aqui.",
+      guerra: "A palavra guerra está no livro.",
+      foguete: "O foguete sobe.",
+      joguete: "O joguete está na caixa.",
+      língua: "A língua ajuda a falar.",
+      ninguém: "Ninguém está na sala.",
+      salgueiro: "O salgueiro é uma árvore.",
+      rato: "O rato é pequeno.",
+      rua: "A rua é calma.",
+      roupa: "A roupa está limpa.",
+      roda: "A roda gira.",
+      rei: "O rei está no livro.",
+      rosa: "A rosa é bonita.",
+      rio: "O rio é azul.",
+      rádio: "O rádio toca música.",
+      prato: "O prato está na mesa.",
+      porta: "A porta está aberta.",
+      verde: "A folha é verde.",
+      arroz: "Eu como arroz.",
+      carro: "O carro está na rua.",
+      garrafa: "A garrafa tem água.",
+      barriga: "Minha barriga está cheia.",
+      terra: "A terra está molhada.",
+      corre: "O menino corre.",
+      morro: "O morro é alto.",
+      ferro: "O ferro está frio.",
+      macarrão: "Eu como macarrão.",
+      sorriso: "Ela tem um sorriso bonito.",
+      corrida: "A corrida começa cedo.",
+      praça: "A praça fica perto.",
+      açúcar: "O açúcar está na mesa.",
+      peça: "A peça está na caixa.",
+      taça: "A taça está limpa.",
+      laço: "O laço é azul.",
+      moço: "O moço está aqui.",
+      moça: "A moça lê um livro.",
+      calça: "A calça é azul.",
+      dança: "A dança é bonita.",
+      janela: "A janela está aberta.",
+      jogo: "O jogo é divertido.",
+      jogar: "Eu vou jogar.",
+      jantar: "O jantar está pronto.",
+      jardim: "O jardim é bonito.",
+      jaqueta: "A jaqueta é azul.",
+      joelho: "Meu joelho está bem.",
+      jovem: "O jovem lê um livro.",
+      junto: "Nós ficamos juntos.",
+      junho: "Junho é um mês.",
+      feijão: "Eu como feijão.",
+      beijo: "A mãe dá um beijo.",
+      sujo: "O chão está sujo.",
+      viajar: "Eu vou viajar.",
+      xícara: "A xícara está na mesa.",
+      xarope: "O xarope está no armário.",
+      xadrez: "Eu jogo xadrez.",
+      xampu: "O xampu está no banho.",
+      xale: "O xale é bonito.",
+      peixe: "O peixe está no prato.",
+      caixa: "A caixa está no chão.",
+      deixar: "Eu vou deixar o livro aqui.",
+      lixo: "O lixo está na lixeira.",
+      mexer: "Eu vou mexer a sopa.",
       ninho: "O ninho está na árvore.",
       minha: "Minha casa é pequena.",
       manhã: "Eu estudo de manhã.",
@@ -2303,7 +2387,6 @@ function simpleSoundSentence(languageName: string, word: string): string {
       menino: "O menino brinca.",
       menina: "A menina canta.",
       banana: "A banana está na mesa.",
-      janela: "A janela está aberta.",
       caneta: "A caneta é azul.",
       panela: "A panela está no fogão.",
       boneca: "A boneca está na cama.",
