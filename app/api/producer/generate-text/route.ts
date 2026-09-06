@@ -1086,6 +1086,7 @@ Brazilian Portuguese sound bank:
 - Keep spellings stable. For "ch", use ch words and avoid x words for now. For "ão", use common words with the nasal ão ending.
 - For "qu", use que/qui words. For "gu", use hard gu words and avoid ge/gi. For "c", use hard ca/co/cu words and avoid ce/ci, ç, ch and qu.
 - For "r", use soft/simple r in clusters or between vowels, not initial r. For "rr", use words written with rr and common words that start with strong r. For "ç", use words written with ç. For "x", use only approved x words from the bank. For "z", use approved z-sound words from the bank.
+- For vowels, keep the selected vowel quality stable. For "e aberto / é" use open e words; for "e fechado / ê" use closed e words; for "o aberto / ó" use open o words; for "o fechado / ô" use closed o words. Leave nasal vowels for a later sound bank.
 - Do not add random theme words to the word and sentence sections unless they practise the focus sound.
 - In the story, use only 4-6 sound words if that makes the text more natural. A coherent A1 text is better than forcing every sound word into the story.
 - Avoid odd combinations such as a baby eating candy, a teacher's baby at school, a student wanting to sleep in class, a refrigerator key, calling a bus, or a stove making food.
@@ -1146,7 +1147,7 @@ Word training guidance:
 - For vowels, the first group should contain words where the vowel comes first or early, and the second group should contain words where the vowel comes inside the word.
 - Do not repeat a word.
 - Write the words as comma-separated lines, preferably 5 words per line.
-- Before returning, check every word silently. Remove and replace any word that does not contain "${focusSound}".
+- Before returning, check every word silently. ${norwegianSoundBank || portugueseSoundBank ? "Remove and replace any word that does not practise the selected sound according to the approved word bank." : `Remove and replace any word that does not contain "${focusSound}".`}
 - For Norwegian s, examples such as "pappa", "far" and "leke" are invalid because they do not contain s. "hus" is not valid for the first group because s is not first.
 - For Norwegian k, do not use words with kj or skj, such as "kjøkken" or "skjorte". They belong to a different focus sound.
 - For Norwegian kj, use words with kj, such as "kjøkken", "kjole", "kjeks", "kjøpe" and "kjøre". Do not mix with plain k words such as "katt", "kopp" or "kake".
@@ -1644,6 +1645,79 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
     ],
   };
   const pt: Record<string, string[]> = {
+    a: [
+      "A água está na mesa.",
+      "Ana tem uma amiga.",
+      "O aluno está na aula.",
+      "A ave voa alto.",
+      "A sala está limpa.",
+      "A casa é bonita.",
+      "A mala está no quarto.",
+      "O gato está na cama.",
+      "A banana está no prato.",
+      "A família está feliz.",
+    ],
+    i: [
+      "Ivo lê um livro.",
+      "A ilha é bonita.",
+      "A igreja fica perto.",
+      "Os livros são iguais.",
+      "Meu irmão está aqui.",
+      "A ideia é boa.",
+      "Minha idade é nove anos.",
+      "A imagem está no livro.",
+      "O menino sorri.",
+      "Domingo é dia de descanso.",
+    ],
+    u: [
+      "A uva está na mesa.",
+      "Um aluno lê.",
+      "Uma nuvem passa.",
+      "O urso está no livro.",
+      "Eu uso lápis.",
+      "A unha está limpa.",
+      "O último livro é azul.",
+      "Eu tomo suco.",
+      "A lua está no céu.",
+      "Tudo fica junto.",
+    ],
+    "e aberto / é": [
+      "Meu pé está limpo.",
+      "O café está na mesa.",
+      "A fé é importante.",
+      "O boné é azul.",
+      "O jacaré está no livro.",
+      "A mulher lê um livro.",
+      "A colher está na mesa.",
+      "Eu vou até a escola.",
+    ],
+    "e fechado / ê": [
+      "A mesa está limpa.",
+      "Meu dedo está limpo.",
+      "Eu tenho medo.",
+      "Eu tenho menos livros.",
+      "Eu chego cedo.",
+      "Eu tomo leite.",
+      "A folha é verde.",
+      "Este livro é bom.",
+      "Esse copo é meu.",
+    ],
+    "o aberto / ó": [
+      "Minha avó está em casa.",
+      "O sol está forte.",
+      "A porta está aberta.",
+      "A bola está no chão.",
+      "A escola fica perto.",
+    ],
+    "o fechado / ô": [
+      "O ovo está no prato.",
+      "Meu olho está aberto.",
+      "Meu avô está em casa.",
+      "O bolo está pronto.",
+      "O livro é novo.",
+      "Eu gosto de pão.",
+      "O doce está no prato.",
+    ],
     s: [
       "O sol está na sala.",
       "Sara toma suco.",
@@ -1667,18 +1741,6 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
       "Meu amigo mora aqui.",
       "A música é bonita.",
       "O menino bebe leite.",
-    ],
-    a: [
-      "A água está aqui.",
-      "A amiga anda na sala.",
-      "O aluno abre a aula.",
-      "Ana ajuda a avó.",
-      "A ave é azul.",
-      "Agora eu ando.",
-      "A aluna fala alto.",
-      "O amigo come a maçã.",
-      "A aula acaba agora.",
-      "A avó está na sala.",
     ],
     nh: [
       "Minha galinha está no ninho.",
@@ -1847,18 +1909,6 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
       "A roda é nova.",
       "O lobo olha o ovo.",
       "O ônibus chega cedo.",
-    ],
-    u: [
-      "A uva está na mesa.",
-      "O urso é azul.",
-      "Uma nuvem passa na rua.",
-      "Eu tomo suco.",
-      "A lua está no céu.",
-      "Tudo fica junto.",
-      "O mundo é grande.",
-      "A unha está limpa.",
-      "Um menino vê a uva.",
-      "O suco é de uva.",
     ],
     lh: [
       "O filho olha a folha.",
@@ -2170,6 +2220,36 @@ function simpleSoundSentence(languageName: string, word: string): string {
       música: "Eu ouço música.",
       mercado: "O mercado fica perto.",
       mamãe: "Mamãe faz comida.",
+      água: "A água está na mesa.",
+      amiga: "Minha amiga está aqui.",
+      ano: "O ano começa hoje.",
+      aula: "A aula começa cedo.",
+      ave: "A ave voa alto.",
+      alto: "O menino fala alto.",
+      ana: "Ana tem uma amiga.",
+      ivo: "Ivo lê um livro.",
+      igreja: "A igreja fica perto.",
+      igual: "Os livros são iguais.",
+      ideia: "A ideia é boa.",
+      imagem: "A imagem está no livro.",
+      isca: "A isca está na caixa.",
+      um: "Um aluno lê.",
+      uma: "Uma nuvem passa.",
+      urso: "O urso está no livro.",
+      uso: "Eu uso lápis.",
+      último: "O último livro é azul.",
+      fé: "A fé é importante.",
+      boné: "O boné é azul.",
+      jacaré: "O jacaré está no livro.",
+      mulher: "A mulher lê um livro.",
+      até: "Eu vou até a escola.",
+      medo: "Eu tenho medo.",
+      menos: "Eu tenho menos livros.",
+      cedo: "Eu chego cedo.",
+      esse: "Esse copo é meu.",
+      avó: "Minha avó está em casa.",
+      avô: "Meu avô está em casa.",
+      ovo: "O ovo está no prato.",
       comer: "Eu gosto de comer.",
       cama: "A cama está arrumada.",
       amigo: "Meu amigo está aqui.",
