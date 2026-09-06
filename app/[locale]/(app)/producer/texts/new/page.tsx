@@ -272,7 +272,7 @@ const A1_START_THEMES = [
 const A1_START_SOUND_CHOICES = {
   nb: ["s", "m", "a", "b", "d", "f", "g", "k", "n", "e", "o", "u", "æ", "ø", "å", "sj", "kj"],
   en: ["s", "m", "a", "th", "b", "d", "f", "g", "k", "n", "e", "o", "u", "sh"],
-  "pt-br": ["s", "m", "a", "i", "u", "e aberto / é", "e fechado / ê", "o aberto / ó", "o fechado / ô", "nh", "lh", "ch", "ão", "qu", "gu", "r", "rr", "ç", "j", "x", "p", "t", "v", "z", "c", "b", "d", "f", "g", "l", "n"],
+  "pt-br": ["s", "m", "a", "i", "u", "a nasal / ã/an/am", "e nasal / en/em", "i nasal / in/im", "o nasal / on/om", "u nasal / um/un", "e aberto / é", "e fechado / ê", "o aberto / ó", "o fechado / ô", "nh", "lh", "ch", "ão", "qu", "gu", "r", "rr", "ç", "j", "x", "p", "t", "v", "z", "c", "b", "d", "f", "g", "l", "n"],
 } as const;
 
 function getA1StartHighFrequencyWords(
