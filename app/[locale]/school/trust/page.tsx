@@ -244,7 +244,10 @@ function trustSections(locale: string): Section[] {
         title: "Data processing",
         text: "Draft terms and documentation for schools that need a data processing agreement.",
         icon: <FileText />,
-        links: [{ href: "/school/dpa", label: "DPA template", note: "Draft for review" }],
+        links: [
+          { href: "/school/feide", label: "Feide documentation pack", note: "Printable" },
+          { href: "/school/dpa", label: "DPA template", note: "Draft for review" },
+        ],
       },
       {
         title: "Sub-processors",
@@ -295,7 +298,10 @@ function trustSections(locale: string): Section[] {
         title: "Tratamento de dados",
         text: "Termos e documentação em rascunho para escolas que precisam de acordo de tratamento de dados.",
         icon: <FileText />,
-        links: [{ href: "/school/dpa", label: "Modelo de acordo", note: "Rascunho para revisão" }],
+        links: [
+          { href: "/school/feide", label: "Pacote de documentação Feide", note: "Imprimível" },
+          { href: "/school/dpa", label: "Modelo de acordo", note: "Rascunho para revisão" },
+        ],
       },
       {
         title: "Subprocessadores",
@@ -345,7 +351,10 @@ function trustSections(locale: string): Section[] {
       title: "Databehandling",
       text: "Utkast og dokumentasjon for skoler som trenger databehandleravtale.",
       icon: <FileText />,
-      links: [{ href: "/school/dpa", label: "Databehandleravtale-mal", note: "Utkast for gjennomgang" }],
+      links: [
+        { href: "/school/feide", label: "Feide dokumentpakke", note: "Utskriftsvennlig" },
+        { href: "/school/dpa", label: "Databehandleravtale-mal", note: "Utkast for gjennomgang" },
+      ],
     },
     {
       title: "Underleverandører",
