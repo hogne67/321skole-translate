@@ -118,6 +118,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
       data?.billing && typeof data.billing === "object"
         ? (data.billing as { plan?: string | null; status?: string | null })
         : null,
+    partnerAccess: data?.partnerAccess === true,
+    partnerStatus: typeof data?.partnerStatus === "string" ? data.partnerStatus : null,
     schoolId: typeof data?.schoolId === "string" ? data.schoolId : null,
     schoolRole: typeof data?.schoolRole === "string" ? data.schoolRole : null,
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
@@ -215,6 +217,10 @@ export async function POST(req: Request) {
         `- Mark "check_fact" when it contains dates, names, places, statistics, ranking, current facts, or claims that should be verified.\n` +
         `- Mark "improve_language" when wording is awkward, too complex/simple for level, or explanation sounds artificial.\n` +
         `- Mark "multiple_answers" when more than one option may be correct or the answer key is unclear.\n` +
+        `- Be strict with superlatives such as "most famous", "best known", "mest kjent", "viktigst", "størst", or similar. Unless the source proves it, mark "check_fact" and suggest neutral wording.\n` +
+        `- Be strict with "all of the above" / "alle de ovenfor" options. Mark "multiple_answers" if individual options may also be correct, or "check_fact" if every listed option must be verified.\n` +
+        `- If the correct option is "all of the above", the explanation must verify every included option. If it does not, mark "check_fact" or suggest a cleaner question.\n` +
+        `- Prefer questions with one concrete answer. Avoid vague questions like "which known museum exists in Oslo" if several options are known museums in Oslo.\n` +
         `- Suggest a short improvement only when useful. Keep comments calm and practical.\n` +
         `Return JSON only: {"items":[{"index":0,"status":"ready|check_fact|improve_language|multiple_answers","note":"short note","suggestedQuestion":"optional","suggestedExplanation":"optional"}]}`;
 
@@ -258,6 +264,9 @@ export async function POST(req: Request) {
       `- Return one question only.\n` +
       `- Keep facts broad and easy for a teacher to verify when no source text is supplied.\n` +
       `- Avoid fragile claims, exact statistics, rankings, current events, and formula explanations.\n` +
+      `- Avoid superlatives such as "most famous", "best known", "mest kjent", "viktigst", or "størst" unless the source explicitly supports the claim.\n` +
+      `- Do not use "all of the above", "alle de ovenfor", or equivalent options.\n` +
+      `- Ask questions with one clearly correct answer and clearly wrong distractors.\n` +
       `- Multiple choice needs 3 or 4 options. True/false needs exactly 2 options.\n` +
       `- Return JSON only: {"question":{"type":"multiple_choice|true_false","question":"string","options":["string"],"correctIndex":0,"explanation":"string","seconds":30}}`;
 

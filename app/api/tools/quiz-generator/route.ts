@@ -228,6 +228,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
       data?.billing && typeof data.billing === "object"
         ? (data.billing as { plan?: string | null; status?: string | null })
         : null,
+    partnerAccess: data?.partnerAccess === true,
+    partnerStatus: typeof data?.partnerStatus === "string" ? data.partnerStatus : null,
     schoolId: typeof data?.schoolId === "string" ? data.schoolId : null,
     schoolRole: typeof data?.schoolRole === "string" ? data.schoolRole : null,
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
@@ -502,9 +504,11 @@ export async function POST(req: Request) {
       `- The explanation must explain the underlying fact or idea in a natural sentence.\n` +
       `- Do not end explanations with formula phrases like "noe som gjør dette til det riktige svaret", "which makes this the correct answer", or similar wording.\n` +
       `- Do not reveal the answer by saying "this is the correct answer"; just explain the fact.\n` +
-      `- Make distractors plausible but clearly wrong.\n` +
-      `- Do not make questions where several options can be correct.\n` +
-      `- Vary the correct answer position. Do not put the correct answer first every time.\n` +
+        `- Make distractors plausible but clearly wrong.\n` +
+        `- Do not make questions where several options can be correct.\n` +
+        `- Do not use "all of the above", "none of the above", "alle de ovenfor", "ingen av delene", or equivalent answer options.\n` +
+        `- Avoid superlatives such as "most famous", "best known", "mest kjent", "viktigst", or "størst" unless the supplied source explicitly supports the claim.\n` +
+        `- Vary the correct answer position. Do not put the correct answer first every time.\n` +
       `- Return JSON only. No markdown.\n\n` +
       `Return this exact shape:\n` +
       `{\n` +
