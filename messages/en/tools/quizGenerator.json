@@ -72,6 +72,20 @@
       "title": "Review draft",
       "text": "Review questions, answers and explanations. When the draft is ready, continue to the editor."
     },
+    "quality": {
+      "checkAll": "Quality check with AI",
+      "checking": "Checking...",
+      "replace": "Replace with new AI question",
+      "replacing": "Creating...",
+      "useSuggestion": "Use suggestion",
+      "statuses": {
+        "unchecked": "Not checked",
+        "ready": "Ready",
+        "check_fact": "Check facts",
+        "improve_language": "Improve language",
+        "multiple_answers": "Several possible answers"
+      }
+    },
     "finish": {
       "kicker": "Finish",
       "title": "Continue",

@@ -72,6 +72,20 @@
       "title": "Sjekk utkastet",
       "text": "Se gjennom spørsmål, svar og forklaringer. Når utkastet er klart, går du videre til redigeringssiden."
     },
+    "quality": {
+      "checkAll": "Kvalitetssjekk med KI",
+      "checking": "Sjekker...",
+      "replace": "Bytt ut med nytt KI-spørsmål",
+      "replacing": "Lager nytt...",
+      "useSuggestion": "Bruk forslag",
+      "statuses": {
+        "unchecked": "Ikke sjekket",
+        "ready": "Klar",
+        "check_fact": "Sjekk fakta",
+        "improve_language": "Forbedre språk",
+        "multiple_answers": "Flere mulige svar"
+      }
+    },
     "finish": {
       "kicker": "Fullføring",
       "title": "Gå videre",

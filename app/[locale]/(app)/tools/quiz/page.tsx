@@ -28,6 +28,15 @@ type QuizQuestion = {
   seconds: number;
 };
 
+type QualityStatus = "unchecked" | "ready" | "check_fact" | "improve_language" | "multiple_answers";
+
+type QualityCheck = {
+  status: QualityStatus;
+  note: string;
+  suggestedQuestion?: string;
+  suggestedExplanation?: string;
+};
+
 type QuizResult = {
   title: string;
   description: string;
@@ -108,23 +117,29 @@ function cleanExplanation(value: string): string {
     .trim();
 }
 
+function safeString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
+}
+
+function normalizeQuizQuestion(item: unknown): QuizQuestion | null {
+  if (!isRecord(item)) return null;
+  const type: QuestionType = item.type === "true_false" || item.questionType === "true_false" ? "true_false" : "multiple_choice";
+  const question = safeString(item.question || item.prompt).trim();
+  const options = Array.isArray(item.options)
+    ? item.options.filter((option): option is string => typeof option === "string")
+    : [];
+  const correctIndex = typeof item.correctIndex === "number" ? item.correctIndex : 0;
+  const explanation = safeString(item.explanation);
+  const seconds = typeof item.seconds === "number" ? item.seconds : 30;
+  if (!question || options.length < 2) return null;
+  return { type, question, options, correctIndex, explanation: cleanExplanation(explanation), seconds };
+}
+
 function normalizeQuiz(data: unknown): QuizResult {
   if (!isRecord(data)) throw new Error("Unexpected response format");
   const questions = Array.isArray(data.questions)
     ? data.questions
-        .map((item): QuizQuestion | null => {
-          if (!isRecord(item)) return null;
-          const type: QuestionType = item.type === "true_false" ? "true_false" : "multiple_choice";
-          const question = typeof item.question === "string" ? item.question : "";
-          const options = Array.isArray(item.options)
-            ? item.options.filter((option): option is string => typeof option === "string")
-            : [];
-          const correctIndex = typeof item.correctIndex === "number" ? item.correctIndex : 0;
-          const explanation = typeof item.explanation === "string" ? cleanExplanation(item.explanation) : "";
-          const seconds = typeof item.seconds === "number" ? item.seconds : 30;
-          if (!question || options.length < 2) return null;
-          return { type, question, options, correctIndex, explanation, seconds };
-        })
+        .map(normalizeQuizQuestion)
         .filter((item): item is QuizQuestion => item !== null)
     : [];
 
@@ -153,6 +168,36 @@ function normalizeQuota(data: unknown): GenerationQuota | null {
   const remaining = typeof quota.remaining === "number" ? quota.remaining : null;
   if (used === null || limit === null || remaining === null) return null;
   return { used, limit, remaining };
+}
+
+function pickQualityStatus(value: unknown): QualityStatus {
+  if (value === "ready" || value === "check_fact" || value === "improve_language" || value === "multiple_answers") return value;
+  return "unchecked";
+}
+
+function normalizeQualityChecks(value: unknown, questionCount: number): Record<number, QualityCheck> {
+  if (!isRecord(value) || !Array.isArray(value.items)) return {};
+  const checks: Record<number, QualityCheck> = {};
+  for (const item of value.items) {
+    if (!isRecord(item)) continue;
+    const index = typeof item.index === "number" ? Math.trunc(item.index) : -1;
+    if (index < 0 || index >= questionCount) continue;
+    checks[index] = {
+      status: pickQualityStatus(item.status),
+      note: safeString(item.note),
+      suggestedQuestion: safeString(item.suggestedQuestion),
+      suggestedExplanation: safeString(item.suggestedExplanation),
+    };
+  }
+  return checks;
+}
+
+function qualityTone(status: QualityStatus) {
+  if (status === "ready") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "check_fact") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (status === "improve_language") return "border-sky-200 bg-sky-50 text-sky-800";
+  if (status === "multiple_answers") return "border-rose-200 bg-rose-50 text-rose-800";
+  return "border-slate-200 bg-white text-slate-600";
 }
 
 function safeRole(role?: string): AppRole {
@@ -371,6 +416,9 @@ export default function QuizGeneratorPage() {
   const [quiz, setQuiz] = useState<QuizResult | null>(null);
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [qualityBusy, setQualityBusy] = useState(false);
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const [qualityChecks, setQualityChecks] = useState<Record<number, QualityCheck>>({});
   const [contentItems, setContentItems] = useState<SourceContentOption[]>([]);
   const [selectedContentId, setSelectedContentId] = useState("");
   const [contentBusy, setContentBusy] = useState(false);
@@ -432,6 +480,7 @@ export default function QuizGeneratorPage() {
     try {
       const next = await generateQuiz({ sourceMode: sourceChoice === "pdf" ? "pdf" : sourceMode, topic, sourceText, pdfFile, language, level, difficulty, focus, questionMode, count, seconds });
       setQuiz(next.quiz);
+      setQualityChecks({});
       if (next.quota) setGenerationQuota(next.quota);
       void reloadUsage();
       setSaveMessage(null);
@@ -538,6 +587,7 @@ export default function QuizGeneratorPage() {
         questions: current.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)),
       };
     });
+    setQualityChecks((current) => ({ ...current, [index]: { status: "unchecked", note: "" } }));
   }
 
   function updateOption(questionIndex: number, optionIndex: number, value: string) {
@@ -552,10 +602,20 @@ export default function QuizGeneratorPage() {
         ),
       };
     });
+    setQualityChecks((current) => ({ ...current, [questionIndex]: { status: "unchecked", note: "" } }));
   }
 
   function removeQuestion(index: number) {
     setQuiz((current) => current ? { ...current, questions: current.questions.filter((_, i) => i !== index) } : current);
+    setQualityChecks((current) => {
+      const next: Record<number, QualityCheck> = {};
+      Object.entries(current).forEach(([key, value]) => {
+        const currentIndex = Number(key);
+        if (!Number.isInteger(currentIndex) || currentIndex === index) return;
+        next[currentIndex > index ? currentIndex - 1 : currentIndex] = value;
+      });
+      return next;
+    });
   }
 
   function addQuestion() {
@@ -576,6 +636,59 @@ export default function QuizGeneratorPage() {
         ],
       };
     });
+  }
+
+  function applyQualitySuggestion(index: number) {
+    const check = qualityChecks[index];
+    if (!check) return;
+    const patch: Partial<QuizQuestion> = {};
+    if (check.suggestedQuestion?.trim()) patch.question = check.suggestedQuestion.trim();
+    if (check.suggestedExplanation?.trim()) patch.explanation = check.suggestedExplanation.trim();
+    if (!Object.keys(patch).length) return;
+    updateQuestion(index, patch);
+  }
+
+  async function runQualityCheck() {
+    if (!quiz) return;
+    setQualityBusy(true);
+    setErr(null);
+    setSaveMessage(null);
+    try {
+      const res = await authedFetch("/api/tools/quiz-quality", {
+        method: "POST",
+        body: JSON.stringify({ action: "quality_check", ...quiz }),
+      });
+      const data = (await res.json().catch(() => ({}))) as unknown;
+      if (!res.ok) throw new Error(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke kvalitetssjekke quizen.");
+      setQualityChecks(normalizeQualityChecks(data, quiz.questions.length));
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e));
+    } finally {
+      setQualityBusy(false);
+    }
+  }
+
+  async function replaceQuestionWithAi(index: number) {
+    if (!quiz) return;
+    setReplacingIndex(index);
+    setErr(null);
+    setSaveMessage(null);
+    try {
+      const res = await authedFetch("/api/tools/quiz-quality", {
+        method: "POST",
+        body: JSON.stringify({ action: "replace_question", index, ...quiz }),
+      });
+      const data = (await res.json().catch(() => ({}))) as unknown;
+      if (!res.ok) throw new Error(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke lage nytt spørsmål.");
+      const replacement = isRecord(data) ? normalizeQuizQuestion(data.question) : null;
+      if (!replacement) throw new Error("Kunne ikke lese nytt spørsmål.");
+      setQuiz((current) => current ? { ...current, questions: current.questions.map((q, i) => i === index ? replacement : q) } : current);
+      setQualityChecks((current) => ({ ...current, [index]: { status: "unchecked", note: "" } }));
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e));
+    } finally {
+      setReplacingIndex(null);
+    }
   }
 
   async function copyQuiz() {
@@ -860,6 +973,15 @@ export default function QuizGeneratorPage() {
                   />
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={runQualityCheck}
+                    disabled={qualityBusy || replacingIndex !== null}
+                    className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-3 py-2 text-sm font-black text-white shadow-sm hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                  >
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    {qualityBusy ? t("quality.checking") : t("quality.checkAll")}
+                  </button>
                   <button type="button" onClick={copyQuiz} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">
                     {copied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
                     {copied ? t("actions.copied") : t("actions.copy")}
@@ -873,14 +995,47 @@ export default function QuizGeneratorPage() {
               {saveMessage ? <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">{saveMessage}</div> : null}
 
               <div className="mt-4 space-y-4">
-                {quiz.questions.map((q, questionIndex) => (
+                {quiz.questions.map((q, questionIndex) => {
+                  const quality = qualityChecks[questionIndex];
+                  const qualityStatus = quality?.status ?? "unchecked";
+                  return (
                   <article key={questionIndex} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="text-sm font-black text-slate-500">{t("questionLabel", { number: questionIndex + 1 })}</div>
-                      <button type="button" onClick={() => removeQuestion(questionIndex)} className="rounded-lg p-2 text-slate-500 hover:bg-white hover:text-rose-600" title={t("actions.remove")}>
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-black text-slate-500">{t("questionLabel", { number: questionIndex + 1 })}</div>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${qualityTone(qualityStatus)}`}>
+                          {t(`quality.statuses.${qualityStatus}`)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => replaceQuestionWithAi(questionIndex)}
+                          disabled={replacingIndex !== null || qualityBusy}
+                          className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-800 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                          {replacingIndex === questionIndex ? t("quality.replacing") : t("quality.replace")}
+                        </button>
+                        <button type="button" onClick={() => removeQuestion(questionIndex)} className="rounded-lg p-2 text-slate-500 hover:bg-white hover:text-rose-600" title={t("actions.remove")}>
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
+                    {quality?.note ? (
+                      <div className={`mt-3 rounded-xl border px-3 py-2 text-sm font-semibold leading-5 ${qualityTone(quality.status)}`}>
+                        {quality.note}
+                        {(quality.suggestedQuestion || quality.suggestedExplanation) ? (
+                          <button
+                            type="button"
+                            onClick={() => applyQualitySuggestion(questionIndex)}
+                            className="mt-2 block rounded-lg border border-white/70 bg-white px-3 py-1.5 text-xs font-black text-slate-800 shadow-sm hover:bg-slate-50"
+                          >
+                            {t("quality.useSuggestion")}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <textarea
                       value={q.question}
                       onChange={(e) => updateQuestion(questionIndex, { question: e.target.value })}
@@ -932,7 +1087,8 @@ export default function QuizGeneratorPage() {
                       />
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
 
               <button type="button" onClick={addQuestion} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">

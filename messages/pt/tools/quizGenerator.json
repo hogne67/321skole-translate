@@ -72,6 +72,20 @@
       "title": "Revisar rascunho",
       "text": "Revise perguntas, respostas e explicações. Quando o rascunho estiver pronto, continue para o editor."
     },
+    "quality": {
+      "checkAll": "Verificar qualidade com IA",
+      "checking": "Verificando...",
+      "replace": "Substituir por nova pergunta de IA",
+      "replacing": "Criando...",
+      "useSuggestion": "Usar sugestão",
+      "statuses": {
+        "unchecked": "Não verificada",
+        "ready": "Pronta",
+        "check_fact": "Verificar fatos",
+        "improve_language": "Melhorar linguagem",
+        "multiple_answers": "Várias respostas possíveis"
+      }
+    },
     "finish": {
       "kicker": "Finalização",
       "title": "Continuar",
