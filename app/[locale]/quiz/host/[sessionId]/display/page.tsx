@@ -335,11 +335,11 @@ function useLiveBackgroundAudio(phase: LiveAudioPhase, enabled: boolean) {
   const audioRef = useRef<Partial<Record<LiveAudioPhase, HTMLAudioElement>>>({});
 
   const getTracks = useCallback((): Partial<Record<LiveAudioPhase, { src: string; loop: boolean; volume: number }>> => ({
-    question: { src: "/audio/live/Quiz%20Question%20Loop.mp3", loop: true, volume: 0.18 },
-    reveal: { src: "/audio/live/quiz-reveal-loop.mp3", loop: true, volume: 0.16 },
-    results: { src: "/audio/live/quiz-results-loop.mp3", loop: true, volume: 0.16 },
-    next: { src: "/audio/live/quiz-countdown-loop.mp3", loop: true, volume: 0.17 },
-    finished: { src: "/audio/live/quiz-finish-sting.mp3", loop: false, volume: 0.22 },
+    question: { src: "/audio/live/Quiz%20Question%20Loop.mp3", loop: true, volume: 0.06 },
+    reveal: { src: "/audio/live/quiz-reveal-loop.mp3", loop: true, volume: 0.06 },
+    results: { src: "/audio/live/quiz-results-loop.mp3", loop: true, volume: 0.06 },
+    next: { src: "/audio/live/quiz-countdown-loop.mp3", loop: true, volume: 0.06 },
+    finished: { src: "/audio/live/quiz-finish-sting.mp3", loop: false, volume: 0.1 },
   }), []);
 
   const getAudio = useCallback((nextPhase: LiveAudioPhase) => {
