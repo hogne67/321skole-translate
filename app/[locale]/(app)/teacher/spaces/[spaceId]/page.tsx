@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { MonitorUp } from "lucide-react";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
@@ -583,12 +584,21 @@ function Inner() {
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr]">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
             <Link
               href={withLocale(locale, `/teacher/spaces/${spaceId}/print`)}
               className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-sky-700 bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sky-500"
             >
               {t("actions.printRoom")}
+            </Link>
+            <Link
+              href={withLocale(locale, `/teacher/spaces/${spaceId}/display`)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-[62px] items-center justify-center gap-2 rounded-2xl border border-slate-900 bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+            >
+              <MonitorUp className="h-5 w-5" aria-hidden="true" />
+              {t("actions.displayView")}
             </Link>
             <SpaceOpenSwitch
               checked={space?.isOpen === true}

@@ -11,7 +11,8 @@
       "archive": "Arquivar",
       "restore": "Restaurar",
       "createNewLesson": "+ Criar nova atividade",
-      "printRoom": "Imprimir convite"
+      "printRoom": "Imprimir convite",
+      "displayView": "Abrir visualização"
     },
     "access": {
       "mustBeSignedIn": "Você precisa estar conectado.",
@@ -149,6 +150,28 @@
     },
     "due": {
       "label": "Prazo"
+    },
+    "display": {
+      "eyebrow": "Visualização para tela",
+      "safeMode": "Visualização segura",
+      "readFailed": "Não foi possível ler as atividades.",
+      "empty": "Nenhuma atividade ativa neste space.",
+      "fallbackTask": "Atividade",
+      "noDate": "Sem data",
+      "stats": {
+        "tasks": "Atividades ativas",
+        "submissions": "Respostas",
+        "toReview": "Para revisar"
+      },
+      "status": {
+        "toReview": "{n} para revisar",
+        "ready": "Em dia",
+        "waiting": "Aguardando"
+      },
+      "labels": {
+        "submissions": "Respostas",
+        "assigned": "Atribuída"
+      }
     }
   }
 }
