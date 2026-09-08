@@ -12,7 +12,7 @@
       "restore": "Restore",
       "createNewLesson": "+ Create new lesson",
       "printRoom": "Print invitation",
-      "displayView": "Open display view"
+      "studentView": "View student assignment"
     },
     "access": {
       "mustBeSignedIn": "You must be signed in.",
@@ -150,28 +150,6 @@
     },
     "due": {
       "label": "Due date"
-    },
-    "display": {
-      "eyebrow": "Display view",
-      "safeMode": "Safe view",
-      "readFailed": "Could not read assignments.",
-      "empty": "No active assignments in this space.",
-      "fallbackTask": "Assignment",
-      "noDate": "No date",
-      "stats": {
-        "tasks": "Active assignments",
-        "submissions": "Submissions",
-        "toReview": "Need review"
-      },
-      "status": {
-        "toReview": "{n} to review",
-        "ready": "Up to date",
-        "waiting": "Waiting"
-      },
-      "labels": {
-        "submissions": "Submissions",
-        "assigned": "Assigned"
-      }
     }
   }
 }

@@ -12,7 +12,7 @@
       "restore": "Gjenopprett",
       "createNewLesson": "+ Lag ny oppgave",
       "printRoom": "Skriv ut invitasjon",
-      "displayView": "Åpne skjermvisning"
+      "studentView": "Se elevoppgave"
     },
     "access": {
       "mustBeSignedIn": "Du må være logget inn.",
@@ -150,28 +150,6 @@
     },
     "due": {
       "label": "Frist"
-    },
-    "display": {
-      "eyebrow": "Skjermvisning",
-      "safeMode": "Trygg visning",
-      "readFailed": "Kunne ikke lese oppgaver.",
-      "empty": "Ingen aktive oppgaver i dette spacet.",
-      "fallbackTask": "Oppgave",
-      "noDate": "Ingen dato",
-      "stats": {
-        "tasks": "Aktive oppgaver",
-        "submissions": "Besvarelser",
-        "toReview": "Trenger vurdering"
-      },
-      "status": {
-        "toReview": "{n} å vurdere",
-        "ready": "Ajour",
-        "waiting": "Venter"
-      },
-      "labels": {
-        "submissions": "Besvarelser",
-        "assigned": "Tildelt"
-      }
     }
   }
 }
