@@ -159,19 +159,27 @@ function hasGeneralFactRisk(topic: string, focus: string): boolean {
   return (
     riskyFocus.has(focus.trim().toLowerCase()) ||
     /\b(1[5-9]\d{2}|20\d{2})\b/.test(normalized) ||
-    /\b(person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
+    /\b(oslo|bergen|trondheim|stavanger|kristiansand|tromso|tromsø|alesund|ålesund|norge|norway|person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
   );
 }
 
-function currentFactRiskError(language: string) {
+function hasBlockedQuizTopic(topic: string): boolean {
+  const normalized = topic
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return /\b(porno|pornografi|pornography|sex|seksualitet|sexual|naken|nude|nudes|rus|narkotika|dop|drugs|cocaine|kokain|heroin|cannabis|hasj|alkohol|alcohol|ekstremisme|ekstremist|extremism|terror|terrorisme|terrorism|nazisme|nazism|selvskading|self-harm|selfharm|suicide|selvmord|voldtekt|rape|tortur|torture)\b/.test(normalized);
+}
+
+function blockedQuizTopicError(language: string) {
   const lower = language.toLowerCase();
   if (lower === "pt" || lower === "pt-br" || lower === "pt-pt") {
-    return "Para temas recentes ou factuais, cole um texto fonte ou escolha uma aula. Assim o quiz usará fatos verificáveis.";
+    return "Este tema pode ser sensível ou inadequado para geração automática de quiz. Escolha um tema mais seguro ou crie as perguntas manualmente.";
   }
   if (lower === "en") {
-    return "For recent or factual topics, paste a source text or choose a lesson. Then the quiz can use verifiable facts.";
+    return "This topic may be sensitive or unsuitable for automatic quiz generation. Choose a safer topic or create the questions manually.";
   }
-  return "For ferske eller faktabaserte tema må du lime inn en kildetekst eller velge en leksjon. Da kan quizen bygge på kontrollerbare fakta.";
+  return "Dette temaet kan være sensitivt eller uegnet for automatisk quizgenerering. Velg et tryggere tema eller lag spørsmålene manuelt.";
 }
 
 function hasHistoricalYear(topic: string): boolean {
@@ -341,10 +349,20 @@ function uniqueOptionsWithCorrectIndex(options: string[], correctIndex: number) 
   return { options: next, correctIndex: nextCorrectIndex };
 }
 
+function cleanExplanation(value: string): string {
+  return value
+    .replace(/\s*,?\s*(noe som|og det|dette)\s+gjør\s+[^.]{0,80}?\s+til\s+det\s+riktige\s+svaret\.?$/i, ".")
+    .replace(/\s*,?\s*(which|and this|this)\s+makes\s+[^.]{0,80}?\s+the\s+correct\s+answer\.?$/i, ".")
+    .replace(/\s*,?\s*(o que|isso)\s+(faz|torna)\s+[^.]{0,80}?\s+(a\s+)?resposta\s+correta\.?$/i, ".")
+    .replace(/\s+\./g, ".")
+    .replace(/\.{2,}$/g, ".")
+    .trim();
+}
+
 function cleanQuestion(raw: unknown, index: number, fallbackSeconds: number): QuizQuestion | null {
   if (!isRecord(raw)) return null;
   const question = pickString(raw, "question");
-  const explanation = pickString(raw, "explanation");
+  const explanation = cleanExplanation(pickString(raw, "explanation"));
   const rawType = pickString(raw, "type", "multiple_choice");
   const type = rawType === "true_false" ? "true_false" : "multiple_choice";
   const rawOptions = Array.isArray(raw.options)
@@ -432,9 +450,10 @@ export async function POST(req: Request) {
     if (!sourceHasDocument && !topic) {
       return Response.json({ error: "Missing topic." }, { status: 400 });
     }
-    if (!sourceHasDocument && (hasRecentOrCurrentFactRisk(topic) || hasGeneralFactRisk(topic, focus))) {
-      return Response.json({ error: currentFactRiskError(language), needsSourceText: true }, { status: 400 });
+    if (!sourceHasDocument && hasBlockedQuizTopic(topic)) {
+      return Response.json({ error: blockedQuizTopicError(language), blockedTopic: true }, { status: 400 });
     }
+    const factRiskWarning = !sourceHasDocument && (hasRecentOrCurrentFactRisk(topic) || hasGeneralFactRisk(topic, focus));
 
     const prompt =
       `You are creating a classroom quiz for 321school.\n` +
@@ -459,6 +478,12 @@ export async function POST(req: Request) {
       (sourceHasDocument
         ? `- Use ONLY the supplied source ${sourceMode === "pdf" ? "PDF" : "text"} for factual claims, answers, and explanations. If a fact is not in the source, do not ask about it.\n`
         : `- The source is only a topic. Use only stable, widely documented general knowledge that a teacher can reasonably verify. Do not ask about recent events, current results, future events, exact statistics, or facts that may have changed.\n`) +
+      (factRiskWarning
+        ? `- This topic may include facts a teacher must verify. Prefer broad, school-safe questions and avoid fragile claims unless they are common knowledge.\n`
+        : "") +
+      (!sourceHasDocument
+        ? `- For place topics without a source, avoid exact founding years, disputed origin claims, named local-biography claims, and causal questions about why a city became a capital unless the fact is completely uncontroversial.\n`
+        : "") +
       (topicHasHistoricalYear
         ? `- This is a historical-year topic without source text. Prefer major public events, politics, culture, sports, technology, and everyday-life markers from that year. Avoid narrow trivia such as "who died in this year", birth years, exact dates, minor awards, obscure rankings, sales figures, or claims that require a source table.\n`
         : "") +
@@ -467,13 +492,16 @@ export async function POST(req: Request) {
         ? `- For ${level.toUpperCase()} and higher-level learners, many question stems should be longer and include enough context for students to reason before choosing. Do not make every question a one-line recall question.\n`
         : "") +
       `- Hard questions should be hard because they require context or comparison, not because they rely on obscure or fragile facts.\n` +
+      `- Write natural, idiomatic question wording in the target language. Avoid awkward stems such as "which of the following areas" when a simpler phrase like "which area" is correct.\n` +
       `- Do not invent facts, dates, numbers, scores, winners, rankings, or statistics.\n` +
       `- Before returning, silently check every correct answer against the explanation and replace any question you are not highly confident is true.\n` +
       (questionMode === "mixed" ? `- Use a mix of multiple_choice and true_false when it fits.\n` : `- Every question must use type "${questionMode}".\n`) +
       `- Multiple choice must have 3 or 4 options.\n` +
       `- True/false must have exactly 2 options, written in the target language.\n` +
       `- Include one short explanation per question.\n` +
-      `- The explanation must state why the selected answer is correct.\n` +
+      `- The explanation must explain the underlying fact or idea in a natural sentence.\n` +
+      `- Do not end explanations with formula phrases like "noe som gjør dette til det riktige svaret", "which makes this the correct answer", or similar wording.\n` +
+      `- Do not reveal the answer by saying "this is the correct answer"; just explain the fact.\n` +
       `- Make distractors plausible but clearly wrong.\n` +
       `- Do not make questions where several options can be correct.\n` +
       `- Vary the correct answer position. Do not put the correct answer first every time.\n` +

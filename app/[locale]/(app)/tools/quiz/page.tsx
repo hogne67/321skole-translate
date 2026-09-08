@@ -98,6 +98,16 @@ function getErrorMessage(e: unknown): string {
   return "Unknown error";
 }
 
+function cleanExplanation(value: string): string {
+  return value
+    .replace(/\s*,?\s*(noe som|og det|dette)\s+gjør\s+[^.]{0,80}?\s+til\s+det\s+riktige\s+svaret\.?$/i, ".")
+    .replace(/\s*,?\s*(which|and this|this)\s+makes\s+[^.]{0,80}?\s+the\s+correct\s+answer\.?$/i, ".")
+    .replace(/\s*,?\s*(o que|isso)\s+(faz|torna)\s+[^.]{0,80}?\s+(a\s+)?resposta\s+correta\.?$/i, ".")
+    .replace(/\s+\./g, ".")
+    .replace(/\.{2,}$/g, ".")
+    .trim();
+}
+
 function normalizeQuiz(data: unknown): QuizResult {
   if (!isRecord(data)) throw new Error("Unexpected response format");
   const questions = Array.isArray(data.questions)
@@ -110,7 +120,7 @@ function normalizeQuiz(data: unknown): QuizResult {
             ? item.options.filter((option): option is string => typeof option === "string")
             : [];
           const correctIndex = typeof item.correctIndex === "number" ? item.correctIndex : 0;
-          const explanation = typeof item.explanation === "string" ? item.explanation : "";
+          const explanation = typeof item.explanation === "string" ? cleanExplanation(item.explanation) : "";
           const seconds = typeof item.seconds === "number" ? item.seconds : 30;
           if (!question || options.length < 2) return null;
           return { type, question, options, correctIndex, explanation, seconds };
@@ -238,7 +248,7 @@ function hasQuizFactRisk(sourceChoice: SourceChoice, focus: string, topic: strin
   return (
     riskyFocus.has(focus) ||
     /\b(1[5-9]\d{2}|20\d{2})\b/.test(normalized) ||
-    /\b(person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
+    /\b(oslo|bergen|trondheim|stavanger|kristiansand|tromso|tromsø|alesund|ålesund|norge|norway|person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
   );
 }
 

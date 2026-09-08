@@ -35,6 +35,15 @@ type QuizQuestion = {
   seconds: number;
 };
 
+type QualityStatus = "unchecked" | "ready" | "check_fact" | "improve_language" | "multiple_answers";
+
+type QualityCheck = {
+  status: QualityStatus;
+  note: string;
+  suggestedQuestion?: string;
+  suggestedExplanation?: string;
+};
+
 type QuizDraft = {
   title: string;
   description: string;
@@ -189,7 +198,26 @@ const LABELS = {
       required: "Bilde må legges til før lagring.",
       missing: "Bilde mangler",
     },
-    questions: { title: "3. Spørsmål og svar", label: "Spørsmål {number}", explanation: "Forklaring til riktig svar...", add: "Legg til spørsmål" },
+    questions: {
+      title: "3. Spørsmål og svar",
+      label: "Spørsmål {number}",
+      explanation: "Forklaring til riktig svar...",
+      add: "Legg til spørsmål",
+      qualityTitle: "Lærerens gjennomgang",
+      qualityText: "La KI markere spørsmål du bør lese ekstra nøye før bruk.",
+      checkAll: "Kvalitetssjekk med KI",
+      checking: "Sjekker...",
+      replace: "Bytt ut med nytt KI-spørsmål",
+      replacing: "Lager nytt...",
+      useSuggestion: "Bruk forslag",
+      statuses: {
+        unchecked: "Ikke sjekket",
+        ready: "Klar",
+        check_fact: "Sjekk fakta",
+        improve_language: "Forbedre språk",
+        multiple_answers: "Flere mulige svar",
+      },
+    },
     finish: { title: "Klar til å lagre", text: "Når quizen lagres, legges den i Mitt innhold.", saving: "Lagrer...", save: "Lagre til Mitt innhold" },
     loading: "Laster quiz...",
     empty: "-",
@@ -265,7 +293,26 @@ const LABELS = {
       required: "An image must be added before saving.",
       missing: "Image missing",
     },
-    questions: { title: "3. Questions and answers", label: "Question {number}", explanation: "Explanation for the correct answer...", add: "Add question" },
+    questions: {
+      title: "3. Questions and answers",
+      label: "Question {number}",
+      explanation: "Explanation for the correct answer...",
+      add: "Add question",
+      qualityTitle: "Teacher review",
+      qualityText: "Let AI mark questions you should read extra carefully before use.",
+      checkAll: "Quality-check with AI",
+      checking: "Checking...",
+      replace: "Replace with new AI question",
+      replacing: "Creating...",
+      useSuggestion: "Use suggestion",
+      statuses: {
+        unchecked: "Not checked",
+        ready: "Ready",
+        check_fact: "Check facts",
+        improve_language: "Improve language",
+        multiple_answers: "Multiple possible answers",
+      },
+    },
     finish: { title: "Ready to save", text: "When the quiz is saved, it is added to My content.", saving: "Saving...", save: "Save to My content" },
     loading: "Loading quiz...",
     empty: "-",
@@ -341,7 +388,26 @@ const LABELS = {
       required: "Uma imagem deve ser adicionada antes de salvar.",
       missing: "Imagem faltando",
     },
-    questions: { title: "3. Perguntas e respostas", label: "Pergunta {number}", explanation: "Explicação da resposta correta...", add: "Adicionar pergunta" },
+    questions: {
+      title: "3. Perguntas e respostas",
+      label: "Pergunta {number}",
+      explanation: "Explicação da resposta correta...",
+      add: "Adicionar pergunta",
+      qualityTitle: "Revisão do professor",
+      qualityText: "Deixe a IA marcar perguntas que devem ser lidas com mais atenção antes do uso.",
+      checkAll: "Verificar qualidade com IA",
+      checking: "Verificando...",
+      replace: "Substituir por nova pergunta de IA",
+      replacing: "Criando...",
+      useSuggestion: "Usar sugestão",
+      statuses: {
+        unchecked: "Não verificada",
+        ready: "Pronta",
+        check_fact: "Verificar fatos",
+        improve_language: "Melhorar linguagem",
+        multiple_answers: "Várias respostas possíveis",
+      },
+    },
     finish: { title: "Pronto para salvar", text: "Quando o quiz for salvo, ele será adicionado a Meu conteúdo.", saving: "Salvando...", save: "Salvar em Meu conteúdo" },
     loading: "Carregando quiz...",
     empty: "-",
@@ -371,6 +437,36 @@ function normalizeQuestion(item: unknown): QuizQuestion | null {
     explanation: safeString(item.explanation),
     seconds: typeof item.seconds === "number" ? item.seconds : 30,
   };
+}
+
+function pickQualityStatus(value: unknown): QualityStatus {
+  if (value === "ready" || value === "check_fact" || value === "improve_language" || value === "multiple_answers") return value;
+  return "unchecked";
+}
+
+function normalizeQualityChecks(value: unknown, questionCount: number): Record<number, QualityCheck> {
+  if (!isRecord(value) || !Array.isArray(value.items)) return {};
+  const checks: Record<number, QualityCheck> = {};
+  for (const item of value.items) {
+    if (!isRecord(item)) continue;
+    const index = typeof item.index === "number" ? Math.trunc(item.index) : -1;
+    if (index < 0 || index >= questionCount) continue;
+    checks[index] = {
+      status: pickQualityStatus(item.status),
+      note: safeString(item.note),
+      suggestedQuestion: safeString(item.suggestedQuestion),
+      suggestedExplanation: safeString(item.suggestedExplanation),
+    };
+  }
+  return checks;
+}
+
+function qualityTone(status: QualityStatus) {
+  if (status === "ready") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "check_fact") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (status === "improve_language") return "border-sky-200 bg-sky-50 text-sky-800";
+  if (status === "multiple_answers") return "border-rose-200 bg-rose-50 text-rose-800";
+  return "border-slate-200 bg-white text-slate-600";
 }
 
 function normalizeDraft(data: unknown): QuizDraft {
@@ -430,6 +526,8 @@ export default function QuizEditorPage() {
   const [draft, setDraft] = useState<QuizDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [qualityBusy, setQualityBusy] = useState(false);
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [uid, setUid] = useState<string | null>(getAuth().currentUser?.uid ?? null);
@@ -439,6 +537,7 @@ export default function QuizEditorPage() {
   const [coverPromptMode, setCoverPromptMode] = useState<CoverPromptMode>("custom");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [qualityChecks, setQualityChecks] = useState<Record<number, QualityCheck>>({});
   const { usage, loading: usageLoading, reload: reloadUsage } = useUsage(uid ?? undefined);
 
   const role = safeRole((profile as { role?: string } | null)?.role);
@@ -485,6 +584,7 @@ export default function QuizEditorPage() {
 
   function updateQuestion(index: number, patch: Partial<QuizQuestion>) {
     setDraft((current) => current ? { ...current, questions: current.questions.map((q, i) => i === index ? { ...q, ...patch } : q) } : current);
+    setQualityChecks((current) => ({ ...current, [index]: { status: "unchecked", note: "" } }));
   }
 
   function updateOption(questionIndex: number, optionIndex: number, value: string) {
@@ -492,6 +592,7 @@ export default function QuizEditorPage() {
       ...current,
       questions: current.questions.map((q, i) => i === questionIndex ? { ...q, options: q.options.map((option, oi) => oi === optionIndex ? value : option) } : q),
     } : current);
+    setQualityChecks((current) => ({ ...current, [questionIndex]: { status: "unchecked", note: "" } }));
   }
 
   function addQuestion() {
@@ -503,6 +604,11 @@ export default function QuizEditorPage() {
 
   function removeQuestion(index: number) {
     setDraft((current) => current ? { ...current, questions: current.questions.filter((_, i) => i !== index) } : current);
+    setQualityChecks((current) => Object.fromEntries(Object.entries(current).flatMap(([key, value]) => {
+      const oldIndex = Number(key);
+      if (!Number.isFinite(oldIndex) || oldIndex === index) return [];
+      return [[oldIndex > index ? oldIndex - 1 : oldIndex, value]];
+    })));
   }
 
   async function uploadCoverImage(file: File) {
@@ -568,6 +674,58 @@ export default function QuizEditorPage() {
     } finally {
       setImageBusy(false);
     }
+  }
+
+  async function runQualityCheck() {
+    if (!draft) return;
+    setQualityBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await authedFetch("/api/tools/quiz-quality", {
+        method: "POST",
+        body: JSON.stringify({ action: "quality_check", ...draft }),
+      }, labels.errors.signIn);
+      const data = (await res.json().catch(() => ({}))) as unknown;
+      if (!res.ok) throw new Error(isRecord(data) && typeof data.error === "string" ? data.error : labels.errors.unknown);
+      setQualityChecks(normalizeQualityChecks(data, draft.questions.length));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, labels.errors.unknown));
+    } finally {
+      setQualityBusy(false);
+    }
+  }
+
+  async function replaceQuestionWithAi(index: number) {
+    if (!draft) return;
+    setReplacingIndex(index);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await authedFetch("/api/tools/quiz-quality", {
+        method: "POST",
+        body: JSON.stringify({ action: "replace_question", index, ...draft }),
+      }, labels.errors.signIn);
+      const data = (await res.json().catch(() => ({}))) as unknown;
+      if (!res.ok) throw new Error(isRecord(data) && typeof data.error === "string" ? data.error : labels.errors.unknown);
+      const replacement = isRecord(data) ? normalizeQuestion(data.question) : null;
+      if (!replacement) throw new Error(labels.errors.unknown);
+      setDraft((current) => current ? { ...current, questions: current.questions.map((q, i) => i === index ? replacement : q) } : current);
+      setQualityChecks((current) => ({ ...current, [index]: { status: "unchecked", note: "" } }));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, labels.errors.unknown));
+    } finally {
+      setReplacingIndex(null);
+    }
+  }
+
+  function applyQualitySuggestion(index: number) {
+    const check = qualityChecks[index];
+    if (!check || (!check.suggestedQuestion && !check.suggestedExplanation)) return;
+    updateQuestion(index, {
+      ...(check.suggestedQuestion ? { question: check.suggestedQuestion } : {}),
+      ...(check.suggestedExplanation ? { explanation: check.suggestedExplanation } : {}),
+    });
   }
 
   async function save() {
@@ -813,16 +971,51 @@ export default function QuizEditorPage() {
       </section>
 
       <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
-        <h2 className="text-xl font-black text-slate-950">{labels.questions.title}</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-black text-slate-950">{labels.questions.title}</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{labels.questions.qualityText}</p>
+          </div>
+          <button
+            type="button"
+            onClick={runQualityCheck}
+            disabled={qualityBusy || draft.questions.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+          >
+            <Sparkles className="h-4 w-4" />
+            {qualityBusy ? labels.questions.checking : labels.questions.checkAll}
+          </button>
+        </div>
         <div className="mt-4 space-y-4">
           {draft.questions.map((q, questionIndex) => (
             <article key={questionIndex} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black text-slate-500">{labels.questions.label.replace("{number}", String(questionIndex + 1))}</div>
-                <button type="button" onClick={() => removeQuestion(questionIndex)} className="rounded-lg p-2 text-slate-500 hover:bg-white hover:text-rose-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-sm font-black text-slate-500">{labels.questions.label.replace("{number}", String(questionIndex + 1))}</div>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${qualityTone(qualityChecks[questionIndex]?.status ?? "unchecked")}`}>
+                    {labels.questions.statuses[qualityChecks[questionIndex]?.status ?? "unchecked"]}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => replaceQuestionWithAi(questionIndex)}
+                    disabled={replacingIndex !== null || qualityBusy}
+                    className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-800 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {replacingIndex === questionIndex ? labels.questions.replacing : labels.questions.replace}
+                  </button>
+                  <button type="button" onClick={() => removeQuestion(questionIndex)} className="rounded-lg p-2 text-slate-500 hover:bg-white hover:text-rose-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+              {qualityChecks[questionIndex]?.note ? (
+                <div className={`mt-3 rounded-xl border px-3 py-2 text-sm font-semibold leading-5 ${qualityTone(qualityChecks[questionIndex].status)}`}>
+                  {qualityChecks[questionIndex].note}
+                </div>
+              ) : null}
               <textarea value={q.question} onChange={(e) => updateQuestion(questionIndex, { question: e.target.value })} className="mt-2 min-h-[72px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold leading-6" />
               <div className="mt-3 grid gap-2">
                 {q.options.map((option, optionIndex) => (
@@ -833,6 +1026,15 @@ export default function QuizEditorPage() {
                 ))}
               </div>
               <textarea value={q.explanation} onChange={(e) => updateQuestion(questionIndex, { explanation: e.target.value })} className="mt-3 min-h-[62px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm leading-6" placeholder={labels.questions.explanation} />
+              {qualityChecks[questionIndex]?.suggestedQuestion || qualityChecks[questionIndex]?.suggestedExplanation ? (
+                <button
+                  type="button"
+                  onClick={() => applyQualitySuggestion(questionIndex)}
+                  className="mt-3 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm font-black text-sky-800 hover:bg-sky-50"
+                >
+                  {labels.questions.useSuggestion}
+                </button>
+              ) : null}
             </article>
           ))}
         </div>
