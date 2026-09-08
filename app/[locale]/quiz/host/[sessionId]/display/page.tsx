@@ -332,78 +332,71 @@ function getSpeechText(question: Question) {
 }
 
 function useLiveBackgroundAudio(phase: LiveAudioPhase, enabled: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const oscARef = useRef<OscillatorNode | null>(null);
-  const oscBRef = useRef<OscillatorNode | null>(null);
+  const audioRef = useRef<Partial<Record<LiveAudioPhase, HTMLAudioElement>>>({});
+
+  const getTracks = useCallback((): Partial<Record<LiveAudioPhase, { src: string; loop: boolean; volume: number }>> => ({
+    question: { src: "/audio/live/Quiz%20Question%20Loop.mp3", loop: true, volume: 0.18 },
+    reveal: { src: "/audio/live/quiz-reveal-loop.mp3", loop: true, volume: 0.16 },
+    results: { src: "/audio/live/quiz-results-loop.mp3", loop: true, volume: 0.16 },
+    next: { src: "/audio/live/quiz-countdown-loop.mp3", loop: true, volume: 0.17 },
+    finished: { src: "/audio/live/quiz-finish-sting.mp3", loop: false, volume: 0.22 },
+  }), []);
+
+  const getAudio = useCallback((nextPhase: LiveAudioPhase) => {
+    if (typeof window === "undefined") return null;
+    const track = getTracks()[nextPhase];
+    if (!track) return null;
+    if (!audioRef.current[nextPhase]) {
+      const audio = new Audio(track.src);
+      audio.loop = track.loop;
+      audio.volume = track.volume;
+      audio.preload = "auto";
+      audioRef.current[nextPhase] = audio;
+    }
+    return audioRef.current[nextPhase] ?? null;
+  }, [getTracks]);
 
   const stop = useCallback(() => {
-    gainRef.current?.gain.setTargetAtTime(0, ctxRef.current?.currentTime ?? 0, 0.08);
+    Object.values(audioRef.current).forEach((audio) => {
+      if (!audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+    });
   }, []);
 
   const ensureStarted = useCallback(async () => {
-    if (typeof window === "undefined") return;
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    if (!ctxRef.current) {
-      const ctx = new AudioContextClass();
-      const gain = ctx.createGain();
-      const oscA = ctx.createOscillator();
-      const oscB = ctx.createOscillator();
-      oscA.type = "sine";
-      oscB.type = "triangle";
-      gain.gain.value = 0;
-      oscA.connect(gain);
-      oscB.connect(gain);
-      gain.connect(ctx.destination);
-      oscA.start();
-      oscB.start();
-      ctxRef.current = ctx;
-      gainRef.current = gain;
-      oscARef.current = oscA;
-      oscBRef.current = oscB;
-    }
-    if (ctxRef.current.state === "suspended") {
-      await ctxRef.current.resume().catch(() => undefined);
-    }
-  }, []);
+    const phases: LiveAudioPhase[] = ["question", "reveal", "results", "next", "finished"];
+    await Promise.all(phases.map(async (nextPhase) => {
+      const audio = getAudio(nextPhase);
+      if (!audio) return;
+      audio.muted = true;
+      await audio.play().catch(() => undefined);
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+    }));
+  }, [getAudio]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || phase === "idle") {
       stop();
       return;
     }
-    void ensureStarted();
-  }, [enabled, ensureStarted, stop]);
+    const activeAudio = getAudio(phase);
+    Object.entries(audioRef.current).forEach(([key, audio]) => {
+      if (!audio || key === phase) return;
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    if (activeAudio) {
+      if (!activeAudio.loop) activeAudio.currentTime = 0;
+      void activeAudio.play().catch(() => undefined);
+    }
+  }, [enabled, getAudio, phase, stop]);
 
   useEffect(() => {
-    const ctx = ctxRef.current;
-    const gain = gainRef.current;
-    const oscA = oscARef.current;
-    const oscB = oscBRef.current;
-    if (!enabled || !ctx || !gain || !oscA || !oscB) return;
-
-    const settings: Record<LiveAudioPhase, { gain: number; a: number; b: number }> = {
-      idle: { gain: 0, a: 220, b: 330 },
-      question: { gain: 0.018, a: 220, b: 330 },
-      reveal: { gain: 0.013, a: 262, b: 392 },
-      results: { gain: 0.014, a: 247, b: 370 },
-      next: { gain: 0.02, a: 294, b: 440 },
-      finished: { gain: 0, a: 220, b: 330 },
-    };
-    const next = settings[phase] ?? settings.idle;
-    oscA.frequency.setTargetAtTime(next.a, ctx.currentTime, 0.12);
-    oscB.frequency.setTargetAtTime(next.b, ctx.currentTime, 0.12);
-    gain.gain.setTargetAtTime(next.gain, ctx.currentTime, 0.12);
-  }, [enabled, phase]);
-
-  useEffect(() => {
-    return () => {
-      oscARef.current?.stop();
-      oscBRef.current?.stop();
-      void ctxRef.current?.close();
-    };
-  }, []);
+    return stop;
+  }, [stop]);
 
   return { ensureStarted, stop };
 }
