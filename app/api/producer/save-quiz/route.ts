@@ -29,6 +29,7 @@ type SaveQuizBody = {
   tags?: unknown;
   sourceText?: unknown;
   focus?: unknown;
+  difficulty?: unknown;
   questionMode?: unknown;
   coverImageUrl?: unknown;
   coverImagePrompt?: unknown;
@@ -122,7 +123,8 @@ export async function POST(req: Request) {
     const topic = safeString(body.topic);
     const tags = safeStringArray(body.tags);
     const sourceText = safeString(body.sourceText);
-    const focus = safeString(body.focus) || "language";
+    const focus = safeString(body.focus) || "easy_mix";
+    const difficulty = safeString(body.difficulty) || "medium";
     const questionMode = safeString(body.questionMode) || "mixed";
     const coverImageUrl = safeString(body.coverImageUrl);
     const coverImagePrompt = safeString(body.coverImagePrompt);
@@ -194,6 +196,7 @@ export async function POST(req: Request) {
       topic,
       tags,
       focus,
+      difficulty,
       questionMode,
       sourceText: sourceTextForLesson,
       text: sourceTextForLesson,
@@ -211,6 +214,7 @@ export async function POST(req: Request) {
         sourceText,
         focus,
         category: focus,
+        difficulty,
         questionMode,
         questions,
       },

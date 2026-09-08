@@ -16,7 +16,8 @@ import { collection, getDocs, limit, orderBy, query, where } from "firebase/fire
 
 type QuestionType = "multiple_choice" | "true_false";
 type QuestionMode = "mixed" | "multiple_choice" | "true_false";
-type SourceChoice = "new" | "paste" | "content";
+type SourceChoice = "new" | "paste" | "content" | "pdf";
+type Difficulty = "easy" | "medium" | "hard";
 
 type QuizQuestion = {
   type: QuestionType;
@@ -37,6 +38,7 @@ type QuizResult = {
   sourceText: string;
   focus: string;
   questionMode?: QuestionMode;
+  difficulty?: Difficulty;
   questions: QuizQuestion[];
 };
 
@@ -128,6 +130,7 @@ function normalizeQuiz(data: unknown): QuizResult {
     sourceText: typeof data.sourceText === "string" ? data.sourceText : "",
     focus: typeof data.focus === "string" ? data.focus : "",
     questionMode: data.questionMode === "multiple_choice" || data.questionMode === "true_false" || data.questionMode === "mixed" ? data.questionMode : "mixed",
+    difficulty: data.difficulty === "easy" || data.difficulty === "medium" || data.difficulty === "hard" ? data.difficulty : "medium",
     questions,
   };
 }
@@ -225,12 +228,28 @@ function isPlainLesson(data: Record<string, unknown>): boolean {
   return true;
 }
 
+function hasQuizFactRisk(sourceChoice: SourceChoice, focus: string, topic: string): boolean {
+  if (sourceChoice !== "new") return false;
+  const riskyFocus = new Set(["history", "social_studies", "sports", "culture", "citizenship", "wildlife", "other"]);
+  const normalized = topic
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return (
+    riskyFocus.has(focus) ||
+    /\b(1[5-9]\d{2}|20\d{2})\b/.test(normalized) ||
+    /\b(person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
+  );
+}
+
 async function generateQuiz(args: {
   sourceMode: string;
   topic: string;
   sourceText: string;
+  pdfFile?: File | null;
   language: string;
   level: string;
+  difficulty: Difficulty;
   focus: string;
   questionMode: QuestionMode;
   count: number;
@@ -239,10 +258,27 @@ async function generateQuiz(args: {
   const user = auth.currentUser;
   if (!user) throw new Error("Du må være logget inn for å generere quiz.");
   const token = await user.getIdToken();
+  const body =
+    args.pdfFile
+      ? (() => {
+          const form = new FormData();
+          form.set("file", args.pdfFile);
+          form.set("sourceMode", "pdf");
+          form.set("topic", args.topic || args.pdfFile.name);
+          form.set("language", args.language);
+          form.set("level", args.level);
+          form.set("difficulty", args.difficulty);
+          form.set("focus", args.focus);
+          form.set("questionMode", args.questionMode);
+          form.set("count", String(args.count));
+          form.set("seconds", String(args.seconds));
+          return form;
+        })()
+      : JSON.stringify(args);
   const res = await fetch("/api/tools/quiz-generator", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(args),
+    headers: args.pdfFile ? { Authorization: `Bearer ${token}` } : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body,
   });
 
   const raw = await res.text();
@@ -311,9 +347,11 @@ export default function QuizGeneratorPage() {
   const [sourceChoice, setSourceChoice] = useState<SourceChoice>("new");
   const [topic, setTopic] = useState("");
   const [sourceText, setSourceText] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [language, setLanguage] = useState(defaultLanguage);
   const [level, setLevel] = useState("A2");
-  const [focus, setFocus] = useState("language");
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [focus, setFocus] = useState("easy_mix");
   const [questionMode, setQuestionMode] = useState<QuestionMode>("mixed");
   const [count, setCount] = useState(6);
   const seconds = 30;
@@ -347,6 +385,13 @@ export default function QuizGeneratorPage() {
   const generatorsLimit = generationQuota?.limit ?? getBucketLimit(role, plan, "premium_generators");
   const generatorsRemaining = generationQuota?.remaining ?? Math.max(0, generatorsLimit - generatorsUsed);
   const correctLabel = correctAnswerLabel(locale);
+  const factRisk = hasQuizFactRisk(sourceChoice, focus, topic);
+  const generateDisabled =
+    busy ||
+    (sourceChoice === "new" && !topic.trim()) ||
+    (sourceChoice === "paste" && sourceText.trim().length < 40) ||
+    (sourceChoice === "content" && sourceText.trim().length < 40) ||
+    (sourceChoice === "pdf" && !pdfFile);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => setUid(user?.uid ?? null));
@@ -355,6 +400,7 @@ export default function QuizGeneratorPage() {
   function selectSourceChoice(next: SourceChoice) {
     setSourceChoice(next);
     setSourceMode(next === "new" ? "topic" : "text");
+    if (next !== "pdf") setPdfFile(null);
     if (next === "content" && !selectedContentId) {
       setTopic("");
       setSourceText("");
@@ -374,7 +420,7 @@ export default function QuizGeneratorPage() {
     setErr(null);
     setCopied(false);
     try {
-      const next = await generateQuiz({ sourceMode, topic, sourceText, language, level, focus, questionMode, count, seconds });
+      const next = await generateQuiz({ sourceMode: sourceChoice === "pdf" ? "pdf" : sourceMode, topic, sourceText, pdfFile, language, level, difficulty, focus, questionMode, count, seconds });
       setQuiz(next.quiz);
       if (next.quota) setGenerationQuota(next.quota);
       void reloadUsage();
@@ -580,8 +626,8 @@ export default function QuizGeneratorPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {(["new", "paste", "content"] as const).map((mode) => (
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          {(["new", "paste", "content", "pdf"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -614,6 +660,7 @@ export default function QuizGeneratorPage() {
           <label className="block">
             <span className="text-sm font-semibold text-slate-800">{t("fields.focus")}</span>
             <select value={focus} onChange={(e) => setFocus(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm">
+              <option value="easy_mix">{t("focus.easy_mix")}</option>
               <option value="language">{t("focus.language")}</option>
               <option value="math">{t("focus.math")}</option>
               <option value="science">{t("focus.science")}</option>
@@ -651,6 +698,11 @@ export default function QuizGeneratorPage() {
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
                 {t("source.accuracyHint")}
               </div>
+              {factRisk ? (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold leading-5 text-sky-900">
+                  <strong>{t("factRisk.title")}:</strong> {t("factRisk.text")}
+                </div>
+              ) : null}
             </div>
           ) : sourceChoice === "paste" ? (
             <label className="block">
@@ -662,6 +714,26 @@ export default function QuizGeneratorPage() {
                 placeholder={t("placeholders.sourceText")}
               />
             </label>
+          ) : sourceChoice === "pdf" ? (
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-800">{t("source.pdfFile")}</span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setPdfFile(file);
+                    setTopic(file?.name.replace(/\.pdf$/i, "") ?? "");
+                    setSourceText("");
+                  }}
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-violet-500"
+                />
+              </label>
+              <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold leading-5 text-sky-900">
+                {pdfFile ? t("source.pdfSelected", { name: pdfFile.name }) : t("source.pdfHint")}
+              </div>
+            </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
               <div>
@@ -703,7 +775,7 @@ export default function QuizGeneratorPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-3 sm:mt-5 sm:gap-4 sm:p-4 md:grid-cols-[1fr_1fr_auto]">
+        <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-3 sm:mt-5 sm:gap-4 sm:p-4 md:grid-cols-[1fr_1fr_1fr_auto]">
           <label className="block">
             <span className="text-sm font-semibold text-slate-800">{t("fields.questionMode")}</span>
             <select value={questionMode} onChange={(e) => setQuestionMode(e.target.value as QuestionMode)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm">
@@ -717,10 +789,18 @@ export default function QuizGeneratorPage() {
             <span className="text-sm font-semibold text-slate-800">{t("fields.count")}</span>
             <input type="number" min={3} max={12} value={count} onChange={(e) => setCount(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm" />
           </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-slate-800">{t("fields.difficulty")}</span>
+            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm">
+              <option value="easy">{t("difficulty.easy")}</option>
+              <option value="medium">{t("difficulty.medium")}</option>
+              <option value="hard">{t("difficulty.hard")}</option>
+            </select>
+          </label>
           <button
             type="button"
             onClick={onGenerate}
-            disabled={busy}
+            disabled={generateDisabled}
             className="self-end inline-flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -774,7 +854,7 @@ export default function QuizGeneratorPage() {
                     {copied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
                     {copied ? t("actions.copied") : t("actions.copy")}
                   </button>
-                  <button type="button" onClick={onGenerate} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800 hover:bg-violet-100 disabled:opacity-60">
+                  <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800 hover:bg-violet-100 disabled:opacity-60">
                     <RotateCcw className="h-4 w-4" />
                     {t("actions.regenerate")}
                   </button>

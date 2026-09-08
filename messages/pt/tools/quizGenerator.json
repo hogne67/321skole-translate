@@ -41,6 +41,9 @@
       "loading": "Carregando...",
       "chooseContent": "Clique para escolher uma lição",
       "noContent": "Nenhuma lição encontrada",
+      "pdfFile": "Arquivo PDF",
+      "pdfHint": "Envie um PDF. O quiz usará o PDF como fonte e evitará fatos fora do documento.",
+      "pdfSelected": "PDF selecionado: {name}",
       "accuracyHint": "Para quizzes com fatos concretos, anos ou respostas que precisam ser precisas, prefira usar texto ou uma lição como fonte."
     },
     "sourceChoices": {
@@ -55,6 +58,10 @@
       "content": {
         "title": "Usar lição",
         "text": "Escolha uma lição em Meu conteúdo."
+      },
+      "pdf": {
+        "title": "Enviar PDF",
+        "text": "Criar perguntas a partir de um documento."
       }
     },
     "settings": {
@@ -77,6 +84,7 @@
       "language": "Idioma",
       "level": "Nível",
       "focus": "Categoria",
+      "difficulty": "Dificuldade",
       "questionMode": "Tipo de pergunta",
       "count": "Perguntas",
       "seconds": "Tempo por pergunta",
@@ -87,7 +95,17 @@
       "multiple_choice": "Múltipla escolha",
       "true_false": "Verdadeiro/falso"
     },
+    "difficulty": {
+      "easy": "Fácil",
+      "medium": "Média",
+      "hard": "Difícil"
+    },
+    "factRisk": {
+      "title": "Use uma fonte para melhorar a precisão",
+      "text": "Este tema parece incluir pessoas, lugares, anos ou fatos que podem facilmente estar errados. Prefira texto, uma lição ou um PDF como fonte."
+    },
     "focus": {
+      "easy_mix": "Mistura leve",
       "language": "Língua e texto",
       "math": "Matemática",
       "science": "Ciências",

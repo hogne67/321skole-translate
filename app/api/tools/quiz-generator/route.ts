@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
@@ -20,6 +20,21 @@ type QuizQuestion = {
 };
 
 type QuestionMode = "mixed" | "multiple_choice" | "true_false";
+type Difficulty = "easy" | "medium" | "hard";
+
+type QuizRequest = {
+  language: string;
+  level: string;
+  difficulty: Difficulty;
+  sourceMode: string;
+  topic: string;
+  sourceText: string;
+  focus: string;
+  questionMode: QuestionMode;
+  count: number;
+  seconds: number;
+  pdfFile?: File | null;
+};
 
 type RequestUserContext = {
   uid: string;
@@ -27,6 +42,8 @@ type RequestUserContext = {
   plan: PlanKey | string;
   studentAccessMode?: string | null;
 };
+
+class BadRequestError extends Error {}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -53,6 +70,11 @@ function pickQuestionMode(value: string): QuestionMode {
   return "mixed";
 }
 
+function pickDifficulty(value: string): Difficulty {
+  if (value === "easy" || value === "hard") return value;
+  return "medium";
+}
+
 function getLanguageInstruction(language: string): string {
   const lower = language.toLowerCase();
   if (lower === "no" || lower === "nb" || lower === "nn") return "Write everything in Norwegian Bokmal.";
@@ -64,6 +86,7 @@ function getLanguageInstruction(language: string): string {
 function getFocusInstruction(focus: string): string {
   const normalized = focus.trim().toLowerCase();
   const labels: Record<string, string> = {
+    easy_mix: "a light mixed category with varied questions from the supplied topic",
     language: "language and text",
     math: "mathematics",
     science: "science",
@@ -99,6 +122,16 @@ function getLevelInstruction(level: string): string {
   return labels[normalized] || labels.B1;
 }
 
+function getDifficultyInstruction(difficulty: Difficulty): string {
+  if (difficulty === "easy") {
+    return "Difficulty: Easy. Ask mostly direct recognition or recall questions. Keep distractors clearly different from the correct answer.";
+  }
+  if (difficulty === "hard") {
+    return "Difficulty: Hard. Ask for cause, consequence, comparison, significance, chronology, or careful interpretation. Distractors should be plausible, but only one answer can be correct.";
+  }
+  return "Difficulty: Medium. Mix direct factual checks with some questions that require context, simple reasoning, or comparison.";
+}
+
 function requiresContextRichQuestions(level: string): boolean {
   return ["B1", "B2", "C1"].includes(level.trim().toUpperCase());
 }
@@ -115,6 +148,19 @@ function hasRecentOrCurrentFactRisk(topic: string): boolean {
   if (years.some((year) => year >= currentYear - 1)) return true;
 
   return /\b(i dag|idag|na|nå|nylig|siste|arets|årets|aktuell|current|latest|recent|today|this year|last year)\b/.test(normalized);
+}
+
+function hasGeneralFactRisk(topic: string, focus: string): boolean {
+  const normalized = topic
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const riskyFocus = new Set(["history", "social_studies", "sports", "culture", "citizenship", "wildlife", "other"]);
+  return (
+    riskyFocus.has(focus.trim().toLowerCase()) ||
+    /\b(1[5-9]\d{2}|20\d{2})\b/.test(normalized) ||
+    /\b(person|personer|biografi|fodt|født|dod|død|sted|by|kommune|historie|sport|idrett|politikk|kultur|konge|president|artist|forfatter|athlete|born|died|city|place|history|sports|politics|culture)\b/.test(normalized)
+  );
 }
 
 function currentFactRiskError(language: string) {
@@ -196,6 +242,60 @@ function quotaErrorResponse(status: Awaited<ReturnType<typeof getFeatureStatusAd
     return Response.json({ error: "Denne funksjonen er bare tilgjengelig for lærere.", quota: status }, { status: 403 });
   }
   return Response.json({ error: "Denne funksjonen krever et abonnement.", quota: status }, { status: 403 });
+}
+
+function pickFormString(form: FormData, key: string, fallback = ""): string {
+  const value = form.get(key);
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function pickFormNumber(form: FormData, key: string, fallback: number): number {
+  const value = form.get(key);
+  if (typeof value !== "string") return fallback;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+async function readQuizRequest(req: Request): Promise<QuizRequest> {
+  const contentType = req.headers.get("content-type") ?? "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    const file = form.get("file");
+    if (!(file instanceof File)) throw new BadRequestError("Velg en PDF-fil først.");
+    if (file.size > 12 * 1024 * 1024) throw new BadRequestError("PDF-filen er for stor. Maks 12 MB.");
+    const fileName = file.name.toLowerCase();
+    if (file.type !== "application/pdf" && !fileName.endsWith(".pdf")) {
+      throw new BadRequestError("Velg en PDF-fil.");
+    }
+    return {
+      language: normalizeLanguage(pickFormString(form, "language", "nb")),
+      level: pickFormString(form, "level", "A2"),
+      difficulty: pickDifficulty(pickFormString(form, "difficulty", "medium")),
+      sourceMode: "pdf",
+      topic: pickFormString(form, "topic", file.name.replace(/\.pdf$/i, "")),
+      sourceText: "",
+      focus: pickFormString(form, "focus", "easy_mix"),
+      questionMode: pickQuestionMode(pickFormString(form, "questionMode", "mixed")),
+      count: Math.max(3, Math.min(12, Math.trunc(pickFormNumber(form, "count", 6)))),
+      seconds: Math.max(10, Math.min(120, Math.trunc(pickFormNumber(form, "seconds", 30)))),
+      pdfFile: file,
+    };
+  }
+
+  const body = (await req.json().catch(() => ({}))) as unknown;
+  return {
+    language: normalizeLanguage(pickString(body, "language", "nb")),
+    level: pickString(body, "level", "A2"),
+    difficulty: pickDifficulty(pickString(body, "difficulty", "medium")),
+    sourceMode: pickString(body, "sourceMode", "topic"),
+    topic: pickString(body, "topic"),
+    sourceText: pickString(body, "sourceText"),
+    focus: pickString(body, "focus", "easy_mix"),
+    questionMode: pickQuestionMode(pickString(body, "questionMode", "mixed")),
+    count: Math.max(3, Math.min(12, Math.trunc(pickNumber(body, "count", 6)))),
+    seconds: Math.max(10, Math.min(120, Math.trunc(pickNumber(body, "seconds", 30)))),
+    pdfFile: null,
+  };
 }
 
 function extractJsonObject(text: string): string | null {
@@ -305,26 +405,34 @@ export async function POST(req: Request) {
       return quotaErrorResponse(quotaBefore);
     }
 
-    const body = (await req.json().catch(() => ({}))) as unknown;
-    const language = normalizeLanguage(pickString(body, "language", "nb"));
-    const level = pickString(body, "level", "A2");
-    const sourceMode = pickString(body, "sourceMode", "topic");
-    const topic = pickString(body, "topic");
-    const sourceText = pickString(body, "sourceText");
-    const focus = pickString(body, "focus", "language");
-    const questionMode = pickQuestionMode(pickString(body, "questionMode", "mixed"));
-    const count = Math.max(3, Math.min(12, Math.trunc(pickNumber(body, "count", 6))));
-    const seconds = Math.max(10, Math.min(120, Math.trunc(pickNumber(body, "seconds", 30))));
-    const topicHasHistoricalYear = sourceMode !== "text" && hasHistoricalYear(topic);
+    const request = await readQuizRequest(req);
+    const {
+      language,
+      level,
+      difficulty,
+      sourceMode,
+      topic,
+      sourceText,
+      focus,
+      questionMode,
+      count,
+      seconds,
+      pdfFile,
+    } = request;
+    const sourceHasDocument = sourceMode === "text" || sourceMode === "pdf";
+    const topicHasHistoricalYear = !sourceHasDocument && hasHistoricalYear(topic);
     const contextRichLevel = requiresContextRichQuestions(level);
 
     if (sourceMode === "text" && sourceText.length < 40) {
       return Response.json({ error: "Add a little more lesson text first." }, { status: 400 });
     }
-    if (sourceMode !== "text" && !topic) {
+    if (sourceMode === "pdf" && !pdfFile) {
+      return Response.json({ error: "Missing PDF file." }, { status: 400 });
+    }
+    if (!sourceHasDocument && !topic) {
       return Response.json({ error: "Missing topic." }, { status: 400 });
     }
-    if (sourceMode !== "text" && hasRecentOrCurrentFactRisk(topic)) {
+    if (!sourceHasDocument && (hasRecentOrCurrentFactRisk(topic) || hasGeneralFactRisk(topic, focus))) {
       return Response.json({ error: currentFactRiskError(language), needsSourceText: true }, { status: 400 });
     }
 
@@ -333,6 +441,7 @@ export async function POST(req: Request) {
       `${getLanguageInstruction(language)}\n` +
       `Learner level: ${level}\n` +
       `Level guidance: ${getLevelInstruction(level)}\n` +
+      `${getDifficultyInstruction(difficulty)}\n` +
       `Number of questions: ${count}\n` +
       `Default seconds per question: ${seconds}\n` +
       `Category: ${getFocusInstruction(focus)}\n\n` +
@@ -344,11 +453,11 @@ export async function POST(req: Request) {
             : "Use a good mix of multiple choice and true/false questions."
       }\n\n` +
       `Source:\n` +
-      (sourceMode === "text" ? sourceText : topic) +
+      (sourceMode === "text" ? sourceText : sourceMode === "pdf" ? `PDF file: ${pdfFile?.name || topic || "quiz-source.pdf"}` : topic) +
       `\n\nRules:\n` +
       `- Create a useful classroom quiz, not a worksheet.\n` +
-      (sourceMode === "text"
-        ? `- Use ONLY the source text for factual claims, answers, and explanations. If a fact is not in the source text, do not ask about it.\n`
+      (sourceHasDocument
+        ? `- Use ONLY the supplied source ${sourceMode === "pdf" ? "PDF" : "text"} for factual claims, answers, and explanations. If a fact is not in the source, do not ask about it.\n`
         : `- The source is only a topic. Use only stable, widely documented general knowledge that a teacher can reasonably verify. Do not ask about recent events, current results, future events, exact statistics, or facts that may have changed.\n`) +
       (topicHasHistoricalYear
         ? `- This is a historical-year topic without source text. Prefer major public events, politics, culture, sports, technology, and everyday-life markers from that year. Avoid narrow trivia such as "who died in this year", birth years, exact dates, minor awards, obscure rankings, sales figures, or claims that require a source table.\n`
@@ -387,19 +496,44 @@ export async function POST(req: Request) {
       `  ]\n` +
       `}`;
 
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      text: { format: { type: "json_object" } },
-      temperature: 0.2,
-      input: [
-        {
-          role: "system",
-          content:
-            "Create editable classroom quizzes. Accuracy is more important than variety or difficulty. Return valid JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-    });
+    const uploadedFile = pdfFile
+      ? await client.files.create({
+          file: await toFile(Buffer.from(await pdfFile.arrayBuffer()), pdfFile.name || "quiz-source.pdf", {
+            type: pdfFile.type || "application/pdf",
+          }),
+          purpose: "user_data",
+          expires_after: { anchor: "created_at", seconds: 3600 },
+        })
+      : null;
+
+    let response: Awaited<ReturnType<typeof client.responses.create>>;
+    try {
+      response = await client.responses.create({
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        text: { format: { type: "json_object" } },
+        temperature: sourceHasDocument ? 0.1 : 0.2,
+        input: [
+          {
+            role: "system",
+            content:
+              "Create editable classroom quizzes. Accuracy is more important than variety or difficulty. Return valid JSON only.",
+          },
+          {
+            role: "user",
+            content: uploadedFile
+              ? [
+                  { type: "input_text", text: prompt },
+                  { type: "input_file", file_id: uploadedFile.id },
+                ]
+              : prompt,
+          },
+        ],
+      });
+    } finally {
+      if (uploadedFile) {
+        await client.files.delete(uploadedFile.id).catch(() => undefined);
+      }
+    }
 
     const raw = response.output_text?.trim();
     if (!raw) return Response.json({ error: "Empty response from model." }, { status: 500 });
@@ -449,6 +583,7 @@ export async function POST(req: Request) {
       sourceText: sourceMode === "text" ? sourceText : "",
       focus,
       questionMode,
+      difficulty,
       questions,
       quota: {
         feature: "producer_create_quiz",
@@ -461,6 +596,9 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "EMAIL_VERIFICATION_REQUIRED") {
       return emailVerificationRequiredWebResponse();
+    }
+    if (error instanceof BadRequestError) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quiz-generator route error:", error);

@@ -41,6 +41,9 @@
       "loading": "Loading...",
       "chooseContent": "Click to choose a lesson",
       "noContent": "No lessons found",
+      "pdfFile": "PDF file",
+      "pdfHint": "Upload a PDF. The quiz will use the PDF as its source and avoid facts outside the document.",
+      "pdfSelected": "Selected PDF: {name}",
       "accuracyHint": "For quizzes with concrete facts, years, or answer keys that must be precise, preferably use text or a lesson as the source."
     },
     "sourceChoices": {
@@ -55,6 +58,10 @@
       "content": {
         "title": "Use lesson",
         "text": "Choose a lesson from My content."
+      },
+      "pdf": {
+        "title": "Upload PDF",
+        "text": "Create questions from a document."
       }
     },
     "settings": {
@@ -77,6 +84,7 @@
       "language": "Language",
       "level": "Level",
       "focus": "Category",
+      "difficulty": "Difficulty",
       "questionMode": "Question type",
       "count": "Questions",
       "seconds": "Time per question",
@@ -87,7 +95,17 @@
       "multiple_choice": "Multiple choice",
       "true_false": "True/false"
     },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "factRisk": {
+      "title": "Use a source for better accuracy",
+      "text": "This topic looks like it includes people, places, years, or facts that can easily be wrong. Prefer text, a lesson, or a PDF as the source."
+    },
     "focus": {
+      "easy_mix": "Light mix",
       "language": "Language and text",
       "math": "Mathematics",
       "science": "Science",

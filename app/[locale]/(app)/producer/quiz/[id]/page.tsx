@@ -6,15 +6,17 @@ import { useParams, useRouter } from "next/navigation";
 import { Check, Plus, Sparkles, Trash2 } from "lucide-react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useLocale } from "next-intl";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { getBucketLimit, getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { useUsage } from "@/lib/useUsage";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type QuestionType = "multiple_choice" | "true_false";
 type QuestionMode = "mixed" | "multiple_choice" | "true_false";
-type CoverImageMode = "url" | "ai";
+type Difficulty = "easy" | "medium" | "hard";
+type CoverImageMode = "url" | "upload" | "ai";
 type CoverImageStyle = "illustration" | "realistic";
 type CoverPromptMode = "custom" | "fromText";
 
@@ -44,6 +46,7 @@ type QuizDraft = {
   tags: string[];
   sourceText: string;
   focus: string;
+  difficulty: Difficulty;
   questionMode: QuestionMode;
   coverImageUrl: string;
   coverImagePrompt: string;
@@ -67,6 +70,10 @@ function safeStringArray(value: unknown): string[] {
       .filter(Boolean);
   }
   return [];
+}
+
+function safeStorageName(input: string) {
+  return input.replace(/[^\w.-]+/g, "_").slice(0, 90) || "cover";
 }
 
 function normalizeUsage(value: unknown): ImageUsage | null {
@@ -95,6 +102,7 @@ function safePlan(plan?: string): PlanKey {
 }
 
 const CATEGORY_OPTIONS = [
+  "easy_mix",
   "language",
   "math",
   "science",
@@ -122,9 +130,13 @@ const LABELS = {
       noAccess: "Du har ikke tilgang til denne quizen.",
       imageFailed: "Kunne ikke lage bilde.",
       imageMissing: "Bildet mangler i svaret.",
+      uploadFailed: "Kunne ikke laste opp bilde.",
+      loginUpload: "Du må være logget inn for å laste opp bilde.",
+      imageOnly: "Velg en bildefil.",
+      tooLarge: "Filen er for stor. Maks 8 MB.",
       saveFailed: "Kunne ikke lagre quiz.",
     },
-    messages: { imageGenerated: "Bilde generert.", saved: "Quiz lagret i Mitt innhold." },
+    messages: { imageGenerated: "Bilde generert.", imageUploaded: "Bilde lastet opp.", saved: "Quiz lagret i Mitt innhold." },
     header: {
       back: "Tilbake",
       title: "Fullføre / redigere quiz",
@@ -149,9 +161,11 @@ const LABELS = {
     },
     image: {
       title: "2. Forsidebilde og presentasjon",
-      text: "Velg om du vil bruke egen bildeadresse eller generere et bilde med AI.",
+      text: "Velg om du vil bruke egen bildeadresse, laste opp bilde eller generere et bilde med AI.",
       privacy: "Ikke bruk bilder eller navn på elever uten avklaring.",
       url: "Bildeadresse",
+      upload: "Last opp bilde",
+      uploading: "Laster opp bilde...",
       ai: "Generer AI-bilde",
       format: "Format",
       formatHelp: "Kun 16:9 er tillatt.",
@@ -181,7 +195,7 @@ const LABELS = {
     empty: "-",
     coverPrompt: (title: string) => `Forsidebilde til en quiz om ${title}. Klasseromsvennlig, tydelig, 16:9.`,
     categories: {
-      language: "Språk og tekst", math: "Matematikk", science: "Naturfag", social_studies: "Samfunnsfag", history: "Historie", english: "Engelsk", work_life: "Arbeidsliv", citizenship: "Demokrati og medborgerskap", culture: "Kultur og samfunn", health: "Helse og livsmestring", sports: "Sport og idrett", food: "Mat og drikke", wildlife: "Dyreliv", other: "Annet",
+      easy_mix: "Lett blanding", language: "Språk og tekst", math: "Matematikk", science: "Naturfag", social_studies: "Samfunnsfag", history: "Historie", english: "Engelsk", work_life: "Arbeidsliv", citizenship: "Demokrati og medborgerskap", culture: "Kultur og samfunn", health: "Helse og livsmestring", sports: "Sport og idrett", food: "Mat og drikke", wildlife: "Dyreliv", other: "Annet",
     },
   },
   en: {
@@ -192,9 +206,13 @@ const LABELS = {
       noAccess: "You do not have access to this quiz.",
       imageFailed: "Could not create image.",
       imageMissing: "The image is missing from the response.",
+      uploadFailed: "Could not upload image.",
+      loginUpload: "You must be signed in to upload an image.",
+      imageOnly: "Choose an image file.",
+      tooLarge: "The file is too large. Max 8 MB.",
       saveFailed: "Could not save quiz.",
     },
-    messages: { imageGenerated: "Image generated.", saved: "Quiz saved to My content." },
+    messages: { imageGenerated: "Image generated.", imageUploaded: "Image uploaded.", saved: "Quiz saved to My content." },
     header: {
       back: "Back",
       title: "Finish / edit quiz",
@@ -219,9 +237,11 @@ const LABELS = {
     },
     image: {
       title: "2. Cover image and presentation",
-      text: "Choose whether to use your own image URL or generate an image with AI.",
+      text: "Choose whether to use your own image URL, upload an image, or generate an image with AI.",
       privacy: "Do not use images or names of students without clarification.",
       url: "Image URL",
+      upload: "Upload image",
+      uploading: "Uploading image...",
       ai: "Generate AI image",
       format: "Format",
       formatHelp: "Only 16:9 is allowed.",
@@ -251,7 +271,7 @@ const LABELS = {
     empty: "-",
     coverPrompt: (title: string) => `Cover image for a quiz about ${title}. Classroom-friendly, clear, 16:9.`,
     categories: {
-      language: "Language and text", math: "Mathematics", science: "Science", social_studies: "Social studies", history: "History", english: "English", work_life: "Work life", citizenship: "Democracy and citizenship", culture: "Culture and society", health: "Health and life skills", sports: "Sports and physical education", food: "Food and drink", wildlife: "Wildlife", other: "Other",
+      easy_mix: "Light mix", language: "Language and text", math: "Mathematics", science: "Science", social_studies: "Social studies", history: "History", english: "English", work_life: "Work life", citizenship: "Democracy and citizenship", culture: "Culture and society", health: "Health and life skills", sports: "Sports and physical education", food: "Food and drink", wildlife: "Wildlife", other: "Other",
     },
   },
   pt: {
@@ -262,9 +282,13 @@ const LABELS = {
       noAccess: "Você não tem acesso a este quiz.",
       imageFailed: "Não foi possível criar a imagem.",
       imageMissing: "A imagem está ausente na resposta.",
+      uploadFailed: "Não foi possível enviar a imagem.",
+      loginUpload: "Você precisa estar conectado para enviar uma imagem.",
+      imageOnly: "Escolha um arquivo de imagem.",
+      tooLarge: "O arquivo é grande demais. Máximo de 8 MB.",
       saveFailed: "Não foi possível salvar o quiz.",
     },
-    messages: { imageGenerated: "Imagem gerada.", saved: "Quiz salvo em Meu conteúdo." },
+    messages: { imageGenerated: "Imagem gerada.", imageUploaded: "Imagem enviada.", saved: "Quiz salvo em Meu conteúdo." },
     header: {
       back: "Voltar",
       title: "Finalizar / editar quiz",
@@ -289,9 +313,11 @@ const LABELS = {
     },
     image: {
       title: "2. Imagem de capa e apresentação",
-      text: "Escolha usar uma URL de imagem ou gerar uma imagem com IA.",
+      text: "Escolha usar uma URL de imagem, enviar uma imagem ou gerar uma imagem com IA.",
       privacy: "Não use imagens ou nomes de alunos sem autorização.",
       url: "URL da imagem",
+      upload: "Enviar imagem",
+      uploading: "Enviando imagem...",
       ai: "Gerar imagem com IA",
       format: "Formato",
       formatHelp: "Apenas 16:9 é permitido.",
@@ -321,7 +347,7 @@ const LABELS = {
     empty: "-",
     coverPrompt: (title: string) => `Imagem de capa para um quiz sobre ${title}. Adequada para sala de aula, clara, 16:9.`,
     categories: {
-      language: "Língua e texto", math: "Matemática", science: "Ciências", social_studies: "Estudos sociais", history: "História", english: "Inglês", work_life: "Vida profissional", citizenship: "Democracia e cidadania", culture: "Cultura e sociedade", health: "Saúde e competências para a vida", sports: "Esporte e educação física", food: "Comida e bebida", wildlife: "Vida animal", other: "Outro",
+      easy_mix: "Mistura leve", language: "Língua e texto", math: "Matemática", science: "Ciências", social_studies: "Estudos sociais", history: "História", english: "Inglês", work_life: "Vida profissional", citizenship: "Democracia e cidadania", culture: "Cultura e sociedade", health: "Saúde e competências para a vida", sports: "Esporte e educação física", food: "Comida e bebida", wildlife: "Vida animal", other: "Outro",
     },
   },
 } as const;
@@ -352,6 +378,9 @@ function normalizeDraft(data: unknown): QuizDraft {
   const quiz = isRecord(root.quiz) ? root.quiz : {};
   const rawQuestions = Array.isArray(quiz.questions) ? quiz.questions : Array.isArray(root.tasks) ? root.tasks : [];
   const questionMode = quiz.questionMode === "multiple_choice" || quiz.questionMode === "true_false" || quiz.questionMode === "mixed" ? quiz.questionMode : "mixed";
+  const difficulty: Difficulty = quiz.difficulty === "easy" || quiz.difficulty === "hard" || root.difficulty === "easy" || root.difficulty === "hard"
+    ? ((quiz.difficulty || root.difficulty) as Difficulty)
+    : "medium";
 
   return {
     title: safeString(quiz.title || root.title, "321 quiz"),
@@ -363,7 +392,8 @@ function normalizeDraft(data: unknown): QuizDraft {
     topic: safeString(quiz.topic || root.topic),
     tags: safeStringArray(quiz.tags || root.tags),
     sourceText: safeString(quiz.sourceText || root.sourceText || root.text),
-    focus: safeString(quiz.focus || root.focus, "language"),
+    focus: safeString(quiz.focus || root.focus, "easy_mix"),
+    difficulty,
     questionMode,
     coverImageUrl: safeString(root.coverImageUrl || root.imageUrl),
     coverImagePrompt: safeString(root.coverImagePrompt),
@@ -401,6 +431,7 @@ export default function QuizEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageBusy, setImageBusy] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [uid, setUid] = useState<string | null>(getAuth().currentUser?.uid ?? null);
   const [imageUsage, setImageUsage] = useState<ImageUsage | null>(null);
   const [coverImageMode, setCoverImageMode] = useState<CoverImageMode>("ai");
@@ -472,6 +503,33 @@ export default function QuizEditorPage() {
 
   function removeQuestion(index: number) {
     setDraft((current) => current ? { ...current, questions: current.questions.filter((_, i) => i !== index) } : current);
+  }
+
+  async function uploadCoverImage(file: File) {
+    if (!draft) return;
+    setImageUploading(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const user = getAuth().currentUser;
+      if (!user || user.isAnonymous) throw new Error(labels.errors.loginUpload);
+      if (!file.type.startsWith("image/")) throw new Error(labels.errors.imageOnly);
+      if (file.size > 8 * 1024 * 1024) throw new Error(labels.errors.tooLarge);
+
+      const fileRef = ref(storage, `covers/${user.uid}/quiz-${id}/${Date.now()}-${safeStorageName(file.name)}`);
+      await uploadBytes(fileRef, file, {
+        contentType: file.type,
+        cacheControl: "public,max-age=31536000",
+      });
+      const url = await getDownloadURL(fileRef);
+      setDraft({ ...draft, coverImageUrl: url });
+      setCoverImageMode("upload");
+      setMessage(labels.messages.imageUploaded);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, labels.errors.uploadFailed));
+    } finally {
+      setImageUploading(false);
+    }
   }
 
   async function generateCoverImage() {
@@ -617,6 +675,13 @@ export default function QuizEditorPage() {
           </button>
           <button
             type="button"
+            onClick={() => setCoverImageMode("upload")}
+            className={`rounded-xl border px-4 py-3 text-sm font-black ${coverImageMode === "upload" ? "border-violet-700 bg-white text-violet-800" : "border-slate-300 bg-white text-slate-900"}`}
+          >
+            {labels.image.upload}
+          </button>
+          <button
+            type="button"
             onClick={() => setCoverImageMode("ai")}
             className={`rounded-xl border px-4 py-3 text-sm font-black ${coverImageMode === "ai" ? "border-violet-700 bg-white text-violet-800" : "border-slate-300 bg-white text-slate-900"}`}
           >
@@ -632,7 +697,31 @@ export default function QuizEditorPage() {
               <span className="mt-1 block text-xs text-slate-500">{labels.image.formatHelp}</span>
             </label>
 
-            {coverImageMode === "ai" ? (
+            {coverImageMode === "upload" ? (
+              <div className="rounded-2xl border border-violet-100 bg-white p-4">
+                <label className="block">
+                  <span className="text-sm font-bold text-slate-700">{labels.image.upload}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={imageUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadCoverImage(file);
+                      e.currentTarget.value = "";
+                    }}
+                    className="mt-2 w-full rounded-xl border border-violet-200 bg-white px-3 py-3 text-sm"
+                  />
+                </label>
+                <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">{labels.image.urlHelp}</div>
+                {imageUploading ? <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800">{labels.image.uploading}</div> : null}
+                {draft.coverImageUrl ? (
+                  <button type="button" onClick={() => setDraft({ ...draft, coverImageUrl: "" })} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold hover:bg-slate-50">
+                    {labels.image.remove}
+                  </button>
+                ) : null}
+              </div>
+            ) : coverImageMode === "ai" ? (
               <>
                 <div>
                   <div className="text-sm font-bold text-slate-700">{labels.image.style}</div>

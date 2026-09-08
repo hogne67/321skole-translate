@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import { ArrowRight, Eye, Pause, Play, RotateCcw, X, Trophy } from "lucide-react";
+import { ArrowRight, Eye, Pause, Play, RotateCcw, Volume2, VolumeX, X, Trophy } from "lucide-react";
 
 type Question = {
   question: string;
@@ -95,6 +95,10 @@ type DisplayCopy = {
   saveTimes: string;
   startManual: string;
   startAuto: string;
+  readQuestion: string;
+  stopReading: string;
+  audioOn: string;
+  audioOff: string;
   seconds: string;
   resultsSoFar: string;
   place: (rank: number) => string;
@@ -144,6 +148,10 @@ function displayCopy(locale: string): DisplayCopy {
       saveTimes: "Save times",
       startManual: "Start manually",
       startAuto: "Start auto",
+      readQuestion: "Read question",
+      stopReading: "Stop reading",
+      audioOn: "Sound on",
+      audioOff: "Sound off",
       seconds: "sec",
       resultsSoFar: "Results so far",
       place: (rank) => `${rank}${rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th"} place`,
@@ -192,6 +200,10 @@ function displayCopy(locale: string): DisplayCopy {
       saveTimes: "Salvar tempos",
       startManual: "Iniciar manualmente",
       startAuto: "Iniciar auto",
+      readQuestion: "Ler pergunta",
+      stopReading: "Parar leitura",
+      audioOn: "Som ligado",
+      audioOff: "Som desligado",
       seconds: "s",
       resultsSoFar: "Resultado até agora",
       place: (rank) => `${rank}. lugar`,
@@ -239,6 +251,10 @@ function displayCopy(locale: string): DisplayCopy {
     saveTimes: "Lagre tider",
     startManual: "Start manuelt",
     startAuto: "Start auto",
+    readQuestion: "Les opp spørsmål",
+    stopReading: "Stopp opplesing",
+    audioOn: "Lyd på",
+    audioOff: "Lyd av",
     seconds: "sek",
     resultsSoFar: "Resultat så langt",
     place: (rank) => `${rank}. plass`,
@@ -300,6 +316,98 @@ function normalizeSession(value: unknown, participantFallback: string): SessionV
   };
 }
 
+type LiveAudioPhase = "idle" | "question" | "reveal" | "results" | "next" | "finished";
+
+function getSpeechLang(locale: string) {
+  if (locale === "en") return "en-US";
+  if (locale === "pt") return "pt-PT";
+  return "nb-NO";
+}
+
+function getSpeechText(question: Question) {
+  const options = question.options
+    .map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`)
+    .join(". ");
+  return `${question.question}. ${options ? `${options}.` : ""}`;
+}
+
+function useLiveBackgroundAudio(phase: LiveAudioPhase, enabled: boolean) {
+  const ctxRef = useRef<AudioContext | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const oscARef = useRef<OscillatorNode | null>(null);
+  const oscBRef = useRef<OscillatorNode | null>(null);
+
+  const stop = useCallback(() => {
+    gainRef.current?.gain.setTargetAtTime(0, ctxRef.current?.currentTime ?? 0, 0.08);
+  }, []);
+
+  const ensureStarted = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!ctxRef.current) {
+      const ctx = new AudioContextClass();
+      const gain = ctx.createGain();
+      const oscA = ctx.createOscillator();
+      const oscB = ctx.createOscillator();
+      oscA.type = "sine";
+      oscB.type = "triangle";
+      gain.gain.value = 0;
+      oscA.connect(gain);
+      oscB.connect(gain);
+      gain.connect(ctx.destination);
+      oscA.start();
+      oscB.start();
+      ctxRef.current = ctx;
+      gainRef.current = gain;
+      oscARef.current = oscA;
+      oscBRef.current = oscB;
+    }
+    if (ctxRef.current.state === "suspended") {
+      await ctxRef.current.resume().catch(() => undefined);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) {
+      stop();
+      return;
+    }
+    void ensureStarted();
+  }, [enabled, ensureStarted, stop]);
+
+  useEffect(() => {
+    const ctx = ctxRef.current;
+    const gain = gainRef.current;
+    const oscA = oscARef.current;
+    const oscB = oscBRef.current;
+    if (!enabled || !ctx || !gain || !oscA || !oscB) return;
+
+    const settings: Record<LiveAudioPhase, { gain: number; a: number; b: number }> = {
+      idle: { gain: 0, a: 220, b: 330 },
+      question: { gain: 0.018, a: 220, b: 330 },
+      reveal: { gain: 0.013, a: 262, b: 392 },
+      results: { gain: 0.014, a: 247, b: 370 },
+      next: { gain: 0.02, a: 294, b: 440 },
+      finished: { gain: 0, a: 220, b: 330 },
+    };
+    const next = settings[phase] ?? settings.idle;
+    oscA.frequency.setTargetAtTime(next.a, ctx.currentTime, 0.12);
+    oscB.frequency.setTargetAtTime(next.b, ctx.currentTime, 0.12);
+    gain.gain.setTargetAtTime(next.gain, ctx.currentTime, 0.12);
+  }, [enabled, phase]);
+
+  useEffect(() => {
+    return () => {
+      oscARef.current?.stop();
+      oscBRef.current?.stop();
+      void ctxRef.current?.close();
+    };
+  }, []);
+
+  return { ensureStarted, stop };
+}
+
 export default function QuizSessionDisplayPage() {
   const params = useParams<{ locale: string; sessionId: string }>();
   const router = useRouter();
@@ -316,9 +424,21 @@ export default function QuizSessionDisplayPage() {
   const [resultsSeconds, setResultsSeconds] = useState(20);
   const [nextSeconds, setNextSeconds] = useState(5);
   const [timingDirty, setTimingDirty] = useState(false);
+  const [liveAudioEnabled, setLiveAudioEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const question = session?.questions[session.currentIndex] ?? null;
   const totalAnswers = session?.currentAnswerCount ?? 0;
+  const audioPhase: LiveAudioPhase = !session
+    ? "idle"
+    : session.status === "finished"
+      ? "finished"
+      : session.status !== "active"
+        ? "idle"
+        : session.phase === "answer"
+          ? "question"
+          : session.phase;
+  const liveAudio = useLiveBackgroundAudio(audioPhase, liveAudioEnabled);
   const nextDisplayAction = useMemo(() => {
     if (!session) return "next";
     const isLastQuestion = session.currentIndex + 1 >= session.questions.length;
@@ -433,6 +553,51 @@ export default function QuizSessionDisplayPage() {
     router.push(`/${locale}/content`);
   }
 
+  const toggleLiveAudio = useCallback(() => {
+    setLiveAudioEnabled((current) => {
+      if (current) {
+        liveAudio.stop();
+        return false;
+      }
+      void liveAudio.ensureStarted();
+      return true;
+    });
+  }, [liveAudio]);
+
+  const speakCurrentQuestion = useCallback(() => {
+    if (!question || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    if (synth.speaking) {
+      synth.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(getSpeechText(question));
+    utterance.lang = getSpeechLang(locale);
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    synth.speak(utterance);
+  }, [locale, question]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  }, [session?.currentIndex, session?.phase]);
+
   useEffect(() => {
     if (!session || session.mode !== "auto" || session.status !== "active" || busy) return;
     if (session.phase === "answer" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.answerSeconds * 1000) {
@@ -470,6 +635,19 @@ export default function QuizSessionDisplayPage() {
           <div>
             <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">{copy.brand}</div>
             <div className="mt-2 text-2xl font-bold text-white/90">{copy.displayTitle}</div>
+          </div>
+
+          <div className="absolute right-16 top-0 flex flex-wrap justify-end gap-2">
+            {session?.status === "active" && question ? (
+              <button onClick={speakCurrentQuestion} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-black text-white hover:bg-white/15" title={isSpeaking ? copy.stopReading : copy.readQuestion}>
+                <Volume2 className="h-4 w-4" />
+                {isSpeaking ? copy.stopReading : copy.readQuestion}
+              </button>
+            ) : null}
+            <button onClick={toggleLiveAudio} className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-black text-white hover:bg-white/15" title={liveAudioEnabled ? copy.audioOn : copy.audioOff}>
+              {liveAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              {liveAudioEnabled ? copy.audioOn : copy.audioOff}
+            </button>
           </div>
 
           <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title={copy.closeTitle}>

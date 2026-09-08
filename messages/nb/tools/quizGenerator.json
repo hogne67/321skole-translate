@@ -41,6 +41,9 @@
       "loading": "Laster...",
       "chooseContent": "Klikk for å hente tekst fra en leksjon",
       "noContent": "Ingen leksjoner funnet",
+      "pdfFile": "PDF-fil",
+      "pdfHint": "Last opp en PDF. Quizen skal bruke PDF-en som kilde og ikke finne på fakta utenfor dokumentet.",
+      "pdfSelected": "Valgt PDF: {name}",
       "accuracyHint": "For quizzer med konkrete fakta, årstall eller fasit som må være helt presis, bruk helst tekst eller leksjon som kilde."
     },
     "sourceChoices": {
@@ -55,6 +58,10 @@
       "content": {
         "title": "Hent fra leksjon",
         "text": "Velg en leksjon fra Mitt innhold."
+      },
+      "pdf": {
+        "title": "Last opp PDF",
+        "text": "Lag spørsmål fra et dokument."
       }
     },
     "settings": {
@@ -77,6 +84,7 @@
       "language": "Språk",
       "level": "Nivå",
       "focus": "Kategori",
+      "difficulty": "Vanskelighet",
       "questionMode": "Oppgavetype",
       "count": "Spørsmål",
       "seconds": "Tid per spørsmål",
@@ -87,7 +95,17 @@
       "multiple_choice": "Flervalg",
       "true_false": "Sant/usant"
     },
+    "difficulty": {
+      "easy": "Lett",
+      "medium": "Middels",
+      "hard": "Vanskelig"
+    },
+    "factRisk": {
+      "title": "Bruk kilde for bedre presisjon",
+      "text": "Temaet ser ut til å handle om personer, steder, årstall eller fakta som lett kan bli feil. Bruk helst tekst, leksjon eller PDF som kilde."
+    },
     "focus": {
+      "easy_mix": "Lett blanding",
       "language": "Språk og tekst",
       "math": "Matematikk",
       "science": "Naturfag",
