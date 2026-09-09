@@ -23,6 +23,7 @@ export function navItemsForRole(
   role: Role,
   opts?: {
     studentAccessMode?: StudentAccessMode;
+    hasPartnerAccess?: boolean;
   }
 ): NavItem[] {
   const base: NavItem[] = [
@@ -31,39 +32,63 @@ export function navItemsForRole(
   ];
 
   if (role === "teacher") {
-    return [
+    const teacherItems = [
       ...base,
       { href: "/teacher/board", labelKey: "board" },
       { href: "/teacher/writing", labelKey: "writingStation" },
       { href: "/teacher/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];
+
+    if (opts?.hasPartnerAccess) {
+      teacherItems.push({ href: "/partner", labelKey: "partner" });
+    }
+
+    return teacherItems;
   }
 
   if (role === "parent") {
-    return [
+    const parentItems = [
       ...base,
       { href: "/parent/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];
+
+    if (opts?.hasPartnerAccess) {
+      parentItems.push({ href: "/partner", labelKey: "partner" });
+    }
+
+    return parentItems;
   }
 
   if (role === "admin") {
-    return [
+    const adminItems = [
       ...base,
       { href: "/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
       { href: "/admin/users", labelKey: "users" },
       { href: "/admin/review", labelKey: "review" },
     ];
+
+    if (opts?.hasPartnerAccess) {
+      adminItems.push({ href: "/partner", labelKey: "partner" });
+    }
+
+    return adminItems;
   }
 
   if (role === "creator") {
-    return [
+    const creatorItems = [
       ...base,
       { href: "/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];
+
+    if (opts?.hasPartnerAccess) {
+      creatorItems.push({ href: "/partner", labelKey: "partner" });
+    }
+
+    return creatorItems;
   }
 
   // student
@@ -74,6 +99,10 @@ export function navItemsForRole(
 
   if (opts?.studentAccessMode !== "space_only") {
     studentItems.push({ href: "/tools", labelKey: "tools" });
+  }
+
+  if (opts?.hasPartnerAccess) {
+    studentItems.push({ href: "/partner", labelKey: "partner" });
   }
 
   return studentItems;

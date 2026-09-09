@@ -113,8 +113,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ? tModes("teacher")
           : tModes("student");
 
+  const hasPartnerAccess = profile?.partnerAccess === true && profile?.partnerStatus === "active";
+
   const items = useMemo(() => {
-    const baseItems = navItemsForRole(role, { studentAccessMode }).map((it) => ({
+    const baseItems = navItemsForRole(role, { studentAccessMode, hasPartnerAccess }).map((it) => ({
       href: it.href,
       label: tNav(it.labelKey),
     }));
@@ -149,6 +151,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     profile?.schoolStatus,
     role,
     studentAccessMode,
+    hasPartnerAccess,
     showPersonalAdminLink,
     tNav,
   ]);
@@ -181,6 +184,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isAccountPage =
     pathWithoutLocale === "/account" ||
     pathWithoutLocale.startsWith("/account/");
+  const isPartnerPage = pathWithoutLocale === "/partner" || pathWithoutLocale.startsWith("/partner/");
   const isPrintViewPage = pathWithoutLocale.includes("/print");
   const isBoardDisplayPage = pathWithoutLocale.includes("/board/display");
   const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
@@ -194,6 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     isCoursePage ||
     isPlannerPage ||
     isAccountPage ||
+    isPartnerPage ||
     isPrintViewPage ||
     isBoardDisplayPage;
 
