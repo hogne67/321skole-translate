@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
@@ -122,7 +122,7 @@ function formatMaybeDate(value: unknown): string {
   }
 }
 
-async function resolveUser(): Promise<User> {
+async function resolveUser(opts?: { allowAnonymous?: boolean }): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
 
   const existingUser = await new Promise<User | null>((resolve) => {
@@ -145,10 +145,14 @@ async function resolveUser(): Promise<User> {
 
     const timer = window.setTimeout(() => {
       finish(auth.currentUser ?? null);
-    }, 1500);
+    }, opts?.allowAnonymous === false ? 5000 : 1500);
   });
 
-  return existingUser ?? ensureAnonymousUser();
+  if (existingUser) return existingUser;
+  if (opts?.allowAnonymous === false) {
+    throw new Error("Du må være logget inn for å forhåndsvise elevoppgaven.");
+  }
+  return ensureAnonymousUser();
 }
 
 function getFieldValue(
@@ -406,9 +410,11 @@ function sectionAnswerSummary(section: WritingSectionTemplate, answers: AnswersB
 export default function StudentWritingActivityPage() {
   const t = useTranslations("studentWritingStation");
   const params = useParams<{ locale: string; spaceId: string; activityId: string }>();
+  const searchParams = useSearchParams();
   const locale = params.locale || "nb";
   const spaceId = params.spaceId;
   const activityId = params.activityId;
+  const isTeacherPreview = searchParams.get("preview") === "teacher";
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [uid, setUid] = useState<string | null>(null);
@@ -440,7 +446,7 @@ export default function StudentWritingActivityPage() {
   useEffect(() => {
     let alive = true;
 
-    resolveUser()
+    resolveUser({ allowAnonymous: !isTeacherPreview })
       .then((u) => {
         if (alive) setUid(u.uid);
       })
@@ -451,7 +457,7 @@ export default function StudentWritingActivityPage() {
     return () => {
       alive = false;
     };
-  }, [t]);
+  }, [isTeacherPreview, t]);
 
   useEffect(() => {
     setErr(null);

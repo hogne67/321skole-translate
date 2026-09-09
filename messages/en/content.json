@@ -129,6 +129,7 @@
       "lessonNotFound": "Task not found",
       "cannotPublishDeleted": "This task is deleted or archived and cannot be published.",
       "publishFailed": "Failed to update publish status",
+      "emailVerificationRequired": "Your email is not verified in this sign-in session yet. Refresh the page and try again, or log out and back in.",
       "factCheckRequired": "This factual text needs an extra fact check before it can be published. Open the task, run extra fact check, and save the fact-checked version before publishing.",
       "deleteFailed": "Failed to delete (archive) task",
       "restoreFailed": "Could not restore.",

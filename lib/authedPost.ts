@@ -11,7 +11,7 @@ export async function authedPost<T = unknown>(url: string, body: unknown): Promi
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
 
-  const token = await user.getIdToken();
+  const token = await user.getIdToken(true);
 
   const res = await fetch(url, {
     method: "POST",
@@ -31,7 +31,12 @@ export async function authedPost<T = unknown>(url: string, body: unknown): Promi
   }
 
   if (!res.ok) {
-    const msg = isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
+    const msg =
+      isRecord(data) && typeof data.message === "string"
+        ? data.message
+        : isRecord(data) && typeof data.error === "string"
+          ? data.error
+          : raw || `Request failed (${res.status})`;
     throw new Error(msg);
   }
 

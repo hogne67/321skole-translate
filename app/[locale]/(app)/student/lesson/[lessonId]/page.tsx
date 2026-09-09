@@ -1765,6 +1765,11 @@ export default function StudentLessonPage() {
   }, [answers, isAnon, lessonId]);
 
   useEffect(() => {
+    if (!lesson?.title) return;
+    document.title = lesson.title;
+  }, [lesson?.title]);
+
+  useEffect(() => {
     setFeedbackTranslateErr(null);
   }, [targetLang]);
 

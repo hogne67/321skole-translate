@@ -46,8 +46,8 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
 
   if (!lesson) {
     return {
-      title: "Lesson not found",
-      description: "This lesson is not available.",
+      title: "321skole",
+      description: "Open lesson in 321skole.",
     };
   }
 

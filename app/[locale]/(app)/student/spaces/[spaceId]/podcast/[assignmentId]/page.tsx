@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
@@ -43,13 +43,13 @@ type SubmissionDoc = {
   podcastWorkshopFeedback?: unknown;
 };
 
-async function resolveUser(): Promise<User> {
+async function resolveUser(opts?: { allowAnonymous?: boolean }): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
 
   const existingUser = await new Promise<User | null>((resolve) => {
     let done = false;
     let unsub: (() => void) | null = null;
-    const timer = window.setTimeout(() => finish(auth.currentUser ?? null), 1500);
+    const timer = window.setTimeout(() => finish(auth.currentUser ?? null), opts?.allowAnonymous === false ? 5000 : 1500);
 
     const finish = (user: User | null) => {
       if (done) return;
@@ -62,7 +62,11 @@ async function resolveUser(): Promise<User> {
     unsub = onAuthStateChanged(auth, (user) => finish(user ?? null), () => finish(null));
   });
 
-  return existingUser ?? ensureAnonymousUser();
+  if (existingUser) return existingUser;
+  if (opts?.allowAnonymous === false) {
+    throw new Error("Du må være logget inn for å forhåndsvise elevoppgaven.");
+  }
+  return ensureAnonymousUser();
 }
 
 function buildSubmissionId(spaceId: string, assignmentId: string, uid: string) {
@@ -131,8 +135,10 @@ export default function StudentPodcastWorkshopPage() {
   const t = useTranslations("studentAssignment");
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
   const params = useParams<{ spaceId: string; assignmentId: string }>();
+  const searchParams = useSearchParams();
   const spaceId = params.spaceId;
   const assignmentId = params.assignmentId;
+  const isTeacherPreview = searchParams.get("preview") === "teacher";
 
   const [uid, setUid] = useState<string | null>(null);
   const [isAnon, setIsAnon] = useState(true);
@@ -160,13 +166,19 @@ export default function StudentPodcastWorkshopPage() {
       setErr(null);
 
       try {
-        const user = await resolveUser();
+        const user = await resolveUser({ allowAnonymous: !isTeacherPreview });
         if (!alive) return;
         setUid(user.uid);
         setIsAnon(user.isAnonymous);
 
         const memberSnap = await getDoc(doc(db, "spaceMembers", `${spaceId}_${user.uid}`));
-        if (!memberSnap.exists()) throw new Error(t("errors.notMember"));
+        if (!memberSnap.exists()) {
+          if (!isTeacherPreview) throw new Error(t("errors.notMember"));
+
+          const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
+          const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
+          if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
+        }
 
         const assignmentSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
         if (!assignmentSnap.exists()) throw new Error(t("errors.assignmentNotFoundInSpace"));
@@ -205,7 +217,7 @@ export default function StudentPodcastWorkshopPage() {
     return () => {
       alive = false;
     };
-  }, [assignmentId, spaceId, t]);
+  }, [assignmentId, isTeacherPreview, spaceId, t]);
 
   useEffect(() => {
     if (!submissionId || !config) return;

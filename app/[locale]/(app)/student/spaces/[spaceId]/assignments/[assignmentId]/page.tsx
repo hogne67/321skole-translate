@@ -164,7 +164,7 @@ function readAudioReadingSubmission(value: unknown): AudioReadingSubmission | nu
   return readStudentAudioAsset(value, "audio_reading");
 }
 
-async function resolveUserForStudentPage(): Promise<User> {
+async function resolveUserForStudentPage(opts?: { allowAnonymous?: boolean }): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
 
   const existingUser = await new Promise<User | null>((resolve) => {
@@ -187,10 +187,14 @@ async function resolveUserForStudentPage(): Promise<User> {
 
     const timer = window.setTimeout(() => {
       finish(auth.currentUser ?? null);
-    }, 1500);
+    }, opts?.allowAnonymous === false ? 5000 : 1500);
   });
 
   if (existingUser) return existingUser;
+
+  if (opts?.allowAnonymous === false) {
+    throw new Error("Du må være logget inn for å forhåndsvise elevoppgaven.");
+  }
 
   return await ensureAnonymousUser();
 }
@@ -220,6 +224,7 @@ export default function StudentAssignmentPage() {
 
   const sp = useSearchParams();
   const sid = useMemo(() => (sp.get("sid") ?? "").trim(), [sp]);
+  const isTeacherPreview = sp.get("preview") === "teacher";
 
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null);
 
@@ -391,8 +396,9 @@ export default function StudentAssignmentPage() {
     if (loading) return;
     if (!isPodcastWorkshop) return;
     if (!spaceId || !assignmentId) return;
-    router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}`);
-  }, [assignmentId, isPodcastWorkshop, loading, locale, router, spaceId]);
+    const previewQuery = isTeacherPreview ? "?preview=teacher" : "";
+    router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}${previewQuery}`);
+  }, [assignmentId, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isPodcastWorkshop ? "" : sourceTextSafe;
 
@@ -711,7 +717,7 @@ export default function StudentAssignmentPage() {
           return;
         }
 
-        const user = await resolveUserForStudentPage();
+        const user = await resolveUserForStudentPage({ allowAnonymous: !isTeacherPreview });
         if (!alive) return;
 
         setUid(user.uid);
@@ -719,11 +725,18 @@ export default function StudentAssignmentPage() {
 
         const memberId = `${spaceId}_${user.uid}`;
         const memberSnap = await getDoc(doc(db, "spaceMembers", memberId));
-        if (!memberSnap.exists()) throw new Error(t("errors.notMember"));
-        const memberData = memberSnap.data() as { archived?: unknown; active?: unknown; status?: unknown };
-        const memberStatus = String(memberData.status ?? "").toLowerCase().trim();
-        if (memberData.archived === true || memberData.active === false || memberStatus === "removed") {
-          throw new Error(t("errors.notMember"));
+        if (!memberSnap.exists()) {
+          if (!isTeacherPreview) throw new Error(t("errors.notMember"));
+
+          const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
+          const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
+          if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
+        } else {
+          const memberData = memberSnap.data() as { archived?: unknown; active?: unknown; status?: unknown };
+          const memberStatus = String(memberData.status ?? "").toLowerCase().trim();
+          if (memberData.archived === true || memberData.active === false || memberStatus === "removed") {
+            throw new Error(t("errors.notMember"));
+          }
         }
 
         const aSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
@@ -980,6 +993,7 @@ export default function StudentAssignmentPage() {
     spaceId,
     assignmentId,
     sid,
+    isTeacherPreview,
     t,
     readingTestTotalSeconds,
   ]);

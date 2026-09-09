@@ -129,6 +129,7 @@
       "lessonNotFound": "Atividade não encontrada",
       "cannotPublishDeleted": "Esta atividade foi excluída ou arquivada e não pode ser publicada.",
       "publishFailed": "Falha ao atualizar o status de publicação",
+      "emailVerificationRequired": "Seu e-mail ainda não aparece como verificado nesta sessão. Atualize a página e tente de novo, ou saia e entre novamente.",
       "factCheckRequired": "Este texto factual precisa de uma verificação extra de fatos antes de ser publicado. Abra a atividade, execute a verificação extra e salve a versão verificada antes de publicar.",
       "deleteFailed": "Falha ao excluir (arquivar) a atividade",
       "restoreFailed": "Não foi possível restaurar.",

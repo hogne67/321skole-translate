@@ -129,6 +129,7 @@
       "lessonNotFound": "Fant ikke oppgaven",
       "cannotPublishDeleted": "Denne oppgaven er slettet eller arkivert og kan ikke publiseres.",
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
+      "emailVerificationRequired": "E-posten er ikke bekreftet i innloggingen ennå. Oppdater siden og prøv igjen, eller logg ut og inn igjen.",
       "factCheckRequired": "Denne sakteksten må faktasjekkes før den kan publiseres. Åpne oppgaven, kjør ekstra faktasjekk og lagre den faktasjekkede versjonen før du publiserer.",
       "deleteFailed": "Kunne ikke slette (arkivere) oppgaven",
       "restoreFailed": "Kunne ikke gjenopprette.",

@@ -433,6 +433,12 @@ export default function ContentClient() {
 
   function publishErrorMessage(error: unknown) {
     const message = error instanceof Error ? error.message : "";
+    if (/EMAIL_VERIFICATION_REQUIRED|Verify your email/i.test(message)) {
+      return safeMsg(
+        "errors.emailVerificationRequired",
+        "E-posten er ikke bekreftet i innloggingen ennå. Logg ut og inn igjen, eller oppdater siden og prøv på nytt."
+      );
+    }
     if (/FACT_CHECK_REQUIRED|Extra fact check is required|fact check/i.test(message)) {
       return safeMsg(
         "errors.factCheckRequired",

@@ -724,7 +724,7 @@ function Inner() {
                         )}
 
                         <Link
-                          href={withLocale(locale, `/student/spaces/${spaceId}/writing/${item.id}`)}
+                          href={withLocale(locale, `/student/spaces/${spaceId}/writing/${item.id}?preview=teacher`)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100"
@@ -829,7 +829,7 @@ function Inner() {
                       )}
 
                       <Link
-                        href={withLocale(locale, `/student/spaces/${spaceId}/assignments/${a.id}`)}
+                        href={withLocale(locale, `/student/spaces/${spaceId}/assignments/${a.id}?preview=teacher`)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100"
