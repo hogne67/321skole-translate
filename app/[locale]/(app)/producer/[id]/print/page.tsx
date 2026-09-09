@@ -338,6 +338,18 @@ export default function ProducerPrintPage() {
             </div>
           ) : null}
 
+          <section className="pdf-before-reading">
+            <div className="before-reading-head">
+              <h2>{t("sections.beforeReading")}</h2>
+              <span>{t("labels.think")}</span>
+            </div>
+            <p>{t("beforeReading.prompt")}</p>
+            <div className="before-reading-lines">
+              <div />
+              <div />
+            </div>
+          </section>
+
           <section className="pdf-section">
             <h2 className="pdf-h2">{t("sections.readingText")}</h2>
             <div className={`pdf-reading is-${textSize}`}>
@@ -628,6 +640,60 @@ export default function ProducerPrintPage() {
 
         .pdf-section {
           margin-top: 7mm;
+        }
+
+        .pdf-before-reading {
+          margin: 0 0 7mm 0;
+          padding: 5mm;
+          border: 1px solid #bbf7d0;
+          border-radius: 12px;
+          background: #f0fdf4;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .before-reading-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 2mm;
+        }
+
+        .before-reading-head h2 {
+          margin: 0;
+          font-size: 15px;
+          font-weight: 900;
+          color: #14532d;
+        }
+
+        .before-reading-head span {
+          padding: 3px 7px;
+          border: 1px solid #86efac;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          color: #166534;
+          background: #dcfce7;
+        }
+
+        .pdf-before-reading p {
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.45;
+          font-weight: 700;
+          color: #166534;
+        }
+
+        .before-reading-lines {
+          display: grid;
+          gap: 5mm;
+          margin-top: 5mm;
+        }
+
+        .before-reading-lines div {
+          border-bottom: 1px solid #166534;
+          opacity: 0.55;
         }
 
         .pdf-h2 {

@@ -119,25 +119,6 @@ function countCharsNoSpaces(text: string) {
   return (text ?? "").replace(/\s+/g, "").length;
 }
 
-function stringifyGeneratedText(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => stringifyGeneratedText(item))
-      .filter(Boolean)
-      .join("\n\n")
-      .trim();
-  }
-  if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>)
-      .map((item) => stringifyGeneratedText(item))
-      .filter(Boolean)
-      .join("\n\n")
-      .trim();
-  }
-  return "";
-}
-
 function normalizeStatus(s: unknown): LessonStatus {
   return s === "published" ? "published" : "draft";
 }
@@ -245,12 +226,6 @@ type GenerateCoverResponse = {
   };
 };
 
-type GenerateFactCheckResponse = {
-  text?: unknown;
-  factCheckReport?: unknown;
-  error?: string;
-};
-
 const LEVEL_OPTIONS: LevelKey[] = ["A1_START", "A1", "A2", "B1", "B2", "C1", "C2"];
 
 const EDITOR_TEXT_TYPE_KEYS = TEXT_TYPE_KEYS.filter(
@@ -323,8 +298,6 @@ export default function ProducerLessonEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [authResolved, setAuthResolved] = useState(false);
-  const [factChecking, setFactChecking] = useState(false);
-  const [factCheckReport, setFactCheckReport] = useState("");
 
   const [err, setErr] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
@@ -688,81 +661,6 @@ export default function ProducerLessonEditorPage() {
       setErr(localizeError(getErrorMessage(e) || t("errors.imageGenerationFailed")));
     } finally {
       setGeneratingCover(false);
-    }
-  }
-
-  async function runExtraFactCheck() {
-    setErr(null);
-    setFactChecking(true);
-    setFactCheckReport("");
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user || user.isAnonymous) {
-        throw new Error("No auth uid.");
-      }
-
-      if (!sourceText.trim()) {
-        throw new Error(t("errors.sourceTextEmpty"));
-      }
-
-      const token = await user.getIdToken(true);
-      const res = await fetch("/api/producer/generate-text", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          level,
-          language,
-          reportLanguage: locale,
-          topic: topic.trim() || title.trim(),
-          textType: textType.trim(),
-          textLength: Math.max(120, wordCount || 200),
-          extraFactCheck: true,
-          sourceText,
-        }),
-      });
-
-      const data = (await res.json().catch(() => ({}))) as GenerateFactCheckResponse;
-      if (!res.ok) {
-        throw new Error(data.error || t("errors.factCheckFailed"));
-      }
-
-      const checkedText = stringifyGeneratedText(data.text);
-      if (!checkedText) {
-        throw new Error(t("errors.factCheckNoText"));
-      }
-
-      const report = stringifyGeneratedText(data.factCheckReport) || t("factCheck.completed");
-      const saveRes = await fetch("/api/producer/save-fact-check", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          lessonId,
-          sourceText: checkedText,
-          factCheckReport: report,
-          factCheckReason: "factual_text",
-        }),
-      });
-      const saveData = (await saveRes.json().catch(() => ({}))) as { error?: string };
-      if (!saveRes.ok) {
-        throw new Error(saveData.error || t("errors.factCheckSaveFailed"));
-      }
-
-      setSourceText(checkedText);
-      setFactCheckReport(report);
-      setErr(null);
-    } catch (e: unknown) {
-      setErr(localizeError(getErrorMessage(e) || t("errors.factCheckFailed")));
-    } finally {
-      setFactChecking(false);
     }
   }
 
@@ -1750,10 +1648,7 @@ export default function ProducerLessonEditorPage() {
               <div style={{ fontWeight: 800 }}>{t("fields.text")}</div>
               <textarea
                 value={sourceText}
-                onChange={(e) => {
-                  setSourceText(e.target.value);
-                  setFactCheckReport("");
-                }}
+                onChange={(e) => setSourceText(e.target.value)}
                 rows={10}
                 style={fieldStyle}
                 placeholder={t("placeholders.sourceText")}
@@ -1765,41 +1660,6 @@ export default function ProducerLessonEditorPage() {
                   charsWithSpaces: charCountWithSpaces,
                 })}
               </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => void runExtraFactCheck()}
-                  disabled={factChecking || saving || !sourceText.trim()}
-                  style={{
-                    border: "1px solid #bfd3e6",
-                    background: "#eef7ff",
-                    color: "#17324d",
-                    borderRadius: 12,
-                    padding: "9px 12px",
-                    fontWeight: 900,
-                    cursor: factChecking || saving || !sourceText.trim() ? "not-allowed" : "pointer",
-                    opacity: factChecking || saving || !sourceText.trim() ? 0.65 : 1,
-                  }}
-                >
-                  {factChecking ? t("buttons.factChecking") : t("buttons.extraFactCheck")}
-                </button>
-                <span style={smallHelpStyle}>{t("factCheck.help")}</span>
-              </div>
-              {factCheckReport ? (
-                <div
-                  style={{
-                    border: "1px solid #bbf7d0",
-                    background: "#f0fdf4",
-                    color: "#14532d",
-                    borderRadius: 12,
-                    padding: 12,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  <div style={{ fontWeight: 900, marginBottom: 4 }}>{t("factCheck.reportTitle")}</div>
-                  {factCheckReport}
-                </div>
-              ) : null}
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>

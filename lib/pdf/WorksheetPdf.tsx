@@ -151,6 +151,42 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#eff6ff",
   },
+  beforeReading: {
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    borderRadius: 4,
+    backgroundColor: "#f0fdf4",
+  },
+  beforeReadingTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  beforeReadingTitle: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#14532d",
+  },
+  beforeReadingBadge: {
+    fontSize: 8,
+    fontWeight: 800,
+    color: "#166534",
+  },
+  beforeReadingPrompt: {
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: "#166534",
+  },
+  beforeReadingLine: {
+    height: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: "#166534",
+    marginTop: 8,
+    opacity: 0.55,
+  },
   teacherNote: {
     marginTop: 14,
     padding: 10,
@@ -311,6 +347,18 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
             <Image style={styles.cover} src={lesson.coverImageUrl} />
           </View>
         ) : null}
+
+        <View style={styles.beforeReading} wrap={false}>
+          <View style={styles.beforeReadingTop}>
+            <Text style={styles.beforeReadingTitle}>Before you read</Text>
+            <Text style={styles.beforeReadingBadge}>Think first</Text>
+          </View>
+          <Text style={styles.beforeReadingPrompt}>
+            Look at the picture and the title. What do you notice? Write a few words, or say what you are thinking.
+          </Text>
+          <View style={styles.beforeReadingLine} />
+          <View style={styles.beforeReadingLine} />
+        </View>
 
         <View style={styles.textBlock}>
           <Text style={styles.textHeading}>Text</Text>

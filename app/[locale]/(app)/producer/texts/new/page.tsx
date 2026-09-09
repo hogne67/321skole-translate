@@ -1354,6 +1354,9 @@ export default function NewTextPage() {
 
     try {
       if (!sourceText.trim()) throw new Error("Generate or write text first.");
+      if (publishFactCheckRequired && !currentTextFactChecked) {
+        throw new Error(t("errors.factCheckRequiredBeforeTasks"));
+      }
       const approvedText = approvedTextOverride.trim() || approvedSourceText.trim();
       if (approvedText !== sourceText.trim()) {
         throw new Error(t("errors.approveTextFirst"));
@@ -1455,6 +1458,9 @@ export default function NewTextPage() {
 
   async function saveLesson(): Promise<string> {
     if (!sourceText.trim()) throw new Error("Source text is empty.");
+    if (publishFactCheckRequired && !currentTextFactChecked) {
+      throw new Error(t("errors.factCheckRequiredBeforeSave"));
+    }
 
     const user = getAuth().currentUser;
     if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
@@ -1583,7 +1589,9 @@ export default function NewTextPage() {
         getHighFrequencyExplanationFallback(visibleHighFrequencyWord, a1StartWordClass, language)
       : "";
   const hasTasks = lessonTasks.length > 0;
+  const factCheckReady = !publishFactCheckRequired || currentTextFactChecked;
   const textApproved = hasText && approvedSourceText.trim() === sourceText.trim();
+  const textReadyForTasks = textApproved && factCheckReady;
   const step1Done = textApproved;
   const step2Active = hasText;
   const step2Done = hasTasks;
@@ -2266,7 +2274,7 @@ export default function NewTextPage() {
                   >
                     {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
-                  {!isA1Start && factCheckRequired && (!sourceText.trim() || lastGeneratedWith !== "manual") && (
+                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
                     <button
                       className="actionBtn"
                       onClick={() => generateTextOnly(true)}
@@ -2605,17 +2613,25 @@ export default function NewTextPage() {
                 <button
                   className="actionBtn"
                   onClick={textApproved ? () => generateTasksOnly() : approveTextAndGenerateTasks}
-                  disabled={busy || !sourceText.trim()}
+                  disabled={busy || !sourceText.trim() || !factCheckReady}
                   style={{
                     ...buttonPrimary,
-                    opacity: busy || !sourceText.trim() ? 0.55 : 1,
-                    cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
+                    opacity: busy || !sourceText.trim() || !factCheckReady ? 0.55 : 1,
+                    cursor: busy || !sourceText.trim() || !factCheckReady ? "not-allowed" : "pointer",
                   }}
-                  title={!sourceText.trim() ? t("hints.generateTextFirst") : !textApproved ? t("hints.approveTextFirst") : t("hints.generateTasks")}
+                  title={
+                    !sourceText.trim()
+                      ? t("hints.generateTextFirst")
+                      : !factCheckReady
+                        ? t("hints.factCheckFirst")
+                        : !textApproved
+                          ? t("hints.approveTextFirst")
+                          : t("hints.generateTasks")
+                  }
                 >
                   {loadingTasks
                     ? t("buttons.generatingTasks")
-                    : textApproved
+                    : textReadyForTasks
                       ? t("buttons.generateTasks")
                       : t("buttons.approveText")}
                 </button>

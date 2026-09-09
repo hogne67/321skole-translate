@@ -19,7 +19,8 @@
       "kicker": "folha de exercícios",
       "producer": "Produtor",
       "level": "Nível",
-      "bannerAlt": "Imagem do cabeçalho da folha"
+      "bannerAlt": "Imagem do cabeçalho da folha",
+      "think": "Pense primeiro"
     },
     "identity": {
       "name": "Nome",
@@ -27,10 +28,14 @@
       "class": "Turma"
     },
     "sections": {
+      "beforeReading": "Antes de ler",
       "readingText": "Texto de leitura",
       "highFrequencyReadingSentences": "Frases com \"{word}\"",
       "highFrequencyExplanation": "Explicação da classe gramatical",
       "tasks": "Atividades"
+    },
+    "beforeReading": {
+      "prompt": "Observe a imagem e o título. O que você percebe? Escreva algumas palavras ou diga o que está pensando."
     },
     "answers": {
       "true": "Verdadeiro",

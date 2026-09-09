@@ -19,7 +19,8 @@
       "kicker": "arbeidsark",
       "producer": "Produsent",
       "level": "Nivå",
-      "bannerAlt": "Bilde for arbeidsark"
+      "bannerAlt": "Bilde for arbeidsark",
+      "think": "Tenk først"
     },
     "identity": {
       "name": "Navn",
@@ -27,10 +28,14 @@
       "class": "Klasse"
     },
     "sections": {
+      "beforeReading": "Før du leser",
       "readingText": "Lesetekst",
       "highFrequencyReadingSentences": "Setninger med \"{word}\"",
       "highFrequencyExplanation": "Ordklasseforklaring",
       "tasks": "Oppgaver"
+    },
+    "beforeReading": {
+      "prompt": "Se på bildet og tittelen. Hva legger du merke til? Skriv noen ord, eller si det du tenker på."
     },
     "answers": {
       "true": "Sant",

@@ -158,6 +158,7 @@
       "generateTextFirst": "Generate or write text first.",
       "generateTasks": "Generate tasks based on the current text.",
       "approveTextFirst": "Approve the text before creating tasks.",
+      "factCheckFirst": "Run extra fact check before creating tasks.",
       "enterTextFirst": "Enter text first",
       "tasksDirty": "The text has changed since the tasks were generated.",
       "saveDraft": "Save draft to Firestore"
@@ -221,6 +222,8 @@
       "titleRequired": "Title is required.",
       "sourceTextEmpty": "Source text is empty.",
       "approveTextFirst": "Approve the text before generating tasks.",
+      "factCheckRequiredBeforeTasks": "Run extra fact check before generating tasks for this text.",
+      "factCheckRequiredBeforeSave": "Run extra fact check before saving this text.",
       "notSignedIn": "Not signed in. Please log in as teacher/producer.",
       "emptyResponseFromServer": "Empty response from server.",
       "notJsonFromServer": "The server did not return JSON.",

@@ -17,9 +17,7 @@
       "saveToMyContent": "Lagre til Mitt innhold",
       "preview": "Forhåndsvisning",
       "saveAndPreview": "Lagre og forhåndsvis",
-      "saving": "Lagrer…",
-      "extraFactCheck": "Ekstra faktasjekk",
-      "factChecking": "Faktasjekker…"
+      "saving": "Lagrer…"
     },
     "sticky": {
       "title": "Klar til å lagre",
@@ -65,16 +63,7 @@
       "imageGenerationNotAvailable": "Bildegenerering er ikke tilgjengelig på abonnementet ditt.",
       "imageGenerationLimitPeriod": "Du har nådd grensen for bildegenerering i denne perioden.",
       "imageGenerationLimit": "Du har nådd grensen for bildegenerering.",
-      "missingAuthToken": "Mangler autentiseringstoken.",
-      "sourceTextEmpty": "Kildeteksten er tom.",
-      "factCheckFailed": "Faktasjekk feilet.",
-      "factCheckNoText": "Faktasjekken returnerte ingen tekst.",
-      "factCheckSaveFailed": "Kunne ikke lagre faktasjekken."
-    },
-    "factCheck": {
-      "help": "Brukes for saktekster før publisering. Teksten lagres med publiserbar faktasjekk etterpå.",
-      "completed": "Ekstra faktasjekk er kjørt og lagret for denne teksten.",
-      "reportTitle": "Faktasjekkrapport"
+      "missingAuthToken": "Mangler autentiseringstoken."
     },
     "intro": {
       "finishLesson": "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer.",

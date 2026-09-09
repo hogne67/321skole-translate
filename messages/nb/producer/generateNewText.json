@@ -158,6 +158,7 @@
       "generateTextFirst": "Generer eller skriv tekst først.",
       "generateTasks": "Generer oppgaver basert på teksten som er der nå.",
       "approveTextFirst": "Godkjenn teksten før du lager oppgaver.",
+      "factCheckFirst": "Kjør ekstra faktasjekk før du lager oppgaver.",
       "enterTextFirst": "Skriv inn tekst først",
       "tasksDirty": "Teksten er endret siden oppgavene ble generert.",
       "saveDraft": "Lagre kladd i Firestore"
@@ -221,6 +222,8 @@
       "titleRequired": "Tittel er påkrevd.",
       "sourceTextEmpty": "Kildeteksten er tom.",
       "approveTextFirst": "Godkjenn teksten før du genererer oppgaver.",
+      "factCheckRequiredBeforeTasks": "Kjør ekstra faktasjekk før du genererer oppgaver for denne teksten.",
+      "factCheckRequiredBeforeSave": "Kjør ekstra faktasjekk før du lagrer denne teksten.",
       "notSignedIn": "Ikke logget inn. Logg inn som lærer/produsent.",
       "emptyResponseFromServer": "Tomt svar fra serveren.",
       "notJsonFromServer": "Serveren returnerte ikke JSON.",

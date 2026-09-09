@@ -24,6 +24,7 @@ import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
 import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
 import { getOrigin } from "@/lib/url";
+import { getTextTypeLabel, normalizeTextTypeKey } from "@/lib/textTypes";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "submission" | "space";
@@ -1351,13 +1352,30 @@ export default function ContentClient() {
       "practice",
     ]);
 
-    const filteredMeta = meta.filter((m) => {
-      if (typeof m !== "string") return false;
-      if (hasLessonTitle && m.startsWith("lesson:")) return false;
-      if (m.startsWith("space:")) return false;
-      if (mathUiTags.has(m.trim().toLowerCase())) return false;
-      return true;
-    });
+    const seenTextTypes = new Set<string>();
+    const filteredMeta: string[] = [];
+
+    for (const m of meta) {
+      if (typeof m !== "string") continue;
+      if (hasLessonTitle && m.startsWith("lesson:")) continue;
+      if (m.startsWith("space:")) continue;
+      const normalized = m.trim();
+      const lower = normalized.toLowerCase();
+      if (mathUiTags.has(lower)) continue;
+
+      const textTypeKey = normalizeTextTypeKey(normalized);
+      if (textTypeKey && textTypeKey !== "other") {
+        if (!seenTextTypes.has(textTypeKey)) {
+          seenTextTypes.add(textTypeKey);
+          filteredMeta.push(getTextTypeLabel(textTypeKey, locale));
+        }
+        continue;
+      }
+
+      if (!filteredMeta.includes(normalized)) {
+        filteredMeta.push(normalized);
+      }
+    }
 
     return filteredMeta.join(" · ");
   }

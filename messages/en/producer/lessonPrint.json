@@ -19,7 +19,8 @@
       "kicker": "worksheet",
       "producer": "Producer",
       "level": "Level",
-      "bannerAlt": "Worksheet banner image"
+      "bannerAlt": "Worksheet banner image",
+      "think": "Think first"
     },
     "identity": {
       "name": "Name",
@@ -27,10 +28,14 @@
       "class": "Class"
     },
     "sections": {
+      "beforeReading": "Before you read",
       "readingText": "Reading text",
       "highFrequencyReadingSentences": "Sentences with \"{word}\"",
       "highFrequencyExplanation": "Word class explanation",
       "tasks": "Tasks"
+    },
+    "beforeReading": {
+      "prompt": "Look at the picture and the title. What do you notice? Write a few words, or say what you are thinking."
     },
     "answers": {
       "true": "True",

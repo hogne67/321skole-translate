@@ -76,6 +76,9 @@ export async function POST(req: Request) {
       typeof aiQualityInput.factCheckReason === "string" ? aiQualityInput.factCheckReason : "";
     const generatedWith =
       typeof aiQualityInput.generatedWith === "string" ? aiQualityInput.generatedWith : "unknown";
+    if (factCheckRequired && !factChecked) {
+      return json({ error: "Extra fact check is required before saving this text." }, 400);
+    }
     const aiQuality = {
       factCheckRequired,
       factChecked,

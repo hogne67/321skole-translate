@@ -158,6 +158,7 @@
       "generateTextFirst": "Gere ou escreva o texto primeiro.",
       "generateTasks": "Gere atividades com base no texto atual.",
       "approveTextFirst": "Aprove o texto antes de criar atividades.",
+      "factCheckFirst": "Execute a verificação extra antes de criar atividades.",
       "enterTextFirst": "Digite o texto primeiro",
       "tasksDirty": "O texto foi alterado desde que as atividades foram geradas.",
       "saveDraft": "Salvar rascunho no Firestore"
@@ -221,6 +222,8 @@
       "titleRequired": "O título é obrigatório.",
       "sourceTextEmpty": "O texto-fonte está vazio.",
       "approveTextFirst": "Aprove o texto antes de gerar atividades.",
+      "factCheckRequiredBeforeTasks": "Execute a verificação extra antes de gerar atividades para este texto.",
+      "factCheckRequiredBeforeSave": "Execute a verificação extra antes de salvar este texto.",
       "notSignedIn": "Não conectado. Faça login como professor/produtor.",
       "emptyResponseFromServer": "Resposta vazia do servidor.",
       "notJsonFromServer": "O servidor não retornou JSON.",
