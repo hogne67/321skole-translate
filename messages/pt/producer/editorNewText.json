@@ -17,7 +17,9 @@
       "saveToMyContent": "Salvar em Meus conteúdos",
       "preview": "Pré-visualização",
       "saveAndPreview": "Salvar e pré-visualizar",
-      "saving": "Salvando…"
+      "saving": "Salvando…",
+      "extraFactCheck": "Verificação extra",
+      "factChecking": "Verificando…"
     },
     "sticky": {
       "title": "Pronto para salvar",
@@ -63,7 +65,16 @@
       "imageGenerationNotAvailable": "A geração de imagens não está disponível no seu plano atual.",
       "imageGenerationLimitPeriod": "Você atingiu o limite de geração de imagens neste período.",
       "imageGenerationLimit": "Você atingiu o limite de geração de imagens.",
-      "missingAuthToken": "Falta o token de autenticação."
+      "missingAuthToken": "Falta o token de autenticação.",
+      "sourceTextEmpty": "O texto-fonte está vazio.",
+      "factCheckFailed": "A verificação de fatos falhou.",
+      "factCheckNoText": "A verificação de fatos não retornou texto.",
+      "factCheckSaveFailed": "Não foi possível salvar a verificação de fatos."
+    },
+    "factCheck": {
+      "help": "Use isto para textos factuais antes de publicar. Depois, o texto é salvo com uma marca de verificação publicável.",
+      "completed": "A verificação extra foi executada e salva para este texto.",
+      "reportTitle": "Relatório de verificação de fatos"
     },
     "intro": {
       "finishLesson": "Agora finalize a atividade com metadados, imagem de capa e ajustes finais.",

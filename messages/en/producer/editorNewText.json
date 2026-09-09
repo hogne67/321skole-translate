@@ -17,7 +17,9 @@
       "saveToMyContent": "Save to My content",
       "preview": "Preview",
       "saveAndPreview": "Save and preview",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "extraFactCheck": "Extra fact check",
+      "factChecking": "Fact-checking…"
     },
     "sticky": {
       "title": "Ready to save",
@@ -63,7 +65,16 @@
       "imageGenerationNotAvailable": "Image generation is not available on your current plan.",
       "imageGenerationLimitPeriod": "You have reached your image generation limit for this period.",
       "imageGenerationLimit": "You have reached your image generation limit.",
-      "missingAuthToken": "Missing auth token."
+      "missingAuthToken": "Missing auth token.",
+      "sourceTextEmpty": "Source text is empty.",
+      "factCheckFailed": "Fact check failed.",
+      "factCheckNoText": "The fact check returned no text.",
+      "factCheckSaveFailed": "Could not save the fact check."
+    },
+    "factCheck": {
+      "help": "Use this for factual texts before publishing. The text is saved with a publishable fact-check marker afterwards.",
+      "completed": "Extra fact check has been run and saved for this text.",
+      "reportTitle": "Fact-check report"
     },
     "intro": {
       "finishLesson": "Now finish the lesson with metadata, cover image and final adjustments.",
