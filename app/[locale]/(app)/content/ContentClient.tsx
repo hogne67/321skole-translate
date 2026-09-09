@@ -357,12 +357,17 @@ export default function ContentClient() {
   type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
   const role: AppRole = isAnon ? "student" : (profile?.role as AppRole) || "student";
   const isTeacher = role === "teacher" || role === "admin";
+  const isActivePartner =
+    !isAnon &&
+    profile?.partnerAccess === true &&
+    String(profile?.partnerStatus ?? "").toLowerCase() === "active";
   const isCreator = role === "creator";
   const isParent = role === "parent";
   const isStudent = role === "student";
+  const canUsePublishActions = isTeacher || isActivePartner;
 
   const contentMode: "student" | "teacher" | "creator" = isTeacher ? "teacher" : isCreator ? "creator" : "student";
-  const isTeacherApproved = isTeacher;
+  const isTeacherApproved = canUsePublishActions;
 
   const t = useTranslations("content");
   const tLoose = t as unknown as LooseT;
@@ -1779,7 +1784,7 @@ export default function ContentClient() {
             },
           ]
           : []),
-        ...(isTeacher && !isImportedQuiz
+        ...(canUsePublishActions && !isImportedQuiz
           ? [
             {
               key: isPublished ? "unpublish" : "publish",
@@ -1838,7 +1843,7 @@ export default function ContentClient() {
         ]
         : []),
 
-      ...(isTeacher
+      ...(canUsePublishActions
         ? [
           {
             key: isPublished ? "unpublish" : "publish",

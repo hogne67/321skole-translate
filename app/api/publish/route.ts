@@ -90,6 +90,10 @@ function isAdminProfile(profile: Record<string, unknown>): boolean {
   return roles ? bool(roles.admin) : false;
 }
 
+function isActivePartnerProfile(profile: Record<string, unknown>): boolean {
+  return profile.partnerAccess === true && String(profile.partnerStatus ?? "").toLowerCase() === "active";
+}
+
 export async function POST(req: Request) {
   const { auth, db } = getAdmin();
 
@@ -135,9 +139,10 @@ export async function POST(req: Request) {
 
   const isAdmin = isAdminProfile(profile);
   const isTeacher = isTeacherProfile(profile);
+  const isActivePartner = isActivePartnerProfile(profile);
 
-  // ✅ Authorization: admin OR teacher OR caps.publish
-  const canPublish = isAdmin || isTeacher || canPublishByCaps;
+  // ✅ Authorization: admin OR teacher OR active partner OR caps.publish
+  const canPublish = isAdmin || isTeacher || isActivePartner || canPublishByCaps;
 
   if (!canPublish) {
     await db.collection("auditEvents").add({
@@ -150,6 +155,8 @@ export async function POST(req: Request) {
         role: profile.role ?? null,
         rolesAdmin: isRecord(profile.roles) ? bool((profile.roles as Record<string, unknown>).admin) : false,
         rolesTeacher: isRecord(profile.roles) ? bool((profile.roles as Record<string, unknown>).teacher) : false,
+        partnerAccess: profile.partnerAccess === true,
+        partnerStatus: profile.partnerStatus ?? null,
         capsPublish: canPublishByCaps,
       },
     });
@@ -157,10 +164,10 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Publishing not allowed (requires role=teacher, roles.teacher=true, caps.publish=true, or admin). " +
+          "Publishing not allowed (requires role=teacher, roles.teacher=true, active partner, caps.publish=true, or admin). " +
           `role=${String(profile.role)} admin=${String(isAdmin)} teacher=${String(isTeacher)} caps.publish=${String(
             canPublishByCaps
-          )}`,
+          )} partner=${String(isActivePartner)}`,
       },
       { status: 403 }
     );
