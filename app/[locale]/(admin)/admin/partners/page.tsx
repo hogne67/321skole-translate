@@ -32,6 +32,7 @@ type ActivePartner = {
   id: string;
   uid: string;
   email?: string;
+  phone?: string;
   displayName?: string;
   partnerStatus?: string;
   partnerLevel?: string;
@@ -87,6 +88,7 @@ type PartnerFocusResponse = {
 };
 
 type PartnerFollowUpStatus = "needs_follow_up" | "waiting" | "done";
+type PartnerAdminTab = "overview" | "members" | "applications" | "program";
 
 const ROLE_OPTIONS = [
   ["teacher", "Teacher"],
@@ -225,6 +227,7 @@ export default function AdminPartnersPage() {
   const [competenceFilter, setCompetenceFilter] = useState("all");
   const [contributionFilter, setContributionFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<PartnerAdminTab>("members");
   const [copied, setCopied] = useState(false);
   const [copiedInviteText, setCopiedInviteText] = useState(false);
 
@@ -446,6 +449,7 @@ export default function AdminPartnersPage() {
         matchesSearch([
           item.displayName,
           item.email,
+          item.phone,
           item.partnerRegion,
           item.partnerStatus,
           item.partnerLevel,
@@ -519,6 +523,22 @@ export default function AdminPartnersPage() {
     matchesStatus,
     reviewedApplications,
   ]);
+
+  const tabs = useMemo(
+    () => [
+      { key: "overview" as const, label: "Overview", count: stats?.active ?? activePartners.length },
+      { key: "members" as const, label: "Members", count: filteredActivePartners.length },
+      { key: "applications" as const, label: "Applications", count: filteredPendingApplications.length },
+      { key: "program" as const, label: "Program", count: stats?.partnerReplies ?? 0 },
+    ],
+    [
+      activePartners.length,
+      filteredActivePartners.length,
+      filteredPendingApplications.length,
+      stats?.active,
+      stats?.partnerReplies,
+    ]
+  );
 
   function resetFilters() {
     setSearch("");
@@ -688,6 +708,73 @@ export default function AdminPartnersPage() {
         />
       </section>
 
+      <nav style={styles.tabs} aria-label="Partner admin sections">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === tab.key ? styles.tabButtonActive : null),
+            }}
+          >
+            <span>{tab.label}</span>
+            <strong>{tab.count}</strong>
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === "overview" ? (
+        <section style={styles.overviewGrid}>
+          <section style={styles.card}>
+            <h2 style={styles.sectionTitle}>Needs attention</h2>
+            <p style={styles.muted}>
+              Start with partner replies and partners marked for follow-up before inviting more
+              people.
+            </p>
+            <div style={styles.overviewActions}>
+              <Link href={`/${locale}/admin/partners/inbox`} style={styles.primaryLink}>
+                Open inbox
+              </Link>
+              <button
+                type="button"
+                onClick={() => setActiveTab("members")}
+                style={styles.secondaryButton}
+              >
+                Review members
+              </button>
+            </div>
+          </section>
+
+          <section style={styles.card}>
+            <h2 style={styles.sectionTitle}>Partner coverage</h2>
+            <p style={styles.muted}>
+              Use the member filters to check country, language, competence and contribution gaps
+              before the next recruitment round.
+            </p>
+            <div style={styles.overviewActions}>
+              <button
+                type="button"
+                onClick={() => setActiveTab("applications")}
+                style={styles.secondaryButton}
+              >
+                Review applications
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("program")}
+                style={styles.secondaryButton}
+              >
+                Edit program
+              </button>
+            </div>
+          </section>
+        </section>
+      ) : null}
+
+      {activeTab === "program" ? (
+        <>
       <section style={styles.card}>
         <div style={styles.inviteHeader}>
           <div>
@@ -822,8 +909,11 @@ export default function AdminPartnersPage() {
           </button>
         </div>
       </section>
+        </>
+      ) : null}
 
-      <section style={styles.toolbar}>
+      {activeTab === "members" || activeTab === "applications" ? (
+        <section style={styles.toolbar}>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -914,10 +1004,12 @@ export default function AdminPartnersPage() {
           <b>{filteredApplications.length}</b> reviewed applications
         </div>
       </section>
+      ) : null}
 
       {error ? <section style={styles.error}>Error: {error}</section> : null}
       {message ? <section style={styles.success}>{message}</section> : null}
 
+      {activeTab === "applications" ? (
       <section style={styles.sectionStack}>
         <div>
           <h2 style={styles.sectionTitle}>Pending applications</h2>
@@ -959,7 +1051,9 @@ export default function AdminPartnersPage() {
           );
         })}
       </section>
+      ) : null}
 
+      {activeTab === "members" ? (
       <section style={styles.sectionStack}>
         <div>
           <h2 style={styles.sectionTitle}>Active partners</h2>
@@ -1022,6 +1116,11 @@ export default function AdminPartnersPage() {
                   <Link href={`/${locale}/admin/partners/${partner.uid}`} style={styles.smallLink}>
                     View details
                   </Link>
+                  {partner.email ? (
+                    <a href={`mailto:${partner.email}`} style={styles.smallLink}>
+                      Email
+                    </a>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1032,6 +1131,7 @@ export default function AdminPartnersPage() {
                 label="Languages"
                 value={partner.partnerLanguages?.length ? partner.partnerLanguages.join(", ") : "-"}
               />
+              <DetailItem label="Phone" value={partner.phone || "-"} />
               <DetailItem label="Level" value={cleanValue(partner.partnerLevel)} />
               <DetailItem label="Roles" value={labelsFor(partner.partnerRoles, ROLE_OPTIONS)} />
               <DetailItem
@@ -1067,7 +1167,9 @@ export default function AdminPartnersPage() {
           </article>
         ))}
       </section>
+      ) : null}
 
+      {activeTab === "applications" ? (
       <section style={styles.sectionStack}>
         <div>
           <h2 style={styles.sectionTitle}>Reviewed applications</h2>
@@ -1085,6 +1187,7 @@ export default function AdminPartnersPage() {
           <PartnerApplicationCard key={item.id} item={item} locale={locale} />
         ))}
       </section>
+      ) : null}
     </main>
   );
 }
@@ -1190,6 +1293,45 @@ const styles: Record<string, CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap: 12,
+  },
+  tabs: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    border: "1px solid var(--admin-border, #e5e7eb)",
+    borderRadius: "var(--admin-radius, 10px)",
+    padding: 8,
+    background: "var(--admin-surface, #ffffff)",
+    boxShadow: "var(--admin-shadow, 0 1px 2px rgba(15, 23, 42, 0.05))",
+  },
+  tabButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    border: "1px solid transparent",
+    borderRadius: 8,
+    padding: "9px 12px",
+    background: "transparent",
+    color: "#475569",
+    fontSize: 14,
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  tabButtonActive: {
+    border: "1px solid #bfdbfe",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+  },
+  overviewGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
+    gap: 16,
+  },
+  overviewActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 14,
   },
   inviteHeader: {
     display: "flex",
