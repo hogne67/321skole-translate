@@ -7,6 +7,8 @@ const copy = {
     title: "Info og trygg bruk",
     text: "Finn informasjon om 321skole, personvern, skolebruk og kontakt.",
     links: [
+      { href: "/?preview=1", label: "Landingsside" },
+      { href: "/skoler", label: "Skoleside" },
       { href: "/about", label: "Om 321skole" },
       { href: "/pricing", label: "Priser" },
       { href: "/privacy", label: "Personvern" },
@@ -19,6 +21,8 @@ const copy = {
     title: "Info and trust",
     text: "Find information about 321school, privacy, school use and contact.",
     links: [
+      { href: "/?preview=1", label: "Landing page" },
+      { href: "/skoler", label: "School page" },
       { href: "/about", label: "About 321school" },
       { href: "/pricing", label: "Pricing" },
       { href: "/privacy", label: "Privacy" },
@@ -31,6 +35,8 @@ const copy = {
     title: "Informação e confiança",
     text: "Veja informações sobre 321school, privacidade, uso escolar e contato.",
     links: [
+      { href: "/?preview=1", label: "Página inicial" },
+      { href: "/skoler", label: "Página escolar" },
       { href: "/about", label: "Sobre 321school" },
       { href: "/pricing", label: "Preços" },
       { href: "/privacy", label: "Privacidade" },

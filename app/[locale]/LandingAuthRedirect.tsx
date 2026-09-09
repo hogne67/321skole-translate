@@ -9,6 +9,9 @@ export default function LandingAuthRedirect({ locale }: { locale: string }) {
   const router = useRouter();
 
   useEffect(() => {
+    const preview = new URLSearchParams(window.location.search).get("preview") === "1";
+    if (preview) return;
+
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         router.replace(`/${locale}/post-login`);
