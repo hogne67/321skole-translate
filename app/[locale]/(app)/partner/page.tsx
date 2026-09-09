@@ -12,6 +12,8 @@ import {
   Sparkles,
   UsersRound,
 } from "lucide-react";
+import Link from "next/link";
+import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -27,6 +29,22 @@ type PartnerMessagesResponse = {
   ok?: boolean;
   error?: string;
   messages?: PartnerMessage[];
+};
+
+type PartnerFocus = {
+  title?: string;
+  description?: string;
+  task?: string;
+  meetingUrl?: string;
+  meetingTime?: string;
+  onboardingCourseUrl?: string;
+  updatedAt?: string;
+};
+
+type PartnerFocusResponse = {
+  ok?: boolean;
+  error?: string;
+  focus?: PartnerFocus | null;
 };
 
 type PartnerProfileSignal = {
@@ -103,8 +121,10 @@ function cleanValue(value?: string): string {
 }
 
 export default function PartnerPage() {
+  const locale = useLocale();
   const { user, profile, loading } = useUserProfile();
   const [messages, setMessages] = useState<PartnerMessage[]>([]);
+  const [focus, setFocus] = useState<PartnerFocus | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -142,11 +162,12 @@ export default function PartnerPage() {
 
   const latestMessage = messages[0];
 
-  const loadMessages = useCallback(async () => {
+  const loadPartnerHome = useCallback(async () => {
     if (loading) return;
 
     if (!user || user.isAnonymous || !hasPartnerAccess) {
       setMessages([]);
+      setFocus(null);
       setMessagesLoading(false);
       return;
     }
@@ -156,21 +177,34 @@ export default function PartnerPage() {
 
     try {
       const token = await getIdToken(user, true);
-      const response = await fetch("/api/partner/messages", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = (await response.json().catch(() => ({}))) as PartnerMessagesResponse;
+      const authHeaders = {
+        Authorization: `Bearer ${token}`,
+      };
+      const [messagesResponse, focusResponse] = await Promise.all([
+        fetch("/api/partner/messages", { headers: authHeaders }),
+        fetch("/api/partner/focus", { headers: authHeaders }),
+      ]);
+      const messagesData = (await messagesResponse
+        .json()
+        .catch(() => ({}))) as PartnerMessagesResponse;
+      const focusData = (await focusResponse.json().catch(() => ({}))) as PartnerFocusResponse;
 
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || `Could not load messages (${response.status})`);
+      if (!messagesResponse.ok || !messagesData.ok) {
+        throw new Error(
+          messagesData.error || `Could not load messages (${messagesResponse.status})`
+        );
       }
 
-      setMessages(data.messages ?? []);
+      if (!focusResponse.ok || !focusData.ok) {
+        throw new Error(focusData.error || `Could not load focus (${focusResponse.status})`);
+      }
+
+      setMessages(messagesData.messages ?? []);
+      setFocus(focusData.focus ?? null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
       setMessages([]);
+      setFocus(null);
     } finally {
       setMessagesLoading(false);
     }
@@ -180,7 +214,7 @@ export default function PartnerPage() {
     let alive = true;
 
     async function run() {
-      await loadMessages();
+      await loadPartnerHome();
       if (!alive) return;
     }
 
@@ -189,7 +223,7 @@ export default function PartnerPage() {
     return () => {
       alive = false;
     };
-  }, [loadMessages]);
+  }, [loadPartnerHome]);
 
   useEffect(() => {
     if (!profile) return;
@@ -246,7 +280,7 @@ export default function PartnerPage() {
 
       setReplyText("");
       setNotice("Reply sent to the 321school team.");
-      await loadMessages();
+      await loadPartnerHome();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -331,19 +365,54 @@ export default function PartnerPage() {
       <section style={styles.gridTwo}>
         <Panel
           icon={<CalendarDays size={19} aria-hidden="true" />}
-          title="Monthly focus"
+          title={focus?.title || "Monthly focus"}
           eyebrow="Pilot rhythm"
         >
           <p style={styles.panelText}>
-            Test one useful workflow, share one concrete improvement and bring one relevant insight
-            from your local education context.
+            {focus?.description ||
+              "Test one useful workflow, share one concrete improvement and bring one relevant insight from your local education context."}
           </p>
+          {focus?.task ? (
+            <div style={styles.focusTask}>
+              <span>Task</span>
+              <strong>{focus.task}</strong>
+            </div>
+          ) : null}
           <div style={styles.actionStrip}>
-            <span>Next step</span>
-            <strong>Monthly partner meeting</strong>
+            <span>{focus?.meetingTime || "Next step"}</span>
+            {focus?.meetingUrl ? (
+              <a href={focus.meetingUrl} target="_blank" rel="noreferrer" style={styles.inlineLink}>
+                Monthly partner meeting
+              </a>
+            ) : (
+              <strong>Monthly partner meeting</strong>
+            )}
           </div>
         </Panel>
 
+        <Panel icon={<Sparkles size={19} aria-hidden="true" />} title="Onboarding">
+          <p style={styles.panelText}>
+            Start with the partner basics: how to give useful feedback, how to share ideas and how
+            the network will work during the pilot.
+          </p>
+          {focus?.onboardingCourseUrl ? (
+            <a
+              href={focus.onboardingCourseUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={styles.panelButton}
+            >
+              Open onboarding course
+            </a>
+          ) : (
+            <Link href={`/${locale}/academy/courses`} style={styles.panelButton}>
+              Courses
+            </Link>
+          )}
+        </Panel>
+      </section>
+
+      <section style={styles.gridTwo}>
         <Panel icon={<Megaphone size={19} aria-hidden="true" />} title="Latest update">
           {latestMessage ? (
             <>
@@ -356,6 +425,13 @@ export default function PartnerPage() {
           ) : (
             <p style={styles.panelText}>No partner messages yet.</p>
           )}
+        </Panel>
+
+        <Panel icon={<MessageSquareText size={19} aria-hidden="true" />} title="What to send us">
+          <p style={styles.panelText}>
+            Share product feedback, local market signals, possible partner candidates, classroom
+            examples or questions for the next meeting.
+          </p>
         </Panel>
       </section>
 
@@ -776,6 +852,37 @@ const styles: Record<string, CSSProperties> = {
     padding: "10px 12px",
     color: "#475569",
     fontSize: 13,
+  },
+  focusTask: {
+    display: "grid",
+    gap: 5,
+    marginTop: 14,
+    border: "1px solid #bfdbfe",
+    borderRadius: 8,
+    background: "#eff6ff",
+    padding: "10px 12px",
+    color: "#1e3a8a",
+    fontSize: 13,
+  },
+  inlineLink: {
+    color: "#2563eb",
+    fontWeight: 900,
+    textDecoration: "none",
+  },
+  panelButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "fit-content",
+    marginTop: 14,
+    border: "1px solid #2563eb",
+    borderRadius: 8,
+    background: "#2563eb",
+    color: "#ffffff",
+    padding: "9px 12px",
+    fontSize: 14,
+    fontWeight: 900,
+    textDecoration: "none",
   },
   tagList: {
     display: "flex",

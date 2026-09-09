@@ -6,6 +6,41 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 
 type CurrentRole = "teacher" | "parent" | "student" | "other";
 
+const PARTNER_ROLES = new Set([
+  "teacher",
+  "parent",
+  "school_leader",
+  "developer",
+  "content_creator",
+  "marketing_sales",
+  "researcher",
+]);
+
+const COMPETENCE_AREAS = new Set([
+  "ai_learning",
+  "content",
+  "math",
+  "a1_start",
+  "quiz",
+  "images_video",
+  "parents",
+  "assessment",
+  "languages",
+  "marketing",
+  "sales",
+]);
+
+const CONTRIBUTION_TYPES = new Set([
+  "test_features",
+  "give_feedback",
+  "create_content",
+  "share_321school",
+  "school_contacts",
+  "translate",
+  "social_media",
+  "local_market_insight",
+]);
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -37,6 +72,24 @@ function readLanguages(v: unknown): string[] {
   );
 }
 
+function readAllowedArray(v: unknown, allowed: Set<string>, maxItems = 12): string[] {
+  if (!Array.isArray(v)) return [];
+
+  return Array.from(
+    new Set(
+      v
+        .map((item) => readString(item, 80))
+        .filter((item) => allowed.has(item))
+        .slice(0, maxItems)
+    )
+  );
+}
+
+function readAvailability(v: unknown): "low" | "medium" | "high" {
+  if (v === "low" || v === "medium" || v === "high") return v;
+  return "medium";
+}
+
 function readCurrentRole(v: unknown): CurrentRole {
   if (v === "teacher" || v === "parent" || v === "student" || v === "other") return v;
   return "other";
@@ -59,6 +112,18 @@ export async function POST(req: Request) {
     const country = readString(body.country, 80);
     const languages = readLanguages(body.languages);
     const currentRole = readCurrentRole(body.currentRole);
+    const partnerRoles = readAllowedArray(body.partnerRoles, PARTNER_ROLES);
+    const partnerCompetenceAreas = readAllowedArray(
+      body.partnerCompetenceAreas,
+      COMPETENCE_AREAS
+    );
+    const partnerContributionTypes = readAllowedArray(
+      body.partnerContributionTypes,
+      CONTRIBUTION_TYPES
+    );
+    const partnerAvailability = readAvailability(body.partnerAvailability);
+    const partnerProfileBio = readString(body.partnerProfileBio, 800);
+    const partnerDirectoryVisible = body.partnerDirectoryVisible === true;
 
     if (!name) return json({ error: "Name is required" }, 400);
     if (!email) return json({ error: "Email is required" }, 400);
@@ -78,6 +143,12 @@ export async function POST(req: Request) {
         country,
         languages,
         currentRole,
+        partnerRoles,
+        partnerCompetenceAreas,
+        partnerContributionTypes,
+        partnerAvailability,
+        partnerProfileBio,
+        partnerDirectoryVisible,
         status: "pending",
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
@@ -91,6 +162,12 @@ export async function POST(req: Request) {
           partnerStatus: "pending",
           partnerAccess: false,
           partnerLevel: "none",
+          partnerRoles,
+          partnerCompetenceAreas,
+          partnerContributionTypes,
+          partnerAvailability,
+          partnerProfileBio,
+          partnerDirectoryVisible,
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

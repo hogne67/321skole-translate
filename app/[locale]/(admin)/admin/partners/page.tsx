@@ -17,6 +17,12 @@ type PartnerApplication = {
   country?: string;
   languages?: string[];
   currentRole?: string;
+  partnerRoles?: string[];
+  partnerCompetenceAreas?: string[];
+  partnerContributionTypes?: string[];
+  partnerAvailability?: string;
+  partnerDirectoryVisible?: boolean;
+  partnerProfileBio?: string;
   status?: string;
   createdAt?: string;
   reviewedAt?: string;
@@ -62,6 +68,22 @@ type PartnersResponse = {
     partnerReplies?: number;
     unreviewedPartnerReplies?: number;
   };
+};
+
+type PartnerFocus = {
+  title?: string;
+  description?: string;
+  task?: string;
+  meetingUrl?: string;
+  meetingTime?: string;
+  onboardingCourseUrl?: string;
+  updatedAt?: string;
+};
+
+type PartnerFocusResponse = {
+  ok?: boolean;
+  error?: string;
+  focus?: PartnerFocus | null;
 };
 
 type PartnerFollowUpStatus = "needs_follow_up" | "waiting" | "done";
@@ -181,10 +203,21 @@ export default function AdminPartnersPage() {
   const [activePartners, setActivePartners] = useState<ActivePartner[]>([]);
   const [stats, setStats] = useState<PartnersResponse["stats"]>({});
   const [loading, setLoading] = useState(true);
+  const [focusLoading, setFocusLoading] = useState(true);
+  const [focusSaving, setFocusSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [busyFollowUpId, setBusyFollowUpId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [focusForm, setFocusForm] = useState({
+    title: "Monthly focus",
+    description:
+      "Test one useful workflow, share one concrete improvement and bring one relevant insight from your local education context.",
+    task: "",
+    meetingTime: "",
+    meetingUrl: "",
+    onboardingCourseUrl: "",
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
@@ -217,9 +250,56 @@ export default function AdminPartnersPage() {
     }
   }
 
+  async function loadFocus() {
+    setFocusLoading(true);
+    setError(null);
+
+    try {
+      const data = await authedFetch<PartnerFocusResponse>("/api/admin/partners/focus");
+      const focus = data.focus;
+
+      if (focus) {
+        setFocusForm({
+          title: focus.title || "Monthly focus",
+          description:
+            focus.description ||
+            "Test one useful workflow, share one concrete improvement and bring one relevant insight from your local education context.",
+          task: focus.task || "",
+          meetingTime: focus.meetingTime || "",
+          meetingUrl: focus.meetingUrl || "",
+          onboardingCourseUrl: focus.onboardingCourseUrl || "",
+        });
+      }
+    } catch (e: unknown) {
+      setError(errorMessage(e));
+    } finally {
+      setFocusLoading(false);
+    }
+  }
+
   useEffect(() => {
     void load();
+    void loadFocus();
   }, []);
+
+  async function saveFocus() {
+    setFocusSaving(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      await authedFetch<PartnerFocusResponse>("/api/admin/partners/focus", {
+        method: "PATCH",
+        body: JSON.stringify(focusForm),
+      });
+
+      setMessage("Monthly partner focus saved.");
+    } catch (e: unknown) {
+      setError(errorMessage(e));
+    } finally {
+      setFocusSaving(false);
+    }
+  }
 
   const pendingApplications = useMemo(
     () => applications.filter((item) => (item.status || "pending") === "pending"),
@@ -333,14 +413,31 @@ export default function AdminPartnersPage() {
             item.country,
             item.currentRole,
             item.status,
+            item.partnerAvailability,
+            item.partnerProfileBio,
             ...(item.languages ?? []),
+            ...(item.partnerRoles ?? []),
+            ...(item.partnerCompetenceAreas ?? []),
+            ...(item.partnerContributionTypes ?? []),
           ]) &&
           matchesStatus(item.status || "pending") &&
           matchesRegion(location) &&
-          matchesLanguage(item.languages)
+          matchesLanguage(item.languages) &&
+          matchesCompetence(item.partnerCompetenceAreas) &&
+          matchesContribution(item.partnerContributionTypes) &&
+          matchesAvailability(item.partnerAvailability)
         );
       }),
-    [matchesLanguage, matchesRegion, matchesSearch, matchesStatus, pendingApplications]
+    [
+      matchesAvailability,
+      matchesCompetence,
+      matchesContribution,
+      matchesLanguage,
+      matchesRegion,
+      matchesSearch,
+      matchesStatus,
+      pendingApplications,
+    ]
   );
 
   const filteredActivePartners = useMemo(() => {
@@ -397,14 +494,31 @@ export default function AdminPartnersPage() {
           item.country,
           item.currentRole,
           item.status,
+          item.partnerAvailability,
+          item.partnerProfileBio,
           ...(item.languages ?? []),
+          ...(item.partnerRoles ?? []),
+          ...(item.partnerCompetenceAreas ?? []),
+          ...(item.partnerContributionTypes ?? []),
         ]) &&
         matchesStatus(item.status || "pending") &&
         matchesRegion(location) &&
-        matchesLanguage(item.languages)
+        matchesLanguage(item.languages) &&
+        matchesCompetence(item.partnerCompetenceAreas) &&
+        matchesContribution(item.partnerContributionTypes) &&
+        matchesAvailability(item.partnerAvailability)
       );
     });
-  }, [matchesLanguage, matchesRegion, matchesSearch, matchesStatus, reviewedApplications]);
+  }, [
+    matchesAvailability,
+    matchesCompetence,
+    matchesContribution,
+    matchesLanguage,
+    matchesRegion,
+    matchesSearch,
+    matchesStatus,
+    reviewedApplications,
+  ]);
 
   function resetFilters() {
     setSearch("");
@@ -572,6 +686,111 @@ export default function AdminPartnersPage() {
           text="Applications that were not approved."
           tone="slate"
         />
+      </section>
+
+      <section style={styles.card}>
+        <div style={styles.inviteHeader}>
+          <div>
+            <h2 style={styles.sectionTitle}>Monthly partner focus</h2>
+            <p style={styles.muted}>
+              This controls the main focus block and onboarding link on the partner page.
+            </p>
+          </div>
+          <button
+            onClick={loadFocus}
+            disabled={focusLoading || focusSaving}
+            style={styles.secondaryButton}
+          >
+            {focusLoading ? "Loading..." : "Refresh focus"}
+          </button>
+        </div>
+
+        <div style={styles.focusGrid}>
+          <label style={styles.label}>
+            Title
+            <input
+              value={focusForm.title}
+              onChange={(event) =>
+                setFocusForm((current) => ({ ...current, title: event.target.value }))
+              }
+              style={styles.input}
+            />
+          </label>
+          <label style={styles.label}>
+            Meeting time
+            <input
+              value={focusForm.meetingTime}
+              onChange={(event) =>
+                setFocusForm((current) => ({ ...current, meetingTime: event.target.value }))
+              }
+              placeholder="Example: First Tuesday each month, 14:00 CET"
+              style={styles.input}
+            />
+          </label>
+          <label style={styles.label}>
+            Meeting link
+            <input
+              value={focusForm.meetingUrl}
+              onChange={(event) =>
+                setFocusForm((current) => ({ ...current, meetingUrl: event.target.value }))
+              }
+              placeholder="https://..."
+              style={styles.input}
+            />
+          </label>
+          <label style={styles.label}>
+            Onboarding course link
+            <input
+              value={focusForm.onboardingCourseUrl}
+              onChange={(event) =>
+                setFocusForm((current) => ({
+                  ...current,
+                  onboardingCourseUrl: event.target.value,
+                }))
+              }
+              placeholder="https://321school.com/... or /nb/academy/courses/..."
+              style={styles.input}
+            />
+          </label>
+        </div>
+
+        <label style={styles.label}>
+          Description
+          <textarea
+            value={focusForm.description}
+            onChange={(event) =>
+              setFocusForm((current) => ({ ...current, description: event.target.value }))
+            }
+            maxLength={1200}
+            style={{ ...styles.textarea, minHeight: 96 }}
+          />
+        </label>
+
+        <label style={styles.label}>
+          Monthly task
+          <textarea
+            value={focusForm.task}
+            onChange={(event) =>
+              setFocusForm((current) => ({ ...current, task: event.target.value }))
+            }
+            maxLength={1000}
+            placeholder="Example: Test the quiz generator with one real classroom topic and send feedback."
+            style={{ ...styles.textarea, minHeight: 82 }}
+          />
+        </label>
+
+        <div style={styles.formFooter}>
+          <span>
+            {focusForm.description.length} / 1200 description, {focusForm.task.length} / 1000 task
+          </span>
+          <button
+            onClick={saveFocus}
+            disabled={focusSaving || focusLoading}
+            style={styles.primaryButton}
+          >
+            {focusSaving ? "Saving..." : "Save monthly focus"}
+          </button>
+        </div>
       </section>
 
       <section style={styles.card}>
@@ -903,6 +1122,16 @@ function PartnerApplicationCard({
         <DetailItem label="Location" value={location || "-"} />
         <DetailItem label="Languages" value={item.languages?.length ? item.languages.join(", ") : "-"} />
         <DetailItem label="Role" value={cleanValue(item.currentRole)} />
+        <DetailItem label="Partner roles" value={labelsFor(item.partnerRoles, ROLE_OPTIONS)} />
+        <DetailItem
+          label="Competence"
+          value={labelsFor(item.partnerCompetenceAreas, COMPETENCE_OPTIONS)}
+        />
+        <DetailItem
+          label="Contribution"
+          value={labelsFor(item.partnerContributionTypes, CONTRIBUTION_OPTIONS)}
+        />
+        <DetailItem label="Availability" value={cleanValue(item.partnerAvailability || "-")} />
         <DetailItem label="Created" value={formatDate(item.createdAt)} />
         <DetailItem label="Reviewed" value={formatDate(item.reviewedAt)} />
       </dl>
@@ -980,6 +1209,12 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
     marginTop: 14,
   },
+  focusGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 12,
+    marginTop: 14,
+  },
   toolbar: {
     display: "flex",
     gap: 12,
@@ -1036,6 +1271,16 @@ const styles: Record<string, CSSProperties> = {
     color: "#0f172a",
     fontSize: 14,
     lineHeight: 1.5,
+  },
+  formFooter: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginTop: 12,
+    color: "var(--admin-muted, #64748b)",
+    fontSize: 14,
   },
   count: {
     color: "var(--admin-muted, #64748b)",

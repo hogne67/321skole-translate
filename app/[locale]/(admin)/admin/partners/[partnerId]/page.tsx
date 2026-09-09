@@ -19,6 +19,12 @@ type PartnerApplication = {
   country?: string;
   languages?: string[];
   currentRole?: string;
+  partnerRoles?: string[];
+  partnerCompetenceAreas?: string[];
+  partnerContributionTypes?: string[];
+  partnerAvailability?: string;
+  partnerDirectoryVisible?: boolean;
+  partnerProfileBio?: string;
   status?: string;
   createdAt?: string;
   reviewedAt?: string;
@@ -734,17 +740,45 @@ export default function AdminPartnerDetailPage() {
             <AdminSection title="Application" description="Original partner application details.">
               <section style={styles.card}>
                 {application ? (
-                  <dl style={styles.details}>
-                    <DetailItem label="Application ID" value={detail.applicationId || "-"} />
-                    <DetailItem label="Name" value={application.name || "-"} />
-                    <DetailItem label="Email" value={application.email || "-"} />
-                    <DetailItem label="Current role" value={cleanValue(application.currentRole)} />
-                    <DetailItem label="City" value={application.city || "-"} />
-                    <DetailItem label="Country" value={application.country || "-"} />
-                    <DetailItem label="Created" value={formatDate(application.createdAt)} />
-                    <DetailItem label="Reviewed" value={formatDate(application.reviewedAt)} />
-                    <DetailItem label="Reviewed by" value={application.reviewedBy || "-"} />
-                  </dl>
+                  <>
+                    <dl style={styles.details}>
+                      <DetailItem label="Application ID" value={detail.applicationId || "-"} />
+                      <DetailItem label="Name" value={application.name || "-"} />
+                      <DetailItem label="Email" value={application.email || "-"} />
+                      <DetailItem label="Current role" value={cleanValue(application.currentRole)} />
+                      <DetailItem
+                        label="Partner roles"
+                        value={labelsFor(application.partnerRoles, ROLE_OPTIONS)}
+                      />
+                      <DetailItem
+                        label="Competence"
+                        value={labelsFor(application.partnerCompetenceAreas, COMPETENCE_OPTIONS)}
+                      />
+                      <DetailItem
+                        label="Contribution"
+                        value={labelsFor(application.partnerContributionTypes, CONTRIBUTION_OPTIONS)}
+                      />
+                      <DetailItem
+                        label="Availability"
+                        value={cleanValue(application.partnerAvailability)}
+                      />
+                      <DetailItem
+                        label="Directory"
+                        value={application.partnerDirectoryVisible ? "Visible" : "Private"}
+                      />
+                      <DetailItem label="City" value={application.city || "-"} />
+                      <DetailItem label="Country" value={application.country || "-"} />
+                      <DetailItem label="Created" value={formatDate(application.createdAt)} />
+                      <DetailItem label="Reviewed" value={formatDate(application.reviewedAt)} />
+                      <DetailItem label="Reviewed by" value={application.reviewedBy || "-"} />
+                    </dl>
+                    {application.partnerProfileBio ? (
+                      <div style={styles.profileNote}>
+                        <strong>Application note</strong>
+                        <p>{application.partnerProfileBio}</p>
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <p style={styles.muted}>No application record was found for this partner.</p>
                 )}

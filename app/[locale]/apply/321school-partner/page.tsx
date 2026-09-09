@@ -7,6 +7,42 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type CurrentRole = "teacher" | "parent" | "student" | "other";
+type PartnerAvailability = "low" | "medium" | "high";
+
+const ROLE_OPTIONS = [
+  ["teacher", "Teacher"],
+  ["parent", "Parent"],
+  ["school_leader", "School leader"],
+  ["developer", "Developer"],
+  ["content_creator", "Content creator"],
+  ["marketing_sales", "Marketing/sales"],
+  ["researcher", "Researcher"],
+] as const;
+
+const COMPETENCE_OPTIONS = [
+  ["ai_learning", "AI learning"],
+  ["content", "Content"],
+  ["math", "Math"],
+  ["a1_start", "A1 start"],
+  ["quiz", "Quiz"],
+  ["images_video", "Images/video"],
+  ["parents", "Parents"],
+  ["assessment", "Assessment"],
+  ["languages", "Languages"],
+  ["marketing", "Marketing"],
+  ["sales", "Sales"],
+] as const;
+
+const CONTRIBUTION_OPTIONS = [
+  ["test_features", "Test features"],
+  ["give_feedback", "Give feedback"],
+  ["create_content", "Create content"],
+  ["share_321school", "Share 321school"],
+  ["school_contacts", "School contacts"],
+  ["translate", "Translate"],
+  ["social_media", "Social media"],
+  ["local_market_insight", "Local insight"],
+] as const;
 
 function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -60,6 +96,10 @@ function SectionList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function toggleValue(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+}
+
 export default function PartnerApplyPage() {
   const locale = useLocale();
   const { user, profile, loading } = useUserProfile();
@@ -70,6 +110,15 @@ export default function PartnerApplyPage() {
   const [country, setCountry] = useState("");
   const [languagesText, setLanguagesText] = useState("");
   const [currentRole, setCurrentRole] = useState<CurrentRole>("teacher");
+  const [partnerRoles, setPartnerRoles] = useState<string[]>(["teacher"]);
+  const [partnerCompetenceAreas, setPartnerCompetenceAreas] = useState<string[]>([]);
+  const [partnerContributionTypes, setPartnerContributionTypes] = useState<string[]>([
+    "test_features",
+    "give_feedback",
+  ]);
+  const [partnerAvailability, setPartnerAvailability] = useState<PartnerAvailability>("medium");
+  const [partnerProfileBio, setPartnerProfileBio] = useState("");
+  const [partnerDirectoryVisible, setPartnerDirectoryVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +154,12 @@ export default function PartnerApplyPage() {
         country,
         languages,
         currentRole,
+        partnerRoles,
+        partnerCompetenceAreas,
+        partnerContributionTypes,
+        partnerAvailability,
+        partnerProfileBio,
+        partnerDirectoryVisible,
       });
 
       setMessage("Takk. Interessen din er registrert og venter på gjennomgang.");
@@ -223,6 +278,64 @@ export default function PartnerApplyPage() {
                 </select>
               </label>
 
+              <ChoiceGroup
+                title="Relevant roles"
+                options={ROLE_OPTIONS}
+                values={partnerRoles}
+                onToggle={(value) => setPartnerRoles((current) => toggleValue(current, value))}
+              />
+
+              <ChoiceGroup
+                title="Competence areas"
+                options={COMPETENCE_OPTIONS}
+                values={partnerCompetenceAreas}
+                onToggle={(value) =>
+                  setPartnerCompetenceAreas((current) => toggleValue(current, value))
+                }
+              />
+
+              <ChoiceGroup
+                title="Preferred contribution"
+                options={CONTRIBUTION_OPTIONS}
+                values={partnerContributionTypes}
+                onToggle={(value) =>
+                  setPartnerContributionTypes((current) => toggleValue(current, value))
+                }
+              />
+
+              <label style={styles.label}>
+                Availability
+                <select
+                  value={partnerAvailability}
+                  onChange={(e) => setPartnerAvailability(e.target.value as PartnerAvailability)}
+                  style={styles.input}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Short note
+                <textarea
+                  value={partnerProfileBio}
+                  onChange={(e) => setPartnerProfileBio(e.target.value)}
+                  maxLength={800}
+                  placeholder="Tell us briefly where you think you can contribute."
+                  style={styles.textarea}
+                />
+              </label>
+
+              <label style={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={partnerDirectoryVisible}
+                  onChange={(e) => setPartnerDirectoryVisible(e.target.checked)}
+                />
+                Show my profile in a future partner directory
+              </label>
+
               <button onClick={submit} disabled={saving} style={styles.button}>
                 {saving ? "Sending..." : "Submit"}
               </button>
@@ -234,6 +347,42 @@ export default function PartnerApplyPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function ChoiceGroup({
+  title,
+  options,
+  values,
+  onToggle,
+}: {
+  title: string;
+  options: readonly (readonly [string, string])[];
+  values: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div>
+      <div style={styles.choiceTitle}>{title}</div>
+      <div style={styles.choiceGrid}>
+        {options.map(([value, label]) => {
+          const checked = values.includes(value);
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onToggle(value)}
+              style={{
+                ...styles.choiceButton,
+                ...(checked ? styles.choiceButtonActive : null),
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -325,6 +474,51 @@ const styles: Record<string, CSSProperties> = {
     padding: "10px 12px",
     fontSize: 15,
     background: "#ffffff",
+  },
+  textarea: {
+    width: "100%",
+    minHeight: 96,
+    border: "1px solid #cbd5e1",
+    borderRadius: 8,
+    padding: "10px 12px",
+    fontSize: 15,
+    lineHeight: 1.5,
+    background: "#ffffff",
+    resize: "vertical",
+  },
+  choiceTitle: {
+    color: "#111827",
+    fontSize: 13,
+    fontWeight: 900,
+    marginBottom: 8,
+  },
+  choiceGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  choiceButton: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 999,
+    background: "#ffffff",
+    color: "#334155",
+    padding: "7px 10px",
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  choiceButtonActive: {
+    border: "1px solid #0f766e",
+    background: "#ecfdf5",
+    color: "#047857",
+  },
+  checkboxRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: 800,
   },
   button: {
     border: "1px solid #0f766e",

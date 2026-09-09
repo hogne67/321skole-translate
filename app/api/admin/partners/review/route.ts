@@ -37,6 +37,11 @@ function readStringArray(v: unknown): string[] {
   return v.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
+function readAvailability(v: unknown): "low" | "medium" | "high" {
+  if (v === "low" || v === "medium" || v === "high") return v;
+  return "medium";
+}
+
 export async function POST(req: Request) {
   try {
     const token = getBearerToken(req);
@@ -76,6 +81,12 @@ export async function POST(req: Request) {
         const country = readString(application.country);
         const city = readString(application.city);
         const languages = readStringArray(application.languages);
+        const partnerRoles = readStringArray(application.partnerRoles);
+        const partnerCompetenceAreas = readStringArray(application.partnerCompetenceAreas);
+        const partnerContributionTypes = readStringArray(application.partnerContributionTypes);
+        const partnerAvailability = readAvailability(application.partnerAvailability);
+        const partnerProfileBio = readString(application.partnerProfileBio).slice(0, 800);
+        const partnerDirectoryVisible = application.partnerDirectoryVisible === true;
 
         tx.update(applicationRef, {
           status: "approved",
@@ -92,6 +103,12 @@ export async function POST(req: Request) {
             partnerLevel: "partner",
             partnerRegion: city ? `${city}, ${country}` : country,
             partnerLanguages: languages,
+            partnerRoles,
+            partnerCompetenceAreas,
+            partnerContributionTypes,
+            partnerAvailability,
+            partnerProfileBio,
+            partnerDirectoryVisible,
             partnerApprovedAt: reviewedAt,
             partnerApprovedBy: reviewerUid,
             updatedAt: reviewedAt,
