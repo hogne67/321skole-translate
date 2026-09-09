@@ -22,6 +22,7 @@ export type AdminLevel = "moderator" | "admin" | "superadmin";
 export type TeacherStatus = "none" | "pending" | "approved" | "rejected";
 export type PartnerStatus = "none" | "pending" | "active" | "rejected" | "disabled";
 export type PartnerLevel = "none" | "partner";
+export type PartnerAvailability = "low" | "medium" | "high";
 
 export type UserProfile = {
   displayName?: string;
@@ -53,6 +54,12 @@ export type UserProfile = {
   partnerLevel?: PartnerLevel;
   partnerRegion?: string;
   partnerLanguages?: string[];
+  partnerRoles?: string[];
+  partnerCompetenceAreas?: string[];
+  partnerContributionTypes?: string[];
+  partnerAvailability?: PartnerAvailability;
+  partnerDirectoryVisible?: boolean;
+  partnerProfileBio?: string;
   partnerApprovedAt?: unknown;
   partnerApprovedBy?: string;
 
@@ -134,6 +141,12 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       partnerLevel: patch?.partnerLevel,
       partnerRegion: patch?.partnerRegion,
       partnerLanguages: patch?.partnerLanguages,
+      partnerRoles: patch?.partnerRoles,
+      partnerCompetenceAreas: patch?.partnerCompetenceAreas,
+      partnerContributionTypes: patch?.partnerContributionTypes,
+      partnerAvailability: patch?.partnerAvailability,
+      partnerDirectoryVisible: patch?.partnerDirectoryVisible,
+      partnerProfileBio: patch?.partnerProfileBio,
       partnerApprovedAt: patch?.partnerApprovedAt,
       partnerApprovedBy: patch?.partnerApprovedBy,
       schoolId: patch?.schoolId,

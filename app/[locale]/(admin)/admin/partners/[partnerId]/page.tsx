@@ -36,6 +36,13 @@ type PartnerUserProfile = {
   partnerLevel?: string;
   partnerRegion?: string;
   partnerLanguages?: string[];
+  partnerRoles?: string[];
+  partnerCompetenceAreas?: string[];
+  partnerContributionTypes?: string[];
+  partnerAvailability?: string;
+  partnerDirectoryVisible?: boolean;
+  partnerProfileBio?: string;
+  partnerProfileUpdatedAt?: string;
   partnerApprovedAt?: string;
   partnerApprovedBy?: string;
   partnerStatusUpdatedAt?: string;
@@ -82,6 +89,41 @@ type TimelineItem = {
   tone?: "green" | "blue" | "amber" | "slate";
 };
 
+const ROLE_OPTIONS = [
+  ["teacher", "Teacher"],
+  ["parent", "Parent"],
+  ["school_leader", "School leader"],
+  ["developer", "Developer"],
+  ["content_creator", "Content creator"],
+  ["marketing_sales", "Marketing/sales"],
+  ["researcher", "Researcher"],
+] as const;
+
+const COMPETENCE_OPTIONS = [
+  ["ai_learning", "AI learning"],
+  ["content", "Content"],
+  ["math", "Math"],
+  ["a1_start", "A1 start"],
+  ["quiz", "Quiz"],
+  ["images_video", "Images/video"],
+  ["parents", "Parents"],
+  ["assessment", "Assessment"],
+  ["languages", "Languages"],
+  ["marketing", "Marketing"],
+  ["sales", "Sales"],
+] as const;
+
+const CONTRIBUTION_OPTIONS = [
+  ["test_features", "Test features"],
+  ["give_feedback", "Give feedback"],
+  ["create_content", "Create content"],
+  ["share_321school", "Share 321school"],
+  ["school_contacts", "School contacts"],
+  ["translate", "Translate"],
+  ["social_media", "Social media"],
+  ["local_market_insight", "Local insight"],
+] as const;
+
 function statusTone(status?: string): AdminTone {
   if (status === "approved" || status === "active") return "green";
   if (status === "pending") return "amber";
@@ -105,6 +147,12 @@ function formatDate(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString("en-GB");
+}
+
+function labelsFor(values: string[] | undefined, options: readonly (readonly [string, string])[]) {
+  if (!values?.length) return "-";
+  const labelByValue = new Map(options.map(([value, label]) => [value, label]));
+  return values.map((value) => labelByValue.get(value) ?? cleanValue(value)).join(", ");
 }
 
 export default function AdminPartnerDetailPage() {
@@ -562,7 +610,34 @@ export default function AdminPartnerDetailPage() {
                   <DetailItem label="Approved" value={formatDate(userProfile?.partnerApprovedAt)} />
                   <DetailItem label="Approved by" value={userProfile?.partnerApprovedBy || "-"} />
                   <DetailItem label="Access" value={userProfile?.partnerAccess ? "Active" : "Not active"} />
+                  <DetailItem label="Roles" value={labelsFor(userProfile?.partnerRoles, ROLE_OPTIONS)} />
+                  <DetailItem
+                    label="Competence"
+                    value={labelsFor(userProfile?.partnerCompetenceAreas, COMPETENCE_OPTIONS)}
+                  />
+                  <DetailItem
+                    label="Contribution"
+                    value={labelsFor(userProfile?.partnerContributionTypes, CONTRIBUTION_OPTIONS)}
+                  />
+                  <DetailItem
+                    label="Availability"
+                    value={cleanValue(userProfile?.partnerAvailability)}
+                  />
+                  <DetailItem
+                    label="Directory"
+                    value={userProfile?.partnerDirectoryVisible ? "Visible" : "Private"}
+                  />
+                  <DetailItem
+                    label="Profile updated"
+                    value={formatDate(userProfile?.partnerProfileUpdatedAt)}
+                  />
                 </dl>
+                {userProfile?.partnerProfileBio ? (
+                  <div style={styles.profileNote}>
+                    <strong>Partner profile note</strong>
+                    <p>{userProfile.partnerProfileBio}</p>
+                  </div>
+                ) : null}
               </section>
             </AdminSection>
 
@@ -912,6 +987,15 @@ const styles: Record<string, CSSProperties> = {
     fontSize: 15,
     fontWeight: 800,
     wordBreak: "break-word",
+  },
+  profileNote: {
+    marginTop: 16,
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    background: "#f8fafc",
+    color: "#0f172a",
+    lineHeight: 1.55,
   },
   textarea: {
     width: "100%",

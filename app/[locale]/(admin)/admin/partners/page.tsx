@@ -31,6 +31,12 @@ type ActivePartner = {
   partnerLevel?: string;
   partnerRegion?: string;
   partnerLanguages?: string[];
+  partnerRoles?: string[];
+  partnerCompetenceAreas?: string[];
+  partnerContributionTypes?: string[];
+  partnerAvailability?: string;
+  partnerDirectoryVisible?: boolean;
+  partnerProfileBio?: string;
   partnerApprovedAt?: string;
   partnerFollowUpStatus?: string;
   partnerFollowUpStatusUpdatedAt?: string;
@@ -59,6 +65,47 @@ type PartnersResponse = {
 };
 
 type PartnerFollowUpStatus = "needs_follow_up" | "waiting" | "done";
+
+const ROLE_OPTIONS = [
+  ["teacher", "Teacher"],
+  ["parent", "Parent"],
+  ["school_leader", "School leader"],
+  ["developer", "Developer"],
+  ["content_creator", "Content creator"],
+  ["marketing_sales", "Marketing/sales"],
+  ["researcher", "Researcher"],
+] as const;
+
+const COMPETENCE_OPTIONS = [
+  ["ai_learning", "AI learning"],
+  ["content", "Content"],
+  ["math", "Math"],
+  ["a1_start", "A1 start"],
+  ["quiz", "Quiz"],
+  ["images_video", "Images/video"],
+  ["parents", "Parents"],
+  ["assessment", "Assessment"],
+  ["languages", "Languages"],
+  ["marketing", "Marketing"],
+  ["sales", "Sales"],
+] as const;
+
+const CONTRIBUTION_OPTIONS = [
+  ["test_features", "Test features"],
+  ["give_feedback", "Give feedback"],
+  ["create_content", "Create content"],
+  ["share_321school", "Share 321school"],
+  ["school_contacts", "School contacts"],
+  ["translate", "Translate"],
+  ["social_media", "Social media"],
+  ["local_market_insight", "Local insight"],
+] as const;
+
+function labelsFor(values: string[] | undefined, options: readonly (readonly [string, string])[]) {
+  if (!values?.length) return "-";
+  const labelByValue = new Map(options.map(([value, label]) => [value, label]));
+  return values.map((value) => labelByValue.get(value) ?? cleanValue(value)).join(", ");
+}
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -142,6 +189,9 @@ export default function AdminPartnersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
   const [languageFilter, setLanguageFilter] = useState("all");
+  const [competenceFilter, setCompetenceFilter] = useState("all");
+  const [contributionFilter, setContributionFilter] = useState("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [copied, setCopied] = useState(false);
   const [copiedInviteText, setCopiedInviteText] = useState(false);
 
@@ -199,6 +249,28 @@ export default function AdminPartnersPage() {
     return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
   }, [activePartners, applications]);
 
+  const competenceOptions = useMemo(() => {
+    const values = activePartners
+      .flatMap((item) => item.partnerCompetenceAreas ?? [])
+      .filter(Boolean);
+
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [activePartners]);
+
+  const contributionOptions = useMemo(() => {
+    const values = activePartners
+      .flatMap((item) => item.partnerContributionTypes ?? [])
+      .filter(Boolean);
+
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [activePartners]);
+
+  const availabilityOptions = useMemo(() => {
+    const values = activePartners.map((item) => item.partnerAvailability || "").filter(Boolean);
+
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+  }, [activePartners]);
+
   const matchesSearch = useCallback((values: Array<string | number | null | undefined>) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -236,6 +308,18 @@ export default function AdminPartnersPage() {
     return languageFilter === "all" || Boolean(languages?.includes(languageFilter));
   }, [languageFilter]);
 
+  const matchesCompetence = useCallback((competence?: string[]) => {
+    return competenceFilter === "all" || Boolean(competence?.includes(competenceFilter));
+  }, [competenceFilter]);
+
+  const matchesContribution = useCallback((contributions?: string[]) => {
+    return contributionFilter === "all" || Boolean(contributions?.includes(contributionFilter));
+  }, [contributionFilter]);
+
+  const matchesAvailability = useCallback((availability?: string) => {
+    return availabilityFilter === "all" || availability === availabilityFilter;
+  }, [availabilityFilter]);
+
   const filteredPendingApplications = useMemo(
     () =>
       pendingApplications.filter((item) => {
@@ -270,9 +354,14 @@ export default function AdminPartnersPage() {
           item.partnerLevel,
           item.partnerFollowUpStatus,
           item.latestContactAt,
+          item.partnerAvailability,
+          item.partnerProfileBio,
           String(item.partnerReplyCount ?? 0),
           String(item.unreviewedPartnerReplyCount ?? 0),
           ...(item.partnerLanguages ?? []),
+          ...(item.partnerRoles ?? []),
+          ...(item.partnerCompetenceAreas ?? []),
+          ...(item.partnerContributionTypes ?? []),
         ]) &&
         matchesPartnerStatus(
           item.partnerStatus || "active",
@@ -280,9 +369,21 @@ export default function AdminPartnersPage() {
           item.unreviewedPartnerReplyCount ?? 0
         ) &&
         matchesRegion(item.partnerRegion) &&
-        matchesLanguage(item.partnerLanguages)
+        matchesLanguage(item.partnerLanguages) &&
+        matchesCompetence(item.partnerCompetenceAreas) &&
+        matchesContribution(item.partnerContributionTypes) &&
+        matchesAvailability(item.partnerAvailability)
     );
-  }, [activePartners, matchesLanguage, matchesPartnerStatus, matchesRegion, matchesSearch]);
+  }, [
+    activePartners,
+    matchesAvailability,
+    matchesCompetence,
+    matchesContribution,
+    matchesLanguage,
+    matchesPartnerStatus,
+    matchesRegion,
+    matchesSearch,
+  ]);
 
   const filteredApplications = useMemo(() => {
     return reviewedApplications.filter((item) => {
@@ -310,6 +411,9 @@ export default function AdminPartnersPage() {
     setStatusFilter("all");
     setRegionFilter("all");
     setLanguageFilter("all");
+    setCompetenceFilter("all");
+    setContributionFilter("all");
+    setAvailabilityFilter("all");
   }
 
   async function review(item: PartnerApplication, action: "approve" | "reject") {
@@ -546,6 +650,42 @@ export default function AdminPartnersPage() {
             </option>
           ))}
         </select>
+        <select
+          value={competenceFilter}
+          onChange={(event) => setCompetenceFilter(event.target.value)}
+          style={styles.select}
+        >
+          <option value="all">All competence</option>
+          {competenceOptions.map((value) => (
+            <option key={value} value={value}>
+              {labelsFor([value], COMPETENCE_OPTIONS)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={contributionFilter}
+          onChange={(event) => setContributionFilter(event.target.value)}
+          style={styles.select}
+        >
+          <option value="all">All contributions</option>
+          {contributionOptions.map((value) => (
+            <option key={value} value={value}>
+              {labelsFor([value], CONTRIBUTION_OPTIONS)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={availabilityFilter}
+          onChange={(event) => setAvailabilityFilter(event.target.value)}
+          style={styles.select}
+        >
+          <option value="all">All availability</option>
+          {availabilityOptions.map((value) => (
+            <option key={value} value={value}>
+              {cleanValue(value)}
+            </option>
+          ))}
+        </select>
         <button type="button" onClick={resetFilters} style={styles.secondaryButton}>
           Reset
         </button>
@@ -674,6 +814,19 @@ export default function AdminPartnersPage() {
                 value={partner.partnerLanguages?.length ? partner.partnerLanguages.join(", ") : "-"}
               />
               <DetailItem label="Level" value={cleanValue(partner.partnerLevel)} />
+              <DetailItem label="Roles" value={labelsFor(partner.partnerRoles, ROLE_OPTIONS)} />
+              <DetailItem
+                label="Competence"
+                value={labelsFor(partner.partnerCompetenceAreas, COMPETENCE_OPTIONS)}
+              />
+              <DetailItem
+                label="Contribution"
+                value={labelsFor(partner.partnerContributionTypes, CONTRIBUTION_OPTIONS)}
+              />
+              <DetailItem
+                label="Availability"
+                value={cleanValue(partner.partnerAvailability || "-")}
+              />
               <DetailItem label="Approved" value={formatDate(partner.partnerApprovedAt)} />
               <DetailItem
                 label="Follow-up"

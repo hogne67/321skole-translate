@@ -34,6 +34,56 @@ type PartnerProfileSignal = {
   value: string;
 };
 
+type PartnerProfilePayload = {
+  partnerRoles: string[];
+  partnerCompetenceAreas: string[];
+  partnerContributionTypes: string[];
+  partnerAvailability: "low" | "medium" | "high";
+  partnerProfileBio: string;
+  partnerDirectoryVisible: boolean;
+};
+
+const ROLE_OPTIONS = [
+  ["teacher", "Teacher"],
+  ["parent", "Parent"],
+  ["school_leader", "School leader"],
+  ["developer", "Developer"],
+  ["content_creator", "Content creator"],
+  ["marketing_sales", "Marketing/sales"],
+  ["researcher", "Researcher"],
+] as const;
+
+const COMPETENCE_OPTIONS = [
+  ["ai_learning", "AI learning"],
+  ["content", "Content"],
+  ["math", "Math"],
+  ["a1_start", "A1 start"],
+  ["quiz", "Quiz"],
+  ["images_video", "Images/video"],
+  ["parents", "Parents"],
+  ["assessment", "Assessment"],
+  ["languages", "Languages"],
+  ["marketing", "Marketing"],
+  ["sales", "Sales"],
+] as const;
+
+const CONTRIBUTION_OPTIONS = [
+  ["test_features", "Test features"],
+  ["give_feedback", "Give feedback"],
+  ["create_content", "Create content"],
+  ["share_321school", "Share 321school"],
+  ["school_contacts", "School contacts"],
+  ["translate", "Translate"],
+  ["social_media", "Social media"],
+  ["local_market_insight", "Local insight"],
+] as const;
+
+function labelsFor(values: string[] | undefined, options: readonly (readonly [string, string])[]) {
+  if (!values?.length) return "Not set yet";
+  const labelByValue = new Map(options.map(([value, label]) => [value, label]));
+  return values.map((value) => labelByValue.get(value) ?? cleanValue(value)).join(", ");
+}
+
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -58,6 +108,15 @@ export default function PartnerPage() {
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState<PartnerProfilePayload>({
+    partnerRoles: [],
+    partnerCompetenceAreas: [],
+    partnerContributionTypes: [],
+    partnerAvailability: "medium",
+    partnerProfileBio: "",
+    partnerDirectoryVisible: false,
+  });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -69,8 +128,17 @@ export default function PartnerPage() {
       { label: "Region", value: profile?.partnerRegion || "Not set yet" },
       { label: "Languages", value: languages },
       { label: "Level", value: cleanValue(profile?.partnerLevel || "partner") },
+      {
+        label: "Availability",
+        value: cleanValue(profile?.partnerAvailability || "medium"),
+      },
     ];
-  }, [profile?.partnerLanguages, profile?.partnerLevel, profile?.partnerRegion]);
+  }, [
+    profile?.partnerAvailability,
+    profile?.partnerLanguages,
+    profile?.partnerLevel,
+    profile?.partnerRegion,
+  ]);
 
   const latestMessage = messages[0];
 
@@ -123,6 +191,36 @@ export default function PartnerPage() {
     };
   }, [loadMessages]);
 
+  useEffect(() => {
+    if (!profile) return;
+
+    setProfileForm({
+      partnerRoles: profile.partnerRoles ?? [],
+      partnerCompetenceAreas: profile.partnerCompetenceAreas ?? [],
+      partnerContributionTypes: profile.partnerContributionTypes ?? [],
+      partnerAvailability: profile.partnerAvailability ?? "medium",
+      partnerProfileBio: profile.partnerProfileBio ?? "",
+      partnerDirectoryVisible: profile.partnerDirectoryVisible === true,
+    });
+  }, [profile]);
+
+  function toggleListValue(key: keyof Pick<
+    PartnerProfilePayload,
+    "partnerRoles" | "partnerCompetenceAreas" | "partnerContributionTypes"
+  >, value: string) {
+    setProfileForm((current) => {
+      const list = current[key];
+      const nextList = list.includes(value)
+        ? list.filter((item) => item !== value)
+        : [...list, value];
+
+      return {
+        ...current,
+        [key]: nextList,
+      };
+    });
+  }
+
   async function sendReply() {
     if (!user || user.isAnonymous || !replyText.trim()) return;
 
@@ -153,6 +251,37 @@ export default function PartnerPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSending(false);
+    }
+  }
+
+  async function savePartnerProfile() {
+    if (!user || user.isAnonymous) return;
+
+    setSavingProfile(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const token = await getIdToken(user, true);
+      const response = await fetch("/api/partner/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileForm),
+      });
+      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `Could not save profile (${response.status})`);
+      }
+
+      setNotice("Partner profile saved.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -239,13 +368,19 @@ export default function PartnerPage() {
         </Panel>
         <Panel icon={<Lightbulb size={18} aria-hidden="true" />} title="Competence areas">
           <div style={styles.tagList}>
-            {["Content", "AI learning", "Marketing", "Sales", "Parents", "Math", "A1 start", "Quiz"].map(
-              (tag) => (
-                <span key={tag} style={styles.tag}>
-                  {tag}
-                </span>
-              )
-            )}
+            {profileForm.partnerCompetenceAreas.length
+              ? profileForm.partnerCompetenceAreas.map((tag) => (
+                  <span key={tag} style={styles.tag}>
+                    {labelsFor([tag], COMPETENCE_OPTIONS)}
+                  </span>
+                ))
+              : ["Content", "AI learning", "Marketing", "Sales", "Parents", "Math", "A1 start", "Quiz"].map(
+                  (tag) => (
+                    <span key={tag} style={styles.tag}>
+                      {tag}
+                    </span>
+                  )
+                )}
           </div>
         </Panel>
         <Panel icon={<Globe2 size={18} aria-hidden="true" />} title="Your partner profile">
@@ -258,6 +393,104 @@ export default function PartnerPage() {
             ))}
           </dl>
         </Panel>
+      </section>
+
+      <section style={styles.card}>
+        <div style={styles.sectionHeader}>
+          <div>
+            <div style={styles.kicker}>Profile</div>
+            <h2 style={styles.sectionTitle}>Edit your partner profile</h2>
+          </div>
+          <UsersRound size={21} color="#2563eb" aria-hidden="true" />
+        </div>
+        <p style={styles.muted}>
+          This helps 321school invite the right people into pilots, product feedback and local
+          market conversations.
+        </p>
+
+        <div style={styles.formGrid}>
+          <ChoiceGroup
+            title="Roles"
+            options={ROLE_OPTIONS}
+            values={profileForm.partnerRoles}
+            onToggle={(value) => toggleListValue("partnerRoles", value)}
+          />
+          <ChoiceGroup
+            title="Competence"
+            options={COMPETENCE_OPTIONS}
+            values={profileForm.partnerCompetenceAreas}
+            onToggle={(value) => toggleListValue("partnerCompetenceAreas", value)}
+          />
+          <ChoiceGroup
+            title="Preferred contribution"
+            options={CONTRIBUTION_OPTIONS}
+            values={profileForm.partnerContributionTypes}
+            onToggle={(value) => toggleListValue("partnerContributionTypes", value)}
+          />
+          <label style={styles.fieldLabel}>
+            Availability
+            <select
+              value={profileForm.partnerAvailability}
+              onChange={(event) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  partnerAvailability: event.target.value as PartnerProfilePayload["partnerAvailability"],
+                }))
+              }
+              style={styles.select}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+        </div>
+
+        <label style={styles.fieldLabel}>
+          Short profile note
+          <textarea
+            value={profileForm.partnerProfileBio}
+            onChange={(event) =>
+              setProfileForm((current) => ({
+                ...current,
+                partnerProfileBio: event.target.value,
+              }))
+            }
+            maxLength={800}
+            placeholder="What should 321school know about your interests, context or possible contribution?"
+            style={{ ...styles.textarea, minHeight: 108 }}
+          />
+        </label>
+
+        <label style={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={profileForm.partnerDirectoryVisible}
+            onChange={(event) =>
+              setProfileForm((current) => ({
+                ...current,
+                partnerDirectoryVisible: event.target.checked,
+              }))
+            }
+          />
+          Show my profile in a future partner directory
+        </label>
+
+        <div style={styles.replyActions}>
+          <span style={styles.counter}>{profileForm.partnerProfileBio.length} / 800</span>
+          <button
+            onClick={savePartnerProfile}
+            disabled={savingProfile}
+            style={{
+              ...styles.primaryButton,
+              opacity: savingProfile ? 0.62 : 1,
+              cursor: savingProfile ? "not-allowed" : "pointer",
+            }}
+          >
+            <CheckCircle2 size={16} aria-hidden="true" />
+            {savingProfile ? "Saving..." : "Save partner profile"}
+          </button>
+        </div>
       </section>
 
       <section style={styles.card}>
@@ -345,6 +578,42 @@ function Panel({
       </div>
       {children}
     </section>
+  );
+}
+
+function ChoiceGroup({
+  title,
+  options,
+  values,
+  onToggle,
+}: {
+  title: string;
+  options: readonly (readonly [string, string])[];
+  values: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div>
+      <div style={styles.choiceTitle}>{title}</div>
+      <div style={styles.choiceGrid}>
+        {options.map(([value, label]) => {
+          const checked = values.includes(value);
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onToggle(value)}
+              style={{
+                ...styles.choiceButton,
+                ...(checked ? styles.choiceButtonActive : null),
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -524,6 +793,63 @@ const styles: Record<string, CSSProperties> = {
     color: "#334155",
     padding: "4px 9px",
     fontSize: 13,
+    fontWeight: 800,
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 18,
+    marginTop: 16,
+  },
+  choiceTitle: {
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 900,
+    marginBottom: 9,
+  },
+  choiceGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  choiceButton: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 999,
+    background: "#ffffff",
+    color: "#334155",
+    padding: "7px 10px",
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  choiceButtonActive: {
+    border: "1px solid #2563eb",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+  },
+  fieldLabel: {
+    display: "grid",
+    gap: 8,
+    marginTop: 16,
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 900,
+  },
+  select: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 8,
+    background: "#ffffff",
+    color: "#0f172a",
+    padding: "10px 12px",
+    fontSize: 15,
+  },
+  checkboxRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    marginTop: 14,
+    color: "#334155",
+    fontSize: 14,
     fontWeight: 800,
   },
   signalList: {
