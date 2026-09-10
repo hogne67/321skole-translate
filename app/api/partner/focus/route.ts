@@ -20,6 +20,15 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function readString(v: unknown, maxLength = 1000): string {
+  return typeof v === "string" ? v.trim().slice(0, maxLength) : "";
+}
+
+function isAdminProfile(data: Record<string, unknown>): boolean {
+  const roles = isRecord(data.roles) ? data.roles : {};
+  return data.role === "admin" || roles.admin === true;
+}
+
 function toJsonSafe(data: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(data).map(([key, value]) => {
@@ -39,10 +48,20 @@ async function requireActivePartner(req: Request) {
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(token);
   const uid = decoded.uid;
+  const authEmail = readString(decoded.email, 160).toLowerCase();
   if (!uid) return { error: json({ error: "Unauthorized" }, 401) };
 
   const userSnap = await db.collection("users").doc(uid).get();
   const userData = userSnap.data() ?? {};
+  const profileEmail = readString(userData.email, 160).toLowerCase();
+
+  if (isAdminProfile(userData)) {
+    return { error: json({ error: "Admin users cannot use partner tools" }, 403) };
+  }
+
+  if (authEmail && profileEmail && authEmail !== profileEmail) {
+    return { error: json({ error: "Profile email does not match the signed-in account" }, 409) };
+  }
 
   if (userData.partnerAccess !== true || userData.partnerStatus !== "active") {
     return { error: json({ error: "No active partner access" }, 403) };

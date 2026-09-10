@@ -151,6 +151,7 @@ export async function POST(req: Request) {
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
     const userData = userSnap.data() ?? {};
+    const profileEmail = readString(userData.email, 160);
 
     if (isAdminProfile(userData)) {
       return json({
@@ -158,8 +159,36 @@ export async function POST(req: Request) {
           "Admin users cannot submit partner applications. Send the invitation link to the candidate instead.",
       }, 400);
     }
+    if (
+      authEmail &&
+      profileEmail &&
+      profileEmail.toLowerCase() !== authEmail.toLowerCase()
+    ) {
+      return json({
+        error:
+          "Your profile email does not match the signed-in account. Contact 321school before applying.",
+      }, 409);
+    }
 
     const applicationRef = db.collection("partnerApplications").doc();
+    const profilePatch: Record<string, unknown> = {
+      partnerStatus: "pending",
+      partnerAccess: false,
+      partnerLevel: "none",
+      partnerRoles,
+      partnerCompetenceAreas,
+      partnerContributionTypes,
+      partnerAvailability,
+      partnerProfileBio,
+      partnerDirectoryVisible,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!userSnap.exists) {
+      profilePatch.email = authEmail;
+      profilePatch.displayName = readString(decoded.name, 120) || name;
+      profilePatch.createdAt = FieldValue.serverTimestamp();
+    }
 
     await db.runTransaction(async (tx) => {
       tx.set(applicationRef, {
@@ -183,20 +212,7 @@ export async function POST(req: Request) {
 
       tx.set(
         userRef,
-        {
-          email,
-          displayName: name,
-          partnerStatus: "pending",
-          partnerAccess: false,
-          partnerLevel: "none",
-          partnerRoles,
-          partnerCompetenceAreas,
-          partnerContributionTypes,
-          partnerAvailability,
-          partnerProfileBio,
-          partnerDirectoryVisible,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
+        profilePatch,
         { merge: true }
       );
     });

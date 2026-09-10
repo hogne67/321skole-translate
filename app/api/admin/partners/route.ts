@@ -144,7 +144,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const applications: PartnerApplicationItem[] = applicationsSnap.docs
+    const rawApplications: PartnerApplicationItem[] = applicationsSnap.docs
       .map(
         (doc): PartnerApplicationItem => ({
           id: doc.id,
@@ -152,6 +152,22 @@ export async function GET(req: Request) {
         })
       )
       .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+
+    const applicationUserRefs = rawApplications
+      .map((item) => (typeof item.uid === "string" ? item.uid : ""))
+      .filter(Boolean)
+      .map((uid) => db.collection("users").doc(uid));
+    const applicationUserSnaps = applicationUserRefs.length
+      ? await db.getAll(...applicationUserRefs)
+      : [];
+    const applicationUserByUid = new Map(
+      applicationUserSnaps.map((snap) => [snap.id, snap.data() ?? {}])
+    );
+    const applications = rawApplications.filter((item) => {
+      const uid = typeof item.uid === "string" ? item.uid : "";
+      const profile = uid ? applicationUserByUid.get(uid) : null;
+      return !profile || !isAdminProfile(profile);
+    });
 
     const applicationUidSet = new Set(
       applications

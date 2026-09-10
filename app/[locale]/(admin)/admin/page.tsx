@@ -252,43 +252,45 @@ export default function AdminPage() {
         </div>
       </AdminCard>
 
-      <AdminCard className={profileMatchesAuth ? "identityCheck" : "identityCheck identityWarning"}>
-        <div>
-          <div className="eyebrow">Identity check</div>
-          <h3>{profileMatchesAuth ? "Auth and profile look aligned" : "Auth/profile mismatch"}</h3>
-          <p>
-            This compares the signed-in Firebase Auth user with the Firestore profile used for
-            admin access.
-          </p>
-        </div>
+      {!profileMatchesAuth ? (
+        <AdminCard className="identityCheck identityWarning">
+          <div>
+            <div className="eyebrow">Identity check</div>
+            <h3>Auth/profile mismatch</h3>
+            <p>
+              This compares the signed-in Firebase Auth user with the Firestore profile used for
+              admin access.
+            </p>
+          </div>
 
-        <div className="identityGrid">
-          <div>
-            <span>Auth email</span>
-            <strong>{user?.email || "-"}</strong>
+          <div className="identityGrid">
+            <div>
+              <span>Auth email</span>
+              <strong>{user?.email || "-"}</strong>
+            </div>
+            <div>
+              <span>Auth display name</span>
+              <strong>{user?.displayName || "-"}</strong>
+            </div>
+            <div>
+              <span>Firestore profile email</span>
+              <strong>{typeof profile?.email === "string" ? profile.email : "-"}</strong>
+            </div>
+            <div>
+              <span>Firestore profile name</span>
+              <strong>{typeof profile?.displayName === "string" ? profile.displayName : "-"}</strong>
+            </div>
+            <div>
+              <span>Auth UID / profile doc</span>
+              <strong>{user?.uid || "-"}</strong>
+            </div>
+            <div>
+              <span>Role</span>
+              <strong>{levelLabel}</strong>
+            </div>
           </div>
-          <div>
-            <span>Auth display name</span>
-            <strong>{user?.displayName || "-"}</strong>
-          </div>
-          <div>
-            <span>Firestore profile email</span>
-            <strong>{typeof profile?.email === "string" ? profile.email : "-"}</strong>
-          </div>
-          <div>
-            <span>Firestore profile name</span>
-            <strong>{typeof profile?.displayName === "string" ? profile.displayName : "-"}</strong>
-          </div>
-          <div>
-            <span>Auth UID / profile doc</span>
-            <strong>{user?.uid || "-"}</strong>
-          </div>
-          <div>
-            <span>Role</span>
-            <strong>{levelLabel}</strong>
-          </div>
-        </div>
-      </AdminCard>
+        </AdminCard>
+      ) : null}
 
       <AdminSection eyebrow="Analytics" title="Recent activity">
         <section className="statsRow" aria-label="Analytics activity">
