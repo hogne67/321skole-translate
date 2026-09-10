@@ -241,6 +241,56 @@ function getPromptText(lang: Lang) {
   };
 }
 
+function isBeginnerLevel(level: string): boolean {
+  const normalized = (level || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, "");
+
+  return normalized === "A1" || normalized === "A1START";
+}
+
+function buildLevelSpecificFeedbackGuidance(lang: Lang, level: string): string {
+  if (!isBeginnerLevel(level)) return "";
+
+  if (lang === "en") {
+    return [
+      "Extra guidance for A1/A1 Start feedback:",
+      "Write much shorter and simpler than normal. Use everyday words.",
+      "Keep each section to 1-2 short sentences. The whole feedback should normally be under 90 words.",
+      "Do not use grammar terminology such as subject, verb, word order, punctuation, tense, or varied language unless the task explicitly practises that point.",
+      "Do not focus on capital letters, full stops, spelling, or slightly wrong word choices when the meaning is clear.",
+      "In the grammar/language section, usually say that the language is understandable and give at most one tiny improvement.",
+      "Do not ask for more examples, longer answers, or more varied language unless the task clearly asked for that.",
+      "Next steps should be exactly 1-2 concrete, easy actions.",
+    ].join("\n");
+  }
+
+  if (lang === "pt") {
+    return [
+      "Orientação extra para feedback A1/A1 Start:",
+      "Escreva muito mais curto e simples do que o normal. Use palavras do dia a dia.",
+      "Use 1-2 frases curtas por seção. O feedback inteiro deve normalmente ter menos de 90 palavras.",
+      "Não use termos gramaticais como sujeito, verbo, ordem das palavras, pontuação, tempo verbal ou linguagem variada, a menos que a tarefa pratique isso explicitamente.",
+      "Não foque em letras maiúsculas, ponto final, ortografia ou escolhas de palavras um pouco erradas quando o sentido está claro.",
+      "Na seção de gramática/linguagem, normalmente diga que a linguagem é compreensível e dê no máximo uma pequena melhoria.",
+      "Não peça mais exemplos, respostas mais longas ou linguagem mais variada, a menos que a tarefa peça isso claramente.",
+      "Os próximos passos devem ser exatamente 1-2 ações concretas e fáceis.",
+    ].join("\n");
+  }
+
+  return [
+    "Ekstra veiledning for A1/A1 Start-feedback:",
+    "Skriv mye kortere og enklere enn normalt. Bruk hverdagsord.",
+    "Bruk 1-2 korte setninger per del. Hele tilbakemeldingen bør vanligvis være under 90 ord.",
+    "Ikke bruk grammatikkord som subjekt, verb, ordstilling, tegnsetting, verbtid eller variert språk, med mindre oppgaven øver akkurat dette.",
+    "Ikke fokuser på stor bokstav, punktum, rettskriving eller litt feil ordvalg når meningen er tydelig.",
+    "I delen om grammatikk/språk: si som regel at språket er forståelig, og gi maks én liten forbedring.",
+    "Ikke be om flere eksempler, lengre svar eller mer variert språk, med mindre oppgaven tydelig ber om det.",
+    "Neste steg skal være nøyaktig 1-2 konkrete og enkle handlinger.",
+  ].join("\n");
+}
+
 function buildSystemPrompt(lang: Lang) {
   const headings = getHeadings(lang);
   const t = getPromptText(lang);
@@ -381,6 +431,7 @@ export async function POST(req: Request) {
       : isImageWriting
         ? buildImageWritingSystemPrompt(locale)
         : buildSystemPrompt(locale);
+    const levelSpecificGuidance = buildLevelSpecificFeedbackGuidance(locale, nivå);
 
     const readingAnswers = pickRecord(body, ["readingAnswers", "answers"]) || {};
     const readingTasks = pickArray(body, ["readingTasks", "tasks"]);
@@ -415,6 +466,7 @@ export async function POST(req: Request) {
       ? buildReadingTestUserContent({
         lesetekst,
         nivå,
+        levelSpecificGuidance,
         autoResultat,
         readingSignalsText,
         tasks: readingTasks,
@@ -426,6 +478,7 @@ export async function POST(req: Request) {
       : isImageWriting
       ? [
         `${t.level}: ${nivå}`,
+        levelSpecificGuidance ? `\n${levelSpecificGuidance}` : "",
         oppgaveType ? `${t.taskType}: ${oppgaveType}` : "",
         "",
         "Dette er en skriveoppgave basert på et bilde.",
@@ -436,6 +489,7 @@ export async function POST(req: Request) {
         `${t.studentAnswer}:\n${svar || t.notProvided}`,
       ].filter(Boolean).join("\n")
       : `${t.level}: ${nivå}\n` +
+        (levelSpecificGuidance ? `${levelSpecificGuidance}\n` : "") +
         (oppgaveType ? `${t.taskType}: ${oppgaveType}\n` : "") +
         `\n${t.autoResult}:\n${autoResultat || t.notProvided}\n` +
         `\n${t.lessonText}:\n${lesetekst}\n\n` +
@@ -668,28 +722,38 @@ function buildReadingLevelGuidance(level: string): string {
     C1: "C2",
   };
 
+  const beginnerGuidance = isBeginnerLevel(level)
+    ? "For A1/A1 Start skal tilbakemeldingen være ekstra kort, enkel og konkret. Ikke gjør små språkfeil til hovedsak når svaret er forståelig."
+    : "";
+
   if (normalized === "C2") {
     return [
       `Tekstens CEFR-nivå er ${normalized}.`,
+      beginnerGuidance,
       "Det finnes ikke et høyere CEFR-nivå å foreslå. Ved svært godt resultat kan neste steg være en lengre tekst, et mer krevende tema eller en mer nyansert tekst på samme nivå.",
-    ].join(" ");
+    ].filter(Boolean).join(" ");
   }
 
   if (nextLevel[normalized]) {
     return [
       `Tekstens CEFR-nivå er ${normalized}.`,
+      beginnerGuidance,
       `Ved høy autoscore og mer enn 100 ord per minutt kan du foreslå at eleven også prøver en tekst på et litt høyere nivå, for eksempel ${nextLevel[normalized]}, hvis forståelsen virker god.`,
       `Ved svært høy autoscore og mer enn 200 ord per minutt bør du tydelig peke på at eleven godt kan prøve mer krevende tekster, gjerne ${nextLevel[normalized]}, men uten å konkludere at eleven er på dette nivået.`,
       "Hvis resultatet ikke er sterkt, bør neste steg være mer øving på samme nivå.",
-    ].join(" ");
+    ].filter(Boolean).join(" ");
   }
 
-  return `Tekstens CEFR-nivå er ${level || "ikke oppgitt"}. Bruk dette som tekstnivå, ikke som en bred vurdering av elevens nivå.`;
+  return [
+    `Tekstens CEFR-nivå er ${level || "ikke oppgitt"}. Bruk dette som tekstnivå, ikke som en bred vurdering av elevens nivå.`,
+    beginnerGuidance,
+  ].filter(Boolean).join(" ");
 }
 
 function buildReadingTestUserContent(args: {
   lesetekst: string;
   nivå: string;
+  levelSpecificGuidance: string;
   autoResultat: string;
   readingSignalsText: string;
   tasks: unknown[];
@@ -701,6 +765,7 @@ function buildReadingTestUserContent(args: {
   return [
     `Tekstens CEFR-nivå: ${args.nivå}`,
     `Nivåveiledning:\n${buildReadingLevelGuidance(args.nivå)}`,
+    args.levelSpecificGuidance ? `\n${args.levelSpecificGuidance}` : "",
     "",
     `Metadata for lesetest:\n${buildReadingMetadata(args.config, args.progress)}`,
     "",

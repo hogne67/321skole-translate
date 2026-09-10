@@ -215,6 +215,17 @@ type SentenceSeg = {
 };
 
 const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
+const AUDIO_PLAYBACK_RATE_KEY = "321school.lessonAudioPlaybackRate";
+const AUDIO_PLAYBACK_RATES = [0.5, 0.65, 0.8, 1, 1.2] as const;
+const DEFAULT_AUDIO_PLAYBACK_RATE = 0.8;
+
+function readSavedPlaybackRate(): number {
+  if (typeof window === "undefined") return DEFAULT_AUDIO_PLAYBACK_RATE;
+  const saved = Number(window.localStorage.getItem(AUDIO_PLAYBACK_RATE_KEY));
+  return AUDIO_PLAYBACK_RATES.includes(saved as (typeof AUDIO_PLAYBACK_RATES)[number])
+    ? saved
+    : DEFAULT_AUDIO_PLAYBACK_RATE;
+}
 
 function safeRole(role: unknown): Role {
   if (role === "teacher") return "teacher";
@@ -764,7 +775,10 @@ function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[
     const endChar = startChar + p.length;
     cursor = endChar;
 
-    const weight = Math.max(8, p.replace(/\s+/g, " ").length);
+    const pauseWeight =
+      (p.match(/[,:;]/g)?.length ?? 0) * 3 +
+      (/[.!?]$/.test(p) ? 8 : 4);
+    const weight = Math.max(8, p.replace(/\s+/g, " ").length + pauseWeight);
     segsRaw.push({ text: p, startChar, endChar, weight });
   }
 
@@ -1098,8 +1112,9 @@ export default function StudentLessonPage() {
   }, [feedback]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const activeSentenceRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   const [ttsBusy, setTtsBusy] = useState<null | AudioMode>(null);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [playbackRate, setPlaybackRate] = useState(readSavedPlaybackRate);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -1425,7 +1440,27 @@ export default function StudentLessonPage() {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(AUDIO_PLAYBACK_RATE_KEY, String(playbackRate));
+    }
   }, [playbackRate]);
+
+  useEffect(() => {
+    if (activeSentenceIndex == null) return;
+    if (activeTextMode !== "text_original" && activeTextMode !== "text_translation") return;
+
+    const sectionKey =
+      activeTextMode === "text_original" ? activeSoundSectionKey ?? "main" : "main";
+    const refKey = `${activeTextMode}:${sectionKey}:${activeSentenceIndex}`;
+    const el = activeSentenceRefs.current.get(refKey);
+    if (!el) return;
+
+    el.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+  }, [activeSentenceIndex, activeSoundSectionKey, activeTextMode]);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -2163,6 +2198,9 @@ export default function StudentLessonPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {segs.map((s, i) => {
           const isActive = activeTextMode === mode && activeSentenceIndex === i;
+          const sectionKey =
+            mode === "text_original" ? activeSoundSectionKey ?? "main" : "main";
+          const refKey = `${mode}:${sectionKey}:${i}`;
           const normalizedSegment = s.text.trim().toLocaleLowerCase();
           const isSectionHeading = [
             "forklaring",
@@ -2183,13 +2221,18 @@ export default function StudentLessonPage() {
           return (
             <span
               key={`${mode}_${i}_${s.startChar}`}
+              ref={(node) => {
+                if (node) activeSentenceRefs.current.set(refKey, node);
+                else activeSentenceRefs.current.delete(refKey);
+              }}
               onClick={() => (canSeek ? seekToSentence(mode, i) : undefined)}
               style={{
                 cursor: canSeek ? "pointer" : "default",
-                padding: "3px 8px",
-                borderRadius: 8,
-                background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
-                transition: "background 120ms ease",
+                padding: "4px 9px",
+                borderRadius: 9,
+                background: isActive ? "rgba(255, 230, 120, 0.78)" : "transparent",
+                boxShadow: isActive ? "0 0 0 1px rgba(245, 158, 11, 0.20)" : "none",
+                transition: "background 160ms ease, box-shadow 160ms ease",
                 marginTop: isSectionHeading && i > 0 ? 14 : 0,
                 fontWeight: isSectionHeading ? 800 : 400,
                 ...readingTextStyle,
@@ -2217,10 +2260,15 @@ export default function StudentLessonPage() {
             activeTextMode === "text_original" &&
             activeSoundSectionKey === section.key &&
             activeSentenceIndex === i;
+          const refKey = `text_original:${section.key}:${i}`;
 
           return (
             <span
               key={`${section.key}_${i}_${s.startChar}`}
+              ref={(node) => {
+                if (node) activeSentenceRefs.current.set(refKey, node);
+                else activeSentenceRefs.current.delete(refKey);
+              }}
               onClick={() =>
                 activeSoundSectionKey === section.key && audioRef.current
                   ? seekToSentence("text_original", i)
@@ -2228,10 +2276,11 @@ export default function StudentLessonPage() {
               }
               style={{
                 cursor: activeSoundSectionKey === section.key && audioRef.current ? "pointer" : "default",
-                padding: "3px 8px",
-                borderRadius: 8,
-                background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
-                transition: "background 120ms ease",
+                padding: "4px 9px",
+                borderRadius: 9,
+                background: isActive ? "rgba(255, 230, 120, 0.78)" : "transparent",
+                boxShadow: isActive ? "0 0 0 1px rgba(245, 158, 11, 0.20)" : "none",
+                transition: "background 160ms ease, box-shadow 160ms ease",
                 color: "#0f172a",
                 ...readingTextStyle,
               }}
@@ -3401,27 +3450,20 @@ export default function StudentLessonPage() {
             </div>
 
             <div style={isMobileView ? mobileSpeedGroupStyle : speedGroupStyle}>
-              <button
-                type="button"
-                style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(0.8)}
-              >
-                0.8x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(1)}
-              >
-                1x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(1.2)}
-              >
-                1.2x
-              </button>
+              {AUDIO_PLAYBACK_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  style={
+                    playbackRate === rate
+                      ? mobileAwareSpeedActiveStyle(isMobileView)
+                      : mobileAwareSpeedStyle(isMobileView)
+                  }
+                  onClick={() => setPlaybackRate(rate)}
+                >
+                  {rate}x
+                </button>
+              ))}
             </div>
 
             <button
