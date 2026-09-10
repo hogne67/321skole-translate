@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -11,6 +11,8 @@ function isEmailPasswordUser(user: NonNullable<ReturnType<typeof useUserProfile>
   return user.providerData.some((provider) => provider.providerId === "password");
 }
 
+const RESEND_COOLDOWN_SECONDS = 60;
+
 function copyFor(locale: string) {
   if (locale === "en") {
     return {
@@ -18,9 +20,10 @@ function copyFor(locale: string) {
       expiredTitle: "Verify your email to continue creating",
       text: "You can read, view and study while waiting. Creating family rooms and using AI tools require a verified email.",
       expiredText: "The verification period has ended. You can still read and view content, but creating family rooms and using AI tools require a verified email.",
-      hint: "Check your inbox and spam/junk folder.",
+      hint: "The email can take a few minutes to arrive. Check your inbox and spam/junk folder.",
       resend: "Send verification email",
-      sent: "Verification email sent. Please check your inbox.",
+      resendWait: "Send again in {seconds}s",
+      sent: "Verification email sent. It can take a few minutes, and it may land in spam/junk.",
       failed: "We could not send the email right now. Try again in a moment.",
       tooMany: "Too many attempts right now. Please wait a while before trying again.",
       reload: "I have verified. Check again",
@@ -36,9 +39,10 @@ function copyFor(locale: string) {
       expiredTitle: "Confirme seu e-mail para continuar criando",
       text: "Você pode ler, ver e estudar enquanto espera. Criar espaços familiares e usar ferramentas de IA exige e-mail confirmado.",
       expiredText: "O prazo de confirmação terminou. Você ainda pode ler e ver conteúdo, mas criar espaços familiares e usar ferramentas de IA exige e-mail confirmado.",
-      hint: "Verifique a caixa de entrada e também spam/lixo eletrônico.",
+      hint: "O e-mail pode levar alguns minutos para chegar. Verifique a caixa de entrada e também spam/lixo eletrônico.",
       resend: "Enviar e-mail de confirmação",
-      sent: "E-mail de confirmação enviado. Verifique sua caixa de entrada.",
+      resendWait: "Enviar novamente em {seconds}s",
+      sent: "E-mail de confirmação enviado. Pode levar alguns minutos e pode cair em spam/lixo eletrônico.",
       failed: "Não foi possível enviar o e-mail agora. Tente novamente em instantes.",
       tooMany: "Muitas tentativas agora. Aguarde um pouco antes de tentar novamente.",
       reload: "Já confirmei. Verificar novamente",
@@ -53,9 +57,10 @@ function copyFor(locale: string) {
     expiredTitle: "Bekreft e-posten for å fortsette å lage",
     text: "Du kan lese, se og studere mens du venter. For å lage familierom og bruke KI-verktøy må e-posten være bekreftet.",
     expiredText: "Bekreftelsesfristen er ute. Du kan fortsatt lese og se innhold, men for å lage familierom og bruke KI-verktøy må e-posten være bekreftet.",
-    hint: "Sjekk innboksen og eventuelt søppelpost/junk.",
+    hint: "Det kan ta noen minutter før e-posten kommer fram. Sjekk innboksen og eventuelt søppelpost/spam.",
     resend: "Send bekreftelsesmail",
-    sent: "Bekreftelsesmail er sendt. Sjekk e-posten din.",
+    resendWait: "Send på nytt om {seconds} sek",
+    sent: "Bekreftelsesmail er sendt. Det kan ta noen minutter, og den kan havne i søppelpost/spam.",
     failed: "Vi klarte ikke å sende e-post akkurat nå. Prøv igjen om litt.",
     tooMany: "Det er gjort for mange forsøk akkurat nå. Vent litt før du prøver igjen.",
     reload: "Jeg har bekreftet. Sjekk på nytt",
@@ -86,8 +91,19 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
   const t = copyFor(locale);
   const [busy, setBusy] = useState(false);
   const [helpBusy, setHelpBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   if (loading || !user) return null;
 
@@ -100,7 +116,7 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
     : t.title.replace("{days}", String(remainingDays));
 
   async function resend() {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || resendCooldown > 0) return;
 
     setBusy(true);
     setMessage(null);
@@ -109,6 +125,7 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
     try {
       auth.languageCode = firebaseLanguageCode(locale);
       await sendEmailVerification(auth.currentUser);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage(t.sent);
     } catch (err) {
       console.warn("parent resend verification failed", err);
@@ -184,8 +201,17 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
             {error ? <p style={errorStyle}>{error}</p> : null}
           </div>
           <div style={actionsStyle}>
-            <button type="button" onClick={resend} disabled={busy} style={primaryButtonStyle}>
-              {busy ? "..." : t.resend}
+            <button
+              type="button"
+              onClick={resend}
+              disabled={busy || resendCooldown > 0}
+              style={primaryButtonStyle}
+            >
+              {busy
+                ? "..."
+                : resendCooldown > 0
+                  ? t.resendWait.replace("{seconds}", String(resendCooldown))
+                  : t.resend}
             </button>
             <button type="button" onClick={refresh} disabled={busy} style={secondaryButtonStyle}>
               {t.reload}

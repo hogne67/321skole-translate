@@ -9,17 +9,19 @@ export type PodcastSoundDefinition = {
     src: string;
 };
 
+const SOUND_FADE_OUT_SECONDS = 0.5;
+
 export const PODCAST_SOUND_LIBRARY: PodcastSoundDefinition[] = [
-    { id: "intro_warm", group: "intro", durationSeconds: 4, src: "/audio/podcast-library/intro-warm.mp3" },
-    { id: "intro_bright", group: "intro", durationSeconds: 4, src: "/audio/podcast-library/intro-bright.mp3" },
-    { id: "intro_news", group: "intro", durationSeconds: 4, src: "/audio/podcast-library/intro-news.mp3" },
+    { id: "intro_warm", group: "intro", durationSeconds: 6, src: "/audio/podcast-library/intro-warm.mp3" },
+    { id: "intro_bright", group: "intro", durationSeconds: 6, src: "/audio/podcast-library/intro-bright.mp3" },
+    { id: "intro_news", group: "intro", durationSeconds: 6, src: "/audio/podcast-library/intro-news.mp3" },
     { id: "transition_ding", group: "transition", durationSeconds: 1, src: "/audio/podcast-library/transition-ding.mp3" },
     { id: "transition_soft", group: "transition", durationSeconds: 2, src: "/audio/podcast-library/transition-soft.mp3" },
     { id: "transition_clap", group: "effect", durationSeconds: 1, src: "/audio/podcast-library/effect-clap.mp3" },
     { id: "effect_success", group: "effect", durationSeconds: 1, src: "/audio/podcast-library/effect-success.mp3" },
     { id: "effect_wow", group: "effect", durationSeconds: 1, src: "/audio/podcast-library/effect-wow.mp3" },
-    { id: "outro_soft", group: "outro", durationSeconds: 4, src: "/audio/podcast-library/outro-soft.mp3" },
-    { id: "outro_bright", group: "outro", durationSeconds: 4, src: "/audio/podcast-library/outro-bright.mp3" },
+    { id: "outro_soft", group: "outro", durationSeconds: 6, src: "/audio/podcast-library/outro-soft.mp3" },
+    { id: "outro_bright", group: "outro", durationSeconds: 6, src: "/audio/podcast-library/outro-bright.mp3" },
 ];
 
 export const PODCAST_SOUND_GROUPS: Record<"intro" | "transition" | "outro", PodcastSoundId[]> = {
@@ -97,18 +99,36 @@ export function playPodcastSound(soundId: PodcastSoundId) {
 
     return new Promise<void>((resolve) => {
         const audio = new Audio(sound.src);
+        const maxSeconds = Math.max(0.1, sound.durationSeconds);
         let settled = false;
+        let stopTimer: number | null = null;
+        let fadeTimer: number | null = null;
+        const clearTimers = () => {
+            if (stopTimer !== null) window.clearTimeout(stopTimer);
+            if (fadeTimer !== null) window.clearTimeout(fadeTimer);
+            stopTimer = null;
+            fadeTimer = null;
+        };
         const finish = () => {
             if (settled) return;
             settled = true;
+            clearTimers();
+            audio.pause();
+            audio.currentTime = 0;
             resolve();
         };
         audio.onended = finish;
         audio.onerror = () => {
+            clearTimers();
             void playToneFallback(soundId).then(finish);
         };
         void audio.play().catch(() => {
+            clearTimers();
             void playToneFallback(soundId).then(finish);
         });
+        fadeTimer = window.setTimeout(() => {
+            audio.volume = 0.25;
+        }, Math.max(0, maxSeconds - SOUND_FADE_OUT_SECONDS) * 1000);
+        stopTimer = window.setTimeout(finish, maxSeconds * 1000);
     });
 }
