@@ -2512,6 +2512,7 @@ export default function StudentLessonPage() {
           <div
             style={{
               ...cardStyle,
+              ...(isMobileView ? preReadingMobileCardStyle : null),
               border: "1px solid rgba(34,197,94,0.22)",
               background: "rgba(240,253,244,0.86)",
             }}
@@ -2520,19 +2521,29 @@ export default function StudentLessonPage() {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                gap: 12,
-                alignItems: "flex-start",
-                flexWrap: "wrap",
-                marginBottom: 10,
+                gap: isMobileView ? 8 : 12,
+                alignItems: isMobileView ? "center" : "flex-start",
+                flexWrap: "nowrap",
+                marginBottom: isMobileView ? 8 : 10,
               }}
             >
-              <div>
-                <h2 style={{ ...sectionHeadingStyle, marginBottom: 4 }}>{t("preReading.title")}</h2>
-                <p style={{ margin: 0, color: "#14532d", lineHeight: 1.55, fontWeight: 650 }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ ...sectionHeadingStyle, marginBottom: isMobileView ? 2 : 4 }}>
+                  {t("preReading.title")}
+                </h2>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#14532d",
+                    lineHeight: isMobileView ? 1.35 : 1.55,
+                    fontWeight: 650,
+                    fontSize: isMobileView ? 13 : undefined,
+                  }}
+                >
                   {t("preReading.prompt")}
                 </p>
               </div>
-              <div>
+              <div style={{ flex: "0 0 auto" }}>
                 <button
                   type="button"
                   onClick={playPreReadingPromptAudio}
@@ -2561,10 +2572,10 @@ export default function StudentLessonPage() {
                 width: "100%",
                 boxSizing: "border-box",
                 resize: "vertical",
-                minHeight: 74,
+                minHeight: isMobileView ? 58 : 74,
                 borderRadius: 12,
                 border: "1px solid rgba(22,101,52,0.22)",
-                padding: "10px 12px",
+                padding: isMobileView ? "8px 10px" : "10px 12px",
                 background: "white",
                 color: "#0f172a",
                 font: "inherit",
@@ -3432,7 +3443,16 @@ export default function StudentLessonPage() {
             backdropFilter: "blur(8px)",
           }}
         >
-          <div style={{ maxWidth: 980, margin: "0 auto", display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
+          <div
+            style={{
+              maxWidth: 980,
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              gap: isMobileView ? 5 : 8,
+              flexWrap: "wrap",
+            }}
+          >
             <button
               type="button"
               disabled={!audioRef.current}
@@ -3489,11 +3509,11 @@ export default function StudentLessonPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: isMobileView ? 6 : 8,
+                gap: isMobileView ? 5 : 8,
                 flex: isMobileView ? "1 1 100%" : "1 1 280px",
                 minWidth: isMobileView ? "100%" : 220,
                 marginLeft: isMobileView ? 0 : 4,
-                order: isMobileView ? 3 : 0,
+                order: isMobileView ? 2 : 0,
               }}
             >
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(currentTime)}</span>
@@ -3518,7 +3538,13 @@ export default function StudentLessonPage() {
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
             </div>
 
-            <div style={isMobileView ? mobileSpeedGroupStyle : speedGroupStyle}>
+            <div
+              style={{
+                ...(isMobileView ? mobileSpeedGroupStyle : speedGroupStyle),
+                order: isMobileView ? 1 : 0,
+                marginLeft: isMobileView ? "auto" : undefined,
+              }}
+            >
               {AUDIO_PLAYBACK_RATES.map((rate) => (
                 <button
                   key={rate}
@@ -3684,7 +3710,9 @@ const speedGroupStyle: React.CSSProperties = {
 
 const mobileSpeedGroupStyle: React.CSSProperties = {
   ...speedGroupStyle,
-  gap: 4,
+  gap: 3,
+  padding: 3,
+  borderRadius: 12,
 };
 
 const speedBtnStyle: React.CSSProperties = {
@@ -3713,9 +3741,10 @@ const compactSpeedBtnActiveStyle: React.CSSProperties = {
 
 const mobileCompactSpeedBtnStyle: React.CSSProperties = {
   ...compactSpeedBtnStyle,
-  padding: "5px 7px",
-  minHeight: 30,
+  padding: "4px 6px",
+  minHeight: 28,
   fontSize: 12,
+  borderRadius: 8,
 };
 
 const mobileCompactSpeedBtnActiveStyle: React.CSSProperties = {
@@ -3755,6 +3784,11 @@ const textSizeButtonActiveStyle: React.CSSProperties = {
   background: "rgba(59,130,246,0.16)",
   color: "#1d4ed8",
   boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
+};
+
+const preReadingMobileCardStyle: React.CSSProperties = {
+  padding: 10,
+  borderRadius: 14,
 };
 
 function mobileAwareSpeedStyle(isMobileView: boolean): React.CSSProperties {
@@ -3813,10 +3847,10 @@ const audioPlayerBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerBtnStyle: React.CSSProperties = {
   ...audioPlayerBtnStyle,
-  minWidth: 36,
-  minHeight: 36,
-  padding: "6px 8px",
-  borderRadius: 11,
+  minWidth: 32,
+  minHeight: 32,
+  padding: "5px 7px",
+  borderRadius: 10,
 };
 
 const audioPlayerPrimaryBtnStyle: React.CSSProperties = {
@@ -3828,10 +3862,10 @@ const audioPlayerPrimaryBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerPrimaryBtnStyle: React.CSSProperties = {
   ...audioPlayerPrimaryBtnStyle,
-  minWidth: 38,
-  minHeight: 36,
-  padding: "6px 8px",
-  borderRadius: 11,
+  minWidth: 34,
+  minHeight: 32,
+  padding: "5px 7px",
+  borderRadius: 10,
 };
 
 const audioPlayerStopBtnStyle: React.CSSProperties = {
@@ -3843,10 +3877,10 @@ const audioPlayerStopBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerStopBtnStyle: React.CSSProperties = {
   ...audioPlayerStopBtnStyle,
-  minWidth: 36,
-  minHeight: 36,
-  padding: "6px 8px",
-  borderRadius: 11,
+  minWidth: 32,
+  minHeight: 32,
+  padding: "5px 7px",
+  borderRadius: 10,
 };
 
 const stickySaveBtnStyle: React.CSSProperties = {
@@ -3866,7 +3900,7 @@ const stickySaveBtnStyle: React.CSSProperties = {
 const mobileStickySaveBtnStyle: React.CSSProperties = {
   ...stickySaveBtnStyle,
   minWidth: 94,
-  minHeight: 36,
+  minHeight: 34,
   padding: "6px 10px",
   fontSize: 14,
 };
