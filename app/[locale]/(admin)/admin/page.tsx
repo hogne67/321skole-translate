@@ -95,7 +95,7 @@ export default function AdminPage() {
   const displayName =
     profileMatchesAuth && typeof profile?.displayName === "string" && profile.displayName.trim()
       ? profile.displayName.trim()
-      : user?.displayName || user?.email || "admin";
+      : user?.email || user?.displayName || "admin";
 
   const levelLabel = adminLabel(profile?.adminLevel);
   const adminIsActive =
@@ -249,6 +249,44 @@ export default function AdminPage() {
           <span>Role</span>
           <strong>{levelLabel}</strong>
           <small>{adminIsActive ? "Admin access active" : "Admin access needs review"}</small>
+        </div>
+      </AdminCard>
+
+      <AdminCard className={profileMatchesAuth ? "identityCheck" : "identityCheck identityWarning"}>
+        <div>
+          <div className="eyebrow">Identity check</div>
+          <h3>{profileMatchesAuth ? "Auth and profile look aligned" : "Auth/profile mismatch"}</h3>
+          <p>
+            This compares the signed-in Firebase Auth user with the Firestore profile used for
+            admin access.
+          </p>
+        </div>
+
+        <div className="identityGrid">
+          <div>
+            <span>Auth email</span>
+            <strong>{user?.email || "-"}</strong>
+          </div>
+          <div>
+            <span>Auth display name</span>
+            <strong>{user?.displayName || "-"}</strong>
+          </div>
+          <div>
+            <span>Firestore profile email</span>
+            <strong>{typeof profile?.email === "string" ? profile.email : "-"}</strong>
+          </div>
+          <div>
+            <span>Firestore profile name</span>
+            <strong>{typeof profile?.displayName === "string" ? profile.displayName : "-"}</strong>
+          </div>
+          <div>
+            <span>Auth UID / profile doc</span>
+            <strong>{user?.uid || "-"}</strong>
+          </div>
+          <div>
+            <span>Role</span>
+            <strong>{levelLabel}</strong>
+          </div>
         </div>
       </AdminCard>
 
@@ -421,6 +459,58 @@ export default function AdminPage() {
           line-height: 1.2;
         }
 
+        :global(.identityCheck) {
+          display: grid;
+          grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+          gap: var(--admin-gap, 16px);
+          padding: 18px;
+          align-items: start;
+        }
+
+        :global(.identityWarning) {
+          border-color: rgba(245, 158, 11, 0.35);
+          background: rgba(245, 158, 11, 0.05);
+        }
+
+        h3 {
+          margin: 4px 0 0;
+          font-size: 18px;
+          line-height: 1.25;
+        }
+
+        .identityGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+          gap: 10px;
+        }
+
+        .identityGrid div {
+          border: 1px solid var(--admin-border, #e5e7eb);
+          border-radius: var(--admin-radius, 10px);
+          background: white;
+          padding: 10px 12px;
+          min-width: 0;
+        }
+
+        .identityGrid span,
+        .identityGrid strong {
+          display: block;
+        }
+
+        .identityGrid span {
+          color: var(--admin-muted, #6b7280);
+          font-size: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .identityGrid strong {
+          margin-top: 4px;
+          font-size: 13px;
+          line-height: 1.35;
+          word-break: break-word;
+        }
+
         .overviewGrid,
         .statsRow,
         .statusGrid {
@@ -474,6 +564,10 @@ export default function AdminPage() {
           :global(.hero) {
             grid-template-columns: 1fr;
             padding: 18px;
+          }
+
+          :global(.identityCheck) {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

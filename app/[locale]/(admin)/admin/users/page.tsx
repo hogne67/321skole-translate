@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { getAuth } from "firebase/auth";
 import { collection, getDocs, orderBy, query, type DocumentData } from "firebase/firestore";
 import { useLocale } from "next-intl";
 import { db } from "@/lib/firebase";
@@ -33,6 +34,38 @@ type UserRow = {
   createdAt?: unknown;
   updatedAt?: unknown;
   lastLoginAt?: unknown;
+};
+
+type LookupProfile = {
+  id: string;
+  uid?: unknown;
+  email?: unknown;
+  displayName?: unknown;
+  role?: unknown;
+  adminLevel?: unknown;
+  partnerStatus?: unknown;
+};
+
+type UserLookupResponse = {
+  ok?: boolean;
+  error?: string;
+  email?: string;
+  authError?: string | null;
+  authUser?: {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    disabled: boolean;
+    emailVerified: boolean;
+    providerData: Array<{
+      providerId: string;
+      uid: string;
+      email: string | null;
+      displayName: string | null;
+    }>;
+  } | null;
+  profileByUid?: LookupProfile | null;
+  profilesByEmail?: LookupProfile[];
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -184,6 +217,10 @@ export default function AdminUsersPage() {
 
   const [qText, setQText] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | Role>("");
+  const [lookupEmail, setLookupEmail] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupErr, setLookupErr] = useState<string | null>(null);
+  const [lookupResult, setLookupResult] = useState<UserLookupResponse | null>(null);
 
   async function load() {
     if (!db) {
@@ -210,6 +247,33 @@ export default function AdminUsersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function lookupUser() {
+    const email = lookupEmail.trim();
+    if (!email) return;
+
+    setLookupLoading(true);
+    setLookupErr(null);
+
+    try {
+      const currentUser = getAuth().currentUser;
+      if (!currentUser) throw new Error("No signed-in Firebase Auth user.");
+
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`/api/admin/users/lookup?email=${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json().catch(() => ({}))) as UserLookupResponse;
+
+      if (!res.ok) throw new Error(data.error || "Lookup failed.");
+      setLookupResult(data);
+    } catch (e: unknown) {
+      setLookupErr(errorMessage(e));
+      setLookupResult(null);
+    } finally {
+      setLookupLoading(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = qText.trim().toLowerCase();
@@ -331,6 +395,159 @@ export default function AdminUsersPage() {
         <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75 }}>
           Showing <b>{filtered.length}</b> of <b>{rows.length}</b> users
         </div>
+      </section>
+
+      <section
+        style={{
+          padding: 18,
+          borderRadius: 18,
+          border: "1px solid rgba(0,0,0,0.08)",
+          background: "white",
+          display: "grid",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>AUTH + FIRESTORE LOOKUP</div>
+          <h3 style={{ margin: "4px 0 0", fontSize: 18 }}>Find user by email</h3>
+          <p style={{ margin: "6px 0 0", opacity: 0.75 }}>
+            Use this when a user is missing from the list. It checks Firebase Auth and the Firestore
+            users collection separately.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            value={lookupEmail}
+            onChange={(e) => setLookupEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void lookupUser();
+            }}
+            placeholder="email@example.com"
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.12)",
+              minWidth: 280,
+              flex: "1 1 280px",
+            }}
+          />
+
+          <button
+            onClick={() => void lookupUser()}
+            disabled={lookupLoading || !lookupEmail.trim()}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: lookupLoading || !lookupEmail.trim() ? "#f8fafc" : "#2563eb",
+              color: lookupLoading || !lookupEmail.trim() ? "inherit" : "white",
+              cursor: lookupLoading || !lookupEmail.trim() ? "not-allowed" : "pointer",
+              fontWeight: 800,
+            }}
+          >
+            {lookupLoading ? "Checking..." : "Check email"}
+          </button>
+        </div>
+
+        {lookupErr ? (
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid rgba(239,68,68,0.20)",
+              background: "rgba(239,68,68,0.05)",
+            }}
+          >
+            <b>Lookup error:</b> {lookupErr}
+          </div>
+        ) : null}
+
+        {lookupResult ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: lookupResult.authUser ? "rgba(34,197,94,0.06)" : "rgba(245,158,11,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>FIREBASE AUTH</div>
+              <div style={{ marginTop: 6, fontWeight: 900 }}>
+                {lookupResult.authUser ? "Found" : "Not found"}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55 }}>
+                <div>uid: {lookupResult.authUser?.uid || "—"}</div>
+                <div>email: {lookupResult.authUser?.email || "—"}</div>
+                <div>name: {lookupResult.authUser?.displayName || "—"}</div>
+                <div>verified: {lookupResult.authUser ? String(lookupResult.authUser.emailVerified) : "—"}</div>
+                <div>disabled: {lookupResult.authUser ? String(lookupResult.authUser.disabled) : "—"}</div>
+                {lookupResult.authError ? <div>status: {lookupResult.authError}</div> : null}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: lookupResult.profileByUid ? "rgba(34,197,94,0.06)" : "rgba(245,158,11,0.08)",
+              }}
+            >
+              <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>FIRESTORE PROFILE BY UID</div>
+              <div style={{ marginTop: 6, fontWeight: 900 }}>
+                {lookupResult.profileByUid ? "Found" : "Missing"}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55 }}>
+                <div>doc: {lookupResult.profileByUid?.id || "—"}</div>
+                <div>email: {String(lookupResult.profileByUid?.email ?? "—")}</div>
+                <div>name: {String(lookupResult.profileByUid?.displayName ?? "—")}</div>
+                <div>role: {String(lookupResult.profileByUid?.role ?? "—")}</div>
+                <div>admin: {String(lookupResult.profileByUid?.adminLevel ?? "—")}</div>
+                {lookupResult.profileByUid?.id ? (
+                  <Link href={`/${locale}/admin/users/${lookupResult.profileByUid.id}`}>
+                    Open profile
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(59,130,246,0.06)",
+              }}
+            >
+              <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>FIRESTORE PROFILES BY EMAIL</div>
+              <div style={{ marginTop: 6, fontWeight: 900 }}>
+                {lookupResult.profilesByEmail?.length ?? 0} match(es)
+              </div>
+              <div style={{ marginTop: 8, display: "grid", gap: 8, fontSize: 13 }}>
+                {(lookupResult.profilesByEmail ?? []).length > 0 ? (
+                  lookupResult.profilesByEmail?.map((profile) => (
+                    <div key={profile.id}>
+                      <Link href={`/${locale}/admin/users/${profile.id}`}>
+                        {String(profile.displayName || profile.email || profile.id)}
+                      </Link>
+                      <div style={{ opacity: 0.7 }}>doc: {profile.id}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div>No Firestore profile has this exact email.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {err ? (
