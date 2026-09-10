@@ -218,6 +218,8 @@ const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
 const AUDIO_PLAYBACK_RATE_KEY = "321school.lessonAudioPlaybackRate";
 const AUDIO_PLAYBACK_RATES = [0.5, 0.65, 0.8, 1, 1.2] as const;
 const DEFAULT_AUDIO_PLAYBACK_RATE = 0.8;
+const STUDENT_TEXT_SIZE_KEY = "321school.lessonStudentTextSize";
+const STUDENT_TEXT_SIZE_OPTIONS: TextSize[] = ["normal", "large", "xlarge"];
 
 function readSavedPlaybackRate(): number {
   if (typeof window === "undefined") return DEFAULT_AUDIO_PLAYBACK_RATE;
@@ -225,6 +227,32 @@ function readSavedPlaybackRate(): number {
   return AUDIO_PLAYBACK_RATES.includes(saved as (typeof AUDIO_PLAYBACK_RATES)[number])
     ? saved
     : DEFAULT_AUDIO_PLAYBACK_RATE;
+}
+
+function readSavedStudentTextSize(): TextSize | null {
+  if (typeof window === "undefined") return null;
+  const saved = window.localStorage.getItem(STUDENT_TEXT_SIZE_KEY);
+  return saved === "normal" || saved === "large" || saved === "xlarge" ? saved : null;
+}
+
+function isLowReadingLevel(level?: string): boolean {
+  const normalized = String(level ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, "");
+  return normalized === "A1" || normalized === "A1START";
+}
+
+function defaultStudentTextSize(lessonTextSize: unknown, level?: string): TextSize {
+  const normalized = normalizeTextSize(lessonTextSize);
+  if (normalized !== "normal") return normalized;
+  return isLowReadingLevel(level) ? "large" : "normal";
+}
+
+function textSizeLabel(value: TextSize): string {
+  if (value === "xlarge") return "A+";
+  if (value === "large") return "A";
+  return "A-";
 }
 
 function safeRole(role: unknown): Role {
@@ -480,12 +508,12 @@ function normalizeTextSize(value: unknown): TextSize {
 
 function getStudentReadingTextStyle(textSize: TextSize): React.CSSProperties {
   if (textSize === "xlarge") {
-    return { fontSize: 21, lineHeight: 1.75 };
+    return { fontSize: 24, lineHeight: 1.85 };
   }
   if (textSize === "large") {
-    return { fontSize: 18, lineHeight: 1.7 };
+    return { fontSize: 21, lineHeight: 1.8 };
   }
-  return { fontSize: 16, lineHeight: 1.6 };
+  return { fontSize: 18, lineHeight: 1.7 };
 }
 
 function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
@@ -1115,6 +1143,7 @@ export default function StudentLessonPage() {
   const activeSentenceRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   const [ttsBusy, setTtsBusy] = useState<null | AudioMode>(null);
   const [playbackRate, setPlaybackRate] = useState(readSavedPlaybackRate);
+  const [studentTextSize, setStudentTextSize] = useState<TextSize | null>(readSavedStudentTextSize);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -1228,6 +1257,8 @@ export default function StudentLessonPage() {
 
   const originalSegs = textFollow.original.segs;
   const translationSegs = textFollow.translation.segs;
+  const baseStudentTextSize = defaultStudentTextSize(lesson?.textSize, lesson?.level);
+  const effectiveStudentTextSize = studentTextSize ?? baseStudentTextSize;
 
   const tMap = useMemo(() => {
     const m = new Map<string, TranslatedTask>();
@@ -1444,6 +1475,15 @@ export default function StudentLessonPage() {
       window.localStorage.setItem(AUDIO_PLAYBACK_RATE_KEY, String(playbackRate));
     }
   }, [playbackRate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (studentTextSize) {
+      window.localStorage.setItem(STUDENT_TEXT_SIZE_KEY, studentTextSize);
+    } else {
+      window.localStorage.removeItem(STUDENT_TEXT_SIZE_KEY);
+    }
+  }, [studentTextSize]);
 
   useEffect(() => {
     if (activeSentenceIndex == null) return;
@@ -2181,7 +2221,27 @@ export default function StudentLessonPage() {
     .slice()
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
-  const readingTextStyle = getStudentReadingTextStyle(normalizeTextSize(lesson.textSize));
+  const readingTextStyle = getStudentReadingTextStyle(effectiveStudentTextSize);
+
+  const renderStudentTextSizeControl = () => (
+    <div style={textSizeControlStyle} aria-label="Text size">
+      {STUDENT_TEXT_SIZE_OPTIONS.map((value) => {
+        const active = effectiveStudentTextSize === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setStudentTextSize(value)}
+            style={active ? textSizeButtonActiveStyle : textSizeButtonStyle}
+            title={`Text size: ${value}`}
+            aria-pressed={active}
+          >
+            {textSizeLabel(value)}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const renderFollowText = (
     mode: AudioMode,
@@ -2580,8 +2640,11 @@ export default function StudentLessonPage() {
         >
           <h2 style={sectionHeadingStyle}>{t("text.title")}</h2>
 
-          {!showLessonTextSections ? (
-            <div style={textToolsStyle}>
+          <div style={textToolsStyle}>
+            {renderStudentTextSizeControl()}
+
+            {!showLessonTextSections ? (
+              <>
               <div>
                 <button
                   type="button"
@@ -2604,8 +2667,9 @@ export default function StudentLessonPage() {
               >
                 {translating === "text" ? t("translate.translating") : t("translate.compactAction")}
               </button>
-            </div>
-          ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
 
         {showLessonTextSections ? (
@@ -2680,6 +2744,8 @@ export default function StudentLessonPage() {
             <h2 style={sectionHeadingStyle}>{t("translate.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {renderStudentTextSizeControl()}
+
               <div>
                 <button
                   type="button"
@@ -2745,7 +2811,9 @@ export default function StudentLessonPage() {
             ) : null}
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            {renderStudentTextSizeControl()}
+
             <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>
               {showAnswers ? t("tasks.hideAnswers") : t("tasks.showAnswers")}
             </button>
@@ -2888,7 +2956,7 @@ export default function StudentLessonPage() {
                     </div>
                   </div>
 
-                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, marginBottom: 10, fontSize: 16 }}>
+                  <div style={{ whiteSpace: "pre-wrap", marginBottom: 10, ...readingTextStyle }}>
                     {prompt}
                   </div>
 
@@ -2902,7 +2970,7 @@ export default function StudentLessonPage() {
                         border: "1px solid rgba(59,130,246,0.22)",
                         background: "rgba(59,130,246,0.08)",
                         whiteSpace: "pre-wrap",
-                        lineHeight: 1.45,
+                        ...readingTextStyle,
                       }}
                     >
                       <div
@@ -3040,7 +3108,7 @@ export default function StudentLessonPage() {
 
                             <div style={{ width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                <div style={{ fontWeight: checked ? 700 : 500 }}>{opt}</div>
+                                <div style={{ fontWeight: checked ? 700 : 500, ...readingTextStyle }}>{opt}</div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                                   {checked ? <Pill text={t("tasks.yourAnswer")} /> : null}
                                   <button
@@ -3073,7 +3141,7 @@ export default function StudentLessonPage() {
                                     marginTop: 4,
                                   }}
                                 >
-                                  <div style={{ fontSize: 12, opacity: 0.72 }}>{optT}</div>
+                                  <div style={{ opacity: 0.72, ...readingTextStyle }}>{optT}</div>
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -3148,6 +3216,7 @@ export default function StudentLessonPage() {
                         resize: "vertical",
                         background: "rgba(255,255,255,0.98)",
                         minHeight: isImageWriting ? 190 : undefined,
+                        ...readingTextStyle,
                       }}
                     />
                   ) : null}
@@ -3651,6 +3720,37 @@ const mobileCompactSpeedBtnStyle: React.CSSProperties = {
 
 const mobileCompactSpeedBtnActiveStyle: React.CSSProperties = {
   ...mobileCompactSpeedBtnStyle,
+  border: "1px solid rgba(37,99,235,0.70)",
+  background: "rgba(59,130,246,0.16)",
+  color: "#1d4ed8",
+  boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
+};
+
+const textSizeControlStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: 4,
+  border: "1px solid rgba(148,163,184,0.35)",
+  borderRadius: 12,
+  background: "rgba(248,250,252,0.95)",
+};
+
+const textSizeButtonStyle: React.CSSProperties = {
+  minWidth: 34,
+  minHeight: 32,
+  border: "1px solid rgba(148,163,184,0.45)",
+  borderRadius: 9,
+  background: "white",
+  color: "#334155",
+  cursor: "pointer",
+  fontWeight: 900,
+  lineHeight: 1,
+  padding: "6px 8px",
+};
+
+const textSizeButtonActiveStyle: React.CSSProperties = {
+  ...textSizeButtonStyle,
   border: "1px solid rgba(37,99,235,0.70)",
   background: "rgba(59,130,246,0.16)",
   color: "#1d4ed8",
