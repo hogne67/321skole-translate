@@ -1,13 +1,13 @@
 "use client";
 
-import type React from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import type { SentenceSeg } from "./types";
 
 type Props = {
     mode: "original" | "translation";
     segs: SentenceSeg[];
     fallbackText: string;
-    textStyle?: React.CSSProperties;
+    textStyle?: CSSProperties;
     activeTextMode: "original" | "translation" | null;
     activeSentenceIndex: number | null;
     canSeek: boolean;
@@ -28,6 +28,17 @@ export default function FollowTextView({
     clickToSeekLabel,
     onSeek,
 }: Props) {
+    const activeRef = useRef<HTMLSpanElement | null>(null);
+
+    useEffect(() => {
+        if (!activeRef.current) return;
+        activeRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest",
+        });
+    }, [activeSentenceIndex, activeTextMode, mode]);
+
     if (!fallbackText.trim()) {
         return <span style={{ opacity: 0.6 }}>{noTextLabel}</span>;
     }
@@ -44,17 +55,19 @@ export default function FollowTextView({
                 return (
                     <span
                         key={`${mode}_${i}_${s.startChar}`}
+                        ref={isActive ? activeRef : undefined}
                         onClick={() => {
                             if (canSeek) onSeek(mode, i);
                         }}
                         style={{
                             cursor: canSeek ? "pointer" : "default",
-                            padding: "4px 8px",
-                            borderRadius: 8,
+                            padding: "4px 9px",
+                            borderRadius: 9,
                             background: isActive
-                                ? "rgba(255, 230, 120, 0.65)"
+                                ? "rgba(255, 230, 120, 0.78)"
                                 : "transparent",
-                            transition: "background 120ms ease",
+                            boxShadow: isActive ? "0 0 0 1px rgba(234,179,8,0.16)" : "none",
+                            transition: "background 120ms ease, box-shadow 120ms ease",
                             lineHeight: 1.6,
                             ...textStyle,
                         }}

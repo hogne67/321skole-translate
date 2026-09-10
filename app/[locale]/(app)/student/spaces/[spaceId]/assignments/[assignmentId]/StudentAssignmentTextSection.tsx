@@ -12,17 +12,25 @@ type TFn = (key: string, values?: Record<string, unknown>) => string;
 
 function getReadingTextStyle(textSize: TextSize): React.CSSProperties {
     if (textSize === "xlarge") {
-        return { fontSize: 21, lineHeight: 1.75 };
+        return { fontSize: 24, lineHeight: 1.85 };
     }
     if (textSize === "large") {
-        return { fontSize: 18, lineHeight: 1.7 };
+        return { fontSize: 21, lineHeight: 1.8 };
     }
-    return { fontSize: 16, lineHeight: 1.6 };
+    return { fontSize: 18, lineHeight: 1.7 };
+}
+
+function textSizeLabel(value: TextSize): string {
+    if (value === "normal") return "A-";
+    if (value === "large") return "A";
+    return "A+";
 }
 
 type Props = {
     sourceTextSafe: string;
     textSize: TextSize;
+    textSizeOptions?: TextSize[];
+    onTextSizeChange?: (value: TextSize) => void;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
     translatedSectionMap: Map<string, string>;
@@ -65,6 +73,8 @@ type Props = {
 export default function StudentAssignmentTextSection({
     sourceTextSafe,
     textSize,
+    textSizeOptions,
+    onTextSizeChange,
     translatedText,
     lessonTextSections,
     translatedSectionMap,
@@ -90,6 +100,24 @@ export default function StudentAssignmentTextSection({
 }: Props) {
     const showSectionCards = lessonTextSections.length >= 2;
     const readingTextStyle = getReadingTextStyle(textSize);
+    const renderTextSizeControl = () =>
+        textSizeOptions && onTextSizeChange ? (
+            <div style={textSizeGroupStyle} aria-label="Velg tekststørrelse">
+                {textSizeOptions.map((option) => (
+                    <button
+                        key={option}
+                        type="button"
+                        onClick={() => onTextSizeChange(option)}
+                        style={{
+                            ...textSizeButtonStyle,
+                            ...(textSize === option ? textSizeButtonActiveStyle : null),
+                        }}
+                    >
+                        {textSizeLabel(option)}
+                    </button>
+                ))}
+            </div>
+        ) : null;
 
     return (
         <section style={{ display: "grid", gap: 14 }}>
@@ -108,6 +136,7 @@ export default function StudentAssignmentTextSection({
 
                     {!showSectionCards ? (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        {renderTextSizeControl()}
                         <button
                             type="button"
                             onClick={() => onPlayTTS(sourceTextSafe, originalLangForTTS, "original")}
@@ -166,6 +195,7 @@ export default function StudentAssignmentTextSection({
                                     >
                                         <h3 style={{ margin: 0, fontSize: 17 }}>{section.title}</h3>
                                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                            {renderTextSizeControl()}
                                             <button
                                                 type="button"
                                                 onClick={() => onPlaySectionTTS(section.key, section.text, originalLangForTTS, "original")}
@@ -267,6 +297,7 @@ export default function StudentAssignmentTextSection({
                         <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.translation")}</h2>
 
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            {renderTextSizeControl()}
                             <button
                                 type="button"
                                 onClick={() =>
@@ -330,3 +361,31 @@ export default function StudentAssignmentTextSection({
         </section>
     );
 }
+
+const textSizeGroupStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    padding: 4,
+    border: "1px solid rgba(59,130,246,0.22)",
+    borderRadius: 12,
+    background: "rgba(248,250,252,0.95)",
+};
+
+const textSizeButtonStyle: React.CSSProperties = {
+    minWidth: 31,
+    minHeight: 28,
+    padding: "4px 8px",
+    border: "1px solid rgba(15,23,42,0.14)",
+    borderRadius: 9,
+    background: "#ffffff",
+    color: "#334155",
+    fontWeight: 900,
+    cursor: "pointer",
+};
+
+const textSizeButtonActiveStyle: React.CSSProperties = {
+    border: "1px solid rgba(37,99,235,0.70)",
+    background: "rgba(37,99,235,0.14)",
+    color: "#1d4ed8",
+};

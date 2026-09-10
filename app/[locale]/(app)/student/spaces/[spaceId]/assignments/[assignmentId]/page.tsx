@@ -101,10 +101,42 @@ const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
 }));
 
 const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
+const ASSIGNMENT_AUDIO_PLAYBACK_RATE_KEY = "321school.assignmentAudioPlaybackRate";
+const ASSIGNMENT_AUDIO_PLAYBACK_RATES = [0.5, 0.65, 0.8, 1] as const;
+const DEFAULT_ASSIGNMENT_AUDIO_PLAYBACK_RATE = 0.8;
+const STUDENT_ASSIGNMENT_TEXT_SIZE_KEY = "321school.assignmentStudentTextSize";
+const STUDENT_TEXT_SIZE_OPTIONS: TextSize[] = ["normal", "large", "xlarge"];
 
 /* =========================
    Helpers
 ========================= */
+
+function readSavedAssignmentPlaybackRate(): number {
+  if (typeof window === "undefined") return DEFAULT_ASSIGNMENT_AUDIO_PLAYBACK_RATE;
+  const saved = Number(window.localStorage.getItem(ASSIGNMENT_AUDIO_PLAYBACK_RATE_KEY));
+  return ASSIGNMENT_AUDIO_PLAYBACK_RATES.includes(
+    saved as (typeof ASSIGNMENT_AUDIO_PLAYBACK_RATES)[number]
+  )
+    ? saved
+    : DEFAULT_ASSIGNMENT_AUDIO_PLAYBACK_RATE;
+}
+
+function readSavedAssignmentTextSize(): TextSize | null {
+  if (typeof window === "undefined") return null;
+  const saved = window.localStorage.getItem(STUDENT_ASSIGNMENT_TEXT_SIZE_KEY);
+  return saved === "normal" || saved === "large" || saved === "xlarge" ? saved : null;
+}
+
+function isLowReadingLevel(level?: string): boolean {
+  const normalized = String(level ?? "").trim().toLowerCase();
+  return normalized === "a1" || normalized === "a1 start" || normalized === "a1-start";
+}
+
+function defaultAssignmentStudentTextSize(lessonTextSize: unknown, level?: string): TextSize {
+  const normalized = normalizeTextSize(lessonTextSize);
+  if (normalized !== "normal") return normalized;
+  return isLowReadingLevel(level) ? "large" : "normal";
+}
 
 type ReadingTestTimerResult = {
   timeLimitSeconds: number | null;
@@ -279,7 +311,11 @@ export default function StudentAssignmentPage() {
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
   const [activeTextSectionKey, setActiveTextSectionKey] = useState<LessonTextSectionKey | null>(null);
 
-  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [playbackRate, setPlaybackRate] = useState(readSavedAssignmentPlaybackRate);
+  const [studentTextSize, setStudentTextSize] = useState<TextSize | null>(
+    readSavedAssignmentTextSize
+  );
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const [readingTestStarted, setReadingTestStarted] = useState(false);
   const [readingTestFinished, setReadingTestFinished] = useState(false);
@@ -401,6 +437,11 @@ export default function StudentAssignmentPage() {
   }, [assignmentId, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isPodcastWorkshop ? "" : sourceTextSafe;
+  const baseStudentTextSize = defaultAssignmentStudentTextSize(
+    lesson?.textSize ?? assignment?.textSize,
+    lesson?.level ?? assignment?.level
+  );
+  const effectiveStudentTextSize = studentTextSize ?? baseStudentTextSize;
 
   const lessonTextSections = useMemo(
     () =>
@@ -514,6 +555,29 @@ export default function StudentAssignmentPage() {
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
+
+  useEffect(() => {
+    const update = () => setIsMobileView(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ASSIGNMENT_AUDIO_PLAYBACK_RATE_KEY, String(playbackRate));
+    }
+  }, [audioRef, playbackRate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (studentTextSize) {
+      window.localStorage.setItem(STUDENT_ASSIGNMENT_TEXT_SIZE_KEY, studentTextSize);
+    } else {
+      window.localStorage.removeItem(STUDENT_ASSIGNMENT_TEXT_SIZE_KEY);
+    }
+  }, [studentTextSize]);
 
   function setAnswer(taskId: string, value: unknown) {
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
@@ -1570,8 +1634,8 @@ export default function StudentAssignmentPage() {
         <section
           style={{
             marginTop: 14,
-            padding: 14,
-            borderRadius: 14,
+            padding: isMobileView ? 10 : 14,
+            borderRadius: isMobileView ? 12 : 14,
             border: "1px solid rgba(34,197,94,0.22)",
             background: "rgba(240,253,244,0.86)",
           }}
@@ -1581,14 +1645,14 @@ export default function StudentAssignmentPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "flex-start",
-              gap: 12,
+              gap: isMobileView ? 8 : 12,
               flexWrap: "wrap",
-              marginBottom: 10,
+              marginBottom: isMobileView ? 8 : 10,
             }}
           >
             <div>
-              <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>{tString("preReading.title")}</h2>
-              <p style={{ margin: 0, color: "#14532d", fontWeight: 650, lineHeight: 1.55 }}>
+              <h2 style={{ margin: "0 0 3px", fontSize: isMobileView ? 15 : 18 }}>{tString("preReading.title")}</h2>
+              <p style={{ margin: 0, color: "#14532d", fontWeight: 650, lineHeight: isMobileView ? 1.35 : 1.55 }}>
                 {tString("preReading.prompt")}
               </p>
             </div>
@@ -1600,7 +1664,7 @@ export default function StudentAssignmentPage() {
               style={{
                 border: "1px solid rgba(34,197,94,0.40)",
                 borderRadius: 10,
-                padding: "8px 12px",
+                padding: isMobileView ? "6px 9px" : "8px 12px",
                 background: "white",
                 color: "#166534",
                 fontWeight: 900,
@@ -1624,10 +1688,10 @@ export default function StudentAssignmentPage() {
               width: "100%",
               boxSizing: "border-box",
               resize: "vertical",
-              minHeight: 74,
-              borderRadius: 12,
+              minHeight: isMobileView ? 58 : 74,
+              borderRadius: isMobileView ? 10 : 12,
               border: "1px solid rgba(22,101,52,0.22)",
-              padding: "10px 12px",
+              padding: isMobileView ? "8px 10px" : "10px 12px",
               background: lock || submitted ? "rgba(255,255,255,0.68)" : "white",
               color: "#0f172a",
               font: "inherit",
@@ -1769,7 +1833,9 @@ export default function StudentAssignmentPage() {
         {!isReadingTest && !isGeometryAssignment && !isFractionAssignment && !isPodcastWorkshop ? (
           <StandardAssignmentSection
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
-            textSize={normalizeTextSize(lesson?.textSize ?? assignment?.textSize)}
+            textSize={effectiveStudentTextSize}
+            textSizeOptions={STUDENT_TEXT_SIZE_OPTIONS}
+            onTextSizeChange={setStudentTextSize}
             sourceTextSafe={displayedSourceTextSafe}
             translatedText={translatedText}
             lessonTextSections={lessonTextSections}
@@ -1845,12 +1911,8 @@ export default function StudentAssignmentPage() {
         duration={duration}
         t={tString}
         formatSeconds={formatSeconds}
-        onDecreaseRate={() =>
-          setPlaybackRate((v) => Math.max(0.75, Number((v - 0.1).toFixed(2))))
-        }
-        onIncreaseRate={() =>
-          setPlaybackRate((v) => Math.min(1.5, Number((v + 0.1).toFixed(2))))
-        }
+        playbackRates={ASSIGNMENT_AUDIO_PLAYBACK_RATES}
+        onPlaybackRateChange={setPlaybackRate}
         onPrevSentence={prevSentence}
         onNextSentence={nextSentence}
         onPause={pauseAudio}

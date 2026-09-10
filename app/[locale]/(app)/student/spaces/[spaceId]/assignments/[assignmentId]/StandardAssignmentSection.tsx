@@ -19,6 +19,8 @@ import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSectio
 type Props = {
     lessonLanguage?: string;
     textSize: TextSize;
+    textSizeOptions?: TextSize[];
+    onTextSizeChange?: (value: TextSize) => void;
     sourceTextSafe: string;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
@@ -108,6 +110,8 @@ type Props = {
 export default function StandardAssignmentSection({
     lessonLanguage,
     textSize,
+    textSizeOptions,
+    onTextSizeChange,
     sourceTextSafe,
     translatedText,
     lessonTextSections,
@@ -158,6 +162,8 @@ export default function StandardAssignmentSection({
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
                     textSize={textSize}
+                    textSizeOptions={textSizeOptions}
+                    onTextSizeChange={onTextSizeChange}
                     translatedText={translatedText}
                     lessonTextSections={lessonTextSections}
                     translatedSectionMap={translatedSectionMap}
@@ -225,6 +231,7 @@ export default function StandardAssignmentSection({
                                     onAnswer={onAnswer}
                                     translating={translating}
                                     ttsBusy={ttsBusy}
+                                    textSize={textSize}
                                     onTranslateTask={() => onTranslateTask(task, idx)}
                                     onPlayOriginal={(text) => onPlayTTS(text, originalLangForTTS, "original")}
                                     onPlayTranslation={(text) => onPlayTTS(text, translationLangForTTS, "translation")}

@@ -29,7 +29,9 @@ export function segmentSentences(fullText: string): {
         const endChar = startChar + p.length;
         cursor = endChar;
 
-        const weight = Math.max(8, p.replace(/\s+/g, " ").length);
+        const pauseWeight =
+            (p.match(/[,:;]/g)?.length ?? 0) * 3 + (/[.!?]$/.test(p) ? 8 : 4);
+        const weight = Math.max(8, p.replace(/\s+/g, " ").length + pauseWeight);
         segsRaw.push({ text: p, startChar, endChar, weight });
     }
 

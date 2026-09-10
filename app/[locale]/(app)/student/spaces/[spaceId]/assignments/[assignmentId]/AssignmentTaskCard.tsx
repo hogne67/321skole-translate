@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { AnswersMap, AutoGrade, Task, TranslatedTask, TranslatingState } from "./types";
+import { useState, type CSSProperties } from "react";
+import type { AnswersMap, AutoGrade, Task, TextSize, TranslatedTask, TranslatingState } from "./types";
 import {
     blueButtonActiveStyle,
     softBlueButtonStyle,
@@ -18,6 +18,7 @@ type Props = {
     locked: boolean;
     translating: TranslatingState;
     ttsBusy: null | "original" | "translation";
+    textSize: TextSize;
     t: (key: string, values?: Record<string, unknown>) => string;
     getMcqSelectedIndex: (stableId: string, options: unknown[]) => number | null;
     isTrueSelected: (stableId: string, v: boolean) => boolean;
@@ -53,6 +54,12 @@ function imageWritingLabels(language: unknown) {
     };
 }
 
+function getTaskTextStyle(textSize: TextSize): CSSProperties {
+    if (textSize === "xlarge") return { fontSize: 22, lineHeight: 1.65 };
+    if (textSize === "large") return { fontSize: 19, lineHeight: 1.6 };
+    return { fontSize: 17, lineHeight: 1.55 };
+}
+
 export default function AssignmentTaskCard({
     task,
     language,
@@ -64,6 +71,7 @@ export default function AssignmentTaskCard({
     locked,
     translating,
     ttsBusy,
+    textSize,
     t,
     getMcqSelectedIndex,
     isTrueSelected,
@@ -118,6 +126,7 @@ export default function AssignmentTaskCard({
             : isAutoCorrect === false
                 ? "rgba(239,68,68,0.05)"
                 : "white";
+    const taskTextStyle = getTaskTextStyle(textSize);
 
     return (
         <div
@@ -136,7 +145,7 @@ export default function AssignmentTaskCard({
                     alignItems: "flex-start",
                 }}
             >
-                <div style={{ fontWeight: 800, lineHeight: 1.45 }}>
+                <div style={{ fontWeight: 800, ...taskTextStyle }}>
                     {promptOrig || t("tasks.noPrompt")}
                 </div>
 
@@ -219,7 +228,7 @@ export default function AssignmentTaskCard({
                 <div
                     style={{
                         marginTop: 8,
-                        fontSize: 13,
+                        fontSize: Math.max(14, Number(taskTextStyle.fontSize ?? 17) - 2),
                         lineHeight: 1.5,
                         color: "rgba(0,0,0,0.72)",
                         background: "rgba(59,130,246,0.08)",
@@ -383,7 +392,7 @@ export default function AssignmentTaskCard({
                                             gap: 10,
                                         }}
                                     >
-                                        <span style={{ fontWeight: checked ? 800 : 600, flex: 1 }}>
+                                        <span style={{ fontWeight: checked ? 800 : 600, flex: 1, ...taskTextStyle }}>
                                             <span>{optOrig}</span>
 
                                             {showOptionTranslation ? (
@@ -391,7 +400,7 @@ export default function AssignmentTaskCard({
                                                     style={{
                                                         display: "block",
                                                         marginTop: 4,
-                                                        fontSize: 13,
+                                                        fontSize: Math.max(14, Number(taskTextStyle.fontSize ?? 17) - 3),
                                                         fontWeight: 500,
                                                         color: "rgba(0,0,0,0.65)",
                                                         lineHeight: 1.4,
@@ -477,6 +486,7 @@ export default function AssignmentTaskCard({
                             opacity: locked ? 0.7 : 1,
                             background: "rgba(59,130,246,0.04)",
                             minHeight: isImageWritingTask ? 190 : undefined,
+                            ...taskTextStyle,
                         }}
                         placeholder={t("tasks.writeAnswer")}
                     />

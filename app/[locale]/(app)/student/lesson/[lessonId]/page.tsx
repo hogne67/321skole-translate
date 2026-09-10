@@ -216,7 +216,7 @@ type SentenceSeg = {
 
 const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
 const AUDIO_PLAYBACK_RATE_KEY = "321school.lessonAudioPlaybackRate";
-const AUDIO_PLAYBACK_RATES = [0.5, 0.65, 0.8, 1, 1.2] as const;
+const AUDIO_PLAYBACK_RATES = [0.5, 0.65, 0.8, 1] as const;
 const DEFAULT_AUDIO_PLAYBACK_RATE = 0.8;
 const STUDENT_TEXT_SIZE_KEY = "321school.lessonStudentTextSize";
 const STUDENT_TEXT_SIZE_OPTIONS: TextSize[] = ["normal", "large", "xlarge"];

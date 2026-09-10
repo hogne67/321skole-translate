@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import {
-    btnStyle,
     pauseButtonStyle,
     playButtonStyle,
     softBlueButtonStyle,
@@ -13,13 +12,13 @@ type Props = {
     visible: boolean;
     audioActive: boolean;
     playbackRate: number;
+    playbackRates: readonly number[];
     isPlaying: boolean;
     currentTime: number;
     duration: number;
     t: (key: string, values?: Record<string, unknown>) => string;
     formatSeconds: (seconds: number) => string;
-    onDecreaseRate: () => void;
-    onIncreaseRate: () => void;
+    onPlaybackRateChange: (rate: number) => void;
     onPrevSentence: () => void;
     onNextSentence: () => void;
     onPause: () => void;
@@ -43,13 +42,13 @@ export default function StudentAssignmentAudioBar({
     visible,
     audioActive,
     playbackRate,
+    playbackRates,
     isPlaying,
     currentTime,
     duration,
     t,
     formatSeconds,
-    onDecreaseRate,
-    onIncreaseRate,
+    onPlaybackRateChange,
     onPrevSentence,
     onNextSentence,
     onPause,
@@ -197,18 +196,25 @@ export default function StudentAssignmentAudioBar({
                     </span>
                 </div>
 
-                <div style={speedGroupStyle}>
-                    <button type="button" style={isMobileView ? mobileSpeedButtonStyle : speedButtonStyle} onClick={onDecreaseRate}>
-                        −
-                    </button>
-
-                    <span style={isMobileView ? mobileSpeedValueStyle : speedValueStyle}>
-                        {playbackRate.toFixed(2)}x
-                    </span>
-
-                    <button type="button" style={isMobileView ? mobileSpeedButtonStyle : speedButtonStyle} onClick={onIncreaseRate}>
-                        +
-                    </button>
+                <div
+                    style={{
+                        ...speedGroupStyle,
+                        order: isMobileView ? 1 : 0,
+                    }}
+                >
+                    {playbackRates.map((rate) => (
+                        <button
+                            key={rate}
+                            type="button"
+                            style={{
+                                ...(isMobileView ? mobileSpeedButtonStyle : speedButtonStyle),
+                                ...(playbackRate === rate ? speedButtonActiveStyle : null),
+                            }}
+                            onClick={() => onPlaybackRateChange(rate)}
+                        >
+                            {rate}x
+                        </button>
+                    ))}
                 </div>
 
                 {footerHint ? (
@@ -289,7 +295,7 @@ export default function StudentAssignmentAudioBar({
 const speedGroupStyle: CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     padding: 4,
     borderRadius: 14,
     border: "1px solid rgba(15,23,42,0.12)",
@@ -297,20 +303,21 @@ const speedGroupStyle: CSSProperties = {
 };
 
 const speedButtonStyle: CSSProperties = {
-    ...btnStyle,
-    minWidth: 32,
+    minWidth: 45,
     minHeight: 32,
-    padding: "5px 8px",
+    padding: "5px 9px",
     borderRadius: 10,
+    border: "1px solid rgba(15,23,42,0.14)",
+    background: "#ffffff",
+    color: "#334155",
     fontWeight: 800,
+    cursor: "pointer",
 };
 
-const speedValueStyle: CSSProperties = {
-    fontSize: 12,
-    minWidth: 44,
-    textAlign: "center",
-    color: "#475569",
-    fontWeight: 800,
+const speedButtonActiveStyle: CSSProperties = {
+    border: "1px solid rgba(37,99,235,0.70)",
+    background: "rgba(37,99,235,0.14)",
+    color: "#1d4ed8",
 };
 
 const audioButtonStyle: CSSProperties = {
@@ -345,14 +352,10 @@ const mobileAudioPrimaryButtonStyle: CSSProperties = {
 
 const mobileSpeedButtonStyle: CSSProperties = {
     ...speedButtonStyle,
-    minWidth: 30,
+    minWidth: 42,
     minHeight: 30,
     padding: "4px 7px",
-};
-
-const mobileSpeedValueStyle: CSSProperties = {
-    ...speedValueStyle,
-    minWidth: 40,
+    fontSize: 12,
 };
 
 const submitButtonStyle: CSSProperties = {
