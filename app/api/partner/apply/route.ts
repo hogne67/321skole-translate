@@ -95,6 +95,11 @@ function readCurrentRole(v: unknown): CurrentRole {
   return "other";
 }
 
+function isAdminProfile(data: Record<string, unknown>): boolean {
+  const roles = data.roles && typeof data.roles === "object" ? data.roles as Record<string, unknown> : {};
+  return data.role === "admin" || roles.admin === true;
+}
+
 export async function POST(req: Request) {
   try {
     const token = getBearerToken(req);
@@ -106,7 +111,9 @@ export async function POST(req: Request) {
     if (!uid) return json({ error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const email = readString(body.email, 160) || readString(decoded.email, 160);
+    const authEmail = readString(decoded.email, 160);
+    const requestedEmail = readString(body.email, 160);
+    const email = authEmail || requestedEmail;
     const name = readString(body.name, 120);
     const city = readString(body.city, 80);
     const country = readString(body.country, 80);
@@ -127,11 +134,31 @@ export async function POST(req: Request) {
 
     if (!name) return json({ error: "Name is required" }, 400);
     if (!email) return json({ error: "Email is required" }, 400);
+    if (
+      authEmail &&
+      requestedEmail &&
+      requestedEmail.toLowerCase() !== authEmail.toLowerCase()
+    ) {
+      return json({
+        error:
+          "Email must match the signed-in user. Open the invitation in the candidate's own account.",
+      }, 400);
+    }
     if (!city) return json({ error: "City/place is required" }, 400);
     if (!country) return json({ error: "Country is required" }, 400);
     if (languages.length === 0) return json({ error: "At least one language is required" }, 400);
 
     const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    const userData = userSnap.data() ?? {};
+
+    if (isAdminProfile(userData)) {
+      return json({
+        error:
+          "Admin users cannot submit partner applications. Send the invitation link to the candidate instead.",
+      }, 400);
+    }
+
     const applicationRef = db.collection("partnerApplications").doc();
 
     await db.runTransaction(async (tx) => {

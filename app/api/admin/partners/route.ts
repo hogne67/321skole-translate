@@ -39,6 +39,11 @@ function toJsonSafe(data: Record<string, unknown>) {
   );
 }
 
+function isAdminProfile(data: Record<string, unknown>): boolean {
+  const roles = isRecord(data.roles) ? data.roles : {};
+  return data.role === "admin" || roles.admin === true;
+}
+
 type PartnerApplicationItem = {
   id: string;
   createdAt?: unknown;
@@ -184,6 +189,7 @@ export async function GET(req: Request) {
           ].sort((a, b) => b.localeCompare(a))[0] || null,
         };
       })
+      .filter((item) => !isAdminProfile(item))
       .sort((a, b) => {
         const priorityDiff = partnerPriority(a) - partnerPriority(b);
         if (priorityDiff !== 0) return priorityDiff;

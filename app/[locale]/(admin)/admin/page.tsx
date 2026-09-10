@@ -89,10 +89,13 @@ export default function AdminPage() {
     openSupportTickets: null as number | null,
   });
 
+  const profileEmail = typeof profile?.email === "string" ? profile.email.trim().toLowerCase() : "";
+  const authEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  const profileMatchesAuth = !profileEmail || !authEmail || profileEmail === authEmail;
   const displayName =
-    typeof profile?.displayName === "string" && profile.displayName.trim()
+    profileMatchesAuth && typeof profile?.displayName === "string" && profile.displayName.trim()
       ? profile.displayName.trim()
-      : user?.email ?? "admin";
+      : user?.displayName || user?.email || "admin";
 
   const levelLabel = adminLabel(profile?.adminLevel);
   const adminIsActive =

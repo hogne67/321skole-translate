@@ -135,6 +135,8 @@ export default function PartnerApplyPage() {
   }, [prefilledEmail, prefilledName]);
 
   const existingStatus = profile?.partnerStatus ?? "none";
+  const isAdminUser = profile?.role === "admin" || profile?.roles?.admin === true;
+  const signedInEmail = user?.email || profile?.email || "";
 
   async function submit() {
     setSaving(true);
@@ -228,11 +230,27 @@ export default function PartnerApplyPage() {
             </div>
           ) : null}
 
-          {!loading && isSignedIn ? (
+          {!loading && isSignedIn && isAdminUser ? (
+            <div style={styles.loginBox}>
+              <div style={styles.statusBox}>
+                Du er innlogget som admin. Send invitasjonslenken til kandidaten, eller åpne siden i
+                inkognito / en annen nettleser hvis kandidaten skal søke.
+              </div>
+              <Link href={`/${locale}/admin/partners`} style={styles.primaryLink}>
+                Til Partner Admin
+              </Link>
+            </div>
+          ) : null}
+
+          {!loading && isSignedIn && !isAdminUser ? (
             <div style={styles.form}>
               {existingStatus !== "none" ? (
                 <div style={styles.statusBox}>Din partnerstatus: {existingStatus}</div>
               ) : null}
+
+              <div style={styles.accountBox}>
+                Signed in as <strong>{signedInEmail || "unknown user"}</strong>
+              </div>
 
               <label style={styles.label}>
                 Name
@@ -241,7 +259,7 @@ export default function PartnerApplyPage() {
 
               <label style={styles.label}>
                 Email
-                <input value={email} onChange={(e) => setEmail(e.target.value)} style={styles.input} />
+                <input value={email} readOnly style={{ ...styles.input, ...styles.readOnlyInput }} />
               </label>
 
               <label style={styles.label}>
@@ -474,6 +492,18 @@ const styles: Record<string, CSSProperties> = {
     padding: "10px 12px",
     fontSize: 15,
     background: "#ffffff",
+  },
+  readOnlyInput: {
+    background: "#f1f5f9",
+    color: "#475569",
+  },
+  accountBox: {
+    border: "1px solid #bfdbfe",
+    borderRadius: 8,
+    padding: 10,
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontSize: 13,
   },
   textarea: {
     width: "100%",

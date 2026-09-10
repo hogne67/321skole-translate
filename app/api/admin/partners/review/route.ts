@@ -42,6 +42,11 @@ function readAvailability(v: unknown): "low" | "medium" | "high" {
   return "medium";
 }
 
+function isAdminProfile(data: Record<string, unknown>): boolean {
+  const roles = data.roles && typeof data.roles === "object" ? data.roles as Record<string, unknown> : {};
+  return data.role === "admin" || roles.admin === true;
+}
+
 export async function POST(req: Request) {
   try {
     const token = getBearerToken(req);
@@ -75,11 +80,19 @@ export async function POST(req: Request) {
       if (!uid) throw new Error("Partner application is missing uid");
 
       const userRef = db.collection("users").doc(uid);
+      const userSnap = await tx.get(userRef);
+      const userData = userSnap.data() ?? {};
       const reviewedAt = FieldValue.serverTimestamp();
 
       if (action === "approve") {
+        if (isAdminProfile(userData)) {
+          throw new Error("Cannot approve an admin user as partner.");
+        }
+
         const country = readString(application.country);
         const city = readString(application.city);
+        const email = readString(application.email);
+        const userEmail = readString(userData.email);
         const languages = readStringArray(application.languages);
         const partnerRoles = readStringArray(application.partnerRoles);
         const partnerCompetenceAreas = readStringArray(application.partnerCompetenceAreas);
@@ -87,6 +100,10 @@ export async function POST(req: Request) {
         const partnerAvailability = readAvailability(application.partnerAvailability);
         const partnerProfileBio = readString(application.partnerProfileBio).slice(0, 800);
         const partnerDirectoryVisible = application.partnerDirectoryVisible === true;
+
+        if (email && userEmail && email.toLowerCase() !== userEmail.toLowerCase()) {
+          throw new Error("Application email does not match the target user profile.");
+        }
 
         tx.update(applicationRef, {
           status: "approved",
