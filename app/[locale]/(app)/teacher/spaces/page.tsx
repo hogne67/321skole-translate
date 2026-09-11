@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
@@ -80,7 +80,14 @@ function TeacherSpacesInner() {
 
   const { user, profile, loading } = useUserProfile();
   const isGuestPreview = Boolean(user?.isAnonymous);
-  const [rows, setRows] = useState<Row[]>([]);
+  const [ownedRows, setOwnedRows] = useState<Row[]>([]);
+  const [sharedRows, setSharedRows] = useState<Row[]>([]);
+  const rows = useMemo(() => {
+    const map = new Map<string, Row>();
+    for (const row of sharedRows) map.set(row.id, row);
+    for (const row of ownedRows) map.set(row.id, row);
+    return Array.from(map.values());
+  }, [ownedRows, sharedRows]);
 
   const [search, setSearch] = useState("");
   const [showClosed, setShowClosed] = useState(false);
@@ -115,7 +122,56 @@ function TeacherSpacesInner() {
         id: d.id,
         data: (d.data() as SpaceDocSafe) ?? ({} as SpaceDocSafe),
       }));
-      setRows(next);
+      setOwnedRows(next);
+    });
+  }, [user?.uid, canUseTeacherSpaces]);
+
+  useEffect(() => {
+    if (!user?.uid || !canUseTeacherSpaces) return;
+
+    const qy = query(collection(db, "spaceMembers"), where("uid", "==", user.uid));
+
+    return onSnapshot(qy, async (snap) => {
+      const staffSpaceIds = snap.docs
+        .filter((memberSnap) => {
+          const data = memberSnap.data() as {
+            active?: unknown;
+            archived?: unknown;
+            role?: unknown;
+            staffRole?: unknown;
+            status?: unknown;
+            spaceId?: unknown;
+          };
+          const role = String(data.role ?? "").toLowerCase();
+          const staffRole = String(data.staffRole ?? "").toLowerCase();
+          const status = String(data.status ?? "").toLowerCase();
+          return (
+            typeof data.spaceId === "string" &&
+            data.active !== false &&
+            data.archived !== true &&
+            status !== "removed" &&
+            (role === "teacher" ||
+              role === "observer" ||
+              staffRole === "co_teacher" ||
+              staffRole === "substitute" ||
+              staffRole === "observer")
+          );
+        })
+        .map((memberSnap) => String((memberSnap.data() as { spaceId?: unknown }).spaceId))
+        .filter(Boolean);
+
+      const uniqueSpaceIds = Array.from(new Set(staffSpaceIds));
+      const nextRows = await Promise.all(
+        uniqueSpaceIds.map(async (id) => {
+          const spaceSnap = await getDoc(doc(db, "spaces", id));
+          if (!spaceSnap.exists()) return null;
+          const data = (spaceSnap.data() as SpaceDocSafe) ?? ({} as SpaceDocSafe);
+          if (data.ownerId === user.uid || data.ownerUid === user.uid) return null;
+          return { id: spaceSnap.id, data } satisfies Row;
+        })
+      );
+
+      setSharedRows(nextRows.filter((row): row is Row => row !== null));
     });
   }, [user?.uid, canUseTeacherSpaces]);
 

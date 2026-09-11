@@ -3,6 +3,7 @@
     "nav": {
       "overview": "Overview",
       "teachers": "Teachers",
+      "spaces": "Spaces",
       "invites": "Invitations"
     },
     "access": {
@@ -127,6 +128,26 @@
       "activateError": "Could not activate teacher.",
       "joinedAt": "Joined",
       "disabledAt": "Disabled"
+    },
+    "spaces": {
+      "eyebrow": "School admin",
+      "title": "Teacher spaces",
+      "subtitle": "See teacher spaces at the school and open them for substitute work, assessment, or practical follow-up.",
+      "loading": "Loading teacher spaces...",
+      "errorTitle": "Could not load teacher spaces",
+      "count": "{count} spaces",
+      "searchPlaceholder": "Search space, teacher, email, or code...",
+      "showClosed": "Show closed spaces",
+      "empty": "No teacher spaces found.",
+      "untitled": "Untitled",
+      "unknownTeacher": "Unknown teacher",
+      "open": "Open",
+      "closed": "Closed",
+      "members": "{count} members",
+      "code": "Code: {code}",
+      "created": "Created {date}",
+      "openSpace": "Open space",
+      "membersLink": "Members"
     },
     "invites": {
       "eyebrow": "School admin",

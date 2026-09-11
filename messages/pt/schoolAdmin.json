@@ -3,6 +3,7 @@
     "nav": {
       "overview": "Visao geral",
       "teachers": "Professores",
+      "spaces": "Salas",
       "invites": "Convites"
     },
     "access": {
@@ -127,6 +128,26 @@
       "activateError": "Nao foi possivel ativar professor.",
       "joinedAt": "Entrou",
       "disabledAt": "Desativado"
+    },
+    "spaces": {
+      "eyebrow": "Admin escolar",
+      "title": "Salas de professores",
+      "subtitle": "Veja as salas da escola e abra-as para substituicao, avaliacao ou acompanhamento pratico.",
+      "loading": "A carregar salas...",
+      "errorTitle": "Nao foi possivel carregar salas",
+      "count": "{count} salas",
+      "searchPlaceholder": "Procurar sala, professor, email ou codigo...",
+      "showClosed": "Mostrar salas fechadas",
+      "empty": "Nenhuma sala encontrada.",
+      "untitled": "Sem titulo",
+      "unknownTeacher": "Professor desconhecido",
+      "open": "Aberta",
+      "closed": "Fechada",
+      "members": "{count} membros",
+      "code": "Codigo: {code}",
+      "created": "Criada em {date}",
+      "openSpace": "Abrir sala",
+      "membersLink": "Membros"
     },
     "invites": {
       "eyebrow": "Admin escolar",

@@ -39,6 +39,20 @@ service cloud.firestore {
       return signedIn() && (myRole() == "admin" || hasRole("admin"));
     }
 
+    function hasActiveSchoolProfile() {
+      return signedIn()
+        && ("schoolId" in myUser())
+        && (myUser().schoolId is string)
+        && ("schoolStatus" in myUser())
+        && myUser().schoolStatus == "active";
+    }
+
+    function isActiveSchoolAdmin() {
+      return hasActiveSchoolProfile()
+        && ("schoolRole" in myUser())
+        && myUser().schoolRole == "school_admin";
+    }
+
     /* =========================
        Space helpers
     ========================= */
@@ -74,6 +88,40 @@ service cloud.firestore {
     }
     function isSpaceMember(spaceId) {
       return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId));
+    }
+
+    function mySpaceMemberData(spaceId) {
+      return isSpaceMember(spaceId) ? get(myMemberPath(spaceId)).data : {};
+    }
+
+    function isActiveSpaceMemberData(data) {
+      return isMap(data)
+        && (!("archived" in data) || data.archived != true)
+        && (!("active" in data) || data.active != false)
+        && (!("status" in data) || data.status != "removed");
+    }
+
+    function isSpaceCoTeacher(spaceId) {
+      let member = mySpaceMemberData(spaceId);
+      return signedIn()
+        && (isTeacher() || hasRole("teacher") || hasRole("creator"))
+        && isActiveSpaceMemberData(member)
+        && (
+          (("role" in member) && (member.role == "teacher" || member.role == "co_teacher"))
+          || (("staffRole" in member) && (member.staffRole == "co_teacher" || member.staffRole == "substitute"))
+        );
+    }
+
+    function isSchoolAdminForSpace(spaceId) {
+      return isActiveSchoolAdmin()
+        && spaceExists(spaceId)
+        && ("schoolId" in spaceData(spaceId))
+        && (spaceData(spaceId).schoolId is string)
+        && spaceData(spaceId).schoolId == myUser().schoolId;
+    }
+
+    function canTeachInSpace(spaceId) {
+      return isAdmin() || isSpaceOwner(spaceId) || isSpaceCoTeacher(spaceId) || isSchoolAdminForSpace(spaceId);
     }
 
     function spaceCode(spaceId) {
@@ -148,6 +196,15 @@ service cloud.firestore {
         );
     }
 
+    function requestedSchoolIdOk() {
+      return !("schoolId" in request.resource.data)
+        || request.resource.data.schoolId == null
+        || (
+          hasActiveSchoolProfile()
+          && request.resource.data.schoolId == myUser().schoolId
+        );
+    }
+
     function validParentGoalBase(data) {
       return data.keys().hasOnly([
           "title",
@@ -198,7 +255,7 @@ service cloud.firestore {
       return signedIn() && (
         isAdmin()
         || isSpaceOwner(spaceId)
-        || (isTeacher() && isSpaceMember(spaceId))
+        || isSpaceCoTeacher(spaceId)
       );
     }
 
@@ -422,7 +479,7 @@ service cloud.firestore {
     || (resource != null
         && ("spaceId" in resource.data)
         && (resource.data.spaceId is string)
-        && isSpaceOwner(resource.data.spaceId));
+        && (isSpaceOwner(resource.data.spaceId) || isSpaceCoTeacher(resource.data.spaceId) || isSchoolAdminForSpace(resource.data.spaceId)));
 
   allow create: if signedIn()
   && (request.resource.data.spaceId is string)
@@ -716,6 +773,7 @@ allow update: if signedIn()
     && (request.resource.data.title is string)
     && request.resource.data.title.size() > 0
     && (request.resource.data.isOpen is bool)
+    && requestedSchoolIdOk()
     && (
       isAdmin()
       || (
@@ -757,25 +815,23 @@ allow update: if signedIn()
        SPACE-LOCAL ASSIGNMENTS
     ========================= */
     match /spaces/{spaceId}/lessons/{assignmentId} {
-      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
-      allow create, update, delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow read: if canTeachInSpace(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+      allow create, update: if canTeachInSpace(spaceId);
+      allow delete: if isAdmin() || isSpaceOwner(spaceId);
     }
 
     /* =========================
        SPACE-LOCAL WRITING ACTIVITIES
     ========================= */
     match /spaces/{spaceId}/writingActivities/{activityId} {
-      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
-      allow create, update, delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow read: if canTeachInSpace(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+      allow create, update: if canTeachInSpace(spaceId);
+      allow delete: if isAdmin() || isSpaceOwner(spaceId);
     }
 
     match /spaces/{spaceId}/writingActivities/{activityId}/submissions/{subId} {
       function canWritingTeacherRead() {
-        return signedIn() && (
-          isSpaceOwner(spaceId)
-          || isAdmin()
-          || (isTeacher() && isSpaceMember(spaceId))
-        );
+        return signedIn() && canTeachInSpace(spaceId);
       }
 
       function isWritingSubOwner() {
@@ -870,11 +926,7 @@ allow update: if signedIn()
   }
 
   function canTeacherReadHere() {
-    return signedIn() && (
-      isSpaceOwner(spaceId)
-      || isAdmin()
-      || (isTeacher() && isSpaceMember(spaceId))
-    );
+    return signedIn() && canTeachInSpace(spaceId);
   }
 
   function canParentReadOwnHere() {
@@ -899,6 +951,7 @@ allow update: if signedIn()
   allow update: if
     isAdmin()
     || isSpaceOwner(spaceId)
+    || canTeachInSpace(spaceId)
     || isSubOwner()
     || canParentReadOwnHere();
 

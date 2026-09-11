@@ -85,6 +85,15 @@ function readIsAdmin(profile: unknown): boolean {
   return roles["admin"] === true;
 }
 
+function readActiveSchoolAdminId(profile: unknown): string | null {
+  if (!isRecord(profile)) return null;
+  return profile["schoolRole"] === "school_admin" &&
+    profile["schoolStatus"] === "active" &&
+    typeof profile["schoolId"] === "string"
+    ? profile["schoolId"]
+    : null;
+}
+
 function getErrorInfo(err: unknown): { code?: string; message: string } {
   if (err instanceof Error) return { message: err.message };
   if (typeof err === "string") return { message: err };
@@ -217,9 +226,11 @@ function Inner() {
   const spaceId = params.spaceId;
 
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
+  const schoolAdminId = useMemo(() => readActiveSchoolAdminId(profile), [profile]);
   const canOperateSpace = accessAllowedGuard(user?.uid);
 
   const [space, setSpace] = useState<SpaceDocSafe | null>(null);
+  const [spaceStaffRole, setSpaceStaffRole] = useState<string | null>(null);
 
   const [access, setAccess] = useState<AccessState>("checking");
   const [accessReason, setAccessReason] = useState<string>("");
@@ -266,6 +277,7 @@ function Inner() {
       try {
         if (isAdmin) {
           if (!alive) return;
+          setSpaceStaffRole(null);
           setAccess("allowed");
           return;
         }
@@ -273,6 +285,15 @@ function Inner() {
         const ownerId = space.ownerId;
         if (typeof ownerId === "string" && ownerId === user.uid) {
           if (!alive) return;
+          setSpaceStaffRole(null);
+          setAccess("allowed");
+          return;
+        }
+
+        const spaceSchoolId = typeof space.schoolId === "string" ? space.schoolId : "";
+        if (schoolAdminId && spaceSchoolId === schoolAdminId) {
+          if (!alive) return;
+          setSpaceStaffRole("school_admin");
           setAccess("allowed");
           return;
         }
@@ -281,8 +302,18 @@ function Inner() {
         const ms = await getDoc(doc(db, "spaceMembers", memberDocId));
         if (!alive) return;
 
-        if (ms.exists()) setAccess("allowed");
-        else {
+        if (ms.exists()) {
+          const member = ms.data() as { role?: unknown; staffRole?: unknown };
+          setSpaceStaffRole(
+            typeof member.staffRole === "string"
+              ? member.staffRole
+              : typeof member.role === "string"
+                ? member.role
+                : null
+          );
+          setAccess("allowed");
+        } else {
+          setSpaceStaffRole(null);
           setAccess("denied");
           setAccessReason(t("access.notMember"));
         }
@@ -297,7 +328,7 @@ function Inner() {
     return () => {
       alive = false;
     };
-  }, [loading, user?.uid, isAdmin, spaceId, space, t]);
+  }, [loading, user?.uid, isAdmin, schoolAdminId, spaceId, space, t]);
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -556,7 +587,23 @@ function Inner() {
     );
   }
 
-  const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
+  const isSpaceOwnerNow = Boolean(
+    user?.uid &&
+      space &&
+      ((typeof space.ownerId === "string" && space.ownerId === user.uid) ||
+        (typeof space.ownerUid === "string" && space.ownerUid === user.uid))
+  );
+  const canControlSpace = access === "allowed" && Boolean(user?.uid) && (isAdmin || isSpaceOwnerNow);
+  const canManage =
+    access === "allowed" &&
+    Boolean(user?.uid) &&
+    canOperateSpace &&
+    (isAdmin ||
+      isSpaceOwnerNow ||
+      spaceStaffRole === "co_teacher" ||
+      spaceStaffRole === "substitute" ||
+      spaceStaffRole === "teacher" ||
+      spaceStaffRole === "school_admin");
 
   return (
     <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
@@ -593,12 +640,12 @@ function Inner() {
             </Link>
             <SpaceOpenSwitch
               checked={space?.isOpen === true}
-              disabled={saving || !canManage}
+              disabled={saving || !canControlSpace}
               label={space?.isOpen ? t("spaceToggle.openLabel") : t("spaceToggle.closedLabel")}
               description={space?.isOpen ? t("spaceToggle.openDescription") : t("spaceToggle.closedDescription")}
               onChange={async (next) => {
                 setSaveErr(null);
-                if (!canManage) {
+                if (!canControlSpace) {
                   setSaveErr(t("errors.noManageAccess"));
                   return;
                 }

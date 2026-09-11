@@ -3,6 +3,7 @@
     "nav": {
       "overview": "Oversikt",
       "teachers": "Lærere",
+      "spaces": "Lærerrom",
       "invites": "Invitasjoner"
     },
     "access": {
@@ -127,6 +128,26 @@
       "activateError": "Kunne ikke aktivere lærer.",
       "joinedAt": "Ble med",
       "disabledAt": "Deaktivert"
+    },
+    "spaces": {
+      "eyebrow": "Skoleadmin",
+      "title": "Lærerrom",
+      "subtitle": "Se lærerrom ved skolen og åpne dem ved vikar, sensorarbeid eller praktisk oppfølging.",
+      "loading": "Henter lærerrom...",
+      "errorTitle": "Kunne ikke hente lærerrom",
+      "count": "{count} rom",
+      "searchPlaceholder": "Søk etter rom, lærer, e-post eller kode...",
+      "showClosed": "Vis lukkede rom",
+      "empty": "Ingen lærerrom funnet.",
+      "untitled": "Uten tittel",
+      "unknownTeacher": "Ukjent lærer",
+      "open": "Åpent",
+      "closed": "Lukket",
+      "members": "{count} medlemmer",
+      "code": "Kode: {code}",
+      "created": "Opprettet {date}",
+      "openSpace": "Åpne rom",
+      "membersLink": "Medlemmer"
     },
     "invites": {
       "eyebrow": "Skoleadmin",

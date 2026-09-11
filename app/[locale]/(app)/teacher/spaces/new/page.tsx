@@ -33,7 +33,7 @@ export default function NewSpacePage() {
 function NewSpaceInner() {
   const t = useTranslations("spacesNew");
   const tCommon = useTranslations("common");
-  const { user, loading } = useUserProfile();
+  const { user, profile, loading } = useUserProfile();
   const router = useRouter();
   const locale = useLocale();
 
@@ -57,6 +57,10 @@ function NewSpaceInner() {
         ownerId: user.uid,
         title: title.trim(),
         isOpen,
+        schoolId:
+          profile?.schoolStatus === "active" && typeof profile.schoolId === "string"
+            ? profile.schoolId
+            : null,
       });
 
       router.push(`/${locale}/teacher/spaces/${res.spaceId}`);

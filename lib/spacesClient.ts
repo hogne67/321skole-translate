@@ -30,6 +30,7 @@ export type SpaceDoc = {
 
   // ✅ Useful metadata
   createdBy?: string;
+  schoolId?: string | null;
 
   // ✅ Active lesson (for "student sees automatically")
   activeLessonId?: string | null;
@@ -59,8 +60,9 @@ export async function createSpaceForTeacher(params: {
   ownerUid?: string;
   title: string;
   isOpen?: boolean;
+  schoolId?: string | null;
 }) {
-  const { ownerId, ownerUid, title, isOpen = true } = params;
+  const { ownerId, ownerUid, title, isOpen = true, schoolId = null } = params;
 
   const dbx = requireDb();
 
@@ -91,6 +93,7 @@ export async function createSpaceForTeacher(params: {
 
       title,
       isOpen,
+      schoolId,
 
       // Default: no active lesson yet
       activeLessonId: null,

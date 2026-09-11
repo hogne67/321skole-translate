@@ -61,6 +61,9 @@ type UserProfileAccess = {
   role: AppRole;
   plan: PlanKey;
   isAdmin: boolean;
+  schoolId: string | null;
+  schoolRole: string | null;
+  schoolStatus: string | null;
 };
 
 function json(data: unknown, status = 200) {
@@ -169,7 +172,14 @@ async function loadUserProfileAccess(
 ): Promise<UserProfileAccess> {
   const snap = await db.collection("users").doc(uid).get();
   if (!snap.exists) {
-    return { role: "anonymous", plan: "free", isAdmin: false };
+    return {
+      role: "anonymous",
+      plan: "free",
+      isAdmin: false,
+      schoolId: null,
+      schoolRole: null,
+      schoolStatus: null,
+    };
   }
 
   const d = (snap.data() ?? {}) as Record<string, unknown>;
@@ -196,6 +206,9 @@ async function loadUserProfileAccess(
       schoolStatus: typeof d.schoolStatus === "string" ? d.schoolStatus : null,
     }),
     isAdmin,
+    schoolId: typeof d.schoolId === "string" ? d.schoolId : null,
+    schoolRole: typeof d.schoolRole === "string" ? d.schoolRole : null,
+    schoolStatus: typeof d.schoolStatus === "string" ? d.schoolStatus : null,
   };
 }
 
@@ -208,6 +221,45 @@ async function isSpaceOwner(
   if (!snap.exists) return false;
   const d = (snap.data() ?? {}) as Record<string, unknown>;
   return typeof d.ownerId === "string" && d.ownerId === uid;
+}
+
+async function isSpaceCoTeacher(
+  db: FirebaseFirestore.Firestore,
+  spaceId: string,
+  uid: string
+): Promise<boolean> {
+  const snap = await db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get();
+  if (!snap.exists) return false;
+  const d = (snap.data() ?? {}) as Record<string, unknown>;
+  const status = safeString(d.status).toLowerCase();
+  const role = safeString(d.role).toLowerCase();
+  const staffRole = safeString(d.staffRole).toLowerCase();
+
+  return (
+    d.active !== false &&
+    d.archived !== true &&
+    status !== "removed" &&
+    (role === "teacher" || staffRole === "co_teacher" || staffRole === "substitute")
+  );
+}
+
+async function isSchoolAdminForSpace(
+  db: FirebaseFirestore.Firestore,
+  spaceId: string,
+  profile: UserProfileAccess
+): Promise<boolean> {
+  if (
+    profile.schoolRole !== "school_admin" ||
+    profile.schoolStatus !== "active" ||
+    !profile.schoolId
+  ) {
+    return false;
+  }
+
+  const snap = await db.collection("spaces").doc(spaceId).get();
+  if (!snap.exists) return false;
+  const d = (snap.data() ?? {}) as Record<string, unknown>;
+  return typeof d.schoolId === "string" && d.schoolId === profile.schoolId;
 }
 
 async function loadSourceLesson(params: {
@@ -281,8 +333,14 @@ export async function POST(
       loadUserProfileAccess(db, uid),
       isSpaceOwner(db, spaceId, uid),
     ]);
+    const [coTeacher, schoolAdminForSpace] = owner
+      ? [false, false]
+      : await Promise.all([
+          isSpaceCoTeacher(db, spaceId, uid),
+          isSchoolAdminForSpace(db, spaceId, profile),
+        ]);
 
-    if (!profile.isAdmin && !owner) {
+    if (!profile.isAdmin && !owner && !coTeacher && !schoolAdminForSpace) {
       return json({ error: "No access (owner/admin required)" }, 403);
     }
 

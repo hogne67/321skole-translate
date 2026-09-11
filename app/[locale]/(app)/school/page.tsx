@@ -365,7 +365,7 @@ function SchoolNav({
   t,
 }: {
   locale: string;
-  active: "overview" | "teachers";
+  active: "overview" | "teachers" | "spaces";
   t: SchoolAdminTranslator;
 }) {
   return (
@@ -375,6 +375,9 @@ function SchoolNav({
       </SchoolNavLink>
       <SchoolNavLink href={`/${locale}/school/teachers`} active={active === "teachers"}>
         {t("nav.teachers")}
+      </SchoolNavLink>
+      <SchoolNavLink href={`/${locale}/school/spaces`} active={active === "spaces"}>
+        {t("nav.spaces")}
       </SchoolNavLink>
     </nav>
   );
