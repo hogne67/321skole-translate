@@ -7,6 +7,7 @@ import {
   getTeacherActiveStudentUidsAdmin,
   getTeacherMemberLimit,
 } from "@/lib/server/teacherStudentSummary";
+import { getEffectivePlan } from "@/lib/featureAccess";
 
 type JoinBody = {
   code?: string;
@@ -25,6 +26,12 @@ type SpaceOwnerFields = {
 type TeacherProfileFields = {
   role?: unknown;
   plan?: unknown;
+  billing?: unknown;
+  partnerAccess?: unknown;
+  partnerStatus?: unknown;
+  schoolId?: unknown;
+  schoolRole?: unknown;
+  schoolStatus?: unknown;
 };
 
 type SpaceMemberFields = {
@@ -172,10 +179,24 @@ export async function POST(req: NextRequest) {
       const teacherData = teacherSnap.exists
         ? ((teacherSnap.data() ?? {}) as TeacherProfileFields)
         : null;
+      const teacherEffectivePlan = getEffectivePlan({
+        plan: safeString(teacherData?.plan) || "free",
+        billing:
+          teacherData?.billing && typeof teacherData.billing === "object"
+            ? (teacherData.billing as { plan?: string | null; status?: string | null })
+            : null,
+        partnerAccess: teacherData?.partnerAccess === true,
+        partnerStatus:
+          typeof teacherData?.partnerStatus === "string" ? teacherData.partnerStatus : null,
+        schoolId: typeof teacherData?.schoolId === "string" ? teacherData.schoolId : null,
+        schoolRole: typeof teacherData?.schoolRole === "string" ? teacherData.schoolRole : null,
+        schoolStatus:
+          typeof teacherData?.schoolStatus === "string" ? teacherData.schoolStatus : null,
+      });
 
       const memberLimit = getTeacherMemberLimit(
         safeString(teacherData?.role),
-        safeString(teacherData?.plan)
+        teacherEffectivePlan
       );
 
       const activeStudentUids = await getTeacherActiveStudentUidsAdmin(adminDb, teacherUid);

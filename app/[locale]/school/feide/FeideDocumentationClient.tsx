@@ -152,7 +152,7 @@ function SectionIcon({ icon }: { icon: DocumentSection["icon"] }) {
 }
 
 export function FeideDocumentationClient({ locale }: { locale: string }) {
-  const [recipient, setRecipient] = useState("Alesund kommune");
+  const [recipient, setRecipient] = useState("");
   const [note, setNote] = useState("Dokumentasjon til vurdering av Feide-tilgang og skolebruk i 321school.");
   const [selected, setSelected] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(documents.map((document) => [document.id, true])),
@@ -198,6 +198,7 @@ export function FeideDocumentationClient({ locale }: { locale: string }) {
                   <input
                     value={recipient}
                     onChange={(event) => setRecipient(event.target.value)}
+                    placeholder="Kommune eller skoleeier"
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-950 outline-none focus:border-sky-500"
                   />
                 </label>
