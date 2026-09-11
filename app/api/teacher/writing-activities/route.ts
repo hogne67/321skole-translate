@@ -165,6 +165,8 @@ async function loadUserProfileAccess(
         d.billing && typeof d.billing === "object"
           ? (d.billing as { plan?: string | null; status?: string | null })
           : null,
+      partnerAccess: d.partnerAccess === true,
+      partnerStatus: typeof d.partnerStatus === "string" ? d.partnerStatus : null,
       schoolId: typeof d.schoolId === "string" ? d.schoolId : null,
       schoolRole: typeof d.schoolRole === "string" ? d.schoolRole : null,
       schoolStatus: typeof d.schoolStatus === "string" ? d.schoolStatus : null,

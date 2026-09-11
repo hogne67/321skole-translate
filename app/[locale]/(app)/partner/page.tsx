@@ -4,17 +4,19 @@ import { getIdToken } from "firebase/auth";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Globe2,
   Lightbulb,
   MessageSquareText,
   Megaphone,
   Send,
   Sparkles,
+  Settings,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -129,6 +131,8 @@ export default function PartnerPage() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const profileEditorRef = useRef<HTMLElement | null>(null);
   const [profileForm, setProfileForm] = useState<PartnerProfilePayload>({
     partnerRoles: [],
     partnerCompetenceAreas: [],
@@ -319,6 +323,13 @@ export default function PartnerPage() {
     }
   }
 
+  const openProfileEditor = useCallback(() => {
+    setProfileEditorOpen(true);
+    window.requestAnimationFrame(() => {
+      profileEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
   if (loading || messagesLoading) {
     return (
       <main style={styles.page}>
@@ -351,6 +362,10 @@ export default function PartnerPage() {
           </p>
         </div>
         <div style={styles.heroStatus}>
+          <button type="button" onClick={openProfileEditor} style={styles.secondaryButton}>
+            <Settings size={15} aria-hidden="true" />
+            Edit profile
+          </button>
           <span style={styles.statusPill}>
             <CheckCircle2 size={15} aria-hidden="true" />
             Active partner
@@ -471,102 +486,120 @@ export default function PartnerPage() {
         </Panel>
       </section>
 
-      <section style={styles.card}>
+      <section ref={profileEditorRef} style={styles.card}>
         <div style={styles.sectionHeader}>
           <div>
             <div style={styles.kicker}>Profile</div>
             <h2 style={styles.sectionTitle}>Edit your partner profile</h2>
           </div>
-          <UsersRound size={21} color="#2563eb" aria-hidden="true" />
+          <button
+            type="button"
+            aria-controls="partner-profile-editor"
+            aria-expanded={profileEditorOpen}
+            onClick={() => setProfileEditorOpen((current) => !current)}
+            style={styles.iconButton}
+            title={profileEditorOpen ? "Hide profile editor" : "Show profile editor"}
+          >
+            <ChevronDown
+              size={18}
+              aria-hidden="true"
+              style={{ transform: profileEditorOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
+          </button>
         </div>
         <p style={styles.muted}>
           This helps 321school invite the right people into pilots, product feedback and local
           market conversations.
         </p>
 
-        <div style={styles.formGrid}>
-          <ChoiceGroup
-            title="Roles"
-            options={ROLE_OPTIONS}
-            values={profileForm.partnerRoles}
-            onToggle={(value) => toggleListValue("partnerRoles", value)}
-          />
-          <ChoiceGroup
-            title="Competence"
-            options={COMPETENCE_OPTIONS}
-            values={profileForm.partnerCompetenceAreas}
-            onToggle={(value) => toggleListValue("partnerCompetenceAreas", value)}
-          />
-          <ChoiceGroup
-            title="Preferred contribution"
-            options={CONTRIBUTION_OPTIONS}
-            values={profileForm.partnerContributionTypes}
-            onToggle={(value) => toggleListValue("partnerContributionTypes", value)}
-          />
-          <label style={styles.fieldLabel}>
-            Availability
-            <select
-              value={profileForm.partnerAvailability}
-              onChange={(event) =>
-                setProfileForm((current) => ({
-                  ...current,
-                  partnerAvailability: event.target.value as PartnerProfilePayload["partnerAvailability"],
-                }))
-              }
-              style={styles.select}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-        </div>
+        {profileEditorOpen ? (
+          <div id="partner-profile-editor">
+            <div style={styles.formGrid}>
+              <ChoiceGroup
+                title="Roles"
+                options={ROLE_OPTIONS}
+                values={profileForm.partnerRoles}
+                onToggle={(value) => toggleListValue("partnerRoles", value)}
+              />
+              <ChoiceGroup
+                title="Competence"
+                options={COMPETENCE_OPTIONS}
+                values={profileForm.partnerCompetenceAreas}
+                onToggle={(value) => toggleListValue("partnerCompetenceAreas", value)}
+              />
+              <ChoiceGroup
+                title="Preferred contribution"
+                options={CONTRIBUTION_OPTIONS}
+                values={profileForm.partnerContributionTypes}
+                onToggle={(value) => toggleListValue("partnerContributionTypes", value)}
+              />
+              <label style={styles.fieldLabel}>
+                Availability
+                <select
+                  value={profileForm.partnerAvailability}
+                  onChange={(event) =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      partnerAvailability: event.target
+                        .value as PartnerProfilePayload["partnerAvailability"],
+                    }))
+                  }
+                  style={styles.select}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+            </div>
 
-        <label style={styles.fieldLabel}>
-          Short profile note
-          <textarea
-            value={profileForm.partnerProfileBio}
-            onChange={(event) =>
-              setProfileForm((current) => ({
-                ...current,
-                partnerProfileBio: event.target.value,
-              }))
-            }
-            maxLength={800}
-            placeholder="What should 321school know about your interests, context or possible contribution?"
-            style={{ ...styles.textarea, minHeight: 108 }}
-          />
-        </label>
+            <label style={styles.fieldLabel}>
+              Short profile note
+              <textarea
+                value={profileForm.partnerProfileBio}
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    partnerProfileBio: event.target.value,
+                  }))
+                }
+                maxLength={800}
+                placeholder="What should 321school know about your interests, context or possible contribution?"
+                style={{ ...styles.textarea, minHeight: 108 }}
+              />
+            </label>
 
-        <label style={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={profileForm.partnerDirectoryVisible}
-            onChange={(event) =>
-              setProfileForm((current) => ({
-                ...current,
-                partnerDirectoryVisible: event.target.checked,
-              }))
-            }
-          />
-          Show my profile in a future partner directory
-        </label>
+            <label style={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={profileForm.partnerDirectoryVisible}
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    partnerDirectoryVisible: event.target.checked,
+                  }))
+                }
+              />
+              Show my profile in a future partner directory
+            </label>
 
-        <div style={styles.replyActions}>
-          <span style={styles.counter}>{profileForm.partnerProfileBio.length} / 800</span>
-          <button
-            onClick={savePartnerProfile}
-            disabled={savingProfile}
-            style={{
-              ...styles.primaryButton,
-              opacity: savingProfile ? 0.62 : 1,
-              cursor: savingProfile ? "not-allowed" : "pointer",
-            }}
-          >
-            <CheckCircle2 size={16} aria-hidden="true" />
-            {savingProfile ? "Saving..." : "Save partner profile"}
-          </button>
-        </div>
+            <div style={styles.replyActions}>
+              <span style={styles.counter}>{profileForm.partnerProfileBio.length} / 800</span>
+              <button
+                onClick={savePartnerProfile}
+                disabled={savingProfile}
+                style={{
+                  ...styles.primaryButton,
+                  opacity: savingProfile ? 0.62 : 1,
+                  cursor: savingProfile ? "not-allowed" : "pointer",
+                }}
+              >
+                <CheckCircle2 size={16} aria-hidden="true" />
+                {savingProfile ? "Saving..." : "Save partner profile"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section style={styles.card}>
@@ -788,6 +821,33 @@ const styles: Record<string, CSSProperties> = {
     padding: "5px 10px",
     fontSize: 12,
     fontWeight: 900,
+  },
+  secondaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 34,
+    border: "1px solid #cbd5e1",
+    borderRadius: 999,
+    background: "#ffffff",
+    color: "#334155",
+    padding: "7px 12px",
+    fontSize: 13,
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    border: "1px solid #cbd5e1",
+    borderRadius: 8,
+    background: "#ffffff",
+    color: "#2563eb",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
   },
   sectionHeader: {
     display: "flex",

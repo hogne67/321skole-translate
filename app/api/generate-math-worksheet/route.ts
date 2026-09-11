@@ -1366,6 +1366,8 @@ async function getRequestUserContext(
       data?.billing && typeof data.billing === "object"
         ? (data.billing as { plan?: string | null; status?: string | null })
         : null,
+    partnerAccess: data?.partnerAccess === true,
+    partnerStatus: typeof data?.partnerStatus === "string" ? data.partnerStatus : null,
     schoolId: typeof data?.schoolId === "string" ? data.schoolId : null,
     schoolRole: typeof data?.schoolRole === "string" ? data.schoolRole : null,
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,

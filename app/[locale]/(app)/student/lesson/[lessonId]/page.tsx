@@ -1120,6 +1120,8 @@ export default function StudentLessonPage() {
     ? "free"
     : getEffectivePlan({
         plan: safePlan(readStringField(profile, "plan")),
+        partnerAccess: profile?.partnerAccess === true,
+        partnerStatus: readStringField(profile, "partnerStatus"),
         schoolId: readStringField(profile, "schoolId"),
         schoolRole: readStringField(profile, "schoolRole"),
         schoolStatus: readStringField(profile, "schoolStatus"),

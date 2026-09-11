@@ -308,12 +308,18 @@ export default function ProducerLessonEditorPage() {
   const role = safeRole((profile as { role?: string } | null)?.role);
   const profileForPlan = profile as {
     plan?: string;
+    billing?: { plan?: string | null; status?: string | null } | null;
+    partnerAccess?: boolean | null;
+    partnerStatus?: string | null;
     schoolId?: string | null;
     schoolRole?: string | null;
     schoolStatus?: string | null;
   } | null;
   const plan = getEffectivePlan({
     plan: safePlan(profileForPlan?.plan),
+    billing: profileForPlan?.billing ?? null,
+    partnerAccess: profileForPlan?.partnerAccess ?? null,
+    partnerStatus: profileForPlan?.partnerStatus ?? null,
     schoolId: profileForPlan?.schoolId ?? null,
     schoolRole: profileForPlan?.schoolRole ?? null,
     schoolStatus: profileForPlan?.schoolStatus ?? null,

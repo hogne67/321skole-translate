@@ -192,6 +192,9 @@ export async function POST(req: NextRequest) {
         quotaUserData?.billing && typeof quotaUserData.billing === "object"
           ? (quotaUserData.billing as { plan?: string | null; status?: string | null })
           : null,
+      partnerAccess: quotaUserData?.partnerAccess === true,
+      partnerStatus:
+        typeof quotaUserData?.partnerStatus === "string" ? quotaUserData.partnerStatus : null,
       schoolId: typeof quotaUserData?.schoolId === "string" ? quotaUserData.schoolId : null,
       schoolRole: typeof quotaUserData?.schoolRole === "string" ? quotaUserData.schoolRole : null,
       schoolStatus: typeof quotaUserData?.schoolStatus === "string" ? quotaUserData.schoolStatus : null,
