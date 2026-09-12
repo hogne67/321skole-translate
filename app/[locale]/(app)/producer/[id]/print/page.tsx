@@ -75,6 +75,10 @@ function normalizeTextSize(value: unknown): TextSize {
   return "normal";
 }
 
+function isA1StartLevel(value: unknown): boolean {
+  return safeText(value).trim().toUpperCase().replace(/[^A-Z0-9]/g, "") === "A1START";
+}
+
 function highFrequencyWordFromLesson(lesson?: Lesson | null): string {
   const stored = safeText(lesson?.highFrequencyWord).trim();
   if (stored) return stored;
@@ -223,9 +227,14 @@ export default function ProducerPrintPage() {
   }, [lesson]);
 
   const textSize = normalizeTextSize(lesson?.textSize);
-  const highFrequencyWord = highFrequencyWordFromLesson(lesson);
-  const highFrequencyReadingSentences = safeText(lesson?.highFrequencyReadingSentences).trim();
-  const highFrequencyExplanation = safeText(lesson?.highFrequencyExplanation).trim();
+  const showHighFrequencySections = isA1StartLevel(lesson?.level);
+  const highFrequencyWord = showHighFrequencySections ? highFrequencyWordFromLesson(lesson) : "";
+  const highFrequencyReadingSentences = showHighFrequencySections
+    ? safeText(lesson?.highFrequencyReadingSentences).trim()
+    : "";
+  const highFrequencyExplanation = showHighFrequencySections
+    ? safeText(lesson?.highFrequencyExplanation).trim()
+    : "";
 
   if (loading) {
     return <main style={{ padding: 20 }}>{t("states.loading")}</main>;

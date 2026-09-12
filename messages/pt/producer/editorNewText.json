@@ -118,6 +118,7 @@
       "highFrequencyReadingSentencesHelp": "Aparecem como texto de leitura abaixo do texto principal e entram na impressão.",
       "highFrequencyExplanation": "Explicação da classe gramatical",
       "highFrequencyExplanationHelp": "Texto de apoio para o professor. Aparece apenas na versão do professor para impressão.",
+      "highFrequencyA1StartOnly": "Palavras de alta frequência são usadas apenas em atividades A1 Start.",
       "coverImageCredit": "Fonte da imagem"
     },
     "textSizes": {

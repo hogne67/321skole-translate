@@ -53,6 +53,10 @@ function normalizeTextSize(value: unknown): TextSize {
   return "normal";
 }
 
+function isA1StartLevel(value: unknown): boolean {
+  return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "") === "A1START";
+}
+
 function getReadingTextStyle(textSize: TextSize): React.CSSProperties {
   if (textSize === "xlarge") return { fontSize: 21, lineHeight: 1.75 };
   if (textSize === "large") return { fontSize: 18, lineHeight: 1.7 };
@@ -150,16 +154,17 @@ export default function ProducerLessonPreviewPage() {
   const textSize = normalizeTextSize(lesson.textSize);
   const readingTextStyle = getReadingTextStyle(textSize);
   const coverImageUrl = typeof lesson.coverImageUrl === "string" ? lesson.coverImageUrl.trim() : "";
+  const showHighFrequencySections = isA1StartLevel(lesson.level);
   const highFrequencyReadingSentences =
-    typeof lesson.highFrequencyReadingSentences === "string"
+    showHighFrequencySections && typeof lesson.highFrequencyReadingSentences === "string"
       ? lesson.highFrequencyReadingSentences.trim()
       : "";
   const highFrequencyExplanation =
-    typeof lesson.highFrequencyExplanation === "string"
+    showHighFrequencySections && typeof lesson.highFrequencyExplanation === "string"
       ? lesson.highFrequencyExplanation.trim()
       : "";
   const highFrequencyWord =
-    typeof lesson.highFrequencyWord === "string" ? lesson.highFrequencyWord.trim() : "";
+    showHighFrequencySections && typeof lesson.highFrequencyWord === "string" ? lesson.highFrequencyWord.trim() : "";
 
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "28px 16px 112px" }}>

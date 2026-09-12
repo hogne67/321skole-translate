@@ -338,6 +338,7 @@ export default function ProducerLessonEditorPage() {
   const [highFrequencyWord, setHighFrequencyWord] = useState("");
   const [highFrequencyReadingSentences, setHighFrequencyReadingSentences] = useState("");
   const [highFrequencyExplanation, setHighFrequencyExplanation] = useState("");
+  const showHighFrequencyFields = normalizeLevelValue(level) === "A1_START";
 
   const [status, setStatus] = useState<LessonStatus>("draft");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -1668,39 +1669,45 @@ export default function ProducerLessonEditorPage() {
               </div>
             </label>
 
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyWord")}</div>
-              <input
-                value={highFrequencyWord}
-                onChange={(e) => setHighFrequencyWord(e.target.value)}
-                style={fieldStyle}
-                placeholder={t("placeholders.highFrequencyWord")}
-              />
-            </label>
+            {showHighFrequencyFields ? (
+              <>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyWord")}</div>
+                  <input
+                    value={highFrequencyWord}
+                    onChange={(e) => setHighFrequencyWord(e.target.value)}
+                    style={fieldStyle}
+                    placeholder={t("placeholders.highFrequencyWord")}
+                  />
+                </label>
 
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyReadingSentences")}</div>
-              <textarea
-                value={highFrequencyReadingSentences}
-                onChange={(e) => setHighFrequencyReadingSentences(e.target.value)}
-                rows={5}
-                style={fieldStyle}
-                placeholder={t("placeholders.highFrequencyReadingSentences")}
-              />
-              <div style={smallHelpStyle}>{t("fields.highFrequencyReadingSentencesHelp")}</div>
-            </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyReadingSentences")}</div>
+                  <textarea
+                    value={highFrequencyReadingSentences}
+                    onChange={(e) => setHighFrequencyReadingSentences(e.target.value)}
+                    rows={5}
+                    style={fieldStyle}
+                    placeholder={t("placeholders.highFrequencyReadingSentences")}
+                  />
+                  <div style={smallHelpStyle}>{t("fields.highFrequencyReadingSentencesHelp")}</div>
+                </label>
 
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyExplanation")}</div>
-              <textarea
-                value={highFrequencyExplanation}
-                onChange={(e) => setHighFrequencyExplanation(e.target.value)}
-                rows={4}
-                style={{ ...fieldStyle, color: "#475569" }}
-                placeholder={t("placeholders.highFrequencyExplanation")}
-              />
-              <div style={smallHelpStyle}>{t("fields.highFrequencyExplanationHelp")}</div>
-            </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontWeight: 800 }}>{t("fields.highFrequencyExplanation")}</div>
+                  <textarea
+                    value={highFrequencyExplanation}
+                    onChange={(e) => setHighFrequencyExplanation(e.target.value)}
+                    rows={4}
+                    style={{ ...fieldStyle, color: "#475569" }}
+                    placeholder={t("placeholders.highFrequencyExplanation")}
+                  />
+                  <div style={smallHelpStyle}>{t("fields.highFrequencyExplanationHelp")}</div>
+                </label>
+              </>
+            ) : (
+              <div style={smallHelpStyle}>{t("fields.highFrequencyA1StartOnly")}</div>
+            )}
           </div>
         </section>
 

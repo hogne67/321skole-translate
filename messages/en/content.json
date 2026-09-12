@@ -63,7 +63,10 @@
       "teacherSubmission": "Teacher",
       "readingTest": "Reading test",
       "readyForPdf": "Ready for PDF",
-      "mathGenerator": "Math generator"
+      "mathGenerator": "Math generator",
+      "notShared": "not shared",
+      "sharedTo": "shared to {space}",
+      "sharedToMany": "shared to {space} +{count}"
     },
     "math": {
       "pdf": "Math PDF",

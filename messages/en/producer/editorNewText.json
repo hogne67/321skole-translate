@@ -118,6 +118,7 @@
       "highFrequencyReadingSentencesHelp": "Shown as reading material below the main text and included in print.",
       "highFrequencyExplanation": "Word class explanation",
       "highFrequencyExplanationHelp": "Teacher support text. Shown only in the teacher print version.",
+      "highFrequencyA1StartOnly": "High-frequency words are only used for A1 Start tasks.",
       "coverImageCredit": "Image source"
     },
     "textSizes": {

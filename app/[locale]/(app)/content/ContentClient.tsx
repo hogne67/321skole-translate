@@ -8,6 +8,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -233,6 +234,10 @@ function isPodcastWorkshopLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("podcast_workshop");
 }
 
+function usesSpaceSharingStatus(it: ContentItem) {
+  return it.type === "writingActivity" || isPodcastWorkshopLesson(it) || isImageWritingLesson(it);
+}
+
 function isImportedQuizLesson(it: ContentItem) {
   if (!isQuizLesson(it)) return false;
   const lesson = it as Extract<ContentItem, { type: "lesson" }> & {
@@ -409,6 +414,7 @@ export default function ContentClient() {
   const [publishSigned, setPublishSigned] = useState(false);
 
   const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
+  const [sharedSpaceNamesByItemKey, setSharedSpaceNamesByItemKey] = useState<Record<string, string[]>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
   const filteredPickSpaces = useMemo(() => {
@@ -668,6 +674,66 @@ export default function ContentClient() {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthReady, uid, isAnon, role]);
+
+  useEffect(() => {
+    if (!canUsePublishActions || mySpaces.length === 0 || !items.some(usesSpaceSharingStatus)) {
+      setSharedSpaceNamesByItemKey({});
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadSharedSpaceNames() {
+      const next: Record<string, Set<string>> = {};
+      const add = (key: string, spaceName: string) => {
+        if (!next[key]) next[key] = new Set<string>();
+        next[key].add(spaceName);
+      };
+
+      await Promise.all(
+        mySpaces.map(async (space) => {
+          const spaceName = titleForCard(space);
+
+          try {
+            const lessonsSnap = await getDocs(collection(db, "spaces", space.id, "lessons"));
+            lessonsSnap.forEach((lessonDoc) => {
+              const data = lessonDoc.data() as Record<string, unknown>;
+              if (data.archived === true || data.status === "archived") return;
+              if (data.sourceType !== "myContent") return;
+              const sourceId = safeString(data.sourceId);
+              if (sourceId) add(`lesson:${sourceId}`, spaceName);
+            });
+          } catch {
+            // ignore unreadable spaces here; the share button still works from the modal.
+          }
+
+          try {
+            const writingSnap = await getDocs(collection(db, "spaces", space.id, "writingActivities"));
+            writingSnap.forEach((activityDoc) => {
+              const data = activityDoc.data() as Record<string, unknown>;
+              if (data.archived === true || data.status === "archived") return;
+              const sourceActivityId = safeString(data.sourceActivityId);
+              if (sourceActivityId) add(`writingActivity:${sourceActivityId}`, spaceName);
+            });
+          } catch {
+            // ignore unreadable spaces here; the share button still works from the modal.
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setSharedSpaceNamesByItemKey(
+        Object.fromEntries(Object.entries(next).map(([key, names]) => [key, Array.from(names).sort()]))
+      );
+    }
+
+    void loadSharedSpaceNames();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canUsePublishActions, items, mySpaces, titleForCard]);
 
   useEffect(() => {
     if (!isParent || !uid || mySpaces.length === 0) {
@@ -2360,6 +2426,26 @@ export default function ContentClient() {
               const mathSubtypeText = mathSubtypeLabel(mathSubtype);
 
               let pill: React.ReactNode = null;
+              const sharingNames = usesSpaceSharingStatus(it)
+                ? sharedSpaceNamesByItemKey[key] ?? []
+                : [];
+              const sharingPill = usesSpaceSharingStatus(it) ? (
+                sharingNames.length > 0 ? (
+                  <StatusPill
+                    label={
+                      sharingNames.length === 1
+                        ? t("pills.sharedTo", { space: sharingNames[0] })
+                        : t("pills.sharedToMany", {
+                          space: sharingNames[0],
+                          count: sharingNames.length - 1,
+                        })
+                    }
+                    variant="green"
+                  />
+                ) : (
+                  <StatusPill label={t("pills.notShared")} variant="gray" />
+                )
+              ) : null;
 
               const extraPill =
                 it.type === "submission"
@@ -2377,6 +2463,8 @@ export default function ContentClient() {
                   pill = <StatusPill label={t("pills.library")} variant="gray" />;
                 } else if (isReadingTestLesson(it)) {
                   pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
+                } else if (sharingPill) {
+                  pill = sharingPill;
                 } else if (isImageWritingLesson(it)) {
                   pill = <StatusPill label="Skriveoppgave med bilde" variant="gray" />;
                 } else if (isParent) {
@@ -2393,8 +2481,10 @@ export default function ContentClient() {
                       <StatusPill label={t("pills.published")} variant="green" />
                     ) : (
                       <StatusPill label={t("pills.unpublished")} variant="red" />
-                    );
+                  );
                 }
+              } else if (it.type === "writingActivity") {
+                pill = sharingPill;
               } else if (it.status && !isLibraryPractice(it)) {
                 pill = <StatusPill label={it.status} variant="gray" />;
               }

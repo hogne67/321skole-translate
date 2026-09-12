@@ -63,7 +63,10 @@
       "teacherSubmission": "Lærer",
       "readingTest": "Lesetest",
       "readyForPdf": "Klar for PDF",
-      "mathGenerator": "Mattegenerator"
+      "mathGenerator": "Mattegenerator",
+      "notShared": "ikke delt",
+      "sharedTo": "delt til {space}",
+      "sharedToMany": "delt til {space} +{count}"
     },
     "math": {
       "pdf": "Matte-PDF",

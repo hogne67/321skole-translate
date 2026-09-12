@@ -107,6 +107,9 @@
       "highFrequencyReadingSentencesHelp": "Vises som lesestoff under hovedteksten og tas med i utskrift.",
       "highFrequencyExplanation": "Ordklasseforklaring",
       "highFrequencyExplanationHelp": "Støttetekst til lærer. Vises bare i lærerversjon av utskrift.",
+      "highFrequencyA1StartOnly": "Høyfrekvente ord brukes bare for A1 Start-oppgaver.",
+      "highFrequencyA1StartOnly": "Høyfrekvente ord brukes bare for A1 Start-oppgaver.",
+      "highFrequencyA1StartOnly": "Høyfrekvente ord brukes bare for A1 Start-oppgaver.",
       "coverImageCredit": "Bildekilde"
     },
     "textSizes": {
