@@ -41,6 +41,10 @@
       "empty": {
         "title": "No quizzes found",
         "text": "Publish a quiz from My content, and it will appear here."
+      },
+      "card": {
+        "shareText": "I'm sharing a quiz from 321quiz: {title}",
+        "retry": "Try again"
       }
     },
     "card": {

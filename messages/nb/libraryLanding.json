@@ -41,6 +41,10 @@
       "empty": {
         "title": "Ingen quizer funnet",
         "text": "Publiser en quiz fra Mitt innhold, så dukker den opp her."
+      },
+      "card": {
+        "shareText": "Jeg deler en quiz fra 321quiz: {title}",
+        "retry": "Prøv igjen"
       }
     },
     "card": {

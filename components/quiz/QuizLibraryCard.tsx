@@ -32,6 +32,17 @@ export type QuizLibraryCardData = {
 type QuizLibraryCardProps = {
   locale: string;
   quiz: QuizLibraryCardData;
+  labels: {
+    author: string;
+    share: string;
+    shareText: string;
+    copied: string;
+    addToMyContent: string;
+    added: string;
+    retry: string;
+    ratingAria: string;
+    rateStar: string;
+  };
 };
 
 function StarRating({
@@ -40,17 +51,19 @@ function StarRating({
   myValue,
   busy,
   onRate,
+  labels,
 }: {
   value: number;
   count: number;
   myValue?: number;
   busy: boolean;
   onRate: (value: number) => void;
+  labels: Pick<QuizLibraryCardProps["labels"], "ratingAria" | "rateStar">;
 }) {
   const shown = myValue || Math.round(value);
 
   return (
-    <div className="flex items-center gap-2 text-sm font-bold text-slate-500" aria-label={`${value.toFixed(1)} av 5`}>
+    <div className="flex items-center gap-2 text-sm font-bold text-slate-500" aria-label={labels.ratingAria.replace("{value}", value.toFixed(1))}>
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -65,8 +78,8 @@ function StarRating({
             className={`border-0 bg-transparent p-0 text-base leading-none ${
               star <= shown ? "text-slate-500" : "text-slate-300"
             } ${busy ? "cursor-default opacity-60" : "cursor-pointer"}`}
-            aria-label={`Gi ${star} stjerner`}
-            title={`Gi ${star} stjerner`}
+            aria-label={labels.rateStar.replace("{star}", String(star))}
+            title={labels.rateStar.replace("{star}", String(star))}
           >
             ★
           </button>
@@ -98,7 +111,7 @@ function questionCountLabel(count: number, locale: string): string {
   return count === 1 ? "1 spørsmål" : `${count} spørsmål`;
 }
 
-export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
+export function QuizLibraryCard({ locale, quiz, labels }: QuizLibraryCardProps) {
   const router = useRouter();
   const href = `/${locale}/321quiz/${quiz.id}`;
   const description = isPromptLikeDescription(quiz.description) ? "" : quiz.description;
@@ -107,10 +120,15 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
   const [myRating, setMyRating] = useState<number | undefined>(undefined);
   const [ratingAverage, setRatingAverage] = useState(quiz.ratingAverage);
   const [ratingCount, setRatingCount] = useState(quiz.ratingCount);
-  const [shareLabel, setShareLabel] = useState("Del");
-  const [saveLabel, setSaveLabel] = useState("Legg til i Mitt innhold");
+  const [shareLabel, setShareLabel] = useState(labels.share);
+  const [saveLabel, setSaveLabel] = useState(labels.addToMyContent);
   const [saveBusy, setSaveBusy] = useState(false);
   const [alreadyAdded, setAlreadyAdded] = useState(false);
+
+  useEffect(() => {
+    setShareLabel(labels.share);
+    setSaveLabel(alreadyAdded ? labels.added : labels.addToMyContent);
+  }, [alreadyAdded, labels.addToMyContent, labels.added, labels.share]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -124,7 +142,7 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
       if (!currentUser?.uid || currentUser.isAnonymous) {
         if (!cancelled) {
           setAlreadyAdded(false);
-          setSaveLabel("Legg til i Mitt innhold");
+          setSaveLabel(labels.addToMyContent);
         }
         return;
       }
@@ -140,7 +158,7 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
 
         if (!cancelled && !snap.empty) {
           setAlreadyAdded(true);
-          setSaveLabel("Lagt til");
+          setSaveLabel(labels.added);
         }
       } catch {
         // The add action still works through the server even if this lookup fails.
@@ -152,19 +170,19 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, quiz.id]);
+  }, [currentUser, labels.addToMyContent, labels.added, quiz.id]);
 
   async function shareQuiz() {
     const url = `${window.location.origin}${href}`;
-    const text = `Jeg deler en quiz fra 321quiz: ${quiz.title}`;
+    const text = labels.shareText.replace("{title}", quiz.title);
 
     try {
       if (navigator.share) {
         await navigator.share({ title: quiz.title, text, url });
       } else {
         await navigator.clipboard.writeText(url);
-        setShareLabel("Kopiert");
-        setTimeout(() => setShareLabel("Del"), 1300);
+        setShareLabel(labels.copied);
+        setTimeout(() => setShareLabel(labels.share), 1300);
       }
     } catch {
       // User may cancel the native share sheet.
@@ -247,10 +265,10 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error || "Kunne ikke legge til quiz.");
       setAlreadyAdded(true);
-      setSaveLabel("Lagt til");
+      setSaveLabel(labels.added);
     } catch {
-      setSaveLabel("Prøv igjen");
-      setTimeout(() => setSaveLabel(alreadyAdded ? "Lagt til" : "Legg til i Mitt innhold"), 1600);
+      setSaveLabel(labels.retry);
+      setTimeout(() => setSaveLabel(alreadyAdded ? labels.added : labels.addToMyContent), 1600);
     } finally {
       setSaveBusy(false);
     }
@@ -304,7 +322,9 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
         ) : null}
 
         {quiz.author ? (
-          <p className="m-0 text-sm font-semibold text-slate-600">Forfatter: {quiz.author}</p>
+          <p className="m-0 text-sm font-semibold text-slate-600">
+            {labels.author}: {quiz.author}
+          </p>
         ) : null}
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
@@ -314,6 +334,7 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
             myValue={myRating}
             busy={ratingBusy}
             onRate={rateQuiz}
+            labels={labels}
           />
 
           <div className="flex flex-wrap items-center gap-2">

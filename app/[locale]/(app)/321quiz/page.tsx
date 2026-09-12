@@ -463,7 +463,24 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
                 ratingCount: quiz.ratingCount,
               };
 
-              return <QuizLibraryCard key={quiz.id} locale={locale} quiz={card} />;
+              return (
+                <QuizLibraryCard
+                  key={quiz.id}
+                  locale={locale}
+                  quiz={card}
+                  labels={{
+                    author: t("card.author"),
+                    share: t("share.button"),
+                    shareText: t("quiz.card.shareText", { title: "{title}" }),
+                    copied: t("share.copied"),
+                    addToMyContent: t("saveToMyContent.button"),
+                    added: t("saveToMyContent.added"),
+                    retry: t("quiz.card.retry"),
+                    ratingAria: t("rating.ariaLabel", { value: "{value}" }),
+                    rateStar: t("rating.rateStar", { star: "{star}" }),
+                  }}
+                />
+              );
             })}
           </section>
         ) : (
