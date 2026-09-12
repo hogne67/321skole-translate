@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { LANGUAGES } from "@/lib/languages";
 import { QuizLibraryCard, type QuizLibraryCardData } from "@/components/quiz/QuizLibraryCard";
@@ -118,33 +119,49 @@ function cleanLabel(value: string): string {
 function languageLabel(value: string, locale: string): string {
   const v = value.trim().toLowerCase();
   if (!v) return "";
-  const knownLanguage = LANGUAGES.find((language) => normLang(language.code) === v);
-  if (knownLanguage) return knownLanguage.label;
 
   const key = languageMatchKey(value);
-  if (key === "nb") return locale.startsWith("en") ? "Norwegian Bokmal" : "Norsk Bokmål";
-  if (key === "en") return locale.startsWith("en") ? "English" : "Engelsk";
-  if (key === "fr") return locale.startsWith("en") ? "French" : "Fransk";
-  if (key === "pt-br") return locale.startsWith("en") ? "Portuguese (Brazil)" : "Portugisisk (Brasil)";
+  const uiLocale = locale.startsWith("pt") ? "pt-BR" : locale.startsWith("en") ? "en" : "nb-NO";
+  const labels: Record<string, Record<string, string>> = {
+    nb: {
+      nb: "Norsk (bokmål)",
+      no: "Norsk (bokmål)",
+      nn: "Norsk (nynorsk)",
+      "pt-br": "Portugisisk (Brasil)",
+      "pt-pt": "Portugisisk (Portugal)",
+    },
+    en: {
+      nb: "Norwegian (Bokmål)",
+      no: "Norwegian (Bokmål)",
+      nn: "Norwegian (Nynorsk)",
+      "pt-br": "Portuguese (Brazil)",
+      "pt-pt": "Portuguese (Portugal)",
+    },
+    pt: {
+      nb: "Norueguês (Bokmål)",
+      no: "Norueguês (Bokmål)",
+      nn: "Norueguês (Nynorsk)",
+      en: "Inglês",
+      fr: "Francês",
+      "pt-br": "Português (Brasil)",
+      "pt-pt": "Português (Portugal)",
+    },
+  };
+  const labelLocale = locale.startsWith("pt") ? "pt" : locale.startsWith("en") ? "en" : "nb";
+  if (labels[labelLocale]?.[key]) return labels[labelLocale][key];
 
-  const nbLabels: Record<string, string> = {
-    nb: "Norsk Bokmål",
-    no: "Norsk Bokmål",
-    nn: "Norsk Nynorsk",
-    en: "Engelsk",
-    pt: "Portugisisk",
-    "pt-br": "Portugisisk (Brasil)",
-  };
-  const enLabels: Record<string, string> = {
-    nb: "Norwegian Bokmal",
-    no: "Norwegian Bokmal",
-    nn: "Norwegian Nynorsk",
-    en: "English",
-    pt: "Portuguese",
-    "pt-br": "Portuguese (Brazil)",
-  };
-  const labels = locale.startsWith("en") ? enLabels : nbLabels;
-  return labels[v] || cleanLabel(value);
+  const knownLanguage = LANGUAGES.find((language) => languageMatchKey(language.code) === key);
+  const codeForDisplay = knownLanguage?.code || value;
+
+  try {
+    const display = new Intl.DisplayNames([uiLocale], { type: "language" }).of(codeForDisplay);
+    if (display) return display.charAt(0).toUpperCase() + display.slice(1);
+  } catch {
+    // Fallback below.
+  }
+
+  const nativeLabel = knownLanguage?.label.split("–").at(-1)?.trim();
+  return nativeLabel || cleanLabel(value);
 }
 
 function normLang(code: string) {
@@ -296,6 +313,7 @@ function uniqueSorted(values: string[]): string[] {
 
 export default async function QuizLibraryPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "libraryLanding.quiz" });
   const sp = searchParams ? await searchParams : {};
   const q = asString(sp?.q).toLowerCase();
   const defaultLanguage = defaultLanguageForLocale(locale);
@@ -355,7 +373,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
           <input
             name="q"
             defaultValue={sp?.q || ""}
-            placeholder="Søk: tittel, kategori, forfatter..."
+            placeholder={t("filters.searchPlaceholder")}
             className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-4 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
           />
 
@@ -364,7 +382,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
             className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-950 md:hidden"
             htmlFor="quiz-filter-toggle"
           >
-            {activeFilterCount > 0 ? `Filtre (${activeFilterCount})` : "Filtre"}
+            {activeFilterCount > 0 ? t("filters.showFiltersWithCount", { count: activeFilterCount }) : t("filters.showFilters")}
           </label>
 
           <div className="hidden grid-cols-1 gap-2 peer-checked:grid md:contents">
@@ -373,7 +391,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={languageFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">Alle språk</option>
+              <option value="all">{t("filters.allLanguages")}</option>
               {languageOptions.map((language) => (
                 <option key={language} value={language}>
                   {languageLabel(language, locale)}
@@ -385,7 +403,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={levelFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">Nivå</option>
+              <option value="all">{t("filters.levelAll")}</option>
               {levels.map((level) => (
                 <option key={level} value={level}>
                   {level}
@@ -397,7 +415,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={categoryFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">Kategori</option>
+              <option value="all">{t("filters.categoryAll")}</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {categoryLabel(category)}
@@ -408,7 +426,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               type="submit"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white"
             >
-              Søk
+              {t("filters.search")}
             </button>
             <Link
               href={`/${locale}/321quiz`}
@@ -419,13 +437,13 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
                   : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
               }`}
             >
-              Nullstill
+              {t("filters.reset")}
             </Link>
           </div>
         </form>
 
         <section className="text-sm font-semibold text-slate-600">
-          Viser {quizzes.length} av {allQuizzes.length}
+          {t("status.showingCount", { shown: quizzes.length, total: allQuizzes.length })}
         </section>
 
         {quizzes.length ? (
@@ -450,8 +468,8 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
           </section>
         ) : (
           <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-2xl font-black">Ingen quizer funnet</h2>
-            <p className="mt-2 text-slate-600">Publiser en quiz fra Mitt innhold, så dukker den opp her.</p>
+            <h2 className="text-2xl font-black">{t("empty.title")}</h2>
+            <p className="mt-2 text-slate-600">{t("empty.text")}</p>
           </section>
         )}
       </div>

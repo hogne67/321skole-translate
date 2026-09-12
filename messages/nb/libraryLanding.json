@@ -24,6 +24,25 @@
     "empty": {
       "noResults": "Fant ingen publiserte oppgaver. Prøv å nullstille filtrene eller søk etter noe annet."
     },
+    "quiz": {
+      "filters": {
+        "searchPlaceholder": "Søk: tittel, kategori, forfatter...",
+        "allLanguages": "Alle språk",
+        "levelAll": "Nivå",
+        "categoryAll": "Kategori",
+        "search": "Søk",
+        "reset": "Nullstill",
+        "showFilters": "Filtre",
+        "showFiltersWithCount": "Filtre ({count})"
+      },
+      "status": {
+        "showingCount": "Viser {shown} av {total}"
+      },
+      "empty": {
+        "title": "Ingen quizer funnet",
+        "text": "Publiser en quiz fra Mitt innhold, så dukker den opp her."
+      }
+    },
     "card": {
       "imageFallback": "Bilde",
       "author": "Forfatter",

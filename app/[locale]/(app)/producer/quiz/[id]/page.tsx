@@ -10,6 +10,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useLocale } from "next-intl";
 import { db, storage } from "@/lib/firebase";
 import { getBucketLimit, getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { LANGUAGES } from "@/lib/languages";
 import { useUsage } from "@/lib/useUsage";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -83,6 +84,89 @@ function safeStringArray(value: unknown): string[] {
 
 function safeStorageName(input: string) {
   return input.replace(/[^\w.-]+/g, "_").slice(0, 90) || "cover";
+}
+
+function languageMatchKey(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[()]/g, " ")
+    .replace(/[_,-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (
+    normalized === "no" ||
+    normalized === "nb" ||
+    normalized === "norwegian" ||
+    normalized === "norwegian bokmal" ||
+    normalized === "norsk" ||
+    normalized === "norsk bokmal"
+  ) {
+    return "nb";
+  }
+  if (normalized === "nn" || normalized === "norsk nynorsk" || normalized === "norwegian nynorsk") return "nn";
+  if (normalized === "en" || normalized === "english" || normalized === "engelsk" || normalized === "ingles") return "en";
+  if (
+    normalized === "pt br" ||
+    normalized === "br" ||
+    normalized === "portuguese brazil" ||
+    normalized === "portugues brasil" ||
+    normalized === "portugisisk brasil"
+  ) {
+    return "pt-br";
+  }
+  if (normalized === "pt" || normalized === "portuguese" || normalized === "portugues" || normalized === "portugisisk") return "pt";
+  return normalized.replace(/\s+/g, "-");
+}
+
+function normalizeLanguageValue(value: string): string {
+  const key = languageMatchKey(value);
+  const known = LANGUAGES.find((language) => languageMatchKey(language.code) === key);
+  if (known) return known.code;
+  if (key === "pt") return "pt-BR";
+  return value.trim() || "nb";
+}
+
+function languageLabel(value: string, locale: string): string {
+  const normalized = normalizeLanguageValue(value);
+  const key = languageMatchKey(normalized);
+  const uiLocale = locale.startsWith("pt") ? "pt-BR" : locale.startsWith("en") ? "en" : "nb-NO";
+  const labels: Record<string, Record<string, string>> = {
+    nb: {
+      nb: "Norsk (bokmål)",
+      nn: "Norsk (nynorsk)",
+      "pt-br": "Portugisisk (Brasil)",
+      "pt-pt": "Portugisisk (Portugal)",
+    },
+    en: {
+      nb: "Norwegian (Bokmål)",
+      nn: "Norwegian (Nynorsk)",
+      "pt-br": "Portuguese (Brazil)",
+      "pt-pt": "Portuguese (Portugal)",
+    },
+    pt: {
+      nb: "Norueguês (Bokmål)",
+      nn: "Norueguês (Nynorsk)",
+      en: "Inglês",
+      "pt-br": "Português (Brasil)",
+      "pt-pt": "Português (Portugal)",
+    },
+  };
+  const labelLocale = locale.startsWith("pt") ? "pt" : locale.startsWith("en") ? "en" : "nb";
+  if (labels[labelLocale]?.[key]) return labels[labelLocale][key];
+
+  try {
+    const display = new Intl.DisplayNames([uiLocale], { type: "language" }).of(normalized);
+    if (display) return display.charAt(0).toUpperCase() + display.slice(1);
+  } catch {
+    // Fall back to stored labels.
+  }
+
+  const known = LANGUAGES.find((language) => languageMatchKey(language.code) === key);
+  return known?.label.split("–").at(-1)?.trim() || normalized;
 }
 
 function normalizeUsage(value: unknown): ImageUsage | null {
@@ -482,7 +566,7 @@ function normalizeDraft(data: unknown): QuizDraft {
     title: safeString(quiz.title || root.title, "321 quiz"),
     description: safeString(quiz.description || root.description),
     producerName: safeString(root.producerName),
-    language: safeString(quiz.language || root.language, "nb"),
+    language: normalizeLanguageValue(safeString(quiz.language || root.language, "nb")),
     level: safeString(quiz.level || root.level, "A2"),
     sourceMode: safeString(quiz.sourceMode || root.sourceMode, "topic"),
     topic: safeString(quiz.topic || root.topic),
@@ -563,6 +647,14 @@ export default function QuizEditorPage() {
   const imagesLimit = imageUsage?.limit ?? getBucketLimit(role, plan, "image_generation");
   const imagesRemaining = imageUsage?.remaining ?? Math.max(0, imagesLimit - imagesUsed);
   const imageLimitReached = !usageLoading && imagesLimit > 0 && imagesUsed >= imagesLimit;
+  const languageOptions = draft
+    ? [
+        ...LANGUAGES,
+        ...(LANGUAGES.some((language) => language.code === draft.language)
+          ? []
+          : [{ code: draft.language, label: draft.language }]),
+      ]
+    : LANGUAGES;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(getAuth(), async (user) => {
@@ -773,10 +865,11 @@ export default function QuizEditorPage() {
         <p className="mt-2 text-sm leading-6 text-slate-600">{labels.header.text}</p>
       </header>
 
-      <section className="mt-5 grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 md:grid-cols-4">
+      <section className="mt-5 grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 md:grid-cols-5">
         <Info label={labels.info.title} value={draft.title} empty={labels.empty} />
         <Info label={labels.info.questions} value={String(draft.questions.length)} empty={labels.empty} />
         <Info label={labels.info.level} value={draft.level} empty={labels.empty} />
+        <Info label={labels.basic.language} value={languageLabel(draft.language, locale)} empty={labels.empty} />
         <Info label={labels.info.image} value={draft.coverImageUrl ? labels.info.ready : labels.info.missing} empty={labels.empty} />
       </section>
 
@@ -796,7 +889,17 @@ export default function QuizEditorPage() {
           </label>
           <label className="block">
             <span className="text-sm font-bold text-slate-700">{labels.basic.language}</span>
-            <input value={draft.language} onChange={(e) => setDraft({ ...draft, language: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm" />
+            <select
+              value={draft.language}
+              onChange={(e) => setDraft({ ...draft, language: e.target.value })}
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm"
+            >
+              {languageOptions.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {languageLabel(language.code, locale)}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block">
             <span className="text-sm font-bold text-slate-700">{labels.basic.author}</span>

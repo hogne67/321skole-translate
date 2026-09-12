@@ -24,6 +24,25 @@
     "empty": {
       "noResults": "No published lessons found. Try clearing filters or searching for something else."
     },
+    "quiz": {
+      "filters": {
+        "searchPlaceholder": "Search: title, category, author...",
+        "allLanguages": "All languages",
+        "levelAll": "Level",
+        "categoryAll": "Category",
+        "search": "Search",
+        "reset": "Reset",
+        "showFilters": "Filters",
+        "showFiltersWithCount": "Filters ({count})"
+      },
+      "status": {
+        "showingCount": "Showing {shown} of {total}"
+      },
+      "empty": {
+        "title": "No quizzes found",
+        "text": "Publish a quiz from My content, and it will appear here."
+      }
+    },
     "card": {
       "imageFallback": "Image",
       "author": "Author",

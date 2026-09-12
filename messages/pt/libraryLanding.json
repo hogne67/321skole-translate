@@ -24,6 +24,25 @@
     "empty": {
       "noResults": "Nenhuma aula publicada foi encontrada. Tente limpar os filtros ou buscar outra coisa."
     },
+    "quiz": {
+      "filters": {
+        "searchPlaceholder": "Buscar: título, categoria, autor...",
+        "allLanguages": "Todos os idiomas",
+        "levelAll": "Nível",
+        "categoryAll": "Categoria",
+        "search": "Buscar",
+        "reset": "Redefinir",
+        "showFilters": "Filtros",
+        "showFiltersWithCount": "Filtros ({count})"
+      },
+      "status": {
+        "showingCount": "Mostrando {shown} de {total}"
+      },
+      "empty": {
+        "title": "Nenhum quiz encontrado",
+        "text": "Publique um quiz em Meu conteúdo para ele aparecer aqui."
+      }
+    },
     "card": {
       "imageFallback": "Imagem",
       "author": "Autor",
