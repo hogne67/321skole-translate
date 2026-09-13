@@ -271,7 +271,7 @@ const A1_START_THEMES = [
 
 const A1_START_SOUND_CHOICES = {
   nb: ["s", "m", "a", "b", "d", "f", "g", "k", "n", "e", "o", "u", "æ", "ø", "å", "sj", "kj"],
-  en: ["s", "m", "a", "th", "b", "d", "f", "g", "k", "n", "e", "o", "u", "sh"],
+  en: ["m", "s", "b", "d", "f", "g", "k", "n", "p", "t", "v", "l", "r", "h", "w", "y", "short a / cat", "short e / bed", "short i / sit", "short o / dog", "short u / sun", "long a / cake", "long e / see", "long i / bike", "long o / home", "long u / cute", "oo / moon", "oo / book", "ea / bread", "er / bird", "or / fork", "ar / car", "ai / rain", "ay / day", "ee / tree", "oa / boat", "ow / snow", "igh / night", "oi / coin", "oy / boy", "ou / house", "ow / cow", "air / chair", "ear / hear", "are / care", "sh", "ch", "th", "wh", "j", "z", "hard c / k", "soft c / s", "qu", "ck"],
   "pt-br": ["s", "m", "a", "i", "u", "a nasal / ã/an/am", "e nasal / en/em", "i nasal / in/im", "o nasal / on/om", "u nasal / um/un", "e aberto / é", "e fechado / ê", "o aberto / ó", "o fechado / ô", "nh", "lh", "ch", "ão", "qu", "gu", "r", "rr", "ç", "j", "x", "p", "t", "v", "z", "c", "b", "d", "f", "g", "l", "n"],
 } as const;
 
