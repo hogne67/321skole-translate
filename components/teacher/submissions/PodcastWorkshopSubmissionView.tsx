@@ -11,6 +11,7 @@ import type {
 } from "@/lib/podcastWorkshop";
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
 import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
+import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
 
 type Props = {
     title: string;
@@ -94,6 +95,33 @@ function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: 
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
 
+async function resolvePodcastSubmissionAudio(
+    submission: PodcastWorkshopSubmission
+): Promise<PodcastWorkshopSubmission> {
+    const productionSegments = { ...submission.productionSegments };
+    const entries = await Promise.all(
+        Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+            const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => segment.voice);
+            return [
+                segmentId,
+                {
+                    ...segment,
+                    voice,
+                },
+            ] as const;
+        })
+    );
+
+    entries.forEach(([segmentId, segment]) => {
+        productionSegments[segmentId] = segment;
+    });
+
+    return {
+        ...submission,
+        productionSegments,
+    };
+}
+
 export default function PodcastWorkshopSubmissionView({
     title,
     level,
@@ -109,6 +137,20 @@ export default function PodcastWorkshopSubmissionView({
     t,
 }: Props) {
     const [activeRoom, setActiveRoom] = useState<PodcastWorkshopRoomKey>("ideas");
+    const [playbackSubmission, setPlaybackSubmission] = useState(submission);
+
+    useEffect(() => {
+        let alive = true;
+
+        void resolvePodcastSubmissionAudio(submission).then((next) => {
+            if (alive) setPlaybackSubmission(next);
+        });
+
+        return () => {
+            alive = false;
+        };
+    }, [submission]);
+
     const rooms = useMemo(
         () => [
             { key: "ideas" as const, label: t("podcastWorkshop.ideasTitle") },
@@ -185,7 +227,7 @@ export default function PodcastWorkshopSubmissionView({
                 {renderRoom({
                     room: activeRoom,
                     config,
-                    submission,
+                    submission: playbackSubmission,
                     feedback,
                     canOperate,
                     saving,

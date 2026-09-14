@@ -146,7 +146,12 @@ function readAudioAsset(value: unknown): StudentAudioAsset | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const data = value as Record<string, unknown>;
     const audioDataUrl = typeof data.audioDataUrl === "string" ? data.audioDataUrl : "";
-    const storagePath = typeof data.storagePath === "string" ? data.storagePath : "";
+    const storagePath =
+        typeof data.storagePath === "string"
+            ? data.storagePath
+            : typeof data.audioStoragePath === "string"
+                ? data.audioStoragePath
+                : "";
     if (!audioDataUrl && !storagePath) return null;
     return {
         version: 1,
