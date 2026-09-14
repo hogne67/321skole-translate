@@ -51,7 +51,7 @@ function formatDuration(totalSeconds: number) {
 function getVoiceSegments(config: PodcastWorkshopConfig, submission: PodcastWorkshopSubmission) {
     return getPodcastWorkshopSegments(config, submission).filter((segment) => {
         const voice = submission.productionSegments[segment.id]?.voice;
-        return !!voice?.audioDataUrl;
+        return !!(voice?.audioDataUrl || voice?.storagePath);
     });
 }
 
@@ -65,9 +65,10 @@ function getPodcastDuration(config: PodcastWorkshopConfig, submission: PodcastWo
     const transitionSeconds = segments.reduce((sum, segment, index) => {
         const voice = submission.productionSegments[segment.id]?.voice;
         const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-            return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+            const nextVoice = submission.productionSegments[nextSegment.id]?.voice;
+            return !!(nextVoice?.audioDataUrl || nextVoice?.storagePath);
         });
-        if (!voice?.audioDataUrl || !hasNextVoice) return sum;
+        if (!(voice?.audioDataUrl || voice?.storagePath) || !hasNextVoice) return sum;
         return sum + getSoundDuration(getTransitionSoundId(submission, segment.id));
     }, 0);
     return voiceSeconds
@@ -306,15 +307,17 @@ function PodcastFullPlayback({
             if (cancelledRef.current) break;
             const segment = segments[index];
             const voice = submission.productionSegments[segment.id]?.voice ?? null;
-            const url = voice?.audioDataUrl;
-            if (url) {
+            const playableVoice = await resolveStudentAudioForPlayback(voice).catch(() => voice);
+            const url = playableVoice?.audioDataUrl;
+            if (url && playableVoice) {
                 await playAudioUrl(url, elapsed);
-                elapsed += voice.durationSeconds;
+                elapsed += playableVoice.durationSeconds;
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
             }
 
             const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-                return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+                const nextVoice = submission.productionSegments[nextSegment.id]?.voice;
+                return !!(nextVoice?.audioDataUrl || nextVoice?.storagePath);
             });
             if (!cancelledRef.current && hasNextVoice) {
                 const transitionSoundId = getTransitionSoundId(submission, segment.id);
@@ -537,6 +540,10 @@ function renderRoom({
                                     <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                                     {voice?.audioDataUrl ? (
                                         <audio controls src={voice.audioDataUrl} className="w-full" />
+                                    ) : voice?.storagePath ? (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+                                            {t("podcastWorkshop.readyToReview")}
+                                        </div>
                                     ) : (
                                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
                                             {t("podcastWorkshop.noAudio")}
