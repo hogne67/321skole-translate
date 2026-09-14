@@ -725,11 +725,12 @@ function Inner() {
   }, [sub, spaceId, t]);
 
   function submissionIndexBasePayload(): Record<string, unknown> {
-    const authInfo = readAuth(sub);
+    const currentSub = sub ?? ({} as SubmissionDoc);
+    const authInfo = readAuth(currentSub);
     return {
       spaceId: spaceId ?? null,
       assignmentId: assignmentId ?? null,
-      uid: authInfo.uid || sub?.uid || null,
+      uid: authInfo.uid || currentSub.uid || null,
       isAnon: authInfo.isAnon,
       title: assignment?.title ?? lesson?.title ?? null,
       level: assignment?.level ?? lesson?.level ?? null,
