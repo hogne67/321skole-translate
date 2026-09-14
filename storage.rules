@@ -66,6 +66,14 @@ service firebase.storage {
         ));
     }
 
+    function isSpaceCoTeacher(spaceId) {
+      return isActiveSpaceMember(spaceId)
+        && (
+          (("role" in spaceMemberData(spaceId)) && (spaceMemberData(spaceId).role == "teacher" || spaceMemberData(spaceId).role == "co_teacher"))
+          || (("staffRole" in spaceMemberData(spaceId)) && (spaceMemberData(spaceId).staffRole == "co_teacher" || spaceMemberData(spaceId).staffRole == "substitute"))
+        );
+    }
+
     function hasRole(roleName) {
       return ("roles" in myUser())
         && (myUser().roles is map)
@@ -93,7 +101,7 @@ service firebase.storage {
           myUid() == studentUid
           || isAdmin()
           || isSpaceOwner(spaceId)
-          || (isTeacher() && isSpaceMember(spaceId))
+          || isSpaceCoTeacher(spaceId)
         );
     }
 
@@ -125,7 +133,7 @@ service firebase.storage {
           myUid() == studentUid
           || isAdmin()
           || isSpaceOwner(spaceId)
-          || (isTeacher() && isSpaceMember(spaceId))
+          || isSpaceCoTeacher(spaceId)
         );
     }
 

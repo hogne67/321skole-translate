@@ -267,9 +267,9 @@ function Inner() {
   const { user, profile, loading: profileLoading } = useUserProfile();
 
   const role = useMemo(() => readRole(profile), [profile]);
-  const canOperate =
-    Boolean(user?.uid) &&
-    (role === "teacher" || role === "creator" || role === "admin");
+  const isGlobalTeacherLike = role === "teacher" || role === "creator" || role === "admin";
+  const [canTeachHere, setCanTeachHere] = useState(false);
+  const canOperate = Boolean(user?.uid) && (isGlobalTeacherLike || canTeachHere);
 
   const {
     usage,
@@ -363,6 +363,71 @@ function Inner() {
       hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!) : null,
     [hasParams, spaceId, assignmentId]
   );
+
+  useEffect(() => {
+    if (!spaceId || !user?.uid) {
+      setCanTeachHere(false);
+      return;
+    }
+
+    let alive = true;
+
+    (async () => {
+      try {
+        const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
+        if (!alive) return;
+
+        const spaceData = spaceSnap.exists()
+          ? (spaceSnap.data() as { ownerId?: unknown })
+          : null;
+
+        if (spaceData?.ownerId === user.uid) {
+          setCanTeachHere(true);
+          return;
+        }
+
+        const memberSnap = await getDoc(doc(db, "spaceMembers", `${spaceId}_${user.uid}`));
+        if (!alive) return;
+
+        if (!memberSnap.exists()) {
+          setCanTeachHere(false);
+          return;
+        }
+
+        const member = memberSnap.data() as {
+          archived?: unknown;
+          active?: unknown;
+          status?: unknown;
+          role?: unknown;
+          staffRole?: unknown;
+        };
+
+        const statusText = String(member.status ?? "").trim().toLowerCase();
+        const roleText = String(member.role ?? "").trim().toLowerCase();
+        const staffRoleText = String(member.staffRole ?? "").trim().toLowerCase();
+        const isActive =
+          member.archived !== true &&
+          member.active !== false &&
+          statusText !== "removed" &&
+          statusText !== "disabled" &&
+          statusText !== "inactive";
+
+        const isTeachingMember =
+          roleText === "teacher" ||
+          roleText === "co_teacher" ||
+          staffRoleText === "co_teacher" ||
+          staffRoleText === "substitute";
+
+        setCanTeachHere(isActive && isTeachingMember);
+      } catch {
+        if (alive) setCanTeachHere(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [spaceId, user?.uid]);
 
   const geometryWorksheet = useMemo(() => {
     return isMathWorksheet(lesson?.mathWorksheet) ? lesson.mathWorksheet : null;
