@@ -1528,7 +1528,7 @@ export default function StudentAssignmentPage() {
     ]
   );
 
-  if (loading || err || !lesson) {
+  if (loading || !lesson) {
     return (
       <AssignmentPageState
         loading={loading}
@@ -1607,6 +1607,24 @@ export default function StudentAssignmentPage() {
         mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}
       />
+
+      {err ? (
+        <div
+          role="alert"
+          style={{
+            marginTop: 10,
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid rgba(220,38,38,0.22)",
+            background: "rgba(254,242,242,0.92)",
+            color: "#991b1b",
+            fontWeight: 700,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {err}
+        </div>
+      ) : null}
 
       {translateErr ? (
         <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
