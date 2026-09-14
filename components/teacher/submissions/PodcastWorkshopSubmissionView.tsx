@@ -252,6 +252,7 @@ function PodcastFullPlayback({
 }) {
     const [playing, setPlaying] = useState(false);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [playbackError, setPlaybackError] = useState<string | null>(null);
     const playerRef = useRef<HTMLAudioElement | null>(null);
     const cancelledRef = useRef(false);
     const segments = getPodcastWorkshopSegments(config, submission);
@@ -274,16 +275,35 @@ function PodcastFullPlayback({
         setElapsedSeconds(0);
     }
 
-    async function playAudioUrl(url: string, offsetSeconds: number) {
-        return new Promise<void>((resolve) => {
+    async function playAudioUrl(url: string, offsetSeconds: number, durationSeconds: number) {
+        return new Promise<boolean>((resolve) => {
+            let settled = false;
             const audio = new Audio(url);
+            audio.preload = "auto";
             playerRef.current = audio;
+
+            const finish = (ok: boolean) => {
+                if (settled) return;
+                settled = true;
+                resolve(ok);
+            };
+
             audio.ontimeupdate = () => {
                 setElapsedSeconds(Math.min(totalSeconds, offsetSeconds + audio.currentTime));
             };
-            audio.onended = () => resolve();
-            audio.onerror = () => resolve();
-            void audio.play();
+            audio.onended = () => finish(true);
+            audio.onerror = () => finish(false);
+            audio.onabort = () => finish(false);
+
+            audio.play()
+                .then(() => undefined)
+                .catch(() => finish(false));
+
+            window.setTimeout(() => {
+                if (!settled && !cancelledRef.current) {
+                    finish(true);
+                }
+            }, Math.max(4000, (durationSeconds + 8) * 1000));
         });
     }
 
@@ -298,6 +318,7 @@ function PodcastFullPlayback({
         cancelledRef.current = false;
         setPlaying(true);
         setElapsedSeconds(0);
+        setPlaybackError(null);
 
         await playPodcastSound(submission.productionMix.introSoundId);
         let elapsed = getSoundDuration(submission.productionMix.introSoundId);
@@ -310,9 +331,16 @@ function PodcastFullPlayback({
             const playableVoice = await resolveStudentAudioForPlayback(voice).catch(() => voice);
             const url = playableVoice?.audioDataUrl;
             if (url && playableVoice) {
-                await playAudioUrl(url, elapsed);
+                const played = await playAudioUrl(url, elapsed, playableVoice.durationSeconds);
+                if (!played && !cancelledRef.current) {
+                    setPlaybackError("Kunne ikke spille av ett av elevopptakene.");
+                    break;
+                }
                 elapsed += playableVoice.durationSeconds;
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
+            } else if (voice?.storagePath && !cancelledRef.current) {
+                setPlaybackError("Fant lydopptak, men kunne ikke hente avspillingslenke.");
+                break;
             }
 
             const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
@@ -372,6 +400,11 @@ function PodcastFullPlayback({
                 <span>{formatDuration(elapsedSeconds)}</span>
                 <span>{formatDuration(totalSeconds)}</span>
             </div>
+            {playbackError ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">
+                    {playbackError}
+                </div>
+            ) : null}
         </div>
     );
 }
