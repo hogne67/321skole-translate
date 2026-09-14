@@ -2670,6 +2670,46 @@ function parseSoundWordsFromSection(text: string, heading: string): string[] {
   return words;
 }
 
+function parseA1StartSectionLines(text: string, heading: string, nextHeadings: string[]): string[] {
+  const lines = text.split(/\r?\n/);
+  const headingIndex = lines.findIndex(
+    (line) => line.trim().toLocaleLowerCase() === heading.toLocaleLowerCase()
+  );
+  if (headingIndex < 0) return [];
+
+  const nextHeadingSet = new Set(nextHeadings.map((item) => item.toLocaleLowerCase()));
+  const sectionLines: string[] = [];
+  for (const line of lines.slice(headingIndex + 1)) {
+    const trimmed = line.trim();
+    if (trimmed && nextHeadingSet.has(trimmed.toLocaleLowerCase())) break;
+    if (!trimmed) continue;
+    sectionLines.push(trimmed);
+  }
+  return sectionLines;
+}
+
+function isGenericSoundSentence(sentence: string): boolean {
+  const normalized = sentence.trim().toLocaleLowerCase();
+  return (
+    /^ordet er\b/.test(normalized) ||
+    /^i read the word\b/.test(normalized) ||
+    /^eu vejo\b/.test(normalized)
+  );
+}
+
+function uniqueA1StartLines(lines: string[]): string[] {
+  const seen = new Set<string>();
+  const uniqueLines: string[] = [];
+  for (const line of lines) {
+    const cleaned = cleanA1StartLine(line);
+    const key = cleaned.toLocaleLowerCase();
+    if (!cleaned || seen.has(key)) continue;
+    seen.add(key);
+    uniqueLines.push(cleaned);
+  }
+  return uniqueLines;
+}
+
 function isNorwegianWordCompatibleWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
   if (languageName !== "Norwegian") return true;
 
@@ -4043,6 +4083,21 @@ function simpleSoundSentence(languageName: string, word: string): string {
     god: "Maten er god.",
     lomme: "Jeg har en lomme.",
     sol: "Sola skinner.",
+    saft: "Jeg drikker saft.",
+    seng: "Senga er myk.",
+    sekk: "Sekken er blå.",
+    buss: "Bussen er stor.",
+    hus: "Huset er lite.",
+    pose: "Jeg har en pose.",
+    danse: "Vi kan danse.",
+    sitte: "Jeg kan sitte her.",
+    se: "Jeg kan se sola.",
+    si: "Jeg kan si hei.",
+    sang: "Vi synger en sang.",
+    sulten: "Jeg er sulten.",
+    sommer: "Det er sommer.",
+    stol: "Stolen er ved bordet.",
+    suppe: "Vi spiser suppe.",
   };
   if (norwegianSpecificPhrases[normalized]) return norwegianSpecificPhrases[normalized];
 
@@ -4105,7 +4160,7 @@ function simpleSoundSentence(languageName: string, word: string): string {
   const norwegianNumberWords = new Set(["en", "to", "tre", "fire", "fem", "seks", "sju", "åtte", "ni", "ti"]);
   if (norwegianNumberWords.has(normalized)) return `Jeg har ${word} bøker.`;
 
-  return `Ordet er ${word}.`;
+  return `Vi øver på ordet ${word}.`;
 }
 
 function replaceA1StartSection(
@@ -4820,6 +4875,10 @@ function normalizeA1StartSoundLadderResult(
 
   let normalizedText = text;
   const generatedWords = parseSoundWordsFromSection(normalizedText, labels.wordTraining);
+  const generatedSentences = uniqueA1StartLines(
+    parseA1StartSectionLines(normalizedText, labels.soundSentences, [labels.story, labels.explanation])
+      .filter((sentence) => !isGenericSoundSentence(sentence))
+  );
   const normalizedWords = normalizeSoundWords(generatedWords, languageName, focusSound, soundWordCount);
 
   if (normalizedText.toLocaleLowerCase().includes(labels.wordTraining.toLocaleLowerCase())) {
@@ -4837,9 +4896,14 @@ function normalizeA1StartSoundLadderResult(
     formatSoundWords(normalizedWords),
   ].join("\n");
   const fallbackSentences = getSoundTrainingSentences(languageName, focusSound, soundWordCount);
-  const normalizedSentences = normalizedWords.length
-    ? normalizedWords.map((word) => simpleSoundSentence(languageName, word))
-    : fallbackSentences;
+  const wordSentences = normalizedWords
+    .map((word) => simpleSoundSentence(languageName, word))
+    .filter((sentence) => !isGenericSoundSentence(sentence));
+  const normalizedSentences = uniqueA1StartLines([
+    ...generatedSentences,
+    ...fallbackSentences,
+    ...wordSentences,
+  ]).slice(0, soundWordCount);
   const soundSentences = [
     labels.soundSentences,
     ...normalizedSentences,
