@@ -12,6 +12,8 @@ import type {
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
 import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
 import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
+import { auth } from "@/lib/firebase";
+import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 
 type Props = {
     title: string;
@@ -96,13 +98,40 @@ function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: 
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
 
+async function resolveTeacherAudioForPlayback(
+    asset: StudentAudioAsset | null
+): Promise<StudentAudioAsset | null> {
+    if (!asset) return null;
+
+    const direct = await resolveStudentAudioForPlayback(asset).catch(() => asset);
+    if (direct?.audioDataUrl || !asset.storagePath) return direct;
+
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return direct;
+
+    const res = await fetch("/api/teacher/audio-url", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ storagePath: asset.storagePath }),
+    });
+
+    if (!res.ok) return direct;
+
+    const data = (await res.json().catch(() => null)) as { url?: unknown } | null;
+    const url = typeof data?.url === "string" ? data.url : "";
+    return url ? { ...asset, audioDataUrl: url } : direct;
+}
+
 async function resolvePodcastSubmissionAudio(
     submission: PodcastWorkshopSubmission
 ): Promise<PodcastWorkshopSubmission> {
     const productionSegments = { ...submission.productionSegments };
     const entries = await Promise.all(
         Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
-            const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => segment.voice);
+            const voice = await resolveTeacherAudioForPlayback(segment.voice).catch(() => segment.voice);
             return [
                 segmentId,
                 {
@@ -328,7 +357,7 @@ function PodcastFullPlayback({
             if (cancelledRef.current) break;
             const segment = segments[index];
             const voice = submission.productionSegments[segment.id]?.voice ?? null;
-            const playableVoice = await resolveStudentAudioForPlayback(voice).catch(() => voice);
+            const playableVoice = await resolveTeacherAudioForPlayback(voice).catch(() => voice);
             const url = playableVoice?.audioDataUrl;
             if (url && playableVoice) {
                 const played = await playAudioUrl(url, elapsed, playableVoice.durationSeconds);
