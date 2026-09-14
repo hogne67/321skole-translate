@@ -991,8 +991,13 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
       }
 
       function spaceIdFromDoc() {
-        return (resource != null && ("spaceId" in resource.data) && (resource.data.spaceId is string))
+        return resource != null && ("spaceId" in resource.data) && (resource.data.spaceId is string)
           ? resource.data.spaceId
+          : (request.resource != null
+              && (request.resource.data is map)
+              && ("spaceId" in request.resource.data)
+              && (request.resource.data.spaceId is string))
+            ? request.resource.data.spaceId
           : null;
       }
 
@@ -1008,11 +1013,18 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
 
       allow read: if isAdmin() || isOwnerDoc() || canTeacherReadIndex();
 
-      allow create: if signedIn()
+      allow create: if (
+        signedIn()
         && (request.resource.data.uid is string)
         && request.resource.data.uid == myUid()
         && (request.resource.data.spaceId is string)
-        && isSpaceMember(request.resource.data.spaceId);
+        && isSpaceMember(request.resource.data.spaceId)
+      ) || (
+        signedIn()
+        && (request.resource.data.uid is string)
+        && (request.resource.data.spaceId is string)
+        && canTeachInSpace(request.resource.data.spaceId)
+      );
 
       allow update: if isAdmin()
         || isOwnerDoc()

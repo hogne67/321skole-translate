@@ -724,6 +724,19 @@ function Inner() {
     };
   }, [sub, spaceId, t]);
 
+  function submissionIndexBasePayload(): Record<string, unknown> {
+    const authInfo = readAuth(sub);
+    return {
+      spaceId: spaceId ?? null,
+      assignmentId: assignmentId ?? null,
+      uid: authInfo.uid || sub?.uid || null,
+      isAnon: authInfo.isAnon,
+      title: assignment?.title ?? lesson?.title ?? null,
+      level: assignment?.level ?? lesson?.level ?? null,
+      language: assignment?.language ?? lesson?.language ?? null,
+    };
+  }
+
   async function saveAiFeedbackToFirestore(textValue: string) {
     if (!canOperate) return;
     if (!nestedRef && !indexRef) return;
@@ -735,6 +748,7 @@ function Inner() {
       const dbx = requireDb(db);
 
       const payload = {
+        ...submissionIndexBasePayload(),
         aiFeedback: {
           text: textValue,
           updatedAt: serverTimestamp(),
@@ -784,6 +798,7 @@ function Inner() {
 
       const dbx = requireDb(db);
       const payload = {
+        ...submissionIndexBasePayload(),
         audioReading: deleteField(),
         audioReadingDeletedAt: serverTimestamp(),
         audioReadingDeletedByUid: user?.uid ?? null,
@@ -1054,6 +1069,7 @@ function Inner() {
     try {
       const dbx = requireDb(db);
       const payload = {
+        ...submissionIndexBasePayload(),
         podcastWorkshopFeedback: {
           ...podcastWorkshopFeedback,
           updatedAt: serverTimestamp(),
@@ -1527,6 +1543,7 @@ function Inner() {
                 const dbx = requireDb(db);
 
                 const payload = {
+                  ...submissionIndexBasePayload(),
                   status,
                   teacherFeedback: {
                     text,

@@ -962,7 +962,7 @@ export default function StudentAssignmentPage() {
 
           const sd = (sSnap.data() as SubmissionDoc) ?? {};
           const owner = typeof sd.uid === "string" ? sd.uid : null;
-          if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
+          if (owner && owner !== user.uid) return false;
 
           const sStatus = normalizeStatus(sd.status);
           setLiveStatus(sStatus);
@@ -1018,15 +1018,24 @@ export default function StudentAssignmentPage() {
           return true;
         };
 
-        if (sid) {
-          const found = await loadSubmission(sid);
-          if (!found) {
+        const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
+        let loadedSubmission = false;
+
+        if (sid && sid !== autoId) {
+          try {
+            loadedSubmission = await loadSubmission(sid);
+            if (!loadedSubmission) {
+              setMsg(t("messages.submissionNotFound"));
+              setEditingSubmissionId(null);
+            }
+          } catch (e: unknown) {
+            if (!isPermissionDenied(e)) throw e;
             setMsg(t("messages.submissionNotFound"));
             setEditingSubmissionId(null);
           }
-        } else {
-          const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
+        }
 
+        if (!loadedSubmission) {
           try {
             const found = await loadSubmission(autoId);
             if (!found) setEditingSubmissionId(null);
