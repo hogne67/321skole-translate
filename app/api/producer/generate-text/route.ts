@@ -2643,9 +2643,39 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
 function formatSoundWords(words: string[]): string {
   const lines: string[] = [];
   for (let index = 0; index < words.length; index += 5) {
-    lines.push(words.slice(index, index + 5).join(", "));
+    const chunk = words.slice(index, index + 5);
+    const isLastChunk = index + 5 >= words.length;
+    lines.push(`${chunk.join(", ")}${isLastChunk ? "." : ","}`);
   }
   return lines.join("\n");
+}
+
+function ensureSentencePunctuation(line: string): string {
+  const cleaned = cleanA1StartLine(line);
+  if (!cleaned) return "";
+  return /[.!?]$/.test(cleaned) ? cleaned : `${cleaned}.`;
+}
+
+function ensureSectionLinePunctuation(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      const trimmed = line.trim();
+      return trimmed ? ensureSentencePunctuation(trimmed) : "";
+    })
+    .join("\n");
+}
+
+function ensureSectionBodyPunctuation(text: string): string {
+  const lines = text.split(/\r?\n/);
+  if (lines.length <= 1) return ensureSectionLinePunctuation(text);
+  return [
+    lines[0],
+    ...lines.slice(1).map((line) => {
+      const trimmed = line.trim();
+      return trimmed ? ensureSentencePunctuation(trimmed) : "";
+    }),
+  ].join("\n");
 }
 
 function parseSoundWordsFromSection(text: string, heading: string): string[] {
@@ -4890,7 +4920,9 @@ function normalizeA1StartSoundLadderResult(
     );
   }
 
-  const explanation = getSoundLadderExplanationText(languageName, focusSound, normalizedWords);
+  const explanation = ensureSectionBodyPunctuation(
+    getSoundLadderExplanationText(languageName, focusSound, normalizedWords)
+  );
   const soundWords = [
     labels.wordTraining,
     formatSoundWords(normalizedWords),
@@ -4903,7 +4935,9 @@ function normalizeA1StartSoundLadderResult(
     ...generatedSentences,
     ...fallbackSentences,
     ...wordSentences,
-  ]).slice(0, soundWordCount);
+  ])
+    .slice(0, soundWordCount)
+    .map(ensureSentencePunctuation);
   const soundSentences = [
     labels.soundSentences,
     ...normalizedSentences,
