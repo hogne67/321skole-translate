@@ -162,6 +162,23 @@ export async function POST(req: Request) {
 
     const expiresAt = Date.now() + 15 * 60 * 1000;
     const filename = filenameFromStoragePath(storagePath);
+    if (mode === "bytes") {
+      const [metadata] = await file.getMetadata();
+      const [buffer] = await file.download();
+      const contentType =
+        typeof metadata.contentType === "string" && metadata.contentType.startsWith("audio/")
+          ? metadata.contentType
+          : "audio/webm";
+
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type": contentType,
+          "Content-Disposition": `inline; filename="${filename}"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+
     const [url] = await file.getSignedUrl({
       action: "read",
       expires: expiresAt,

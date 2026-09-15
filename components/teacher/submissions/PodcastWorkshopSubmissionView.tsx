@@ -24,7 +24,8 @@ type TeacherAudioUrlResponse = {
 };
 
 type PodcastExportClip = {
-    url: string;
+    url?: string;
+    asset?: StudentAudioAsset;
     label: string;
 };
 
@@ -167,12 +168,43 @@ async function decodeAudioClip(context: AudioContext, url: string) {
     return await context.decodeAudioData(data.slice(0));
 }
 
+async function fetchTeacherAudioBytes(asset: StudentAudioAsset) {
+    if (!asset.storagePath) throw new Error("missing-storage-path");
+
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("missing-token");
+
+    const response = await fetch("/api/teacher/audio-url", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ storagePath: asset.storagePath, mode: "bytes" }),
+    });
+
+    if (!response.ok) throw new Error("audio-bytes-fetch-failed");
+    return await response.arrayBuffer();
+}
+
+async function decodePodcastExportClip(context: AudioContext, clip: PodcastExportClip) {
+    if (clip.asset) {
+        const data = clip.asset.audioDataUrl && clip.asset.audioDataUrl.startsWith("data:")
+            ? await (await fetch(clip.asset.audioDataUrl)).arrayBuffer()
+            : await fetchTeacherAudioBytes(clip.asset);
+        return await context.decodeAudioData(data.slice(0));
+    }
+
+    if (!clip.url) throw new Error("missing-clip-url");
+    return await decodeAudioClip(context, clip.url);
+}
+
 async function renderPodcastWav(clips: PodcastExportClip[]) {
     const context = browserAudioContext();
     if (!context) throw new Error("audio-context-unavailable");
 
     try {
-        const decoded = await Promise.all(clips.map((clip) => decodeAudioClip(context, clip.url)));
+        const decoded = await Promise.all(clips.map((clip) => decodePodcastExportClip(context, clip)));
         const sampleRate = context.sampleRate;
         const channels = Math.min(2, Math.max(1, ...decoded.map((buffer) => buffer.numberOfChannels)));
         const totalLength = decoded.reduce((sum, buffer) => {
@@ -540,7 +572,7 @@ function PodcastFullPlayback({
             const playableVoice = await resolveTeacherAudioForPlayback(voice).catch(() => voice);
             if (playableVoice?.audioDataUrl) {
                 clips.push({
-                    url: playableVoice.audioDataUrl,
+                    asset: playableVoice,
                     label: segment.title || `del-${index + 1}`,
                 });
             }
