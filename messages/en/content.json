@@ -226,7 +226,7 @@
       "noMatches": "No rooms match your search.",
       "showMore": "Show more rooms",
       "audioReadingEnabled": "Add read-aloud recording",
-      "audioReadingHint": "The student must record audio before sending it to the teacher.",
+      "audioReadingHint": "The student can record audio before sending it to the teacher.",
       "audioReadingRequired": "Require audio before submission",
       "on": "On",
       "off": "Off"

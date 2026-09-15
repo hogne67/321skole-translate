@@ -2899,7 +2899,7 @@ export default function ContentClient() {
                           <span className="mt-0.5 block text-xs font-semibold text-slate-600">
                             {safeMsg(
                               "shareToSpace.audioReadingHint",
-                              "Eleven må lese inn lyd før han kan sende til lærer."
+                              "Eleven kan lese inn lyd før han sender til lærer."
                             )}
                           </span>
                         </span>
