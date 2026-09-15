@@ -609,7 +609,7 @@ function PodcastFullPlayback({
             if (clips.length === 0) throw new Error("no-clips");
             const wav = await renderPodcastWav(clips);
             downloadBlob(wav, `321skole-podcast-${Date.now()}.wav`);
-            setExportMessage("Podcasten er lastet ned som WAV. Den kan brukes i PowerPoint.");
+            setExportMessage("Podcasten er lastet ned som WAV og lagret på din enhet. Den kan brukes i PowerPoint.");
         } catch {
             setExportMessage("Kunne ikke lage eksportfil akkurat nå.");
         } finally {
@@ -650,7 +650,7 @@ function PodcastFullPlayback({
                 {exporting ? "Lager lydfil..." : "Last ned hele podcasten"}
             </button>
             <div className="mt-2 rounded-xl border border-teal-100 bg-white px-3 py-2 text-xs font-bold leading-5 text-slate-600">
-                Eksporten kan inneholde personopplysninger. Bruk og del kun innenfor undervisningsformålet.
+                Eksporten lastes ned som WAV-fil og lagres på din personlige enhet. Den kan inneholde personopplysninger, så bruk og del kun innenfor undervisningsformålet.
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
