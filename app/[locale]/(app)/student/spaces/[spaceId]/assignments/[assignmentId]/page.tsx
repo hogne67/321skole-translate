@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { deleteField, doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
+import { deleteField, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
 import { db, auth } from "@/lib/firebase";
@@ -230,6 +230,25 @@ async function resolveUserForStudentPage(opts?: { allowAnonymous?: boolean }): P
   }
 
   return await ensureAnonymousUser();
+}
+
+async function saveSubmissionDocuments(
+  nestedRef: ReturnType<typeof doc>,
+  indexRef: ReturnType<typeof doc>,
+  payload: Record<string, unknown>,
+  isFirstWrite: boolean
+) {
+  const writePayload = isFirstWrite
+    ? { ...payload, createdAt: serverTimestamp() }
+    : payload;
+
+  await setDoc(nestedRef, writePayload, { merge: true });
+
+  try {
+    await setDoc(indexRef, writePayload, { merge: true });
+  } catch (e) {
+    console.warn("spaceSubmissions index write failed after submission save", e);
+  }
 }
 
 /* =========================
@@ -1169,7 +1188,7 @@ export default function StudentAssignmentPage() {
       if (isReadingTest) return;
       if (submitting) return;
 
-      setDraftSaving(true);
+      if (manual) setDraftSaving(true);
       setErr(null);
       if (manual) setMsg(null);
 
@@ -1219,18 +1238,7 @@ export default function StudentAssignmentPage() {
         });
         basePayload.audioReading = deleteField();
 
-        const batch = writeBatch(db);
-
-        if (editingSubmissionId) {
-          batch.set(nestedRef, basePayload, { merge: true });
-          batch.set(indexRef, basePayload, { merge: true });
-        } else {
-          const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
-          batch.set(nestedRef, firstPayload, { merge: true });
-          batch.set(indexRef, firstPayload, { merge: true });
-        }
-
-        await batch.commit();
+        await saveSubmissionDocuments(nestedRef, indexRef, basePayload, !editingSubmissionId);
 
         setSubmissionId(subId);
         setEditingSubmissionId(subId);
@@ -1248,7 +1256,7 @@ export default function StudentAssignmentPage() {
           setErr(typeof m === "string" ? m : t("errors.submitFailed"));
         }
       } finally {
-        setDraftSaving(false);
+        if (manual) setDraftSaving(false);
       }
     },
     [
@@ -1457,18 +1465,7 @@ export default function StudentAssignmentPage() {
           auth: { isAnon, uid },
         });
 
-        const batch = writeBatch(db);
-
-        if (editingSubmissionId) {
-          batch.set(nestedRef, basePayload, { merge: true });
-          batch.set(indexRef, basePayload, { merge: true });
-        } else {
-          const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
-          batch.set(nestedRef, firstPayload, { merge: true });
-          batch.set(indexRef, firstPayload, { merge: true });
-        }
-
-        await batch.commit();
+        await saveSubmissionDocuments(nestedRef, indexRef, basePayload, !editingSubmissionId);
 
         setSubmissionId(subId);
         if (persistedAudioReading) {
