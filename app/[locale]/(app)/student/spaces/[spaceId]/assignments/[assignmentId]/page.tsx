@@ -9,6 +9,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { ensureStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
 
@@ -787,20 +788,13 @@ export default function StudentAssignmentPage() {
         setUid(user.uid);
         setIsAnon(!!user.isAnonymous);
 
-        const memberId = `${spaceId}_${user.uid}`;
-        const memberSnap = await getDoc(doc(db, "spaceMembers", memberId));
-        if (!memberSnap.exists()) {
+        const isMember = await ensureStudentSpaceMembership(db, spaceId, user.uid);
+        if (!isMember) {
           if (!isTeacherPreview) throw new Error(t("errors.notMember"));
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
           const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
           if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
-        } else {
-          const memberData = memberSnap.data() as { archived?: unknown; active?: unknown; status?: unknown };
-          const memberStatus = String(memberData.status ?? "").toLowerCase().trim();
-          if (memberData.archived === true || memberData.active === false || memberStatus === "removed") {
-            throw new Error(t("errors.notMember"));
-          }
         }
 
         const aSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));

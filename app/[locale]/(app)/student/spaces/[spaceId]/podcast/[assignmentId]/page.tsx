@@ -9,6 +9,7 @@ import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/f
 
 import { auth, db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { ensureStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import {
   resolveStudentAudioForPlayback,
   uploadStudentAudioAsset,
@@ -171,8 +172,8 @@ export default function StudentPodcastWorkshopPage() {
         setUid(user.uid);
         setIsAnon(user.isAnonymous);
 
-        const memberSnap = await getDoc(doc(db, "spaceMembers", `${spaceId}_${user.uid}`));
-        if (!memberSnap.exists()) {
+        const isMember = await ensureStudentSpaceMembership(db, spaceId, user.uid);
+        if (!isMember) {
           if (!isTeacherPreview) throw new Error(t("errors.notMember"));
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
