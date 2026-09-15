@@ -10,7 +10,7 @@ import type {
     PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
-import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
+import { getPodcastSound, getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
 import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
 import { auth } from "@/lib/firebase";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
@@ -21,6 +21,11 @@ type TeacherAudioUrlResponse = {
     url: string;
     expiresAt?: number;
     filename?: string;
+};
+
+type PodcastExportClip = {
+    url: string;
+    label: string;
 };
 
 type Props = {
@@ -104,6 +109,103 @@ function getSupportWords(config: PodcastWorkshopConfig, sectionId: string, fallb
 
 function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: string) {
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
+}
+
+function browserAudioContext() {
+    const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    return AudioContextClass ? new AudioContextClass() : null;
+}
+
+function audioBufferToWav(buffer: AudioBuffer) {
+    const channels = Math.min(2, buffer.numberOfChannels);
+    const sampleRate = buffer.sampleRate;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataSize = buffer.length * blockAlign;
+    const arrayBuffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arrayBuffer);
+
+    function writeString(offset: number, value: string) {
+        for (let index = 0; index < value.length; index += 1) {
+            view.setUint8(offset + index, value.charCodeAt(index));
+        }
+    }
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, dataSize, true);
+
+    const channelData = Array.from({ length: channels }, (_, index) => buffer.getChannelData(index));
+    let offset = 44;
+    for (let sample = 0; sample < buffer.length; sample += 1) {
+        for (let channel = 0; channel < channels; channel += 1) {
+            const value = Math.max(-1, Math.min(1, channelData[channel][sample] ?? 0));
+            view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
+            offset += bytesPerSample;
+        }
+    }
+
+    return new Blob([arrayBuffer], { type: "audio/wav" });
+}
+
+async function decodeAudioClip(context: AudioContext, url: string) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("audio-fetch-failed");
+    const data = await response.arrayBuffer();
+    return await context.decodeAudioData(data.slice(0));
+}
+
+async function renderPodcastWav(clips: PodcastExportClip[]) {
+    const context = browserAudioContext();
+    if (!context) throw new Error("audio-context-unavailable");
+
+    try {
+        const decoded = await Promise.all(clips.map((clip) => decodeAudioClip(context, clip.url)));
+        const sampleRate = context.sampleRate;
+        const channels = Math.min(2, Math.max(1, ...decoded.map((buffer) => buffer.numberOfChannels)));
+        const totalLength = decoded.reduce((sum, buffer) => {
+            return sum + Math.ceil(buffer.duration * sampleRate);
+        }, 0);
+        const offline = new OfflineAudioContext(channels, Math.max(1, totalLength), sampleRate);
+        let cursor = 0;
+
+        decoded.forEach((buffer) => {
+            const source = offline.createBufferSource();
+            source.buffer = buffer;
+            source.connect(offline.destination);
+            source.start(cursor / sampleRate);
+            cursor += Math.ceil(buffer.duration * sampleRate);
+        });
+
+        const rendered = await offline.startRendering();
+        return audioBufferToWav(rendered);
+    } finally {
+        void context.close();
+    }
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function requestTeacherAudioUrl(
@@ -308,8 +410,10 @@ function PodcastFullPlayback({
     t: Props["t"];
 }) {
     const [playing, setPlaying] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [playbackError, setPlaybackError] = useState<string | null>(null);
+    const [exportMessage, setExportMessage] = useState<string | null>(null);
     const playerRef = useRef<HTMLAudioElement | null>(null);
     const cancelledRef = useRef(false);
     const segments = getPodcastWorkshopSegments(config, submission);
@@ -423,6 +527,64 @@ function PodcastFullPlayback({
         }
     }
 
+    async function buildExportClips(): Promise<PodcastExportClip[]> {
+        const clips: PodcastExportClip[] = [];
+        const intro = getPodcastSound(submission.productionMix.introSoundId);
+        if (intro) {
+            clips.push({ url: intro.src, label: "intro" });
+        }
+
+        for (let index = 0; index < segments.length; index += 1) {
+            const segment = segments[index];
+            const voice = submission.productionSegments[segment.id]?.voice ?? null;
+            const playableVoice = await resolveTeacherAudioForPlayback(voice).catch(() => voice);
+            if (playableVoice?.audioDataUrl) {
+                clips.push({
+                    url: playableVoice.audioDataUrl,
+                    label: segment.title || `del-${index + 1}`,
+                });
+            }
+
+            const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
+                const nextVoice = submission.productionSegments[nextSegment.id]?.voice;
+                return !!(nextVoice?.audioDataUrl || nextVoice?.storagePath);
+            });
+            if ((playableVoice?.audioDataUrl || voice?.storagePath) && hasNextVoice) {
+                const transition = getPodcastSound(getTransitionSoundId(submission, segment.id));
+                if (transition) {
+                    clips.push({ url: transition.src, label: "overgang" });
+                }
+            }
+        }
+
+        const outro = getPodcastSound(submission.productionMix.outroSoundId);
+        if (outro) {
+            clips.push({ url: outro.src, label: "outro" });
+        }
+
+        return clips;
+    }
+
+    async function exportWholePodcast() {
+        if (exporting || segmentsWithAudio.length === 0) return;
+
+        setExporting(true);
+        setExportMessage("Lager lydfil...");
+        setPlaybackError(null);
+
+        try {
+            const clips = await buildExportClips();
+            if (clips.length === 0) throw new Error("no-clips");
+            const wav = await renderPodcastWav(clips);
+            downloadBlob(wav, `321skole-podcast-${Date.now()}.wav`);
+            setExportMessage("Podcasten er lastet ned som WAV. Den kan brukes i PowerPoint.");
+        } catch {
+            setExportMessage("Kunne ikke lage eksportfil akkurat nå.");
+        } finally {
+            setExporting(false);
+        }
+    }
+
     return (
         <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
             <div className="flex items-center justify-between gap-3">
@@ -447,6 +609,17 @@ function PodcastFullPlayback({
             >
                 {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
             </button>
+            <button
+                type="button"
+                onClick={() => void exportWholePodcast()}
+                disabled={segmentsWithAudio.length === 0 || exporting}
+                className="mt-2 w-full rounded-xl border border-teal-700 bg-white px-3 py-2 text-sm font-black text-teal-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                {exporting ? "Lager lydfil..." : "Last ned hele podcasten"}
+            </button>
+            <div className="mt-2 rounded-xl border border-teal-100 bg-white px-3 py-2 text-xs font-bold leading-5 text-slate-600">
+                Eksporten kan inneholde personopplysninger. Bruk og del kun innenfor undervisningsformålet.
+            </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
                     className="h-full rounded-full bg-teal-700 transition-[width] duration-150"
@@ -460,6 +633,11 @@ function PodcastFullPlayback({
             {playbackError ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">
                     {playbackError}
+                </div>
+            ) : null}
+            {exportMessage ? (
+                <div className="mt-3 rounded-xl border border-teal-100 bg-white px-3 py-2 text-xs font-bold text-teal-900">
+                    {exportMessage}
                 </div>
             ) : null}
         </div>
