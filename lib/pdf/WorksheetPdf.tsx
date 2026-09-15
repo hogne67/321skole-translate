@@ -133,15 +133,18 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 14,
-    lineHeight: 1.5,
+    lineHeight: 1.42,
   },
   paragraphLarge: {
     fontSize: 16,
-    lineHeight: 1.55,
+    lineHeight: 1.46,
   },
   paragraphXlarge: {
     fontSize: 18,
-    lineHeight: 1.6,
+    lineHeight: 1.5,
+  },
+  paragraphGap: {
+    marginBottom: 8,
   },
   readingExtra: {
     marginTop: 14,
@@ -260,6 +263,14 @@ function normalizeText(s?: string) {
   return (s ?? "").toString();
 }
 
+function splitParagraphs(s?: string) {
+  return normalizeText(s)
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((part) => part.replace(/\n/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 function normalizeTextSize(value: unknown): TextSize {
   if (value === "large" || value === "xlarge") return value;
   return "normal";
@@ -273,6 +284,12 @@ function getPdfParagraphStyle(textSize: TextSize) {
     return [styles.paragraph, styles.paragraphLarge];
   }
   return styles.paragraph;
+}
+
+function getPdfParagraphStyles(textSize: TextSize, withGap: boolean) {
+  const base = getPdfParagraphStyle(textSize);
+  const stylesList = Array.isArray(base) ? base : [base];
+  return withGap ? [...stylesList, styles.paragraphGap] : stylesList;
 }
 
 function formatAnswer(a: unknown): string {
@@ -299,6 +316,8 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
   const highFrequencyReadingSentences = (lesson.highFrequencyReadingSentences ?? "").trim();
   const highFrequencyExplanation = (lesson.highFrequencyExplanation ?? "").trim();
   const textSize = normalizeTextSize(lesson.textSize);
+  const sourceParagraphs = splitParagraphs(lesson.sourceText);
+  const highFrequencyParagraphs = splitParagraphs(highFrequencyReadingSentences);
 
   const logoSrc =
     lesson.logoUrl?.trim() ||
@@ -362,9 +381,18 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
 
         <View style={styles.textBlock}>
           <Text style={styles.textHeading}>Text</Text>
-          <Text style={getPdfParagraphStyle(textSize)}>
-            {showText ? normalizeText(lesson.sourceText) : " "}
-          </Text>
+          {showText && sourceParagraphs.length ? (
+            sourceParagraphs.map((paragraph, index) => (
+              <Text
+                key={`${index}-${paragraph.slice(0, 18)}`}
+                style={getPdfParagraphStyles(textSize, index < sourceParagraphs.length - 1)}
+              >
+                {paragraph}
+              </Text>
+            ))
+          ) : (
+            <Text style={getPdfParagraphStyle(textSize)}> </Text>
+          )}
         </View>
 
         {highFrequencyReadingSentences ? (
@@ -374,7 +402,14 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
                 ? `Sentences with "${lesson.highFrequencyWord.trim()}"`
                 : "Sentences with the high-frequency word"}
             </Text>
-            <Text style={getPdfParagraphStyle(textSize)}>{highFrequencyReadingSentences}</Text>
+            {highFrequencyParagraphs.map((paragraph, index) => (
+              <Text
+                key={`${index}-${paragraph.slice(0, 18)}`}
+                style={getPdfParagraphStyles(textSize, index < highFrequencyParagraphs.length - 1)}
+              >
+                {paragraph}
+              </Text>
+            ))}
           </View>
         ) : null}
 
