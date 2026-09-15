@@ -226,7 +226,7 @@
       "noMatches": "Ingen rom matcher søket.",
       "showMore": "Vis flere rom",
       "audioReadingEnabled": "Legg til lydinnlesing",
-      "audioReadingHint": "Eleven kan lytte til teksten, lese inn lyd og sende opptaket til lærer.",
+      "audioReadingHint": "Eleven må lese inn lyd før han kan sende til lærer.",
       "audioReadingRequired": "Krev lydopptak før innsending",
       "on": "På",
       "off": "Av"

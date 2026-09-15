@@ -2857,8 +2857,8 @@ export default function ContentClient() {
                       className={[
                         "mb-3 rounded-2xl border p-3 transition",
                         pickLesson.audioReadingEnabled === true
-                          ? "border-emerald-300 bg-emerald-50"
-                          : "border-slate-200 bg-slate-50",
+                          ? "border-blue-300 bg-blue-50"
+                          : "border-blue-100 bg-blue-50/60",
                       ].join(" ")}
                     >
                       <label className="flex cursor-pointer items-start gap-3">
@@ -2899,7 +2899,7 @@ export default function ContentClient() {
                           <span className="mt-0.5 block text-xs font-semibold text-slate-600">
                             {safeMsg(
                               "shareToSpace.audioReadingHint",
-                              "Eleven kan lytte til teksten, lese inn lyd og sende opptaket til lærer."
+                              "Eleven må lese inn lyd før han kan sende til lærer."
                             )}
                           </span>
                         </span>

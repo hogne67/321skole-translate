@@ -226,7 +226,7 @@
       "noMatches": "Nenhuma sala corresponde à busca.",
       "showMore": "Mostrar mais salas",
       "audioReadingEnabled": "Adicionar leitura gravada",
-      "audioReadingHint": "O estudante pode ouvir o texto, gravar a leitura e enviar ao professor.",
+      "audioReadingHint": "O estudante deve gravar áudio antes de enviar ao professor.",
       "audioReadingRequired": "Exigir áudio antes do envio",
       "on": "Ativado",
       "off": "Desativado"
