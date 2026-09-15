@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 type Body = {
   storagePath?: unknown;
+  mode?: unknown;
 };
 
 function getBearerToken(req: Request): string | null {
@@ -51,6 +52,13 @@ function parseStudentAudioPath(storagePath: string): { spaceId: string } | null 
   }
 
   return { spaceId: parts[1] };
+}
+
+function filenameFromStoragePath(storagePath: string): string {
+  const fallback = "321skole-elevopptak.webm";
+  const raw = storagePath.split("/").filter(Boolean).at(-1) || fallback;
+  const clean = raw.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "");
+  return clean || fallback;
 }
 
 function hasRole(profile: Record<string, unknown> | null, role: string): boolean {
@@ -120,6 +128,7 @@ export async function POST(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as Body;
     const storagePath = safeString(body.storagePath);
+    const mode = safeString(body.mode).toLowerCase();
     const parsed = parseStudentAudioPath(storagePath);
 
     if (!storagePath || !parsed) {
@@ -151,13 +160,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Audio file not found" }, { status: 404 });
     }
 
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const filename = filenameFromStoragePath(storagePath);
     const [url] = await file.getSignedUrl({
       action: "read",
-      expires: Date.now() + 15 * 60 * 1000,
+      expires: expiresAt,
       version: "v4",
+      responseDisposition:
+        mode === "download" ? `attachment; filename="${filename}"` : undefined,
     });
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, expiresAt, filename });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not create audio URL.";
     return NextResponse.json({ error: message }, { status: 500 });

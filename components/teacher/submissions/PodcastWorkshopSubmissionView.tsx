@@ -15,6 +15,14 @@ import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
 import { auth } from "@/lib/firebase";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 
+type TeacherAudioUrlMode = "inline" | "download";
+
+type TeacherAudioUrlResponse = {
+    url: string;
+    expiresAt?: number;
+    filename?: string;
+};
+
 type Props = {
     title: string;
     level: string;
@@ -98,6 +106,41 @@ function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: 
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
 
+async function requestTeacherAudioUrl(
+    asset: StudentAudioAsset,
+    mode: TeacherAudioUrlMode = "inline"
+): Promise<TeacherAudioUrlResponse | null> {
+    if (!asset.storagePath) return null;
+
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return null;
+
+    const res = await fetch("/api/teacher/audio-url", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ storagePath: asset.storagePath, mode }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json().catch(() => null)) as {
+        url?: unknown;
+        expiresAt?: unknown;
+        filename?: unknown;
+    } | null;
+    const url = typeof data?.url === "string" ? data.url : "";
+    if (!url) return null;
+
+    return {
+        url,
+        expiresAt: typeof data?.expiresAt === "number" ? data.expiresAt : undefined,
+        filename: typeof data?.filename === "string" ? data.filename : undefined,
+    };
+}
+
 async function resolveTeacherAudioForPlayback(
     asset: StudentAudioAsset | null
 ): Promise<StudentAudioAsset | null> {
@@ -106,23 +149,8 @@ async function resolveTeacherAudioForPlayback(
     const direct = await resolveStudentAudioForPlayback(asset).catch(() => asset);
     if (direct?.audioDataUrl || !asset.storagePath) return direct;
 
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) return direct;
-
-    const res = await fetch("/api/teacher/audio-url", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ storagePath: asset.storagePath }),
-    });
-
-    if (!res.ok) return direct;
-
-    const data = (await res.json().catch(() => null)) as { url?: unknown } | null;
-    const url = typeof data?.url === "string" ? data.url : "";
-    return url ? { ...asset, audioDataUrl: url } : direct;
+    const signed = await requestTeacherAudioUrl(asset, "inline");
+    return signed?.url ? { ...asset, audioDataUrl: signed.url } : direct;
 }
 
 async function resolvePodcastSubmissionAudio(
@@ -438,6 +466,88 @@ function PodcastFullPlayback({
     );
 }
 
+function TeacherAudioExportControls({
+    asset,
+    label,
+}: {
+    asset: StudentAudioAsset | null;
+    label: string;
+}) {
+    const [busy, setBusy] = useState<"copy" | "download" | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+
+    if (!asset?.storagePath) return null;
+
+    async function copyLink() {
+        if (!asset?.storagePath) return;
+        setBusy("copy");
+        setMessage(null);
+        try {
+            const signed = await requestTeacherAudioUrl(asset, "inline");
+            if (!signed?.url) throw new Error("missing-url");
+            await navigator.clipboard.writeText(signed.url);
+            setMessage("Lenke kopiert. Den virker i ca. 15 minutter.");
+        } catch {
+            setMessage("Kunne ikke kopiere lenke akkurat nå.");
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    async function downloadAudio() {
+        if (!asset?.storagePath) return;
+        setBusy("download");
+        setMessage(null);
+        try {
+            const signed = await requestTeacherAudioUrl(asset, "download");
+            if (!signed?.url) throw new Error("missing-url");
+            const anchor = document.createElement("a");
+            anchor.href = signed.url;
+            anchor.download = signed.filename || `${label}.webm`;
+            anchor.rel = "noopener";
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setMessage("Nedlasting startet.");
+        } catch {
+            setMessage("Kunne ikke starte nedlasting akkurat nå.");
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    return (
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+            <div className="text-xs font-bold leading-5 text-slate-600">
+                Lydfilen kan inneholde personopplysninger. Bruk og del kun innenfor undervisningsformålet.
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    onClick={() => void copyLink()}
+                    disabled={busy !== null}
+                    className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-black text-teal-900 disabled:opacity-60"
+                >
+                    {busy === "copy" ? "Kopierer..." : "Kopier midlertidig lenke"}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => void downloadAudio()}
+                    disabled={busy !== null}
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-black text-slate-900 disabled:opacity-60"
+                >
+                    {busy === "download" ? "Starter..." : "Last ned lyd"}
+                </button>
+            </div>
+            {message ? (
+                <div className="mt-2 text-xs font-bold text-slate-700">
+                    {message}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function renderRoom({
     room,
     config,
@@ -601,11 +711,23 @@ function renderRoom({
                                     </div>
                                     <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                                     {voice?.audioDataUrl ? (
-                                        <audio controls src={voice.audioDataUrl} className="w-full" />
+                                        <>
+                                            <audio controls src={voice.audioDataUrl} className="w-full" />
+                                            <TeacherAudioExportControls
+                                                asset={voice}
+                                                label={`321skole-${segment.id}`}
+                                            />
+                                        </>
                                     ) : voice?.storagePath ? (
-                                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
-                                            {t("podcastWorkshop.readyToReview")}
-                                        </div>
+                                        <>
+                                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+                                                {t("podcastWorkshop.readyToReview")}
+                                            </div>
+                                            <TeacherAudioExportControls
+                                                asset={voice}
+                                                label={`321skole-${segment.id}`}
+                                            />
+                                        </>
                                     ) : (
                                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
                                             {t("podcastWorkshop.noAudio")}
