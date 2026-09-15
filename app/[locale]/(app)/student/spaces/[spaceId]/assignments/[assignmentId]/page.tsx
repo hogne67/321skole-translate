@@ -1285,11 +1285,11 @@ export default function StudentAssignmentPage() {
 
   useEffect(() => {
     if (!uid || !spaceId || !assignmentId) return;
+    if (!isPodcastWorkshop) return;
     if (submitted) return;
     if (submitting) return;
     if (isLockedByTeacher()) return;
     if (isReadingTest) return;
-    if (!isPodcastWorkshop && (!answers || Object.keys(answers).length === 0)) return;
 
     const now = Date.now();
     if (now - lastAutoSaveRef.current < 1200) return;
