@@ -1069,7 +1069,7 @@ export default function StudentAssignmentPage() {
     if (!spaceId || !assignmentId) return;
     if (!uid) return;
 
-    const activeSubId = (sid || submissionId || editingSubmissionId || "").trim();
+    const activeSubId = (submissionId || editingSubmissionId || sid || "").trim();
     if (!activeSubId) return;
 
     const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", activeSubId);

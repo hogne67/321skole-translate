@@ -19,16 +19,37 @@ export function isPermissionDenied(e: unknown) {
 }
 
 export function safeTasksArray(tasks: unknown): Task[] {
-    if (Array.isArray(tasks)) return tasks as Task[];
+    if (Array.isArray(tasks)) return tasks.map(normalizeTask);
     if (typeof tasks === "string") {
         try {
             const parsed: unknown = JSON.parse(tasks);
-            return Array.isArray(parsed) ? (parsed as Task[]) : [];
+            return Array.isArray(parsed) ? parsed.map(normalizeTask) : [];
         } catch {
             return [];
         }
     }
     return [];
+}
+
+function normalizeTask(task: unknown): Task {
+    if (!task || typeof task !== "object" || Array.isArray(task)) return {};
+
+    const next = { ...(task as Task) };
+    const rawOptions = (task as { options?: unknown }).options;
+    if (typeof rawOptions === "string") {
+        try {
+            const parsed: unknown = JSON.parse(rawOptions);
+            next.options = Array.isArray(parsed) ? parsed : [rawOptions];
+        } catch {
+            next.options = [rawOptions];
+        }
+    } else if (rawOptions && typeof rawOptions === "object" && !Array.isArray(rawOptions)) {
+        next.options = Object.entries(rawOptions as Record<string, unknown>)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([, value]) => value);
+    }
+
+    return next;
 }
 
 export function getStableTaskId(t: Task, idx: number): string {
