@@ -152,6 +152,13 @@ export function stripUndefinedDeep<T>(value: T): T {
     if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
 
     if (typeof value === "object") {
+        if (
+            "_methodName" in (value as Record<string, unknown>) &&
+            typeof (value as Record<string, unknown>)._methodName === "string"
+        ) {
+            return value;
+        }
+
         const out: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
             if (v === undefined) continue;

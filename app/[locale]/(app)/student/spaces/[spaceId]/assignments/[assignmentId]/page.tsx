@@ -822,22 +822,33 @@ export default function StudentAssignmentPage() {
 
           if (needsHighFrequencyFields) {
             const srcType = (aDoc.sourceType ?? "library") as SourceType;
-            const lSnap =
-              srcType === "library"
-                ? await getDoc(doc(db, "published_lessons", sourceId))
-                : await getDoc(doc(db, "lessons", sourceId));
+            let sourceLesson: Lesson | null = null;
+
+            try {
+              const lSnap =
+                srcType === "library"
+                  ? await getDoc(doc(db, "published_lessons", sourceId))
+                  : await getDoc(doc(db, "lessons", sourceId));
+
+              if (!alive) return;
+
+              if (lSnap.exists()) {
+                sourceLesson = lSnap.data() as Lesson;
+              }
+            } catch {
+              sourceLesson = null;
+            }
 
             if (!alive) return;
 
-            if (lSnap.exists()) {
-              const d = lSnap.data() as Lesson;
+            if (sourceLesson) {
               resolvedLesson = {
                 ...resolvedLesson,
-                highFrequencyWord: resolvedLesson.highFrequencyWord ?? d.highFrequencyWord,
+                highFrequencyWord: resolvedLesson.highFrequencyWord ?? sourceLesson.highFrequencyWord,
                 highFrequencyReadingSentences:
-                  resolvedLesson.highFrequencyReadingSentences ?? d.highFrequencyReadingSentences,
+                  resolvedLesson.highFrequencyReadingSentences ?? sourceLesson.highFrequencyReadingSentences,
                 highFrequencyExplanation:
-                  resolvedLesson.highFrequencyExplanation ?? d.highFrequencyExplanation,
+                  resolvedLesson.highFrequencyExplanation ?? sourceLesson.highFrequencyExplanation,
               };
             }
           }
