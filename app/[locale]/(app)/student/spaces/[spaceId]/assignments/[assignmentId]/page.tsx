@@ -4,13 +4,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { deleteField, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { deleteField, doc, getDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { ensureStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { LANGUAGES } from "@/lib/languages";
+import { authedPost } from "@/lib/authedPost";
 import { SearchableSelect } from "@/components/SearchableSelect";
 
 import ReadingTestPlayer, {
@@ -233,22 +234,44 @@ async function resolveUserForStudentPage(opts?: { allowAnonymous?: boolean }): P
 }
 
 async function saveSubmissionDocuments(
-  nestedRef: ReturnType<typeof doc>,
-  indexRef: ReturnType<typeof doc>,
+  spaceId: string,
+  assignmentId: string,
+  submissionId: string,
   payload: Record<string, unknown>,
   isFirstWrite: boolean
 ) {
-  const writePayload = isFirstWrite
-    ? { ...payload, createdAt: serverTimestamp() }
-    : payload;
+  await authedPost<{ ok: boolean; submissionId: string }>(
+    `/api/student/spaces/${encodeURIComponent(spaceId)}/lessons/${encodeURIComponent(assignmentId)}/submission`,
+    {
+      submissionId,
+      payload: toApiSubmissionPayload(payload),
+      isFirstWrite,
+    }
+  );
+}
 
-  await setDoc(nestedRef, writePayload, { merge: true });
-
-  try {
-    await setDoc(indexRef, writePayload, { merge: true });
-  } catch (e) {
-    console.warn("spaceSubmissions index write failed after submission save", e);
+function toApiSubmissionPayload(value: unknown): unknown {
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toApiSubmissionPayload(item))
+      .filter((item) => item !== undefined);
   }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj._methodName === "string") return undefined;
+
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(obj)) {
+      const next = toApiSubmissionPayload(item);
+      if (next !== undefined) out[key] = next;
+    }
+    return out;
+  }
+
+  return value;
 }
 
 /* =========================
@@ -1195,9 +1218,6 @@ export default function StudentAssignmentPage() {
       try {
         const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
 
-        const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-        const indexRef = doc(db, "spaceSubmissions", subId);
-
         const isGeometryDraft = isGeometryAssignment && !!geometryWorksheet;
         const normalizedGeometryAnswers = isGeometryDraft
           ? normalizeGeometryAnswersByTaskId(answers)
@@ -1238,7 +1258,7 @@ export default function StudentAssignmentPage() {
         });
         basePayload.audioReading = deleteField();
 
-        await saveSubmissionDocuments(nestedRef, indexRef, basePayload, !editingSubmissionId);
+        await saveSubmissionDocuments(spaceId, assignmentId, subId, basePayload, !editingSubmissionId);
 
         setSubmissionId(subId);
         setEditingSubmissionId(subId);
@@ -1353,8 +1373,6 @@ export default function StudentAssignmentPage() {
 
         const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
 
-        const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-        const indexRef = doc(db, "spaceSubmissions", subId);
         let persistedAudioReading: AudioReadingSubmission | null = null;
         if (audioReadingEnabled && audioReadingSubmission) {
           try {
@@ -1465,7 +1483,7 @@ export default function StudentAssignmentPage() {
           auth: { isAnon, uid },
         });
 
-        await saveSubmissionDocuments(nestedRef, indexRef, basePayload, !editingSubmissionId);
+        await saveSubmissionDocuments(spaceId, assignmentId, subId, basePayload, !editingSubmissionId);
 
         setSubmissionId(subId);
         if (persistedAudioReading) {
