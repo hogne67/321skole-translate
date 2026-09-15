@@ -189,6 +189,12 @@ function wordSize(count: number) {
   return "text-3xl";
 }
 
+function wordTone(index: number) {
+  if (index % 3 === 0) return "border-sky-100 bg-sky-300 text-sky-950 shadow-sky-950/25";
+  if (index % 3 === 1) return "border-emerald-100 bg-emerald-300 text-emerald-950 shadow-emerald-950/25";
+  return "border-amber-100 bg-amber-300 text-amber-950 shadow-amber-950/25";
+}
+
 function motionClass(motion: WordwallSession["motion"], index: number) {
   if (motion === "calm") return "";
   if (motion === "energy") return index % 2 === 0 ? "animate-[wordFloat_2.6s_ease-in-out_infinite]" : "animate-[wordFloatAlt_2.2s_ease-in-out_infinite]";
@@ -489,8 +495,8 @@ export default function WordwallDisplayPage() {
                       "absolute",
                       wordSize(item.count),
                       moveMode ? "cursor-grab ring-2 ring-white/30 active:cursor-grabbing" : motionClass(session?.motion ?? "alive", index),
-                      "inline-block rounded-full px-4 py-2 font-black leading-none transition",
-                      index % 3 === 0 ? "text-sky-200" : index % 3 === 1 ? "text-emerald-200" : "text-amber-200",
+                      "inline-block rounded-full border-2 px-4 py-2 font-black leading-none shadow-lg transition",
+                      wordTone(index),
                     ].join(" ")}
                     style={wordPosition(index, words.length, wordPositions[item.word])}
                   >
