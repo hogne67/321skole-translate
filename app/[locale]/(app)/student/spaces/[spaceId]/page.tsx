@@ -215,6 +215,31 @@ function detectTeacherMessage(data: Record<string, unknown>) {
   return updatedAtMs2 > 0;
 }
 
+function spaceSubRowFromData(
+  id: string,
+  data: Record<string, unknown>,
+  expectedSpaceId: string
+): SpaceSubRow | null {
+  if (safeString(data.spaceId) !== expectedSpaceId) return null;
+
+  const assignmentId = safeString(data.assignmentId) ?? "";
+  if (!assignmentId) return null;
+
+  return {
+    id,
+    assignmentId,
+    status: normalizeStatus(data.status),
+    updatedAtMs: toMillisAny(data.updatedAt) || toMillisAny(data.createdAt),
+    createdAtMs: toMillisAny(data.createdAt),
+    title: safeString(data.title) ?? null,
+    level: safeString(data.level) ?? null,
+    language: safeString(data.language) ?? null,
+    hasTeacherMessage: detectTeacherMessage(data),
+    studentArchived: data.studentArchived === true,
+    studentArchivedAtMs: toMillisAny(data.studentArchivedAt),
+  };
+}
+
 export default function StudentSpaceDetailPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const t = useTranslations("studentspaceDetail");
@@ -237,6 +262,8 @@ export default function StudentSpaceDetailPage() {
   const [subsLoading, setSubsLoading] = useState(true);
   const [subsErr, setSubsErr] = useState<string | null>(null);
   const [subs, setSubs] = useState<SpaceSubRow[]>([]);
+  const [nestedSubs, setNestedSubs] = useState<SpaceSubRow[]>([]);
+  const [currentParticipantId, setCurrentParticipantId] = useState<string | null>(null);
 
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [archiveMsg, setArchiveMsg] = useState<string | null>(null);
@@ -421,6 +448,8 @@ export default function StudentSpaceDetailPage() {
     if (!uid) {
       setSubsLoading(false);
       setSubs([]);
+      setNestedSubs([]);
+      setCurrentParticipantId(null);
       return () => { };
     }
 
@@ -435,30 +464,8 @@ export default function StudentSpaceDetailPage() {
       const rowsFromSnapshot = (snap: { forEach: (cb: (d: QueryDocumentSnapshot<DocumentData>) => void) => void }) => {
         const out: SpaceSubRow[] = [];
         snap.forEach((d) => {
-            const data = ((d.data() as unknown) as Record<string, unknown>) ?? {};
-            if (safeString(data.spaceId) !== spaceId) return;
-            const assignmentId = safeString(data.assignmentId) ?? "";
-            if (!assignmentId) return;
-
-            const updatedAtMs = toMillisAny(data.updatedAt) || toMillisAny(data.createdAt);
-            const createdAtMs = toMillisAny(data.createdAt);
-
-            const studentArchived = data.studentArchived === true;
-            const studentArchivedAtMs = toMillisAny(data.studentArchivedAt);
-
-            out.push({
-              id: d.id,
-              assignmentId,
-              status: normalizeStatus(data.status),
-              updatedAtMs,
-              createdAtMs,
-              title: safeString(data.title) ?? null,
-              level: safeString(data.level) ?? null,
-              language: safeString(data.language) ?? null,
-              hasTeacherMessage: detectTeacherMessage(data),
-              studentArchived,
-              studentArchivedAtMs,
-            });
+          const row = spaceSubRowFromData(d.id, ((d.data() as unknown) as Record<string, unknown>) ?? {}, spaceId);
+          if (row) out.push(row);
         });
 
         return out;
@@ -489,6 +496,7 @@ export default function StudentSpaceDetailPage() {
         if (cancelled) return;
 
         const activeParticipantId = membership?.participantId || uid;
+        setCurrentParticipantId(activeParticipantId);
         const queries = activeParticipantId !== uid
           ? [
             {
@@ -535,6 +543,69 @@ export default function StudentSpaceDetailPage() {
 
     return () => unsub?.();
   }, [spaceId, uid, t]);
+
+  useEffect(() => {
+    setNestedSubs([]);
+
+    if (!uid || !currentParticipantId || assignments.length === 0) {
+      return () => { };
+    }
+
+    let cancelled = false;
+    const buckets = new Map<string, SpaceSubRow>();
+    const unsubs: Array<() => void> = [];
+
+    try {
+      const dbx = requireDb(db);
+      const identityIds = Array.from(new Set([currentParticipantId, uid].filter(Boolean)));
+
+      const applyBuckets = () => {
+        if (cancelled) return;
+        const out = Array.from(buckets.values()).sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+        setNestedSubs(out);
+      };
+
+      for (const assignment of assignments) {
+        for (const identityId of identityIds) {
+          const subId = `${spaceId}_${assignment.id}_${identityId}`;
+          const ref = doc(dbx, "spaces", spaceId, "lessons", assignment.id, "submissions", subId);
+
+          unsubs.push(
+            onSnapshot(
+              ref,
+              (snap) => {
+                if (!snap.exists()) {
+                  buckets.delete(subId);
+                  applyBuckets();
+                  return;
+                }
+
+                const row = spaceSubRowFromData(
+                  snap.id,
+                  ((snap.data() as unknown) as Record<string, unknown>) ?? {},
+                  spaceId
+                );
+                if (row) buckets.set(subId, row);
+                else buckets.delete(subId);
+                applyBuckets();
+              },
+              () => {
+                buckets.delete(subId);
+                applyBuckets();
+              }
+            )
+          );
+        }
+      }
+    } catch {
+      setNestedSubs([]);
+    }
+
+    return () => {
+      cancelled = true;
+      unsubs.forEach((fn) => fn());
+    };
+  }, [spaceId, uid, currentParticipantId, assignments]);
 
   const visibleAssignments = useMemo(() => {
     const list = showArchived ? assignments : assignments.filter((x) => !isArchived(x.data));
@@ -609,11 +680,11 @@ export default function StudentSpaceDetailPage() {
 
   const latestByAssignment = useMemo(() => {
     const m = new Map<string, SpaceSubRow>();
-    for (const r of subs) {
+    for (const r of [...subs, ...nestedSubs].sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0))) {
       if (!m.has(r.assignmentId)) m.set(r.assignmentId, r);
     }
     return m;
-  }, [subs]);
+  }, [subs, nestedSubs]);
 
   const grouped = useMemo(() => {
     const out: Array<{ assignmentId: string; latest: SpaceSubRow }> = [];
