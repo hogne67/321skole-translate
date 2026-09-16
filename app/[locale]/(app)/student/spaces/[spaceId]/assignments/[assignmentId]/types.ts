@@ -156,6 +156,7 @@ export type FractionAutoGrade = {
 
 export type SubmissionDoc = {
     uid?: string;
+    participantId?: string;
     status?: SubmissionStatus;
     title?: string | null;
     teacherFeedback?: TeacherFeedback | null;

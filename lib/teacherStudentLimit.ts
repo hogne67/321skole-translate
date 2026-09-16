@@ -29,6 +29,7 @@ type SpaceTitleFields = {
 
 type SpaceMemberFields = {
   uid?: unknown;
+  participantId?: unknown;
   spaceId?: unknown;
   displayName?: unknown;
   isAnon?: unknown;
@@ -149,7 +150,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 
 function getMemberUid(docSnap: QueryDocumentSnapshot<DocumentData>): string | null {
   const data = docSnap.data() as SpaceMemberFields;
-  return asNonEmptyString(data.uid);
+  return asNonEmptyString(data.participantId) || asNonEmptyString(data.uid);
 }
 
 function getMemberDisplayName(docSnap: QueryDocumentSnapshot<DocumentData>): string {
@@ -296,21 +297,31 @@ async function getTeacherStudentMembershipDocs(params: {
   if (spaceIds.length === 0) return [];
 
   const batches = chunkArray(spaceIds, 10);
-  const docs: QueryDocumentSnapshot<DocumentData>[] = [];
+  const docsById = new Map<string, QueryDocumentSnapshot<DocumentData>>();
 
   for (const batch of batches) {
-    const qy = query(
-      collection(db, "spaceMembers"),
-      where("spaceId", "in", batch),
-      where("uid", "==", studentUid),
-      where("role", "==", "student")
-    );
+    const queries = [
+      query(
+        collection(db, "spaceMembers"),
+        where("spaceId", "in", batch),
+        where("uid", "==", studentUid),
+        where("role", "==", "student")
+      ),
+      query(
+        collection(db, "spaceMembers"),
+        where("spaceId", "in", batch),
+        where("participantId", "==", studentUid),
+        where("role", "==", "student")
+      ),
+    ];
 
-    const snap = await getDocs(qy);
-    docs.push(...snap.docs);
+    const snaps = await Promise.all(queries.map((qy) => getDocs(qy).catch(() => null)));
+    for (const snap of snaps) {
+      snap?.docs.forEach((docSnap) => docsById.set(docSnap.id, docSnap));
+    }
   }
 
-  return docs;
+  return Array.from(docsById.values());
 }
 
 export async function archiveStudentFromTeacherSpaces(params: {

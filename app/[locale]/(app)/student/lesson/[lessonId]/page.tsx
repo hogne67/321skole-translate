@@ -29,6 +29,7 @@ import { getBucketLimit, getEffectivePlan, type PlanKey } from "@/lib/featureAcc
 import { incrementUsage } from "@/lib/usage";
 import { trackAiFeedback } from "@/lib/analytics";
 import { Volume2 } from "lucide-react";
+import FullscreenImage from "@/components/FullscreenImage";
 import ReadingTestPlayer, {
   type ReadingLessonTask,
   type ReadingTestConfig,
@@ -2492,11 +2493,10 @@ export default function StudentLessonPage() {
             }}
           >
             {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <FullscreenImage
                 src={imageUrl}
                 alt={t("image.alt")}
-                style={{ width: "100%", height: "100%", objectFit: isImageWriting ? "contain" : "cover" }}
+                fit={isImageWriting ? "contain" : "cover"}
               />
             ) : (
               <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>

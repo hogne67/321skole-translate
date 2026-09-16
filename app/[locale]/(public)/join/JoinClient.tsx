@@ -13,6 +13,7 @@ type JoinApiSuccess = {
   spaceId: string;
   title?: string;
   alreadyMember?: boolean;
+  participantId?: string;
 };
 
 type JoinApiError = {
@@ -52,6 +53,7 @@ export default function JoinClient() {
 
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
+  const [studentCode, setStudentCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export default function JoinClient() {
 
     if (!c) return;
 
-    if (!name) {
+    if (!name && !studentCode.trim()) {
       setErr(t("errors.nameRequired"));
       return;
     }
@@ -186,6 +188,7 @@ export default function JoinClient() {
         body: JSON.stringify({
           code: c,
           displayName: name,
+          studentCode: studentCode.trim(),
         }),
       });
 
@@ -269,6 +272,24 @@ export default function JoinClient() {
             disabled={busy}
           />
           <div className="mt-1 text-xs text-muted-foreground">{t("fields.name.tip")}</div>
+        </div>
+
+        <div>
+          <label htmlFor="studentCode" className="text-sm font-medium">
+            {t("fields.studentCode.label")}
+          </label>
+          <input
+            id="studentCode"
+            name="studentCode"
+            value={studentCode}
+            onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
+            placeholder={t("fields.studentCode.placeholder")}
+            className="mt-2 w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none"
+            disabled={busy}
+            autoCapitalize="characters"
+            autoCorrect="off"
+          />
+          <div className="mt-1 text-xs text-muted-foreground">{t("fields.studentCode.tip")}</div>
         </div>
 
         <button

@@ -11,6 +11,11 @@
         "label": "Seu nome",
         "placeholder": "ex.: Sara Ali",
         "tip": "Dica: Pode ser nome + sobrenome ou apenas o primeiro nome."
+      },
+      "studentCode": {
+        "label": "Código do aluno",
+        "placeholder": "Opcional, ex.: S7K4P",
+        "tip": "Se o professor deu um código de aluno, digite aqui para continuar em outro dispositivo."
       }
     },
     "actions": {

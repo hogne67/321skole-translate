@@ -3,6 +3,7 @@ import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess"
 
 type SpaceMemberFields = {
   uid?: unknown;
+  participantId?: unknown;
   archived?: unknown;
   active?: unknown;
   status?: unknown;
@@ -89,11 +90,12 @@ export async function getTeacherActiveStudentUidsAdmin(
     for (const docSnap of snap.docs) {
       const data = docSnap.data() as SpaceMemberFields;
       const uid = asNonEmptyString(data.uid);
+      const participantId = asNonEmptyString(data.participantId) || uid;
       const archived = asBoolean(data.archived);
       const status = asNonEmptyString(data.status)?.toLowerCase();
 
-      if (!uid || archived || data.active === false || status === "removed") continue;
-      uidSet.add(uid);
+      if (!participantId || archived || data.active === false || status === "removed") continue;
+      uidSet.add(participantId);
     }
   }
 

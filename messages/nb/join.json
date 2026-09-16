@@ -11,6 +11,11 @@
         "label": "Navnet ditt",
         "placeholder": "f.eks. Sara Ali",
         "tip": "Tips: Dette kan være fornavn + etternavn, eller bare fornavn."
+      },
+      "studentCode": {
+        "label": "Elevkode",
+        "placeholder": "Valgfritt, f.eks. S7K4P",
+        "tip": "Har du fått en elevkode av læreren? Skriv den her for å fortsette på ny enhet."
       }
     },
     "actions": {

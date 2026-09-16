@@ -11,6 +11,11 @@
         "label": "Your name",
         "placeholder": "e.g. Sara Ali",
         "tip": "Tip: this can be first name + last name, or just first name."
+      },
+      "studentCode": {
+        "label": "Student code",
+        "placeholder": "Optional, e.g. S7K4P",
+        "tip": "If your teacher gave you a student code, enter it here to continue on a new device."
       }
     },
     "actions": {

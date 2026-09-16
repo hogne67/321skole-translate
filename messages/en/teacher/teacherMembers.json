@@ -28,6 +28,7 @@
       "role": "Role",
       "joined": "Joined",
       "type": "Type",
+      "studentCode": "Student code",
       "uid": "UID"
     },
     "types": {

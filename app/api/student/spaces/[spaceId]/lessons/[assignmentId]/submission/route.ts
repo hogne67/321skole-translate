@@ -49,9 +49,13 @@ async function hasSpaceMembership(
   db: FirebaseFirestore.Firestore,
   spaceId: string,
   uid: string
-) {
+): Promise<{ ok: boolean; participantId: string | null }> {
   const canonical = await db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get();
-  if (canonical.exists && isActiveMember(canonical.data())) return true;
+  if (canonical.exists && isActiveMember(canonical.data())) {
+    const data = canonical.data() ?? {};
+    const participantId = safeString(data.participantId) || uid;
+    return { ok: true, participantId };
+  }
 
   const legacy = await db
     .collection("spaceMembers")
@@ -60,7 +64,11 @@ async function hasSpaceMembership(
     .limit(5)
     .get();
 
-  return legacy.docs.some((doc) => isActiveMember(doc.data()));
+  const active = legacy.docs.find((doc) => isActiveMember(doc.data()));
+  if (!active) return { ok: false, participantId: null };
+
+  const data = active.data() ?? {};
+  return { ok: true, participantId: safeString(data.participantId) || uid };
 }
 
 function cleanPayload(payload: unknown): Record<string, unknown> {
@@ -89,11 +97,13 @@ export async function POST(req: Request, ctx: RouteParams) {
     if (!uid) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as SaveBody;
-    const submissionId = safeString(body.submissionId) || `${spaceId}_${assignmentId}_${uid}`;
-    const expectedOwnId = `${spaceId}_${assignmentId}_${uid}`;
+    const membership = await hasSpaceMembership(db, spaceId, uid);
+    if (!membership.ok) return json({ ok: false, error: "Not a member of this space." }, 403);
 
-    const isMember = await hasSpaceMembership(db, spaceId, uid);
-    if (!isMember) return json({ ok: false, error: "Not a member of this space." }, 403);
+    const memberParticipantId = membership.participantId || uid;
+    const submissionId = safeString(body.submissionId) || `${spaceId}_${assignmentId}_${memberParticipantId}`;
+    const expectedOwnId = `${spaceId}_${assignmentId}_${uid}`;
+    const expectedParticipantId = `${spaceId}_${assignmentId}_${memberParticipantId}`;
 
     const nestedRef = db
       .collection("spaces")
@@ -106,13 +116,19 @@ export async function POST(req: Request, ctx: RouteParams) {
     const existingSnap = await nestedRef.get();
     if (existingSnap.exists) {
       const existing = existingSnap.data() ?? {};
-      if (existing.uid !== uid) return json({ ok: false, error: "Forbidden" }, 403);
-    } else if (submissionId !== expectedOwnId) {
+      const existingParticipantId = safeString(existing.participantId);
+      if (existing.uid !== uid && existingParticipantId !== memberParticipantId) {
+        return json({ ok: false, error: "Forbidden" }, 403);
+      }
+    } else if (submissionId !== expectedOwnId && submissionId !== expectedParticipantId) {
       return json({ ok: false, error: "Invalid submission id." }, 400);
     }
 
     const payload = cleanPayload(body.payload);
     if (payload.uid !== uid) return json({ ok: false, error: "Invalid uid." }, 400);
+    if (safeString(payload.participantId) !== memberParticipantId) {
+      return json({ ok: false, error: "Invalid participant id." }, 400);
+    }
     if (payload.spaceId !== spaceId) return json({ ok: false, error: "Invalid space id." }, 400);
     if (payload.assignmentId !== assignmentId) return json({ ok: false, error: "Invalid assignment id." }, 400);
 

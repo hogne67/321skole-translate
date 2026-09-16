@@ -22,6 +22,8 @@ type MemberData = {
   active?: boolean;
   status?: string;
   isAnon?: boolean;
+  participantId?: string;
+  studentCode?: string;
   createdAt?: unknown;
 };
 
@@ -335,6 +337,7 @@ function Inner() {
                 <th className="py-2 pr-3">{t("table.role")}</th>
                 <th className="py-2 pr-3">{t("table.joined")}</th>
                 <th className="py-2 pr-3">{t("table.type")}</th>
+                <th className="py-2 pr-3">{t("table.studentCode")}</th>
                 <th className="py-2 pr-3">{t("table.uid")}</th>
                 <th className="py-2 pr-3">Tilgang</th>
               </tr>
@@ -347,6 +350,7 @@ function Inner() {
                 const joined = fmt(asDate(r.data.createdAt));
                 const isAnon = Boolean(r.data.isAnon);
                 const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
+                const studentCode = String(r.data.studentCode ?? t("common.dash"));
                 const canRemoveStaff = Boolean(
                   canManageStaff &&
                   uid &&
@@ -364,6 +368,7 @@ function Inner() {
                         {isAnon ? t("types.anon") : t("types.signedIn")}
                       </span>
                     </td>
+                    <td className="py-2 pr-3 font-mono text-xs">{studentCode}</td>
                     <td className="py-2 pr-3 font-mono text-xs">{uid}</td>
                     <td className="py-2 pr-3">
                       {canRemoveStaff ? (
@@ -385,7 +390,7 @@ function Inner() {
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
                     {t("empty")}
                   </td>
                 </tr>

@@ -28,6 +28,7 @@
       "role": "Rolle",
       "joined": "Ble med",
       "type": "Type",
+      "studentCode": "Elevkode",
       "uid": "UID"
     },
     "types": {

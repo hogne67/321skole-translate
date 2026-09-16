@@ -12,6 +12,7 @@ import { getEffectivePlan } from "@/lib/featureAccess";
 type JoinBody = {
   code?: string;
   displayName?: string;
+  studentCode?: string;
 };
 
 type SpaceOwnerFields = {
@@ -39,6 +40,10 @@ type SpaceMemberFields = {
   archived?: unknown;
   active?: unknown;
   status?: unknown;
+  uid?: unknown;
+  displayName?: unknown;
+  participantId?: unknown;
+  studentCode?: unknown;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -62,6 +67,23 @@ function asBoolean(value: unknown): boolean {
 
 function cleanName(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
+}
+
+function cleanStudentCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+}
+
+function studentCodeKey(spaceId: string, studentCode: string): string {
+  return `${spaceId}:${studentCode}`;
+}
+
+function generateStudentCode(length = 5): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < length; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
 }
 
 function getTeacherUidFromSpaceData(data: Record<string, unknown> | null): string | null {
@@ -100,6 +122,15 @@ async function findSpaceByCode(
   return null;
 }
 
+function isActiveStudentMemberData(data: SpaceMemberFields | null | undefined): boolean {
+  if (!data) return false;
+  const role = safeString(data.role);
+  const archived = asBoolean(data.archived);
+  const status = safeString(data.status).toLowerCase();
+
+  return role === "student" && !archived && data.active !== false && status !== "removed";
+}
+
 async function getActiveStudentMembership(
   db: FirebaseFirestore.Firestore,
   spaceId: string,
@@ -111,11 +142,39 @@ async function getActiveStudentMembership(
   if (!snap.exists) return null;
 
   const data = (snap.data() ?? {}) as SpaceMemberFields;
-  const role = safeString(data.role);
-  const archived = asBoolean(data.archived);
-  const status = safeString(data.status).toLowerCase();
+  return isActiveStudentMemberData(data) ? snap : null;
+}
 
-  return role === "student" && !archived && data.active !== false && status !== "removed" ? snap : null;
+async function findStudentMembershipByCode(
+  db: FirebaseFirestore.Firestore,
+  spaceId: string,
+  studentCode: string
+): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
+  if (!studentCode) return null;
+
+  const snap = await db
+    .collection("spaceMembers")
+    .where("studentCodeKey", "==", studentCodeKey(spaceId, studentCode))
+    .limit(1)
+    .get();
+
+  if (snap.empty) return null;
+  const first = snap.docs[0];
+  const data = (first.data() ?? {}) as SpaceMemberFields;
+  return isActiveStudentMemberData(data) ? first : null;
+}
+
+async function generateUniqueStudentCode(
+  db: FirebaseFirestore.Firestore,
+  spaceId: string
+): Promise<string> {
+  for (let i = 0; i < 10; i += 1) {
+    const code = generateStudentCode();
+    const existing = await findStudentMembershipByCode(db, spaceId, code);
+    if (!existing) return code;
+  }
+
+  return `${generateStudentCode(5)}${Math.floor(Math.random() * 10)}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -128,6 +187,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as JoinBody;
     const code = safeString(body.code).toUpperCase();
     const displayName = cleanName(safeString(body.displayName));
+    const studentCode = cleanStudentCode(safeString(body.studentCode));
 
     if (!code) {
       return NextResponse.json({ error: "Missing code." }, { status: 400 });
@@ -155,7 +215,15 @@ export async function POST(req: NextRequest) {
     }
 
     const existingMembership = await getActiveStudentMembership(adminDb, spaceId, uid);
+    const codeMatchedMembership =
+      !existingMembership && studentCode
+        ? await findStudentMembershipByCode(adminDb, spaceId, studentCode)
+        : null;
+    const codeMatchedData = codeMatchedMembership
+      ? ((codeMatchedMembership.data() ?? {}) as SpaceMemberFields)
+      : null;
     const alreadyMemberInThisSpace = Boolean(existingMembership);
+    const linkedExistingParticipant = Boolean(codeMatchedMembership);
 
     if (alreadyMemberInThisSpace && !displayName) {
       return NextResponse.json({
@@ -163,10 +231,12 @@ export async function POST(req: NextRequest) {
         spaceId,
         title: safeString((spaceData as SpaceOwnerFields).title) || "Untitled space",
         alreadyMember: true,
+        participantId:
+          safeString((existingMembership?.data() as SpaceMemberFields | undefined)?.participantId) || uid,
       });
     }
 
-    if (!displayName) {
+    if (!displayName && !codeMatchedData?.displayName) {
       return NextResponse.json({ error: "Missing displayName." }, { status: 400 });
     }
 
@@ -174,7 +244,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Display name is too long." }, { status: 400 });
     }
 
-    if (!alreadyMemberInThisSpace) {
+    if (!alreadyMemberInThisSpace && !linkedExistingParticipant) {
       const teacherSnap = await adminDb.collection("users").doc(teacherUid).get();
       const teacherData = teacherSnap.exists
         ? ((teacherSnap.data() ?? {}) as TeacherProfileFields)
@@ -217,18 +287,39 @@ export async function POST(req: NextRequest) {
     }
 
     const membershipRef = adminDb.collection("spaceMembers").doc(`${spaceId}_${uid}`);
+    const resolvedParticipantId =
+      safeString(codeMatchedData?.participantId) ||
+      safeString(codeMatchedData?.uid) ||
+      uid;
+    const resolvedDisplayName = displayName || safeString(codeMatchedData?.displayName);
+    const resolvedStudentCode =
+      safeString(codeMatchedData?.studentCode) ||
+      (existingMembership
+        ? safeString((existingMembership.data() as SpaceMemberFields | undefined)?.studentCode)
+        : "") ||
+      (await generateUniqueStudentCode(adminDb, spaceId));
 
     await membershipRef.set(
       {
         spaceId,
         uid,
+        participantId: resolvedParticipantId,
         role: "student",
         archived: false,
         active: true,
         status: "active",
         code,
-        displayName,
+        displayName: resolvedDisplayName,
+        studentCode: resolvedStudentCode,
+        studentCodeKey: studentCodeKey(spaceId, resolvedStudentCode),
         isAnon: isAnonymous,
+        ...(codeMatchedMembership && codeMatchedMembership.id !== `${spaceId}_${uid}`
+          ? {
+              linkedFromMemberId: codeMatchedMembership.id,
+              linkedByStudentCode: true,
+              linkedAt: FieldValue.serverTimestamp(),
+            }
+          : {}),
         updatedAt: FieldValue.serverTimestamp(),
         ...(alreadyMemberInThisSpace ? {} : { createdAt: FieldValue.serverTimestamp() }),
       },
@@ -262,6 +353,7 @@ export async function POST(req: NextRequest) {
       spaceId,
       title: safeString((spaceData as SpaceOwnerFields).title) || "Untitled space",
       alreadyMember: alreadyMemberInThisSpace,
+      participantId: resolvedParticipantId,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not join space.";

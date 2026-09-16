@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import FullscreenImage from "@/components/FullscreenImage";
 import type { AutoGrade } from "./types";
 
 export function Badge({
@@ -159,38 +159,5 @@ export function SmartImage({
     alt: string;
     fit?: "cover" | "contain";
 }) {
-    const isInline =
-        src.startsWith("data:") || src.startsWith("blob:");
-
-    if (isInline) {
-        return (
-            <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={src}
-                    alt={alt}
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: fit,
-                    }}
-                />
-            </>
-        );
-    }
-
-    return (
-        <Image
-            src={src}
-            alt={alt}
-            width={1600}
-            height={900}
-            sizes="(max-width: 920px) 100vw, 920px"
-            style={{
-                width: "100%",
-                height: "100%",
-                objectFit: fit,
-            }}
-        />
-    );
+    return <FullscreenImage src={src} alt={alt} fit={fit} sizes="(max-width: 920px) 100vw, 920px" />;
 }

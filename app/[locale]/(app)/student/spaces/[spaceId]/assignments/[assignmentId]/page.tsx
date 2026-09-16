@@ -9,7 +9,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { ensureStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { LANGUAGES } from "@/lib/languages";
 import { authedPost } from "@/lib/authedPost";
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -310,6 +310,7 @@ export default function StudentAssignmentPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [isAnon, setIsAnon] = useState(true);
+  const [participantId, setParticipantId] = useState<string | null>(null);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const answersRef = useRef<AnswersMap>({});
@@ -830,14 +831,16 @@ export default function StudentAssignmentPage() {
         setUid(user.uid);
         setIsAnon(!!user.isAnonymous);
 
-        const isMember = await ensureStudentSpaceMembership(db, spaceId, user.uid);
-        if (!isMember) {
+        const membership = await getStudentSpaceMembership(db, spaceId, user.uid);
+        if (!membership.isMember) {
           if (!isTeacherPreview) throw new Error(t("errors.notMember"));
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
           const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
           if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
         }
+        const currentParticipantId = membership.participantId || user.uid;
+        setParticipantId(currentParticipantId);
 
         const aSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
         if (!alive) return;
@@ -1009,7 +1012,11 @@ export default function StudentAssignmentPage() {
 
           const sd = (sSnap.data() as SubmissionDoc) ?? {};
           const owner = typeof sd.uid === "string" ? sd.uid : null;
-          if (owner && owner !== user.uid) return false;
+          const ownerParticipant =
+            typeof (sd as Record<string, unknown>).participantId === "string"
+              ? String((sd as Record<string, unknown>).participantId).trim()
+              : null;
+          if (owner && owner !== user.uid && ownerParticipant !== currentParticipantId) return false;
 
           const sStatus = normalizeStatus(sd.status);
           setLiveStatus(sStatus);
@@ -1065,7 +1072,7 @@ export default function StudentAssignmentPage() {
           return true;
         };
 
-        const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
+        const autoId = `${spaceId}_${assignmentId}_${currentParticipantId}`;
         let loadedSubmission = false;
 
         if (sid && sid !== autoId) {
@@ -1134,7 +1141,11 @@ export default function StudentAssignmentPage() {
 
         const sd = (snap.data() as SubmissionDoc) ?? {};
         const owner = typeof sd.uid === "string" ? sd.uid : null;
-        if (owner && owner !== uid) return;
+        const ownerParticipant =
+          typeof (sd as Record<string, unknown>).participantId === "string"
+            ? String((sd as Record<string, unknown>).participantId).trim()
+            : null;
+        if (owner && owner !== uid && ownerParticipant !== participantId) return;
 
         const sStatus = normalizeStatus(sd.status);
         setLiveStatus(sStatus);
@@ -1196,6 +1207,7 @@ export default function StudentAssignmentPage() {
     spaceId,
     assignmentId,
     uid,
+    participantId,
     sid,
     submissionId,
     editingSubmissionId,
@@ -1216,7 +1228,8 @@ export default function StudentAssignmentPage() {
       if (manual) setMsg(null);
 
       try {
-        const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
+        const activeParticipantId = participantId || uid;
+        const subId = buildSubmissionId(spaceId, assignmentId, activeParticipantId, editingSubmissionId);
 
         const isGeometryDraft = isGeometryAssignment && !!geometryWorksheet;
         const normalizedGeometryAnswers = isGeometryDraft
@@ -1235,6 +1248,7 @@ export default function StudentAssignmentPage() {
           level: assignment?.level ?? lesson?.level ?? null,
           language: assignment?.language ?? lesson?.language ?? null,
           uid,
+          participantId: activeParticipantId,
           isAnon,
           status: currentDraftStatus,
 
@@ -1254,7 +1268,7 @@ export default function StudentAssignmentPage() {
           startedAt: Date.now(),
           timeSpentSeconds: 0,
           updatedAt: serverTimestamp(),
-          auth: { isAnon, uid },
+          auth: { isAnon, uid, participantId: activeParticipantId },
         });
         basePayload.audioReading = deleteField();
 
@@ -1283,6 +1297,7 @@ export default function StudentAssignmentPage() {
       spaceId,
       assignmentId,
       uid,
+      participantId,
       submitted,
       isLockedByTeacher,
       isReadingTest,
@@ -1371,7 +1386,8 @@ export default function StudentAssignmentPage() {
           ? normalizeGeometryAnswersByTaskId(finalAnswers)
           : null;
 
-        const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
+        const activeParticipantId = participantId || uid;
+        const subId = buildSubmissionId(spaceId, assignmentId, activeParticipantId, editingSubmissionId);
 
         let persistedAudioReading: AudioReadingSubmission | null = null;
         if (audioReadingEnabled && audioReadingSubmission) {
@@ -1442,6 +1458,7 @@ export default function StudentAssignmentPage() {
           level: assignment?.level ?? lesson?.level ?? null,
           language: assignment?.language ?? lesson?.language ?? null,
           uid,
+          participantId: activeParticipantId,
           isAnon,
           status: "submitted",
 
@@ -1480,7 +1497,7 @@ export default function StudentAssignmentPage() {
           readingTimerResult,
 
           updatedAt: serverTimestamp(),
-          auth: { isAnon, uid },
+          auth: { isAnon, uid, participantId: activeParticipantId },
         });
 
         await saveSubmissionDocuments(spaceId, assignmentId, subId, basePayload, !editingSubmissionId);
@@ -1533,6 +1550,7 @@ export default function StudentAssignmentPage() {
       spaceId,
       assignmentId,
       uid,
+      participantId,
       submitted,
       sid,
       editingSubmissionId,

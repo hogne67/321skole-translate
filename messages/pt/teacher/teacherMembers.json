@@ -28,6 +28,7 @@
       "role": "Função",
       "joined": "Entrou",
       "type": "Tipo",
+      "studentCode": "Código do aluno",
       "uid": "UID"
     },
     "types": {
