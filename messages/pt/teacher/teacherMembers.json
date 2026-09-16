@@ -20,6 +20,19 @@
       "backToSpace": "Voltar para o space",
       "allSpaces": "Todos os spaces"
     },
+    "createStudent": {
+      "title": "Adicionar aluno",
+      "description": "Crie um aluno neste space e gere código/link antes de o aluno entrar.",
+      "placeholder": "Nome do aluno",
+      "actions": {
+        "create": "Criar aluno",
+        "working": "Criando…"
+      },
+      "messages": {
+        "created": "{name} foi criado com o código {code}.",
+        "failed": "Não foi possível criar o aluno."
+      }
+    },
     "studentCode": {
       "actions": {
         "copy": "Copiar",

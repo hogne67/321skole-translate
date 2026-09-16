@@ -20,6 +20,19 @@
       "backToSpace": "Tilbake til space",
       "allSpaces": "Alle spaces"
     },
+    "createStudent": {
+      "title": "Legg til elev",
+      "description": "Opprett en elev i dette spacet og få elevkode/lenke før eleven logger inn.",
+      "placeholder": "Elevnavn",
+      "actions": {
+        "create": "Opprett elev",
+        "working": "Oppretter…"
+      },
+      "messages": {
+        "created": "{name} er opprettet med elevkode {code}.",
+        "failed": "Kunne ikke opprette elev."
+      }
+    },
     "studentCode": {
       "actions": {
         "copy": "Kopier",

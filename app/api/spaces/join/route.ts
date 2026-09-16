@@ -155,13 +155,14 @@ async function findStudentMembershipByCode(
   const snap = await db
     .collection("spaceMembers")
     .where("studentCodeKey", "==", studentCodeKey(spaceId, studentCode))
-    .limit(1)
+    .limit(10)
     .get();
 
   if (snap.empty) return null;
-  const first = snap.docs[0];
-  const data = (first.data() ?? {}) as SpaceMemberFields;
-  return isActiveStudentMemberData(data) ? first : null;
+  return snap.docs.find((docSnap) => {
+    const data = (docSnap.data() ?? {}) as SpaceMemberFields;
+    return isActiveStudentMemberData(data);
+  }) ?? null;
 }
 
 async function generateUniqueStudentCode(
@@ -325,6 +326,24 @@ export async function POST(req: NextRequest) {
       },
       { merge: true }
     );
+
+    if (
+      codeMatchedMembership &&
+      codeMatchedMembership.id !== `${spaceId}_${uid}` &&
+      !safeString(codeMatchedData?.uid)
+    ) {
+      await codeMatchedMembership.ref.set(
+        {
+          archived: true,
+          active: false,
+          status: "linked",
+          linkedToMemberId: `${spaceId}_${uid}`,
+          linkedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
 
     if (!isAnonymous) {
       const userRef = adminDb.collection("users").doc(uid);

@@ -20,6 +20,19 @@
       "backToSpace": "Back to space",
       "allSpaces": "All spaces"
     },
+    "createStudent": {
+      "title": "Add student",
+      "description": "Create a student in this space and get a student code/link before the student signs in.",
+      "placeholder": "Student name",
+      "actions": {
+        "create": "Create student",
+        "working": "Creating…"
+      },
+      "messages": {
+        "created": "{name} was created with student code {code}.",
+        "failed": "Could not create student."
+      }
+    },
     "studentCode": {
       "actions": {
         "copy": "Copy",

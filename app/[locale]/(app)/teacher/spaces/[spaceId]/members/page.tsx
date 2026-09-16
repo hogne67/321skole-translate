@@ -100,6 +100,8 @@ function Inner() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"co_teacher" | "observer">("co_teacher");
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [studentName, setStudentName] = useState("");
+  const [studentBusy, setStudentBusy] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
@@ -303,6 +305,48 @@ function Inner() {
     }
   }
 
+  async function createStudent() {
+    const displayName = studentName.replace(/\s+/g, " ").trim();
+    if (!spaceId || !user || !displayName || !canManageStaff) return;
+
+    setStudentBusy(true);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/create-student`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ displayName }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        member?: { displayName?: string; studentCode?: string };
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || t("createStudent.messages.failed"));
+      }
+
+      setStudentName("");
+      setInviteMessage(
+        t("createStudent.messages.created", {
+          name: data.member?.displayName || displayName,
+          code: data.member?.studentCode || "",
+        })
+      );
+    } catch (error: unknown) {
+      setInviteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setStudentBusy(false);
+    }
+  }
+
   async function removeStaff(targetUid: string) {
     if (!spaceId || !user || !targetUid || !canManageStaff) return;
 
@@ -372,38 +416,61 @@ function Inner() {
 
       <div className="mt-4 rounded-2xl border bg-white p-4 shadow-sm">
         {canManageStaff ? (
-          <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-            <div className="text-sm font-bold text-slate-950">Gi voksen tilgang</div>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              Legg til en annen registrert lærer i dette Space for vikar, sensor eller samarbeid.
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
-              <input
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                placeholder="laerer@skole.no"
-                type="email"
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-              />
-              <select
-                value={inviteRole}
-                onChange={(event) => setInviteRole(event.target.value === "observer" ? "observer" : "co_teacher")}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-              >
-                <option value="co_teacher">Co-teacher</option>
-                <option value="observer">Observer</option>
-              </select>
-              <button
-                type="button"
-                onClick={inviteStaff}
-                disabled={inviteBusy || !inviteEmail.trim()}
-                className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {inviteBusy ? "Legger til..." : "Legg til"}
-              </button>
+          <div className="mb-4 grid gap-3">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="text-sm font-bold text-slate-950">{t("createStudent.title")}</div>
+              <p className="mt-1 text-sm leading-6 text-slate-600">{t("createStudent.description")}</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  value={studentName}
+                  onChange={(event) => setStudentName(event.target.value)}
+                  placeholder={t("createStudent.placeholder")}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => void createStudent()}
+                  disabled={studentBusy || !studentName.trim()}
+                  className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {studentBusy ? t("createStudent.actions.working") : t("createStudent.actions.create")}
+                </button>
+              </div>
             </div>
-            {inviteMessage ? <div className="mt-2 text-sm font-medium text-emerald-700">{inviteMessage}</div> : null}
-            {inviteError ? <div className="mt-2 text-sm font-medium text-red-600">{inviteError}</div> : null}
+
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="text-sm font-bold text-slate-950">Gi voksen tilgang</div>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Legg til en annen registrert lærer i dette Space for vikar, sensor eller samarbeid.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+                <input
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  placeholder="laerer@skole.no"
+                  type="email"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={(event) => setInviteRole(event.target.value === "observer" ? "observer" : "co_teacher")}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                >
+                  <option value="co_teacher">Co-teacher</option>
+                  <option value="observer">Observer</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={inviteStaff}
+                  disabled={inviteBusy || !inviteEmail.trim()}
+                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {inviteBusy ? "Legger til..." : "Legg til"}
+                </button>
+              </div>
+              {inviteMessage ? <div className="mt-2 text-sm font-medium text-emerald-700">{inviteMessage}</div> : null}
+              {inviteError ? <div className="mt-2 text-sm font-medium text-red-600">{inviteError}</div> : null}
+            </div>
           </div>
         ) : null}
 
