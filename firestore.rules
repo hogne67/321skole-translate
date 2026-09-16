@@ -1007,6 +1007,22 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
           && (resource.data.uid == myUid());
       }
 
+      function myParticipantIdForIndex() {
+        let spaceId = spaceIdFromDoc();
+        let member = spaceId != null ? mySpaceMemberData(spaceId) : {};
+        return ("participantId" in member) && (member.participantId is string) && member.participantId.size() > 0
+          ? member.participantId
+          : myUid();
+      }
+
+      function isParticipantOwnerDoc() {
+        return signedIn()
+          && resource != null
+          && ("participantId" in resource.data)
+          && (resource.data.participantId is string)
+          && (resource.data.participantId == myParticipantIdForIndex());
+      }
+
       function spaceIdFromDoc() {
         return resource != null && ("spaceId" in resource.data) && (resource.data.spaceId is string)
           ? resource.data.spaceId
@@ -1028,7 +1044,7 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
           );
       }
 
-      allow read: if isAdmin() || isOwnerDoc() || canTeacherReadIndex();
+      allow read: if isAdmin() || isOwnerDoc() || isParticipantOwnerDoc() || canTeacherReadIndex();
 
       allow create: if (
         signedIn()
@@ -1045,6 +1061,7 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
 
       allow update: if isAdmin()
         || isOwnerDoc()
+        || isParticipantOwnerDoc()
         || (signedIn() && spaceIdFromDoc() != null && canTeachInSpace(spaceIdFromDoc()));
 
       allow delete: if false;

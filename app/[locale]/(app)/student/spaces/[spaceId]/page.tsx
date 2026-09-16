@@ -23,6 +23,7 @@ import {
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -424,25 +425,18 @@ export default function StudentSpaceDetailPage() {
     }
 
     let unsub: (() => void) | null = null;
+    let unsubs: Array<() => void> = [];
+    let cancelled = false;
     setSubsLoading(true);
 
     try {
       const dbx = requireDb(db);
 
-      const qy = query(
-        collection(dbx, "spaceSubmissions"),
-        where("spaceId", "==", spaceId),
-        where("uid", "==", uid),
-        orderBy("updatedAt", "desc"),
-        limit(200)
-      );
-
-      unsub = onSnapshot(
-        qy,
-        (snap) => {
-          const out: SpaceSubRow[] = [];
-          snap.forEach((d) => {
+      const rowsFromSnapshot = (snap: { forEach: (cb: (d: QueryDocumentSnapshot<DocumentData>) => void) => void }) => {
+        const out: SpaceSubRow[] = [];
+        snap.forEach((d) => {
             const data = ((d.data() as unknown) as Record<string, unknown>) ?? {};
+            if (safeString(data.spaceId) !== spaceId) return;
             const assignmentId = safeString(data.assignmentId) ?? "";
             if (!assignmentId) return;
 
@@ -465,21 +459,71 @@ export default function StudentSpaceDetailPage() {
               studentArchived,
               studentArchivedAtMs,
             });
-          });
+        });
 
-          out.sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
-          setSubs(out);
-          setSubsLoading(false);
-        },
-        (e: unknown) => {
-          const code =
-            e && typeof e === "object" && "code" in e
-              ? String((e as { code?: unknown }).code ?? "error")
-              : "error";
-          setSubsErr(`${code}: ${errMessage(e, t("errors.readSubmissions"))}`);
-          setSubsLoading(false);
+        return out;
+      };
+
+      const buckets = new Map<string, SpaceSubRow[]>();
+      const applyBuckets = () => {
+        const byId = new Map<string, SpaceSubRow>();
+        for (const rows of buckets.values()) {
+          for (const row of rows) byId.set(row.id, row);
         }
-      );
+        const out = Array.from(byId.values()).sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+        setSubs(out);
+        setSubsLoading(false);
+      };
+
+      const handleSnapshotError = (e: unknown) => {
+        const code =
+          e && typeof e === "object" && "code" in e
+            ? String((e as { code?: unknown }).code ?? "error")
+            : "error";
+        setSubsErr(`${code}: ${errMessage(e, t("errors.readSubmissions"))}`);
+        setSubsLoading(false);
+      };
+
+      const start = async () => {
+        const membership = await getStudentSpaceMembership(dbx, spaceId, uid).catch(() => null);
+        if (cancelled) return;
+
+        const activeParticipantId = membership?.participantId || uid;
+        const queries = activeParticipantId !== uid
+          ? [
+            {
+              key: "participant",
+              qy: query(collection(dbx, "spaceSubmissions"), where("participantId", "==", activeParticipantId), limit(200)),
+            },
+            {
+              key: "uid",
+              qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
+            },
+          ]
+          : [
+            {
+              key: "uid",
+              qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
+            },
+          ];
+
+        unsubs = queries.map(({ key, qy }) =>
+          onSnapshot(
+            qy,
+            (snap) => {
+              buckets.set(key, rowsFromSnapshot(snap));
+              applyBuckets();
+            },
+            handleSnapshotError
+          )
+        );
+      };
+
+      void start();
+      unsub = () => {
+        cancelled = true;
+        unsubs.forEach((fn) => fn());
+      };
     } catch (e: unknown) {
       const code =
         e && typeof e === "object" && "code" in e

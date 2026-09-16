@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
+import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import {
     doc,
     onSnapshot,
@@ -352,6 +353,7 @@ export default function ChildAssignmentPage() {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const [user, setUser] = useState<User | null>(null);
+    const [participantId, setParticipantId] = useState<string | null>(null);
     const [space, setSpace] = useState<SpaceDoc | null>(null);
     const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
     const [submission, setSubmission] = useState<SubmissionDoc | null>(null);
@@ -379,6 +381,32 @@ export default function ChildAssignmentPage() {
         const auth = getAuth();
         return onAuthStateChanged(auth, (u) => setUser(u));
     }, []);
+
+    useEffect(() => {
+        if (!user?.uid) {
+            setParticipantId(null);
+            return;
+        }
+
+        let alive = true;
+
+        const run = async () => {
+            try {
+                const dbx = requireDb(db);
+                const membership = await getStudentSpaceMembership(dbx, spaceId, user.uid);
+                if (!alive) return;
+                setParticipantId(membership.participantId || user.uid);
+            } catch {
+                if (alive) setParticipantId(user.uid);
+            }
+        };
+
+        void run();
+
+        return () => {
+            alive = false;
+        };
+    }, [spaceId, user?.uid]);
 
     useEffect(() => {
         let unsub: (() => void) | null = null;
@@ -417,13 +445,14 @@ export default function ChildAssignmentPage() {
     }, [spaceId, assignmentId, t]);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        const activeParticipantId = participantId || user?.uid || null;
+        if (!user?.uid || !activeParticipantId) return;
 
         let unsub: (() => void) | null = null;
 
         try {
             const dbx = requireDb(db);
-            const submissionId = buildParentSubmissionId(spaceId, assignmentId, user.uid);
+            const submissionId = buildParentSubmissionId(spaceId, assignmentId, activeParticipantId);
 
             unsub = onSnapshot(
                 doc(dbx, "spaces", spaceId, "lessons", assignmentId, "submissions", submissionId),
@@ -462,7 +491,7 @@ export default function ChildAssignmentPage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, assignmentId, user?.uid]);
+    }, [spaceId, assignmentId, user?.uid, participantId]);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -648,7 +677,8 @@ export default function ChildAssignmentPage() {
         try {
             const dbx = requireDb(db);
             const auto = evaluateAnswers(tasks, answers);
-            const submissionId = buildParentSubmissionId(spaceId, assignmentId, user.uid);
+            const activeParticipantId = participantId || user.uid;
+            const submissionId = buildParentSubmissionId(spaceId, assignmentId, activeParticipantId);
 
             const nestedRef = doc(
                 dbx,
@@ -666,6 +696,7 @@ export default function ChildAssignmentPage() {
                 spaceId,
                 assignmentId,
                 uid: user.uid,
+                participantId: activeParticipantId,
                 role: "parent",
                 isParentFlow: true,
                 isChildPortal: true,
@@ -678,6 +709,7 @@ export default function ChildAssignmentPage() {
                 submittedAt: Date.now(),
                 updatedAt: serverTimestamp(),
                 createdAt: serverTimestamp(),
+                auth: { uid: user.uid, participantId: activeParticipantId },
             };
 
             const batch = writeBatch(dbx);
