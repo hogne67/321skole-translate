@@ -497,23 +497,12 @@ export default function StudentSpaceDetailPage() {
 
         const activeParticipantId = membership?.participantId || uid;
         setCurrentParticipantId(activeParticipantId);
-        const queries = activeParticipantId !== uid
-          ? [
-            {
-              key: "participant",
-              qy: query(collection(dbx, "spaceSubmissions"), where("participantId", "==", activeParticipantId), limit(200)),
-            },
-            {
-              key: "uid",
-              qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
-            },
-          ]
-          : [
-            {
-              key: "uid",
-              qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
-            },
-          ];
+        const queries = [
+          {
+            key: "uid",
+            qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
+          },
+        ];
 
         unsubs = queries.map(({ key, qy }) =>
           onSnapshot(
@@ -709,21 +698,34 @@ export default function StudentSpaceDetailPage() {
   const spaceRec: Record<string, unknown> = isRecord(space) ? (space as Record<string, unknown>) : {};
   const spaceCode = safeString(spaceRec.code);
 
-  async function moveToArchive(subId: string) {
+  async function moveToArchive(row: SpaceSubRow) {
     if (!uid) return;
+    const subId = row.id;
     setArchiveMsg(null);
     setArchivingId(subId);
 
     try {
       const dbx = requireDb(db);
-      const ref = doc(dbx, "spaceSubmissions", subId);
+      const nestedRef = doc(dbx, "spaces", spaceId, "lessons", row.assignmentId, "submissions", subId);
 
       const batch = writeBatch(dbx);
-      batch.update(ref, {
+      batch.update(nestedRef, {
         studentArchived: true,
         studentArchivedAt: serverTimestamp(),
       });
       await batch.commit();
+
+      try {
+        const indexRef = doc(dbx, "spaceSubmissions", subId);
+        const indexBatch = writeBatch(dbx);
+        indexBatch.update(indexRef, {
+          studentArchived: true,
+          studentArchivedAt: serverTimestamp(),
+        });
+        await indexBatch.commit();
+      } catch {
+        // The nested submission drives the visible archive state for students.
+      }
 
       setArchiveMsg(t("toast.movedToArchive"));
     } catch (e: unknown) {
@@ -736,21 +738,34 @@ export default function StudentSpaceDetailPage() {
     }
   }
 
-  async function restoreFromArchive(subId: string) {
+  async function restoreFromArchive(row: SpaceSubRow) {
     if (!uid) return;
+    const subId = row.id;
     setArchiveMsg(null);
     setArchivingId(subId);
 
     try {
       const dbx = requireDb(db);
-      const ref = doc(dbx, "spaceSubmissions", subId);
+      const nestedRef = doc(dbx, "spaces", spaceId, "lessons", row.assignmentId, "submissions", subId);
 
       const batch = writeBatch(dbx);
-      batch.update(ref, {
+      batch.update(nestedRef, {
         studentArchived: false,
         studentArchivedAt: null,
       });
       await batch.commit();
+
+      try {
+        const indexRef = doc(dbx, "spaceSubmissions", subId);
+        const indexBatch = writeBatch(dbx);
+        indexBatch.update(indexRef, {
+          studentArchived: false,
+          studentArchivedAt: null,
+        });
+        await indexBatch.commit();
+      } catch {
+        // The nested submission drives the visible archive state for students.
+      }
 
       setArchiveMsg(t("toast.restored"));
     } catch (e: unknown) {
@@ -934,7 +949,7 @@ export default function StudentSpaceDetailPage() {
                         {mine ? (
                           <button
                             type="button"
-                            onClick={() => moveToArchive(mine.id)}
+                            onClick={() => moveToArchive(mine)}
                             disabled={archivingId === mine.id}
                             className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
                             title={t("mine.archiveHint")}
@@ -1034,7 +1049,7 @@ export default function StudentSpaceDetailPage() {
                     <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:justify-end">
                       <button
                         type="button"
-                        onClick={() => restoreFromArchive(r.id)}
+                        onClick={() => restoreFromArchive(r)}
                         disabled={archivingId === r.id}
                         className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
                         title={t("archive.restoreHint")}
