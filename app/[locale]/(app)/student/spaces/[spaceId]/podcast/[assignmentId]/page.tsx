@@ -103,13 +103,13 @@ async function uploadPodcastAudio({
   spaceId,
   assignmentId,
   submissionId,
-  uid,
+  studentIdentityId,
   submission,
 }: {
   spaceId: string;
   assignmentId: string;
   submissionId: string;
-  uid: string;
+  studentIdentityId: string;
   submission: PodcastWorkshopSubmission;
 }): Promise<PodcastWorkshopSubmission> {
   const entries = await Promise.all(
@@ -119,7 +119,7 @@ async function uploadPodcastAudio({
         spaceId,
         assignmentId,
         submissionId,
-        uid,
+        uid: studentIdentityId,
         activityType: "podcast",
         assetId: segmentId,
         asset: segment.voice,
@@ -260,7 +260,7 @@ export default function StudentPodcastWorkshopPage() {
         spaceId,
         assignmentId,
         submissionId,
-        uid,
+        studentIdentityId: activeParticipantId,
         submission,
       });
 

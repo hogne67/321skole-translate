@@ -198,6 +198,57 @@ function readAudioReadingSubmission(value: unknown): AudioReadingSubmission | nu
   return readStudentAudioAsset(value, "audio_reading");
 }
 
+async function resolvePodcastAudioForPlayback(
+  submission: PodcastWorkshopSubmission
+): Promise<PodcastWorkshopSubmission> {
+  const entries = await Promise.all(
+    Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+      const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => segment.voice);
+      return [segmentId, { ...segment, voice }] as const;
+    })
+  );
+
+  return {
+    ...submission,
+    productionSegments: Object.fromEntries(entries),
+  };
+}
+
+async function uploadPodcastAudio({
+  spaceId,
+  assignmentId,
+  submissionId,
+  studentIdentityId,
+  submission,
+}: {
+  spaceId: string;
+  assignmentId: string;
+  submissionId: string;
+  studentIdentityId: string;
+  submission: PodcastWorkshopSubmission;
+}): Promise<PodcastWorkshopSubmission> {
+  const entries = await Promise.all(
+    Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+      if (!segment.voice) return [segmentId, segment] as const;
+      const voice = await uploadStudentAudioAsset({
+        spaceId,
+        assignmentId,
+        submissionId,
+        uid: studentIdentityId,
+        activityType: "podcast",
+        assetId: segmentId,
+        asset: segment.voice,
+      });
+      return [segmentId, { ...segment, voice }] as const;
+    })
+  );
+
+  return {
+    ...submission,
+    productionSegments: Object.fromEntries(entries),
+  };
+}
+
 async function resolveUserForStudentPage(opts?: { allowAnonymous?: boolean }): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
 
@@ -1044,12 +1095,18 @@ export default function StudentAssignmentPage() {
           if (storedAudioReading || sStatus !== "draft") {
             setAudioReadingSubmission(storedAudioReading);
           }
-          setPodcastWorkshopSubmission(
+          const storedPodcastWorkshop = await resolvePodcastAudioForPlayback(
+            readPodcastWorkshopSubmission(
+              (sd as Record<string, unknown>).podcastWorkshop,
+              resolvedPodcastConfig
+            )
+          ).catch(() =>
             readPodcastWorkshopSubmission(
               (sd as Record<string, unknown>).podcastWorkshop,
               resolvedPodcastConfig
             )
           );
+          setPodcastWorkshopSubmission(storedPodcastWorkshop);
 
           if (isGeometryResolved) {
             setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
@@ -1191,12 +1248,19 @@ export default function StudentAssignmentPage() {
             }
           });
 
-        setPodcastWorkshopSubmission((current) =>
+        void resolvePodcastAudioForPlayback(
           readPodcastWorkshopSubmission(
-            (sd as Record<string, unknown>).podcastWorkshop ?? current,
+            (sd as Record<string, unknown>).podcastWorkshop,
             podcastWorkshopConfig
           )
-        );
+        )
+          .catch(() =>
+            readPodcastWorkshopSubmission(
+              (sd as Record<string, unknown>).podcastWorkshop,
+              podcastWorkshopConfig
+            )
+          )
+          .then(setPodcastWorkshopSubmission);
 
         if (sStatus === "needs_work" || sStatus === "draft") {
           setEditingSubmissionId(activeSubId);
@@ -1248,6 +1312,15 @@ export default function StudentAssignmentPage() {
 
         const currentDraftStatus =
           normalizeStatus(liveStatus) === "needs_work" ? "needs_work" : "draft";
+        const persistedPodcastWorkshop = isPodcastWorkshop
+          ? await uploadPodcastAudio({
+            spaceId,
+            assignmentId,
+            submissionId: subId,
+            studentIdentityId: activeParticipantId,
+            submission: podcastWorkshopSubmission,
+          })
+          : null;
 
         const basePayload: Record<string, unknown> = stripUndefinedDeep({
           spaceId,
@@ -1270,7 +1343,7 @@ export default function StudentAssignmentPage() {
           answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
           answersByTaskId: isGeometryDraft ? normalizedGeometryAnswers : undefined,
           audioReading: undefined,
-          podcastWorkshop: isPodcastWorkshop ? podcastWorkshopSubmission : undefined,
+          podcastWorkshop: isPodcastWorkshop ? persistedPodcastWorkshop : undefined,
 
           auto: null,
           aiFeedback: null,
@@ -1297,6 +1370,9 @@ export default function StudentAssignmentPage() {
         setLiveAuto(null);
         setLiveGeometryAuto(null);
         setLiveReadingTimerResult(null);
+        if (persistedPodcastWorkshop) {
+          setPodcastWorkshopSubmission(await resolvePodcastAudioForPlayback(persistedPodcastWorkshop));
+        }
 
         if (manual) setMsg("Kladd lagret.");
       } catch (e: unknown) {
@@ -1420,6 +1496,15 @@ export default function StudentAssignmentPage() {
             throw new Error(t("audioReading.errors.uploadFailed"));
           }
         }
+        const persistedPodcastWorkshop = isPodcastWorkshop
+          ? await uploadPodcastAudio({
+            spaceId,
+            assignmentId,
+            submissionId: subId,
+            studentIdentityId: activeParticipantId,
+            submission: podcastWorkshopSubmission,
+          })
+          : null;
 
         let auto: unknown = computeAutoGrade(tasksOriginal, finalAnswers);
         const aiFeedback: unknown = null;
@@ -1498,7 +1583,7 @@ export default function StudentAssignmentPage() {
           answers: isGeometryAssignment ? normalizedGeometryAnswers : finalAnswers,
           answersByTaskId: isGeometryAssignment ? normalizedGeometryAnswers : undefined,
           audioReading: audioReadingEnabled ? persistedAudioReading : null,
-          podcastWorkshop: isPodcastWorkshop ? podcastWorkshopSubmission : undefined,
+          podcastWorkshop: isPodcastWorkshop ? persistedPodcastWorkshop : undefined,
 
           auto,
           aiFeedback,
@@ -1530,6 +1615,9 @@ export default function StudentAssignmentPage() {
             ...persistedAudioReading,
             audioDataUrl: audioReadingSubmission?.audioDataUrl,
           });
+        }
+        if (persistedPodcastWorkshop) {
+          setPodcastWorkshopSubmission(await resolvePodcastAudioForPlayback(persistedPodcastWorkshop));
         }
         setEditingSubmissionId(null);
         setSubmitted(true);
