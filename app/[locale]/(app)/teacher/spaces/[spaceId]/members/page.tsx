@@ -14,6 +14,7 @@ type MemberData = {
   spaceId?: string;
   userId?: string;
   uid?: string;
+  participantId?: string;
   displayName?: string;
   email?: string;
   role?: string;
@@ -22,14 +23,15 @@ type MemberData = {
   active?: boolean;
   status?: string;
   isAnon?: boolean;
-  participantId?: string;
   studentCode?: string;
+  studentCodeKey?: string;
   createdAt?: unknown;
 };
 
 type MemberRow = {
   id: string;
   data: MemberData;
+  deviceCount?: number;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -48,6 +50,74 @@ function asDate(v: unknown): Date | null {
 
 function safeString(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function memberRole(row: MemberRow): string {
+  return String(row.data.staffRole || row.data.role || "member");
+}
+
+function memberUid(row: MemberRow): string {
+  return String(row.data.userId ?? row.data.uid ?? "");
+}
+
+function memberCreatedMillis(row: MemberRow): number {
+  return asDate(row.data.createdAt)?.getTime() ?? 0;
+}
+
+function memberGroupKey(row: MemberRow): string {
+  const role = memberRole(row);
+  if (role !== "student") return `doc:${row.id}`;
+
+  const participantId = safeString(row.data.participantId);
+  if (participantId) return `participant:${participantId}`;
+
+  const studentCodeKey = safeString(row.data.studentCodeKey);
+  if (studentCodeKey) return `student-code:${studentCodeKey}`;
+
+  const studentCode = safeString(row.data.studentCode);
+  if (studentCode) return `student-code:${row.data.spaceId ?? ""}:${studentCode}`;
+
+  const uid = memberUid(row);
+  return uid ? `uid:${uid}` : `doc:${row.id}`;
+}
+
+function preferMemberRow(current: MemberRow, candidate: MemberRow): MemberRow {
+  const currentHasUid = !!memberUid(current);
+  const candidateHasUid = !!memberUid(candidate);
+  if (!currentHasUid && candidateHasUid) return candidate;
+  if (currentHasUid && !candidateHasUid) return current;
+
+  const currentHasCode = !!safeString(current.data.studentCode);
+  const candidateHasCode = !!safeString(candidate.data.studentCode);
+  if (!currentHasCode && candidateHasCode) return candidate;
+  if (currentHasCode && !candidateHasCode) return current;
+
+  return memberCreatedMillis(candidate) >= memberCreatedMillis(current) ? candidate : current;
+}
+
+function mergeMemberRows(rows: MemberRow[]): MemberRow[] {
+  const groups = new Map<string, MemberRow[]>();
+  for (const row of rows) {
+    const key = memberGroupKey(row);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+
+  return Array.from(groups.values()).map((group) => {
+    const primary = group.reduce(preferMemberRow);
+    const earliestCreated = group
+      .map((row) => asDate(row.data.createdAt))
+      .filter((date): date is Date => !!date)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+
+    return {
+      ...primary,
+      deviceCount: group.length,
+      data: {
+        ...primary.data,
+        createdAt: earliestCreated ?? primary.data.createdAt,
+      },
+    };
+  });
 }
 
 function readIsAdmin(profile: unknown): boolean {
@@ -187,18 +257,21 @@ function Inner() {
     });
   }, [spaceId, user?.uid]);
 
+  const displayRows = useMemo(() => mergeMemberRows(rows), [rows]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return rows;
+    if (!s) return displayRows;
 
-    return rows.filter((r) => {
+    return displayRows.filter((r) => {
       const name = String(r.data.displayName ?? "").toLowerCase();
       const role = String(r.data.role ?? "").toLowerCase();
       const uid = String(r.data.userId ?? r.data.uid ?? "").toLowerCase();
+      const participantId = String(r.data.participantId ?? "").toLowerCase();
       const studentCode = String(r.data.studentCode ?? "").toLowerCase();
-      return name.includes(s) || role.includes(s) || uid.includes(s) || studentCode.includes(s);
+      return name.includes(s) || role.includes(s) || uid.includes(s) || participantId.includes(s) || studentCode.includes(s);
     });
-  }, [rows, search]);
+  }, [displayRows, search]);
 
   async function copyStudentCode(studentCode: string) {
     if (!studentCode || studentCode === t("common.dash")) return;
@@ -511,6 +584,7 @@ function Inner() {
                 const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
                 const studentCode = String(r.data.studentCode ?? t("common.dash"));
                 const isStudent = role === "student";
+                const deviceCount = r.deviceCount ?? 1;
                 const canRemoveStaff = Boolean(
                   canManageStaff &&
                   uid &&
@@ -567,7 +641,14 @@ function Inner() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="py-2 pr-3 font-mono text-xs">{uid}</td>
+                    <td className="py-2 pr-3">
+                      <div className="font-mono text-xs">{uid}</div>
+                      {deviceCount > 1 ? (
+                        <div className="mt-1 text-xs font-semibold text-slate-500">
+                          {t("devices.count", { count: deviceCount })}
+                        </div>
+                      ) : null}
+                    </td>
                     <td className="py-2 pr-3">
                       {canRemoveStaff ? (
                         <button

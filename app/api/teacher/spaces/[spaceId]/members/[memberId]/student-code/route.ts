@@ -97,6 +97,29 @@ async function generateUniqueStudentCode(db: Firestore, spaceId: string): Promis
   return `${generateStudentCode(5)}${Math.floor(Math.random() * 10)}`;
 }
 
+async function getActiveStudentDocsForParticipant(
+  db: Firestore,
+  spaceId: string,
+  participantId: string
+) {
+  const snap = await db
+    .collection("spaceMembers")
+    .where("spaceId", "==", spaceId)
+    .get();
+
+  return snap.docs.filter((docSnap) => {
+    const data = (docSnap.data() ?? {}) as Record<string, unknown>;
+    const status = safeString(data.status).toLowerCase();
+    return (
+      safeString(data.participantId) === participantId &&
+      safeString(data.role) === "student" &&
+      data.archived !== true &&
+      data.active !== false &&
+      status !== "removed"
+    );
+  });
+}
+
 export async function POST(req: Request, ctx: RouteContext) {
   try {
     const token = getBearerToken(req);
@@ -136,18 +159,21 @@ export async function POST(req: Request, ctx: RouteContext) {
     const nextCode = !regenerate && existingCode ? existingCode : await generateUniqueStudentCode(db, spaceId);
     const memberUid = safeString(member.uid) || safeString(member.userId);
     const participantId = safeString(member.participantId) || memberUid || memberId;
+    const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
+    const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
 
-    await memberRef.set(
-      {
+    await db.runTransaction(async (tx) => {
+      for (const targetDoc of targetDocs) {
+        tx.set(targetDoc.ref, {
         participantId,
         studentCode: nextCode,
         studentCodeKey: studentCodeKey(spaceId, nextCode),
         studentCodeUpdatedAt: FieldValue.serverTimestamp(),
         studentCodeUpdatedByUid: uid,
         updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+        }, { merge: true });
+      }
+    });
 
     return json({
       ok: true,

@@ -65,6 +65,9 @@
       "anon": "Anon",
       "signedIn": "Signed-in"
     },
+    "devices": {
+      "count": "{count} devices"
+    },
     "empty": "No members found.",
     "tip": {
       "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",

@@ -65,6 +65,9 @@
       "anon": "Anonym",
       "signedIn": "Innlogget"
     },
+    "devices": {
+      "count": "{count} enheter"
+    },
     "empty": "Ingen medlemmer funnet.",
     "tip": {
       "prefix": "Tips: Hvis du ikke ser navn ennå, betyr det at join-flyten ikke har lagret",

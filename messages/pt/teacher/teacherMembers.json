@@ -65,6 +65,9 @@
       "anon": "Anônimo",
       "signedIn": "Conectado"
     },
+    "devices": {
+      "count": "{count} dispositivos"
+    },
     "empty": "Nenhum membro encontrado.",
     "tip": {
       "prefix": "Dica: Se você ainda não vê nomes, isso significa que o fluxo de entrada não salvou",
