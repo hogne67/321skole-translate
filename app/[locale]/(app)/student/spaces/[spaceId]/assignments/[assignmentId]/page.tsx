@@ -1091,7 +1091,17 @@ export default function StudentAssignmentPage() {
 
         if (!loadedSubmission) {
           try {
-            const found = await loadSubmission(autoId);
+            let found = await loadSubmission(autoId);
+
+            if (!found && currentParticipantId !== user.uid) {
+              const legacyOwnId = `${spaceId}_${assignmentId}_${user.uid}`;
+              found = await loadSubmission(legacyOwnId);
+              if (found) {
+                setSubmissionId(autoId);
+                setEditingSubmissionId(autoId);
+              }
+            }
+
             if (!found) setEditingSubmissionId(null);
           } catch (e: unknown) {
             if (!isPermissionDenied(e)) throw e;
@@ -1272,7 +1282,13 @@ export default function StudentAssignmentPage() {
         });
         basePayload.audioReading = deleteField();
 
-        await saveSubmissionDocuments(spaceId, assignmentId, subId, basePayload, !editingSubmissionId);
+        await saveSubmissionDocuments(
+          spaceId,
+          assignmentId,
+          subId,
+          basePayload,
+          !editingSubmissionId || editingSubmissionId !== subId
+        );
 
         setSubmissionId(subId);
         setEditingSubmissionId(subId);
@@ -1500,7 +1516,13 @@ export default function StudentAssignmentPage() {
           auth: { isAnon, uid, participantId: activeParticipantId },
         });
 
-        await saveSubmissionDocuments(spaceId, assignmentId, subId, basePayload, !editingSubmissionId);
+        await saveSubmissionDocuments(
+          spaceId,
+          assignmentId,
+          subId,
+          basePayload,
+          !editingSubmissionId || editingSubmissionId !== subId
+        );
 
         setSubmissionId(subId);
         if (persistedAudioReading) {

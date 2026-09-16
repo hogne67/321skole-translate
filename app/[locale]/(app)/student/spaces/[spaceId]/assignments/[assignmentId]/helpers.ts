@@ -173,9 +173,10 @@ export function stripUndefinedDeep<T>(value: T): T {
 export function buildSubmissionId(
     spaceId: string | undefined,
     assignmentId: string | undefined,
-    currentUid: string,
+    currentIdentityId: string,
     editingSubmissionId: string | null
 ) {
-    if (editingSubmissionId) return editingSubmissionId;
-    return `${spaceId}_${assignmentId}_${currentUid}`;
+    const canonicalId = `${spaceId}_${assignmentId}_${currentIdentityId}`;
+    if (editingSubmissionId === canonicalId) return editingSubmissionId;
+    return canonicalId;
 }
