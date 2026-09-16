@@ -296,6 +296,8 @@ export async function POST(
     const isOwner = ownerUid === uid;
     const isAdmin = isAdminProfile(profile);
     const hasMemberAccess = memberSnap.exists && isActiveMember(member);
+    const participantId = safeString(member.participantId) || uid;
+    const displayName = safeString(member.displayName) || null;
 
     if (!ownerUid) {
       return json({ error: "Space owner missing" }, 403);
@@ -365,7 +367,7 @@ export async function POST(
       return json({ error: "AI usage limit reached", quota: featureStatus }, 429);
     }
 
-    const submissionId = `${spaceId}_${activityId}_${uid}`;
+    const submissionId = `${spaceId}_${activityId}_${participantId}`;
     const submissionRef = db
       .collection("spaces")
       .doc(spaceId)
@@ -426,7 +428,10 @@ export async function POST(
       {
         activityId,
         spaceId,
-        studentUid: uid,
+        uid,
+        studentUid: participantId,
+        participantId,
+        displayName,
         answersByFieldId,
         sectionDrafts,
         aiUsage: FieldValue.arrayUnion(log),

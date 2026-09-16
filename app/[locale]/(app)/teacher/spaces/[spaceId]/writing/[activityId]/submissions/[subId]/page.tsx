@@ -413,6 +413,7 @@ export default function TeacherWritingSubmissionDetailPage() {
   const finalText = useMemo(() => buildFinalText(activity, submission), [activity, submission]);
   const status = normalizeStatus(submission?.status);
   const studentName =
+    textValue(submission?.displayName) ||
     member?.displayName?.trim() ||
     member?.name?.trim() ||
     member?.studentName?.trim() ||

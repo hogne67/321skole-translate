@@ -141,7 +141,10 @@ export type WritingPrintProfile = {
 export type WritingSubmission = {
   id: string;
   activityId: string;
+  uid?: string | null;
   studentUid: string;
+  participantId?: string | null;
+  displayName?: string | null;
   spaceId?: string;
   answersByFieldId: Record<string, string>;
   sectionDrafts: Record<string, string>;

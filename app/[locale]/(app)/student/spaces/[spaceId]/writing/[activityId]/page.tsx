@@ -16,6 +16,7 @@ import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage
 import { auth, db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
+import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import type {
   WritingActivity,
   WritingAiAction,
@@ -418,6 +419,8 @@ export default function StudentWritingActivityPage() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [uid, setUid] = useState<string | null>(null);
+  const [participantId, setParticipantId] = useState<string | null>(null);
+  const [studentDisplayName, setStudentDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -446,18 +449,65 @@ export default function StudentWritingActivityPage() {
   useEffect(() => {
     let alive = true;
 
-    resolveUser({ allowAnonymous: !isTeacherPreview })
-      .then((u) => {
-        if (alive) setUid(u.uid);
-      })
-      .catch((e: unknown) => {
+    async function run() {
+      try {
+        const u = await resolveUser({ allowAnonymous: !isTeacherPreview });
+        if (!alive) return;
+        setUid(u.uid);
+
+        const membership = await getStudentSpaceMembership(db, spaceId, u.uid).catch(() => null);
+        if (!alive) return;
+        setParticipantId(membership?.participantId || u.uid);
+        setStudentDisplayName(membership?.displayName || null);
+      } catch (e: unknown) {
         if (alive) setErr(e instanceof Error ? e.message : t("errors.auth"));
-      });
+      }
+    }
+
+    void run();
 
     return () => {
       alive = false;
     };
-  }, [isTeacherPreview, t]);
+  }, [isTeacherPreview, spaceId, t]);
+
+  function activeStudentIdentityId() {
+    return participantId || uid || "";
+  }
+
+  function writingSubmissionId(identityId = activeStudentIdentityId()) {
+    return `${spaceId}_${activityId}_${identityId}`;
+  }
+
+  function applySubmissionData(data: WritingSubmissionDoc) {
+    setAnswersByFieldId(data.answersByFieldId ?? {});
+    setSectionDrafts(data.sectionDrafts ?? {});
+    setAiUsage(Array.isArray(data.aiUsage) ? data.aiUsage : []);
+    setSectionFeedback(data.sectionFeedback ?? {});
+    setSectionImprovementRequests(data.sectionImprovementRequests ?? {});
+    setSubmissionStatus(safeString(data.status));
+    setTeacherFeedbackText(safeString(data.teacherFeedback?.text));
+    setTeacherFeedbackUpdatedAt(formatMaybeDate(data.teacherFeedback?.updatedAt));
+    setPrintProfile(normalizePrintProfile(data.printProfile));
+  }
+
+  function baseSubmissionPayload(status: string) {
+    const activeParticipantId = activeStudentIdentityId();
+    return {
+      activityId,
+      spaceId,
+      uid,
+      studentUid: activeParticipantId,
+      participantId: activeParticipantId,
+      displayName: studentDisplayName,
+      answersByFieldId,
+      sectionDrafts,
+      finalText,
+      status,
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    };
+  }
 
   useEffect(() => {
     setErr(null);
@@ -488,31 +538,35 @@ export default function StudentWritingActivityPage() {
   }, [activityId, spaceId, t]);
 
   useEffect(() => {
-    if (!uid) return;
+    const activeParticipantId = participantId || uid;
+    if (!uid || !activeParticipantId) return;
 
-    const submissionId = `${spaceId}_${activityId}_${uid}`;
-    const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
+    const canonicalId = `${spaceId}_${activityId}_${activeParticipantId}`;
+    const legacyOwnId = `${spaceId}_${activityId}_${uid}`;
+    const ids = Array.from(new Set([canonicalId, legacyOwnId]));
+    const snaps = new Map<string, WritingSubmissionDoc | null>();
 
-    return onSnapshot(
-      ref,
-      (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data() as WritingSubmissionDoc;
-        setAnswersByFieldId(data.answersByFieldId ?? {});
-        setSectionDrafts(data.sectionDrafts ?? {});
-        setAiUsage(Array.isArray(data.aiUsage) ? data.aiUsage : []);
-        setSectionFeedback(data.sectionFeedback ?? {});
-        setSectionImprovementRequests(data.sectionImprovementRequests ?? {});
-        setSubmissionStatus(safeString(data.status));
-        setTeacherFeedbackText(safeString(data.teacherFeedback?.text));
-        setTeacherFeedbackUpdatedAt(formatMaybeDate(data.teacherFeedback?.updatedAt));
-        setPrintProfile(normalizePrintProfile(data.printProfile));
-      },
-      () => {
-        // Draft loading should not block writing.
-      }
-    );
-  }, [activityId, spaceId, uid]);
+    const applyBest = () => {
+      const data = snaps.get(canonicalId) ?? snaps.get(legacyOwnId);
+      if (data) applySubmissionData(data);
+    };
+
+    const unsubs = ids.map((submissionId) => {
+      const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
+      return onSnapshot(
+        ref,
+        (snap) => {
+          snaps.set(submissionId, snap.exists() ? (snap.data() as WritingSubmissionDoc) : null);
+          applyBest();
+        },
+        () => {
+          // Draft loading should not block writing.
+        }
+      );
+    });
+
+    return () => unsubs.forEach((unsub) => unsub());
+  }, [activityId, participantId, spaceId, uid]);
 
   const rooms = activity?.rooms ?? EMPTY_ROOMS;
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0] ?? null;
@@ -576,20 +630,13 @@ export default function StudentWritingActivityPage() {
     setErr(null);
 
     try {
-      const submissionId = `${spaceId}_${activityId}_${uid}`;
+      const submissionId = writingSubmissionId();
       const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
       await setDoc(
         ref,
         {
-          activityId,
-          spaceId,
-          studentUid: uid,
-          answersByFieldId,
-          sectionDrafts,
-          finalText,
+          ...baseSubmissionPayload(status),
           status,
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
           submittedAt: status === "submitted" ? serverTimestamp() : null,
           planningSubmittedAt: status === "planning_submitted" ? serverTimestamp() : null,
         },
@@ -619,21 +666,14 @@ export default function StudentWritingActivityPage() {
     setErr(null);
 
     try {
-      const submissionId = `${spaceId}_${activityId}_${uid}`;
+      const submissionId = writingSubmissionId();
       const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
       await setDoc(
         ref,
         {
-          activityId,
-          spaceId,
-          studentUid: uid,
-          answersByFieldId,
-          sectionDrafts,
-          finalText,
+          ...baseSubmissionPayload(submissionStatus || "draft"),
           printProfile: nextPrintProfile,
           status: submissionStatus || "draft",
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
         },
         { merge: true }
       );
@@ -737,17 +777,12 @@ export default function StudentWritingActivityPage() {
     setErr(null);
 
     try {
-      const submissionId = `${spaceId}_${activityId}_${uid}`;
+      const submissionId = writingSubmissionId();
       const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
       await setDoc(
         ref,
         {
-          activityId,
-          spaceId,
-          studentUid: uid,
-          answersByFieldId,
-          sectionDrafts,
-          finalText,
+          ...baseSubmissionPayload(submissionStatus || "draft"),
           status: submissionStatus || "draft",
           sectionImprovementRequests: {
             ...(sectionImprovementRequests ?? {}),
@@ -757,8 +792,6 @@ export default function StudentWritingActivityPage() {
               updatedAt: serverTimestamp(),
             },
           },
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
         },
         { merge: true }
       );
@@ -788,7 +821,7 @@ export default function StudentWritingActivityPage() {
     setErr(null);
 
     try {
-      const submissionId = `${spaceId}_${activityId}_${uid}`;
+      const submissionId = writingSubmissionId();
       const ref = doc(db, "spaces", spaceId, "writingActivities", activityId, "submissions", submissionId);
       const requests = Object.fromEntries(
         sectionsToSend.map((section) => [
@@ -804,19 +837,12 @@ export default function StudentWritingActivityPage() {
       await setDoc(
         ref,
         {
-          activityId,
-          spaceId,
-          studentUid: uid,
-          answersByFieldId,
-          sectionDrafts,
-          finalText,
+          ...baseSubmissionPayload(submissionStatus || "draft"),
           status: submissionStatus || "draft",
           sectionImprovementRequests: {
             ...(sectionImprovementRequests ?? {}),
             ...requests,
           },
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
         },
         { merge: true }
       );

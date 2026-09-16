@@ -20,6 +20,9 @@ import type { WritingActivity } from "@/lib/writingStation";
 type WritingSubmissionRow = {
   id: string;
   data: {
+    displayName?: string | null;
+    participantId?: string | null;
+    uid?: string | null;
     studentUid?: string;
     status?: string;
     finalText?: string;
@@ -240,6 +243,7 @@ export default function TeacherWritingActivitySubmissionsPage() {
             {submissions.map((row) => {
               const status = normalizeStatus(row.data.status);
               const name =
+                row.data.displayName?.trim() ||
                 (row.data.studentUid ? memberNames[row.data.studentUid] : "") ||
                 (row.data.studentUid ? `${t("fallback.student")} (${row.data.studentUid.slice(0, 6)}…)` : t("fallback.unknownStudent"));
               const delivered = formatMaybeDate(row.data.submittedAt || row.data.updatedAt || row.data.createdAt, locale) || t("fallback.unknownDate");

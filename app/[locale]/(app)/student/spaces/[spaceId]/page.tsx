@@ -199,6 +199,15 @@ type SpaceSubRow = {
   studentArchivedAtMs: number;
 };
 
+type WritingSubRow = {
+  id: string;
+  activityId: string;
+  status: string;
+  updatedAtMs: number;
+  createdAtMs: number;
+  hasTeacherMessage: boolean;
+};
+
 function detectTeacherMessage(data: Record<string, unknown>) {
   const tf = isRecord(data.teacherFeedback) ? data.teacherFeedback : null;
   if (tf && isRecord(tf)) {
@@ -213,6 +222,53 @@ function detectTeacherMessage(data: Record<string, unknown>) {
 
   const updatedAtMs2 = toMillisAny(data.teacherFeedbackUpdatedAt);
   return updatedAtMs2 > 0;
+}
+
+function normalizeWritingStatus(value: unknown) {
+  const status = String(value ?? "").trim().toLowerCase();
+  if (status === "planning_submitted") return "planning_submitted";
+  if (status === "planning_reviewed") return "planning_reviewed";
+  if (status === "submitted") return "submitted";
+  if (status === "reviewed" || status === "approved") return "reviewed";
+  if (status === "needs_work") return "needs_work";
+  if (status === "draft") return "draft";
+  return status || "draft";
+}
+
+function writingStatusLabel(locale: string, status: string) {
+  const nb = locale === "no" || locale === "nb";
+  const pt = locale === "pt";
+  if (status === "planning_submitted") return nb ? "Plan sendt" : pt ? "Plano enviado" : "Plan sent";
+  if (status === "planning_reviewed") return nb ? "Plan vurdert" : pt ? "Plano revisto" : "Plan reviewed";
+  if (status === "submitted") return nb ? "Sendt" : pt ? "Enviado" : "Submitted";
+  if (status === "reviewed") return nb ? "Vurdert" : pt ? "Revisto" : "Reviewed";
+  if (status === "needs_work") return nb ? "Må forbedres" : pt ? "Precisa melhorar" : "Needs work";
+  if (status === "draft") return nb ? "Kladd" : pt ? "Rascunho" : "Draft";
+  return status;
+}
+
+function writingStatusHint(locale: string, status: string) {
+  const nb = locale === "no" || locale === "nb";
+  const pt = locale === "pt";
+  if (status === "draft") return nb ? "Kladd lagret" : pt ? "Rascunho salvo" : "Draft saved";
+  if (status === "planning_submitted") return nb ? "Plan sendt til lærer" : pt ? "Plano enviado ao professor" : "Plan sent to teacher";
+  if (status === "submitted") return nb ? "Tekst sendt til lærer" : pt ? "Texto enviado ao professor" : "Text sent to teacher";
+  return "";
+}
+
+function writingSubRowFromData(
+  id: string,
+  activityId: string,
+  data: Record<string, unknown>
+): WritingSubRow {
+  return {
+    id,
+    activityId,
+    status: normalizeWritingStatus(data.status),
+    updatedAtMs: toMillisAny(data.updatedAt) || toMillisAny(data.createdAt),
+    createdAtMs: toMillisAny(data.createdAt),
+    hasTeacherMessage: detectTeacherMessage(data),
+  };
 }
 
 function spaceSubRowFromData(
@@ -263,6 +319,7 @@ export default function StudentSpaceDetailPage() {
   const [subsErr, setSubsErr] = useState<string | null>(null);
   const [subs, setSubs] = useState<SpaceSubRow[]>([]);
   const [nestedSubs, setNestedSubs] = useState<SpaceSubRow[]>([]);
+  const [writingSubs, setWritingSubs] = useState<WritingSubRow[]>([]);
   const [currentParticipantId, setCurrentParticipantId] = useState<string | null>(null);
 
   const [archivingId, setArchivingId] = useState<string | null>(null);
@@ -596,6 +653,68 @@ export default function StudentSpaceDetailPage() {
     };
   }, [spaceId, uid, currentParticipantId, assignments]);
 
+  useEffect(() => {
+    setWritingSubs([]);
+
+    if (!uid || !currentParticipantId || writingActivities.length === 0) {
+      return () => { };
+    }
+
+    let cancelled = false;
+    const buckets = new Map<string, WritingSubRow>();
+    const unsubs: Array<() => void> = [];
+
+    try {
+      const dbx = requireDb(db);
+      const identityIds = Array.from(new Set([currentParticipantId, uid].filter(Boolean)));
+
+      const applyBuckets = () => {
+        if (cancelled) return;
+        const out = Array.from(buckets.values()).sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+        setWritingSubs(out);
+      };
+
+      for (const activity of writingActivities) {
+        for (const identityId of identityIds) {
+          const subId = `${spaceId}_${activity.id}_${identityId}`;
+          const ref = doc(dbx, "spaces", spaceId, "writingActivities", activity.id, "submissions", subId);
+
+          unsubs.push(
+            onSnapshot(
+              ref,
+              (snap) => {
+                if (!snap.exists()) {
+                  buckets.delete(subId);
+                  applyBuckets();
+                  return;
+                }
+
+                const row = writingSubRowFromData(
+                  snap.id,
+                  activity.id,
+                  ((snap.data() as unknown) as Record<string, unknown>) ?? {}
+                );
+                buckets.set(subId, row);
+                applyBuckets();
+              },
+              () => {
+                buckets.delete(subId);
+                applyBuckets();
+              }
+            )
+          );
+        }
+      }
+    } catch {
+      setWritingSubs([]);
+    }
+
+    return () => {
+      cancelled = true;
+      unsubs.forEach((fn) => fn());
+    };
+  }, [spaceId, uid, currentParticipantId, writingActivities]);
+
   const visibleAssignments = useMemo(() => {
     const list = showArchived ? assignments : assignments.filter((x) => !isArchived(x.data));
 
@@ -674,6 +793,14 @@ export default function StudentSpaceDetailPage() {
     }
     return m;
   }, [subs, nestedSubs]);
+
+  const latestWritingByActivity = useMemo(() => {
+    const m = new Map<string, WritingSubRow>();
+    for (const r of [...writingSubs].sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0))) {
+      if (!m.has(r.activityId)) m.set(r.activityId, r);
+    }
+    return m;
+  }, [writingSubs]);
 
   const grouped = useMemo(() => {
     const out: Array<{ assignmentId: string; latest: SpaceSubRow }> = [];
@@ -865,6 +992,8 @@ export default function StudentSpaceDetailPage() {
                 const archived = String(it.data.status ?? "").toLowerCase() === "archived";
                 const assignedAt = fmtDate(toMillisAny(it.data.assignedAt || it.data.createdAt));
                 const title = safeString(it.data.title) ?? t("writingStation.fallbackTitle");
+                const mineWriting = uid ? latestWritingByActivity.get(it.id) : null;
+                const mineWritingDate = mineWriting ? fmtDate(mineWriting.updatedAtMs || mineWriting.createdAtMs) : null;
 
                 return (
                   <div
@@ -902,6 +1031,23 @@ export default function StudentSpaceDetailPage() {
                       <div className="mt-3 text-xs text-emerald-800">
                         {it.data.aiPolicy?.enabled === false ? t("writingStation.ai.off") : t("writingStation.ai.on")}
                       </div>
+
+                      {mineWriting ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-slate-500">{t("all.yourStatus")}</span>
+                          <StatusPill
+                            status={normalizeStatus(mineWriting.status)}
+                            label={writingStatusLabel(locale, mineWriting.status)}
+                            hint={writingStatusHint(locale, mineWriting.status)}
+                          />
+                          {mineWriting.hasTeacherMessage ? (
+                            <span className="text-xs font-medium text-slate-700">{t("all.message")}</span>
+                          ) : null}
+                          {mineWritingDate ? <span className="text-xs text-slate-500">{mineWritingDate}</span> : null}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-xs text-slate-500">{t("all.notSubmitted")}</div>
+                      )}
                     </div>
                   </div>
                 );

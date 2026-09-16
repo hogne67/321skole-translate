@@ -837,14 +837,50 @@ allow update: if signedIn()
       function isWritingSubOwner() {
         return signedIn()
           && resource != null
-          && ("studentUid" in resource.data)
-          && (resource.data.studentUid is string)
-          && resource.data.studentUid == myUid();
+          && (
+            (
+              ("studentUid" in resource.data)
+              && (resource.data.studentUid is string)
+              && (resource.data.studentUid == myUid() || resource.data.studentUid == myWritingParticipantId())
+            )
+            || (
+              ("participantId" in resource.data)
+              && (resource.data.participantId is string)
+              && resource.data.participantId == myWritingParticipantId()
+            )
+          );
+      }
+
+      function myWritingParticipantId() {
+        let member = mySpaceMemberData(spaceId);
+        return ("participantId" in member) && (member.participantId is string) && member.participantId.size() > 0
+          ? member.participantId
+          : myUid();
       }
 
       function isOwnWritingSubmissionId() {
         return signedIn()
-          && subId == (spaceId + "_" + activityId + "_" + myUid());
+          && (
+            subId == (spaceId + "_" + activityId + "_" + myUid())
+            || subId == (spaceId + "_" + activityId + "_" + myWritingParticipantId())
+          );
+      }
+
+      function validStudentWritingIdentity() {
+        return (
+          (request.resource.data.studentUid is string)
+          && (
+            request.resource.data.studentUid == myUid()
+            || request.resource.data.studentUid == myWritingParticipantId()
+          )
+          && (
+            !("participantId" in request.resource.data)
+            || (
+              request.resource.data.participantId is string
+              && request.resource.data.participantId == myWritingParticipantId()
+            )
+          )
+        );
       }
 
       function validStudentWritingStatus() {
@@ -885,16 +921,14 @@ allow update: if signedIn()
       allow create: if signedIn()
         && isSpaceMember(spaceId)
         && isOwnWritingSubmissionId()
-        && (request.resource.data.studentUid is string)
-        && request.resource.data.studentUid == myUid()
+        && validStudentWritingIdentity()
         && validStudentWritingStatus()
         && !("teacherFeedback" in request.resource.data);
       allow update: if (
         signedIn()
         && isSpaceMember(spaceId)
         && isOwnWritingSubmissionId()
-        && (request.resource.data.studentUid is string)
-        && request.resource.data.studentUid == myUid()
+        && validStudentWritingIdentity()
         && validStudentWritingStatus()
         && writingTeacherFeedbackUnchanged()
       ) || (
