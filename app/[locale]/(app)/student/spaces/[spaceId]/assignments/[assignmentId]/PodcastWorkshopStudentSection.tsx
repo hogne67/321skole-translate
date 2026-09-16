@@ -11,7 +11,10 @@ import type {
   PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
-import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
+import {
+  resolveStudentAudioForPlayback,
+  type StudentAudioAsset,
+} from "@/lib/audio/studentAudio";
 import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/podcastSoundLibrary";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
@@ -100,8 +103,37 @@ function formatDuration(totalSeconds: number) {
 function getVoiceSegments(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
   return getPodcastWorkshopSegments(config, value).filter((segment) => {
     const voice = value.productionSegments[segment.id]?.voice;
-    return !!voice?.audioDataUrl;
+    return hasVoiceAudio(voice);
   });
+}
+
+function hasVoiceAudio(voice: StudentAudioAsset | null | undefined) {
+  return !!(voice?.audioDataUrl || voice?.storagePath);
+}
+
+function useResolvedAudioAsset(asset: StudentAudioAsset | null) {
+  const [resolved, setResolved] = useState<StudentAudioAsset | null>(asset);
+
+  useEffect(() => {
+    let alive = true;
+    setResolved(asset);
+
+    if (asset?.storagePath && !asset.audioDataUrl) {
+      void resolveStudentAudioForPlayback(asset)
+        .then((next) => {
+          if (alive) setResolved(next);
+        })
+        .catch(() => {
+          if (alive) setResolved(asset);
+        });
+    }
+
+    return () => {
+      alive = false;
+    };
+  }, [asset]);
+
+  return resolved;
 }
 
 function getVoiceDuration(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
@@ -118,9 +150,9 @@ function getPodcastDuration(config: PodcastWorkshopConfig, value: PodcastWorksho
   const transitionSeconds = segments.reduce((sum, segment, index) => {
     const voice = value.productionSegments[segment.id]?.voice;
     const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-      return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+      return hasVoiceAudio(value.productionSegments[nextSegment.id]?.voice);
     });
-    if (!voice?.audioDataUrl || !hasNextVoice) return sum;
+    if (!hasVoiceAudio(voice) || !hasNextVoice) return sum;
     return sum + getSoundDuration(getTransitionSoundId(value, segment.id));
   }, 0);
   return voiceSeconds
@@ -752,6 +784,7 @@ function PodcastSegmentRecorder({
   t: TFn;
   onChange: (asset: StudentAudioAsset | null) => void;
 }) {
+  const resolvedExisting = useResolvedAudioAsset(existing);
   const [recorderStatus, setRecorderStatus] = useState<"idle" | "recording" | "paused">("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(existing?.durationSeconds ?? 0);
   const [error, setError] = useState<string | null>(null);
@@ -768,6 +801,10 @@ function PodcastSegmentRecorder({
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
+
+  useEffect(() => {
+    if (existing?.durationSeconds) setElapsedSeconds(existing.durationSeconds);
+  }, [existing?.durationSeconds]);
 
   const recording = recorderStatus === "recording";
   const paused = recorderStatus === "paused";
@@ -891,7 +928,7 @@ function PodcastSegmentRecorder({
     onChange(null);
   }
 
-  const playableUrl = existing?.audioDataUrl ?? "";
+  const playableUrl = resolvedExisting?.audioDataUrl ?? "";
   const canStart = !recording && !paused && !disabled;
   const canPause = recording && !disabled;
   const canResume = paused && !disabled;
@@ -902,7 +939,7 @@ function PodcastSegmentRecorder({
     <div className="podcastSegmentRecorder">
       <div className="podcastSegmentRecorderTop">
         <strong>{t("podcastWorkshop.voiceRecording")}</strong>
-        <span>{formatDuration(recording || paused ? elapsedSeconds : existing?.durationSeconds ?? elapsedSeconds)}</span>
+        <span>{formatDuration(recording || paused ? elapsedSeconds : resolvedExisting?.durationSeconds ?? existing?.durationSeconds ?? elapsedSeconds)}</span>
       </div>
       <div className="podcastSegmentRecorderActions">
         <button
@@ -956,6 +993,10 @@ function PodcastSegmentRecorder({
       ) : null}
       {playableUrl ? (
         <audio controls src={playableUrl} style={{ width: "100%", marginTop: 8 }} />
+      ) : existing?.storagePath ? (
+        <div className="podcastSegmentMissing" style={{ marginTop: 8 }}>
+          {t("podcastWorkshop.audioSaved")}
+        </div>
       ) : null}
       {error ? <div className="podcastSegmentError">{error}</div> : null}
 
@@ -1556,6 +1597,8 @@ function PodcastSegmentPlayback({
   asset: StudentAudioAsset | null;
   t: TFn;
 }) {
+  const resolvedAsset = useResolvedAudioAsset(asset);
+
   if (!asset) {
     return (
       <div className="podcastSegmentMissing">
@@ -1568,10 +1611,10 @@ function PodcastSegmentPlayback({
     <div className="podcastSegmentPlayback">
       <div className="podcastSegmentPlaybackTop">
         <strong>{t("podcastWorkshop.voiceRecording")}</strong>
-        <span>{formatDuration(asset.durationSeconds)}</span>
+        <span>{formatDuration(resolvedAsset?.durationSeconds ?? asset.durationSeconds)}</span>
       </div>
-      {asset.audioDataUrl ? (
-        <audio controls src={asset.audioDataUrl} style={{ width: "100%", marginTop: 8 }} />
+      {resolvedAsset?.audioDataUrl ? (
+        <audio controls src={resolvedAsset.audioDataUrl} style={{ width: "100%", marginTop: 8 }} />
       ) : (
         <div className="podcastSegmentMissing" style={{ marginTop: 8 }}>
           {t("podcastWorkshop.audioSaved")}
@@ -1670,14 +1713,15 @@ function PodcastFullPlayback({
       if (cancelledRef.current) break;
       const segment = segments[index];
       const voice = value.productionSegments[segment.id]?.voice ?? null;
-      const url = voice?.audioDataUrl;
+      const playableVoice = await resolveStudentAudioForPlayback(voice).catch(() => voice);
+      const url = playableVoice?.audioDataUrl;
       if (url) {
         await playAudioUrl(url, elapsed);
-        elapsed += voice.durationSeconds;
+        elapsed += playableVoice.durationSeconds;
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
       }
       const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-        return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+        return hasVoiceAudio(value.productionSegments[nextSegment.id]?.voice);
       });
       if (!cancelledRef.current && hasNextVoice) {
         const transitionSoundId = getTransitionSoundId(value, segment.id);
