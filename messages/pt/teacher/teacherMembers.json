@@ -20,6 +20,23 @@
       "backToSpace": "Voltar para o space",
       "allSpaces": "Todos os spaces"
     },
+    "studentCode": {
+      "actions": {
+        "copy": "Copiar",
+        "copyLink": "Copiar link",
+        "create": "Criar código",
+        "regenerate": "Novo código",
+        "working": "Aguarde…"
+      },
+      "messages": {
+        "copied": "Código do aluno {code} copiado.",
+        "linkCopied": "Link do aluno copiado.",
+        "linkUnavailable": "Não foi possível criar o link porque falta o código do space.",
+        "copyFailed": "Não foi possível copiar o código.",
+        "updated": "Código do aluno {code} pronto.",
+        "updateFailed": "Não foi possível atualizar o código."
+      }
+    },
     "search": {
       "placeholder": "Buscar nome / função / uid…"
     },

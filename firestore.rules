@@ -920,6 +920,21 @@ allow update: if signedIn()
       && (resource.data.uid == myUid());
   }
 
+  function myParticipantIdHere() {
+    let member = mySpaceMemberData(spaceId);
+    return ("participantId" in member) && (member.participantId is string) && member.participantId.size() > 0
+      ? member.participantId
+      : myUid();
+  }
+
+  function isParticipantSubOwner() {
+    return signedIn()
+      && resource != null
+      && ("participantId" in resource.data)
+      && (resource.data.participantId is string)
+      && (resource.data.participantId == myParticipantIdHere());
+  }
+
   function isOwnSubmissionId() {
     return signedIn()
       && subId == (spaceId + "_" + assignmentId + "_" + myUid());
@@ -939,6 +954,7 @@ allow update: if signedIn()
   allow read: if
     isAdmin()
     || isSubOwner()
+    || isParticipantSubOwner()
     || isOwnSubmissionId()
     || canTeacherReadHere()
     || canParentReadOwnHere();
@@ -953,6 +969,7 @@ allow update: if signedIn()
     || isSpaceOwner(spaceId)
     || canTeachInSpace(spaceId)
     || isSubOwner()
+    || isParticipantSubOwner()
     || canParentReadOwnHere();
 
   allow delete: if false;

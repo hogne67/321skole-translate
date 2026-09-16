@@ -49,11 +49,12 @@ export default function JoinClient() {
   const router = useRouter();
 
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
+  const initialStudentCode = useMemo(() => (sp.get("studentCode") ?? "").trim().toUpperCase(), [sp]);
   const hasPrefilledCode = initialCode.length > 0;
 
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
-  const [studentCode, setStudentCode] = useState("");
+  const [studentCode, setStudentCode] = useState(initialStudentCode);
   const [busy, setBusy] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(false);
   const [err, setErr] = useState<string | null>(null);

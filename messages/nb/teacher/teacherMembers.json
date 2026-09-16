@@ -20,6 +20,23 @@
       "backToSpace": "Tilbake til space",
       "allSpaces": "Alle spaces"
     },
+    "studentCode": {
+      "actions": {
+        "copy": "Kopier",
+        "copyLink": "Kopier lenke",
+        "create": "Lag kode",
+        "regenerate": "Ny kode",
+        "working": "Jobber…"
+      },
+      "messages": {
+        "copied": "Elevkode {code} er kopiert.",
+        "linkCopied": "Elevlenke er kopiert.",
+        "linkUnavailable": "Kunne ikke lage elevlenke fordi spacekode mangler.",
+        "copyFailed": "Kunne ikke kopiere elevkoden.",
+        "updated": "Elevkode {code} er klar.",
+        "updateFailed": "Kunne ikke oppdatere elevkode."
+      }
+    },
     "search": {
       "placeholder": "Søk navn / rolle / uid…"
     },

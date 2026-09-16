@@ -99,10 +99,17 @@ service firebase.storage {
       return signedIn()
         && (
           myUid() == studentUid
+          || myParticipantId(spaceId) == studentUid
           || isAdmin()
           || isSpaceOwner(spaceId)
           || isSpaceCoTeacher(spaceId)
         );
+    }
+
+    function myParticipantId(spaceId) {
+      return ("participantId" in spaceMemberData(spaceId)) && (spaceMemberData(spaceId).participantId is string) && spaceMemberData(spaceId).participantId.size() > 0
+        ? spaceMemberData(spaceId).participantId
+        : myUid();
     }
 
     function assignmentExists(spaceId, assignmentId) {
@@ -122,7 +129,7 @@ service firebase.storage {
       allow read: if canReadStudentAudio(spaceId, studentUid);
 
       allow create, update: if signedIn()
-        && myUid() == studentUid
+        && (myUid() == studentUid || myParticipantId(spaceId) == studentUid)
         && isSpaceMember(spaceId)
         && assignmentExists(spaceId, assignmentId)
         && request.resource.size < 25 * 1024 * 1024

@@ -32,6 +32,20 @@
       "approved": "Approved",
       "draft": "Draft"
     },
+    "linkStudent": {
+      "placeholder": "Student code, e.g. JBT69",
+      "linkedCode": "Linked to student code {code}",
+      "actions": {
+        "link": "Link to student",
+        "working": "Linking…"
+      },
+      "messages": {
+        "linked": "Submission linked to {name}."
+      },
+      "errors": {
+        "failed": "Could not link submission."
+      }
+    },
     "fallback": {
       "task": "Task",
       "space": "Space",

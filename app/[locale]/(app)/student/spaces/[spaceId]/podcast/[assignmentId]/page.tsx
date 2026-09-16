@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { ensureStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import { authedPost } from "@/lib/authedPost";
 import {
   resolveStudentAudioForPlayback,
   uploadStudentAudioAsset,
@@ -40,6 +41,7 @@ type AssignmentDoc = {
 type SubmissionDoc = {
   status?: string;
   uid?: string;
+  participantId?: string;
   podcastWorkshop?: unknown;
   podcastWorkshopFeedback?: unknown;
 };
@@ -143,6 +145,7 @@ export default function StudentPodcastWorkshopPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [isAnon, setIsAnon] = useState(true);
+  const [participantId, setParticipantId] = useState<string | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
   const [config, setConfig] = useState<PodcastWorkshopConfig | null>(null);
   const [submission, setSubmission] = useState<PodcastWorkshopSubmission>(() => createPodcastWorkshopSubmission(null));
@@ -155,8 +158,8 @@ export default function StudentPodcastWorkshopPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const submissionId = useMemo(
-    () => (uid ? buildSubmissionId(spaceId, assignmentId, uid) : ""),
-    [assignmentId, spaceId, uid]
+    () => (uid ? buildSubmissionId(spaceId, assignmentId, participantId || uid) : ""),
+    [assignmentId, participantId, spaceId, uid]
   );
 
   useEffect(() => {
@@ -172,14 +175,15 @@ export default function StudentPodcastWorkshopPage() {
         setUid(user.uid);
         setIsAnon(user.isAnonymous);
 
-        const isMember = await ensureStudentSpaceMembership(db, spaceId, user.uid);
-        if (!isMember) {
+        const membership = await getStudentSpaceMembership(db, spaceId, user.uid);
+        if (!membership.isMember) {
           if (!isTeacherPreview) throw new Error(t("errors.notMember"));
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
           const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
           if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
         }
+        setParticipantId(membership.participantId || user.uid);
 
         const assignmentSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
         if (!assignmentSnap.exists()) throw new Error(t("errors.assignmentNotFoundInSpace"));
@@ -251,6 +255,7 @@ export default function StudentPodcastWorkshopPage() {
     setErr(null);
 
     try {
+      const activeParticipantId = participantId || uid;
       const persistedSubmission = await uploadPodcastAudio({
         spaceId,
         assignmentId,
@@ -268,22 +273,24 @@ export default function StudentPodcastWorkshopPage() {
         level: assignment?.level ?? null,
         language: assignment?.language ?? null,
         uid,
+        participantId: activeParticipantId,
         isAnon,
         status: nextStatus,
         lessonType: "podcast_workshop",
         contentType: "podcast_workshop",
         podcastWorkshop: persistedSubmission,
         submittedAt: nextStatus === "submitted" ? Date.now() : null,
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
+        auth: { isAnon, uid, participantId: activeParticipantId },
       };
 
-      const batch = writeBatch(db);
-      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", submissionId);
-      const indexRef = doc(db, "spaceSubmissions", submissionId);
-      batch.set(nestedRef, { ...payload, createdAt: serverTimestamp() }, { merge: true });
-      batch.set(indexRef, { ...payload, createdAt: serverTimestamp() }, { merge: true });
-      await batch.commit();
+      await authedPost<{ ok: boolean; submissionId: string }>(
+        `/api/student/spaces/${encodeURIComponent(spaceId)}/lessons/${encodeURIComponent(assignmentId)}/submission`,
+        {
+          submissionId,
+          payload,
+          isFirstWrite: true,
+        }
+      );
       setStatus(nextStatus);
       setSubmission(
         await resolvePodcastAudioForPlayback({

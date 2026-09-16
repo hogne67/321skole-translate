@@ -20,6 +20,23 @@
       "backToSpace": "Back to space",
       "allSpaces": "All spaces"
     },
+    "studentCode": {
+      "actions": {
+        "copy": "Copy",
+        "copyLink": "Copy link",
+        "create": "Create code",
+        "regenerate": "New code",
+        "working": "Working…"
+      },
+      "messages": {
+        "copied": "Student code {code} copied.",
+        "linkCopied": "Student link copied.",
+        "linkUnavailable": "Could not create student link because the space code is missing.",
+        "copyFailed": "Could not copy student code.",
+        "updated": "Student code {code} is ready.",
+        "updateFailed": "Could not update student code."
+      }
+    },
     "search": {
       "placeholder": "Search name / role / uid…"
     },

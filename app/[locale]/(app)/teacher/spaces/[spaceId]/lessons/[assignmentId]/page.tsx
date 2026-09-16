@@ -65,6 +65,7 @@ type SpaceAssignmentDoc = {
 
 type SubmissionDoc = {
   uid?: string;
+  participantId?: string;
   displayName?: string;
   createdAt?: unknown;
   status?: string;
@@ -74,6 +75,7 @@ type SubmissionDoc = {
   studentName?: unknown;
   name?: unknown;
   userName?: unknown;
+  linkedStudentCode?: unknown;
 };
 
 type SpaceDocLite = {
@@ -140,6 +142,18 @@ function getSubmissionUid(s: SubmissionDoc): string | null {
     const uid = (a as { uid?: unknown }).uid;
     if (typeof uid === "string" && uid.trim()) return uid.trim();
   }
+  return null;
+}
+
+function getSubmissionParticipantId(s: SubmissionDoc): string | null {
+  if (typeof s.participantId === "string" && s.participantId.trim()) return s.participantId.trim();
+
+  const a = s.auth;
+  if (a && typeof a === "object") {
+    const participantId = (a as { participantId?: unknown }).participantId;
+    if (typeof participantId === "string" && participantId.trim()) return participantId.trim();
+  }
+
   return null;
 }
 
@@ -289,6 +303,10 @@ export default function TeacherSpaceAssignedTaskPage() {
 
   const [submissions, setSubmissions] = useState<Array<{ id: string; data: SubmissionDoc }>>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
+  const [linkingSubId, setLinkingSubId] = useState<string | null>(null);
+  const [linkMessage, setLinkMessage] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [loadingLesson, setLoadingLesson] = useState(true);
   const [loadingSubs, setLoadingSubs] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -382,7 +400,7 @@ export default function TeacherSpaceAssignedTaskPage() {
     const uids = Array.from(
       new Set(
         submissions
-          .map((s) => getSubmissionUid(s.data))
+          .map((s) => getSubmissionParticipantId(s.data) || getSubmissionUid(s.data))
           .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
       )
     );
@@ -433,6 +451,46 @@ export default function TeacherSpaceAssignedTaskPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, submissions]);
+
+  async function linkSubmissionToStudent(submissionId: string) {
+    const studentCode = (linkInputs[submissionId] ?? "").trim().toUpperCase();
+    if (!spaceId || !assignmentId || !authUser || !studentCode) return;
+
+    setLinkingSubId(submissionId);
+    setLinkMessage(null);
+    setLinkError(null);
+
+    try {
+      const token = await authUser.getIdToken();
+      const response = await fetch(
+        `/api/teacher/spaces/${encodeURIComponent(spaceId)}/lessons/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}/link-student`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ studentCode }),
+        }
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        displayName?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || t("linkStudent.errors.failed"));
+      }
+
+      setLinkInputs((prev) => ({ ...prev, [submissionId]: "" }));
+      setLinkMessage(t("linkStudent.messages.linked", { name: data.displayName || studentCode }));
+    } catch (error: unknown) {
+      setLinkError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLinkingSubId(null);
+    }
+  }
 
   const title = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const desc = lesson?.description ?? assignment?.description ?? "";
@@ -543,6 +601,18 @@ export default function TeacherSpaceAssignedTaskPage() {
             </div>
           </div>
 
+          {linkMessage ? (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+              {linkMessage}
+            </div>
+          ) : null}
+
+          {linkError ? (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+              {linkError}
+            </div>
+          ) : null}
+
           {loadingSubs ? (
             <p className="mt-4 text-sm text-slate-600">{t("submissions.loading")}</p>
           ) : submissions.length === 0 ? (
@@ -553,7 +623,10 @@ export default function TeacherSpaceAssignedTaskPage() {
             <div className="mt-4 grid min-w-0 gap-3">
               {submissions.map((s) => {
                 const uid = getSubmissionUid(s.data);
-                const memberName = uid ? memberNames[uid] : null;
+                const participantId = getSubmissionParticipantId(s.data);
+                const memberName =
+                  (participantId ? memberNames[participantId] : null) ||
+                  (uid ? memberNames[uid] : null);
 
                 const name =
                   memberName ||
@@ -566,6 +639,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                 const createdAt = formatMaybeDate(s.data.createdAt, locale) || dash;
                 const badge = statusBadge(s.data.status, (k) => t(k), dash);
                 const hasAudio = !!readStudentAudioAsset(s.data.audioReading, "audio_reading");
+                const linkedCode = typeof s.data.linkedStudentCode === "string" ? s.data.linkedStudentCode.trim() : "";
 
                 const isPodcastWorkshop =
                   isPodcastWorkshopType(assignment?.lessonType) ||
@@ -589,6 +663,11 @@ export default function TeacherSpaceAssignedTaskPage() {
                       <div className="min-w-0 flex-1">
                         <div className="break-words font-semibold text-slate-900">{name}</div>
                         <div className="mt-1 break-words text-sm text-slate-600">{createdAt}</div>
+                        {linkedCode ? (
+                          <div className="mt-1 text-xs font-semibold text-emerald-700">
+                            {t("linkStudent.linkedCode", { code: linkedCode })}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto] sm:items-center">
@@ -611,6 +690,29 @@ export default function TeacherSpaceAssignedTaskPage() {
                           {t("actions.openSubmission")}
                         </button>
                       </div>
+                    </div>
+                    <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                      <input
+                        value={linkInputs[s.id] ?? ""}
+                        onChange={(event) =>
+                          setLinkInputs((prev) => ({
+                            ...prev,
+                            [s.id]: event.target.value.toUpperCase(),
+                          }))
+                        }
+                        placeholder={t("linkStudent.placeholder")}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void linkSubmissionToStudent(s.id)}
+                        disabled={linkingSubId === s.id || !(linkInputs[s.id] ?? "").trim()}
+                        className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+                      >
+                        {linkingSubId === s.id ? t("linkStudent.actions.working") : t("linkStudent.actions.link")}
+                      </button>
                     </div>
                   </div>
                 );

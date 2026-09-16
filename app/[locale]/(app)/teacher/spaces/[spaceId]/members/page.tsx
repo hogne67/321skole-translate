@@ -93,6 +93,7 @@ function Inner() {
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
+  const [spaceCode, setSpaceCode] = useState<string | null>(null);
   const [canManageStaff, setCanManageStaff] = useState(false);
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [search, setSearch] = useState("");
@@ -102,6 +103,7 @@ function Inner() {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
+  const [studentCodeBusyId, setStudentCodeBusyId] = useState<string | null>(null);
 
   const fmt = useMemo(() => {
     return (d: Date | null) => {
@@ -122,6 +124,28 @@ function Inner() {
     setSpaceTitle((prev) => (prev === "" || prev === t("fallbacks.spaceTitle") ? t("fallbacks.spaceTitle") : prev));
   }, [t]);
 
+  function readSpaceCode(data: unknown): string | null {
+    if (!isRecord(data)) return null;
+    const code = safeString(data.code) || safeString(data.joinCode);
+    if (code) return code;
+
+    const join = data.join;
+    if (!isRecord(join)) return null;
+    return safeString(join.code);
+  }
+
+  function buildStudentJoinLink(studentCode: string): string | null {
+    if (!spaceCode || !studentCode || studentCode === t("common.dash")) return null;
+    if (typeof window === "undefined") return null;
+
+    const params = new URLSearchParams({
+      code: spaceCode,
+      studentCode,
+    });
+
+    return `${window.location.origin}${withLocale(locale, `/join?${params.toString()}`)}`;
+  }
+
   useEffect(() => {
     if (!spaceId) return;
 
@@ -131,6 +155,7 @@ function Inner() {
         const title = data && isRecord(data) ? safeString(data["title"]) : null;
         const ownerId = data && isRecord(data) ? safeString(data["ownerId"]) || safeString(data["ownerUid"]) : null;
         if (title) setSpaceTitle(title);
+        setSpaceCode(readSpaceCode(data));
         setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
       })
       .catch(() => {
@@ -168,9 +193,76 @@ function Inner() {
       const name = String(r.data.displayName ?? "").toLowerCase();
       const role = String(r.data.role ?? "").toLowerCase();
       const uid = String(r.data.userId ?? r.data.uid ?? "").toLowerCase();
-      return name.includes(s) || role.includes(s) || uid.includes(s);
+      const studentCode = String(r.data.studentCode ?? "").toLowerCase();
+      return name.includes(s) || role.includes(s) || uid.includes(s) || studentCode.includes(s);
     });
   }, [rows, search]);
+
+  async function copyStudentCode(studentCode: string) {
+    if (!studentCode || studentCode === t("common.dash")) return;
+
+    try {
+      await navigator.clipboard.writeText(studentCode);
+      setInviteMessage(t("studentCode.messages.copied", { code: studentCode }));
+      setInviteError(null);
+    } catch {
+      setInviteError(t("studentCode.messages.copyFailed"));
+    }
+  }
+
+  async function copyStudentLink(studentCode: string) {
+    const link = buildStudentJoinLink(studentCode);
+    if (!link) {
+      setInviteError(t("studentCode.messages.linkUnavailable"));
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setInviteMessage(t("studentCode.messages.linkCopied"));
+      setInviteError(null);
+    } catch {
+      setInviteError(t("studentCode.messages.copyFailed"));
+    }
+  }
+
+  async function updateStudentCode(memberId: string, mode: "ensure" | "regenerate") {
+    if (!spaceId || !user || !canManageStaff) return;
+
+    setStudentCodeBusyId(memberId);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(memberId)}/student-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ mode }),
+        }
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        studentCode?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || t("studentCode.messages.updateFailed"));
+      }
+
+      setInviteMessage(t("studentCode.messages.updated", { code: data.studentCode || "" }));
+    } catch (error: unknown) {
+      setInviteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setStudentCodeBusyId(null);
+    }
+  }
 
   async function inviteStaff() {
     const email = inviteEmail.trim().toLowerCase();
@@ -351,6 +443,7 @@ function Inner() {
                 const isAnon = Boolean(r.data.isAnon);
                 const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
                 const studentCode = String(r.data.studentCode ?? t("common.dash"));
+                const isStudent = role === "student";
                 const canRemoveStaff = Boolean(
                   canManageStaff &&
                   uid &&
@@ -368,7 +461,45 @@ function Inner() {
                         {isAnon ? t("types.anon") : t("types.signedIn")}
                       </span>
                     </td>
-                    <td className="py-2 pr-3 font-mono text-xs">{studentCode}</td>
+                    <td className="py-2 pr-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs">{studentCode}</span>
+                        {isStudent && canManageStaff ? (
+                          <>
+                            {studentCode !== t("common.dash") ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => void copyStudentCode(studentCode)}
+                                  className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  {t("studentCode.actions.copy")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void copyStudentLink(studentCode)}
+                                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                                >
+                                  {t("studentCode.actions.copyLink")}
+                                </button>
+                              </>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => void updateStudentCode(r.id, studentCode === t("common.dash") ? "ensure" : "regenerate")}
+                              disabled={studentCodeBusyId === r.id}
+                              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                            >
+                              {studentCodeBusyId === r.id
+                                ? t("studentCode.actions.working")
+                                : studentCode === t("common.dash")
+                                  ? t("studentCode.actions.create")
+                                  : t("studentCode.actions.regenerate")}
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="py-2 pr-3 font-mono text-xs">{uid}</td>
                     <td className="py-2 pr-3">
                       {canRemoveStaff ? (

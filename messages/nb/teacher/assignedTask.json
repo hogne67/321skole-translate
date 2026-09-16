@@ -32,6 +32,20 @@
       "approved": "Godkjent",
       "draft": "Utkast"
     },
+    "linkStudent": {
+      "placeholder": "Elevkode, f.eks. JBT69",
+      "linkedCode": "Koblet til elevkode {code}",
+      "actions": {
+        "link": "Koble til elev",
+        "working": "Kobler…"
+      },
+      "messages": {
+        "linked": "Besvarelsen er koblet til {name}."
+      },
+      "errors": {
+        "failed": "Kunne ikke koble besvarelsen."
+      }
+    },
     "fallback": {
       "task": "Oppgave",
       "space": "Space",
