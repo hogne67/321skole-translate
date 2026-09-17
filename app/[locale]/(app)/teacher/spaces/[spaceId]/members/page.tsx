@@ -34,6 +34,8 @@ type MemberRow = {
   deviceCount?: number;
 };
 
+const INITIAL_BULK_STUDENT_COUNT = 15;
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
@@ -168,10 +170,14 @@ function Inner() {
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [search, setSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"co_teacher" | "observer">("co_teacher");
+  const [singleRole, setSingleRole] = useState<"student" | "co_teacher" | "observer">("student");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
+  const [bulkStudentNames, setBulkStudentNames] = useState<string[]>(
+    () => Array.from({ length: INITIAL_BULK_STUDENT_COUNT }, () => "")
+  );
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [nameBusyId, setNameBusyId] = useState<string | null>(null);
@@ -342,6 +348,65 @@ function Inner() {
     }
   }
 
+  function updateBulkStudentName(index: number, value: string) {
+    setBulkStudentNames((current) => current.map((name, i) => (i === index ? value : name)));
+  }
+
+  function addBulkStudentRows() {
+    setBulkStudentNames((current) => [...current, ...Array.from({ length: 5 }, () => "")]);
+  }
+
+  async function createStudentWithName(displayName: string) {
+    if (!spaceId || !user || !displayName || !canManageStaff) {
+      throw new Error(t("createStudent.messages.failed"));
+    }
+
+    const token = await user.getIdToken();
+    const response = await fetch(`/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/create-student`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ displayName }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      member?: { displayName?: string; studentCode?: string };
+    };
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || t("createStudent.messages.failed"));
+    }
+
+    return data.member;
+  }
+
+  async function createBulkStudents() {
+    const names = bulkStudentNames.map((name) => name.replace(/\s+/g, " ").trim()).filter(Boolean);
+    if (!spaceId || !user || !canManageStaff || names.length === 0) return;
+
+    setBulkBusy(true);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      const created: string[] = [];
+      for (const name of names) {
+        const member = await createStudentWithName(name);
+        created.push(member?.displayName || name);
+      }
+
+      setBulkStudentNames(Array.from({ length: INITIAL_BULK_STUDENT_COUNT }, () => ""));
+      setInviteMessage(`${created.length} elever er lagt til.`);
+    } catch (error: unknown) {
+      setInviteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function inviteStaff() {
     const email = inviteEmail.trim().toLowerCase();
     if (!spaceId || !user || !email || !canManageStaff) return;
@@ -358,7 +423,7 @@ function Inner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ email, role: inviteRole }),
+        body: JSON.stringify({ email, role: singleRole === "observer" ? "observer" : "co_teacher" }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -390,30 +455,13 @@ function Inner() {
     setInviteError(null);
 
     try {
-      const token = await user.getIdToken();
-      const response = await fetch(`/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/create-student`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ displayName }),
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error?: string;
-        member?: { displayName?: string; studentCode?: string };
-      };
-
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || t("createStudent.messages.failed"));
-      }
+      const member = await createStudentWithName(displayName);
 
       setStudentName("");
       setInviteMessage(
         t("createStudent.messages.created", {
-          name: data.member?.displayName || displayName,
-          code: data.member?.studentCode || "",
+          name: member?.displayName || displayName,
+          code: member?.studentCode || "",
         })
       );
     } catch (error: unknown) {
@@ -551,54 +599,99 @@ function Inner() {
         {canManageStaff ? (
           <div className="mb-4 grid gap-3">
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="text-sm font-bold text-slate-950">{t("createStudent.title")}</div>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{t("createStudent.description")}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <input
-                  value={studentName}
-                  onChange={(event) => setStudentName(event.target.value)}
-                  placeholder={t("createStudent.placeholder")}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
-                />
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-bold text-slate-950">Legg til elever</div>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Lim inn eller skriv elevnavn. Alle utfylte rader får elevkode og kan skrives ut etterpå.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => void createStudent()}
-                  disabled={studentBusy || !studentName.trim()}
+                  onClick={() => void createBulkStudents()}
+                  disabled={bulkBusy || !bulkStudentNames.some((name) => name.trim())}
                   className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {studentBusy ? t("createStudent.actions.working") : t("createStudent.actions.create")}
+                  {bulkBusy ? "Legger til..." : "Legg til elever"}
                 </button>
               </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {bulkStudentNames.map((name, index) => (
+                  <input
+                    key={index}
+                    value={name}
+                    onChange={(event) => updateBulkStudentName(index, event.target.value)}
+                    placeholder={`Elev ${index + 1}`}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                    disabled={bulkBusy}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={addBulkStudentRows}
+                disabled={bulkBusy}
+                className="mt-3 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
+              >
+                Legg til flere rader
+              </button>
             </div>
 
             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-              <div className="text-sm font-bold text-slate-950">Gi voksen tilgang</div>
+              <div className="text-sm font-bold text-slate-950">Legg til ny elev/lærer</div>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Legg til en annen registrert lærer i dette Space for vikar, sensor eller samarbeid.
+                Bruk denne når du legger til én person senere. Elever får elevkode. Lærere inviteres med e-post og må være registrert.
               </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
-                <input
-                  value={inviteEmail}
-                  onChange={(event) => setInviteEmail(event.target.value)}
-                  placeholder="laerer@skole.no"
-                  type="email"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+              <div className="mt-3 grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto]">
                 <select
-                  value={inviteRole}
-                  onChange={(event) => setInviteRole(event.target.value === "observer" ? "observer" : "co_teacher")}
+                  value={singleRole}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
+                  }}
                   className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                 >
+                  <option value="student">Elev</option>
                   <option value="co_teacher">Co-teacher</option>
                   <option value="observer">Observer</option>
                 </select>
+
+                {singleRole === "student" ? (
+                  <input
+                    value={studentName}
+                    onChange={(event) => setStudentName(event.target.value)}
+                    placeholder="Elevnavn"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
+                ) : (
+                  <input
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    placeholder="laerer@skole.no"
+                    type="email"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
+                )}
+
                 <button
                   type="button"
-                  onClick={inviteStaff}
-                  disabled={inviteBusy || !inviteEmail.trim()}
+                  onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
+                  disabled={
+                    singleRole === "student"
+                      ? studentBusy || !studentName.trim()
+                      : inviteBusy || !inviteEmail.trim()
+                  }
                   className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {inviteBusy ? "Legger til..." : "Legg til"}
+                  {singleRole === "student"
+                    ? studentBusy
+                      ? t("createStudent.actions.working")
+                      : "Legg til elev"
+                    : inviteBusy
+                      ? "Inviterer..."
+                      : "Inviter lærer"}
                 </button>
               </div>
               {inviteMessage ? <div className="mt-2 text-sm font-medium text-emerald-700">{inviteMessage}</div> : null}
