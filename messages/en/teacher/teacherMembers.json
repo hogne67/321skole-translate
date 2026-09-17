@@ -18,7 +18,9 @@
     },
     "actions": {
       "backToSpace": "Back to space",
-      "allSpaces": "All spaces"
+      "allSpaces": "All spaces",
+      "printStudentCodes": "Print student codes",
+      "printGuardianInfo": "Guardian info"
     },
     "createStudent": {
       "title": "Add student",
@@ -48,6 +50,17 @@
         "copyFailed": "Could not copy student code.",
         "updated": "Student code {code} is ready.",
         "updateFailed": "Could not update student code."
+      }
+    },
+    "removeStudent": {
+      "actions": {
+        "remove": "Remove from room",
+        "removing": "Removing…"
+      },
+      "confirm": "Remove {name} from this room? The student will lose access to the room, but submissions are kept.",
+      "messages": {
+        "removed": "{name} was removed from the room.",
+        "failed": "Could not remove the student from the room."
       }
     },
     "search": {

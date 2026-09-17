@@ -102,6 +102,7 @@ function TeacherSpacesInner() {
   const [titleDraft, setTitleDraft] = useState("");
   const [titleSaving, setTitleSaving] = useState(false);
   const [titleErr, setTitleErr] = useState<string | null>(null);
+  const [accessSavingId, setAccessSavingId] = useState<string | null>(null);
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrFor, setQrFor] = useState<QrFor | null>(null);
@@ -281,6 +282,19 @@ function TeacherSpacesInner() {
       setTitleErr(t("list.editTitleError"));
     } finally {
       setTitleSaving(false);
+    }
+  }
+
+  async function setRoomCodeOnlyAccess(spaceId: string, allowRoomCodeOnly: boolean) {
+    setAccessSavingId(spaceId);
+
+    try {
+      await updateDoc(doc(db, "spaces", spaceId), {
+        allowRoomCodeOnly,
+        updatedAt: serverTimestamp(),
+      });
+    } finally {
+      setAccessSavingId((current) => (current === spaceId ? null : current));
     }
   }
 
@@ -518,6 +532,8 @@ function TeacherSpacesInner() {
             const code = (r.data.code ?? "").toString();
             const title = (r.data.title ?? t("list.untitled")).toString();
             const open = Boolean(r.data.isOpen);
+            const allowRoomCodeOnly = r.data.allowRoomCodeOnly === true;
+            const accessSaving = accessSavingId === r.id;
             const count = memberCount[r.id];
             const countBusy = Boolean(memberCountBusy[r.id]);
 
@@ -621,7 +637,26 @@ function TeacherSpacesInner() {
                       <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-slate-800">
                         {t("list.openAccess")}
                       </summary>
-                      <div className="grid gap-2 border-t border-slate-200 p-3 sm:grid-cols-3">
+                      <div className="grid gap-3 border-t border-slate-200 p-3">
+                        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                          <input
+                            type="checkbox"
+                            checked={allowRoomCodeOnly}
+                            disabled={accessSaving}
+                            onChange={(event) => void setRoomCodeOnlyAccess(r.id, event.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-slate-400 accent-emerald-600"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-slate-900">
+                              {t("list.allowRoomCodeOnly")}
+                            </span>
+                            <span className="mt-1 block text-xs leading-5 text-slate-600">
+                              {allowRoomCodeOnly ? t("list.allowRoomCodeOnlyOn") : t("list.allowRoomCodeOnlyOff")}
+                            </span>
+                          </span>
+                        </label>
+
+                        <div className="grid gap-2 sm:grid-cols-3">
                         <button
                           type="button"
                           onClick={() => {
@@ -652,6 +687,7 @@ function TeacherSpacesInner() {
                         >
                           {t("list.printRoom")}
                         </button>
+                        </div>
                       </div>
                     </details>
                   </div>
@@ -721,6 +757,24 @@ function TeacherSpacesInner() {
                     <div className="mt-2 border-t border-slate-200 pt-3 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
                       {t("list.openAccess")}
                     </div>
+
+                    <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                      <input
+                        type="checkbox"
+                        checked={allowRoomCodeOnly}
+                        disabled={accessSaving}
+                        onChange={(event) => void setRoomCodeOnlyAccess(r.id, event.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-slate-400 accent-emerald-600"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-slate-900">
+                          {t("list.allowRoomCodeOnly")}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-slate-600">
+                          {allowRoomCodeOnly ? t("list.allowRoomCodeOnlyOn") : t("list.allowRoomCodeOnlyOff")}
+                        </span>
+                      </span>
+                    </label>
 
                     <button
                       type="button"

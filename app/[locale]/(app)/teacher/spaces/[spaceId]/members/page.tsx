@@ -185,6 +185,7 @@ function Inner() {
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [studentCodeBusyId, setStudentCodeBusyId] = useState<string | null>(null);
 
   const fmt = useMemo(() => {
@@ -523,6 +524,47 @@ function Inner() {
     }
   }
 
+  async function removeStudent(memberId: string, displayName: string) {
+    if (!spaceId || !user || !canManageStaff) return;
+
+    const confirmed = window.confirm(t("removeStudent.confirm", { name: displayName }));
+    if (!confirmed) return;
+
+    setRemovingMemberId(memberId);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(memberId)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "remove" }),
+        }
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || t("removeStudent.messages.failed"));
+      }
+
+      setInviteMessage(t("removeStudent.messages.removed", { name: displayName }));
+      setExpandedMemberId((current) => (current === memberId ? null : current));
+    } catch (error: unknown) {
+      setInviteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRemovingMemberId(null);
+    }
+  }
+
   async function removeStaff(targetUid: string) {
     if (!spaceId || !user || !targetUid || !canManageStaff) return;
 
@@ -579,7 +621,13 @@ function Inner() {
             href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 no-underline hover:bg-emerald-100"
           >
-            Skriv ut elevkoder
+            {t("actions.printStudentCodes")}
+          </Link>
+          <Link
+            href={withLocale(locale, `/teacher/spaces/${spaceId}/members/guardian-print`)}
+            className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900 no-underline hover:bg-sky-100"
+          >
+            {t("actions.printGuardianInfo")}
           </Link>
           <Link
             href={withLocale(locale, `/teacher/spaces/${spaceId}`)}
@@ -850,7 +898,7 @@ function Inner() {
                             <button
                               type="button"
                               onClick={() => void updateStudentCode(r.id, studentCode === t("common.dash") ? "ensure" : "regenerate")}
-                              disabled={studentCodeBusyId === r.id}
+                              disabled={studentCodeBusyId === r.id || removingMemberId === r.id}
                               className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                             >
                               {studentCodeBusyId === r.id
@@ -858,6 +906,16 @@ function Inner() {
                                 : studentCode === t("common.dash")
                                   ? t("studentCode.actions.create")
                                   : t("studentCode.actions.regenerate")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void removeStudent(r.id, name)}
+                              disabled={removingMemberId === r.id}
+                              className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+                            >
+                              {removingMemberId === r.id
+                                ? t("removeStudent.actions.removing")
+                                : t("removeStudent.actions.remove")}
                             </button>
                           </>
                         ) : null}

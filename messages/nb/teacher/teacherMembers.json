@@ -18,7 +18,9 @@
     },
     "actions": {
       "backToSpace": "Tilbake til space",
-      "allSpaces": "Alle spaces"
+      "allSpaces": "Alle spaces",
+      "printStudentCodes": "Skriv ut elevkoder",
+      "printGuardianInfo": "Foresattinfo"
     },
     "createStudent": {
       "title": "Legg til elev",
@@ -48,6 +50,17 @@
         "copyFailed": "Kunne ikke kopiere elevkoden.",
         "updated": "Elevkode {code} er klar.",
         "updateFailed": "Kunne ikke oppdatere elevkode."
+      }
+    },
+    "removeStudent": {
+      "actions": {
+        "remove": "Fjern fra rommet",
+        "removing": "Fjerner…"
+      },
+      "confirm": "Fjerne {name} fra dette rommet? Eleven mister tilgang til rommet, men innleveringer beholdes.",
+      "messages": {
+        "removed": "{name} er fjernet fra rommet.",
+        "failed": "Kunne ikke fjerne eleven fra rommet."
       }
     },
     "search": {

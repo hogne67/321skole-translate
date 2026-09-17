@@ -106,6 +106,14 @@ export default function JoinClient() {
       return t("errors.teacherLimitReached");
     }
 
+    if (data.error === "student_code_required") {
+      return t("errors.studentCodeRequired");
+    }
+
+    if (data.error === "invalid_student_code") {
+      return t("errors.invalidStudentCode");
+    }
+
     if (typeof data.error === "string" && data.error.trim()) {
       return data.error;
     }

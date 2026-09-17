@@ -27,6 +27,7 @@ export type SpaceDoc = {
 
   title: string;
   isOpen: boolean;
+  allowRoomCodeOnly?: boolean;
 
   // ✅ Useful metadata
   createdBy?: string;
@@ -93,6 +94,7 @@ export async function createSpaceForTeacher(params: {
 
       title,
       isOpen,
+      allowRoomCodeOnly: false,
       schoolId,
 
       // Default: no active lesson yet

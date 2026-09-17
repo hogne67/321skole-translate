@@ -18,7 +18,9 @@
     },
     "actions": {
       "backToSpace": "Voltar para o space",
-      "allSpaces": "Todos os spaces"
+      "allSpaces": "Todos os spaces",
+      "printStudentCodes": "Imprimir códigos dos alunos",
+      "printGuardianInfo": "Informação aos responsáveis"
     },
     "createStudent": {
       "title": "Adicionar aluno",
@@ -48,6 +50,17 @@
         "copyFailed": "Não foi possível copiar o código.",
         "updated": "Código do aluno {code} pronto.",
         "updateFailed": "Não foi possível atualizar o código."
+      }
+    },
+    "removeStudent": {
+      "actions": {
+        "remove": "Remover da sala",
+        "removing": "Removendo…"
+      },
+      "confirm": "Remover {name} desta sala? O aluno perderá acesso à sala, mas as entregas serão mantidas.",
+      "messages": {
+        "removed": "{name} foi removido da sala.",
+        "failed": "Não foi possível remover o aluno da sala."
       }
     },
     "search": {

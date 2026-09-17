@@ -1,7 +1,7 @@
 {
   "join": {
     "title": "Bli med",
-    "subtitle": "Skriv inn romkoden og navnet ditt. Navnet ditt vises for læreren i deltakerlisten.",
+    "subtitle": "Skriv inn romkode og elevkode fra læreren. Noen rom tillater også romkode og navn.",
     "fields": {
       "spaceCode": {
         "label": "Romkode",
@@ -15,8 +15,8 @@
       },
       "studentCode": {
         "label": "Elevkode",
-        "placeholder": "Valgfritt, f.eks. S7K4P",
-        "tip": "Har du fått en elevkode av læreren? Skriv den her for å fortsette på ny enhet."
+        "placeholder": "f.eks. S7K4P",
+        "tip": "Bruk elevkoden fra læreren for å åpne riktig elev og fortsette på ny enhet."
       }
     },
     "actions": {
@@ -30,6 +30,8 @@
       "nameRequired": "Skriv inn navnet ditt før du blir med.",
       "spaceNotFound": "Fant ikke rom med denne koden. Sjekk at koden er riktig.",
       "authTimeout": "Tidsavbrudd ved innlogging.",
+      "studentCodeRequired": "Dette rommet krever personlig elevkode. Bruk elevlenken eller elevkoden du fikk av læreren.",
+      "invalidStudentCode": "Elevkoden passer ikke til dette rommet. Sjekk koden eller spør læreren om ny kode.",
       "teacherLimitReached": "Læreren har nådd elevgrensen for gjeldende plan.",
       "teacherLimitReachedWithCount": "Grensen er nådd ({used}/{limit} elever).",
       "joinFailed": "Kunne ikke bli med i rommet.",

@@ -1,7 +1,7 @@
 {
   "join": {
     "title": "Join",
-    "subtitle": "Enter the code and your name. Your name will be shown to the teacher in the member list.",
+    "subtitle": "Enter the room code and student code from your teacher. Some rooms also allow room code and name.",
     "fields": {
       "spaceCode": {
         "label": "Space code",
@@ -15,8 +15,8 @@
       },
       "studentCode": {
         "label": "Student code",
-        "placeholder": "Optional, e.g. S7K4P",
-        "tip": "If your teacher gave you a student code, enter it here to continue on a new device."
+        "placeholder": "e.g. S7K4P",
+        "tip": "Use the student code from your teacher to open the right student and continue on a new device."
       }
     },
     "actions": {
@@ -30,6 +30,8 @@
       "nameRequired": "Please enter your name before joining.",
       "spaceNotFound": "No space found with this code. Check that the code is correct.",
       "authTimeout": "Timed out while waiting for auth user.",
+      "studentCodeRequired": "This room requires a personal student code. Use the student link or student code from your teacher.",
+      "invalidStudentCode": "The student code does not match this room. Check the code or ask your teacher for a new one.",
       "teacherLimitReached": "This teacher has reached the student limit for the current plan.",
       "teacherLimitReachedWithCount": "Teacher limit reached ({used}/{limit} students).",
       "joinFailed": "Could not join space.",

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
 type MemberBody = {
+  action?: unknown;
   displayName?: unknown;
 };
 
@@ -90,10 +91,6 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     const { spaceId, memberId } = await ctx.params;
     if (!spaceId || !memberId) return json({ error: "Missing route params" }, 400);
 
-    const body = (await req.json().catch(() => ({}))) as MemberBody;
-    const displayName = cleanName(safeString(body.displayName));
-    if (!displayName) return json({ error: "Display name is required" }, 400);
-
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
@@ -118,6 +115,37 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     const participantId = safeString(member.participantId) || memberUid || memberId;
     const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
     const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
+    const body = (await req.json().catch(() => ({}))) as MemberBody;
+    const action = safeString(body.action);
+
+    if (action === "remove") {
+      await db.runTransaction(async (tx) => {
+        for (const targetDoc of targetDocs) {
+          tx.set(
+            targetDoc.ref,
+            {
+              archived: true,
+              active: false,
+              status: "removed",
+              removedAt: FieldValue.serverTimestamp(),
+              removedByUid: uid,
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+      });
+
+      return json({
+        ok: true,
+        action: "remove",
+        participantId,
+        removed: targetDocs.length,
+      });
+    }
+
+    const displayName = cleanName(safeString(body.displayName));
+    if (!displayName) return json({ error: "Display name is required" }, 400);
 
     await db.runTransaction(async (tx) => {
       for (const targetDoc of targetDocs) {

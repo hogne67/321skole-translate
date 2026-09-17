@@ -22,6 +22,8 @@ type SpaceOwnerFields = {
   createdByUid?: unknown;
   uid?: unknown;
   title?: unknown;
+  allowRoomCodeOnly?: unknown;
+  join?: unknown;
 };
 
 type TeacherProfileFields = {
@@ -65,12 +67,22 @@ function asBoolean(value: unknown): boolean {
   return value === true;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function cleanName(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
 }
 
 function cleanStudentCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+}
+
+function allowRoomCodeOnlyJoin(data: Record<string, unknown>): boolean {
+  if (data.allowRoomCodeOnly === true) return true;
+  if (isRecord(data.join) && data.join.allowRoomCodeOnly === true) return true;
+  return false;
 }
 
 function studentCodeKey(spaceId: string, studentCode: string): string {
@@ -225,6 +237,7 @@ export async function POST(req: NextRequest) {
       : null;
     const alreadyMemberInThisSpace = Boolean(existingMembership);
     const linkedExistingParticipant = Boolean(codeMatchedMembership);
+    const allowRoomCodeOnly = allowRoomCodeOnlyJoin(spaceData);
 
     if (alreadyMemberInThisSpace && !displayName) {
       return NextResponse.json({
@@ -243,6 +256,16 @@ export async function POST(req: NextRequest) {
 
     if (displayName.length > 80) {
       return NextResponse.json({ error: "Display name is too long." }, { status: 400 });
+    }
+
+    if (!alreadyMemberInThisSpace && !linkedExistingParticipant) {
+      if (studentCode) {
+        return NextResponse.json({ error: "invalid_student_code" }, { status: 404 });
+      }
+
+      if (!allowRoomCodeOnly) {
+        return NextResponse.json({ error: "student_code_required" }, { status: 403 });
+      }
     }
 
     if (!alreadyMemberInThisSpace && !linkedExistingParticipant) {

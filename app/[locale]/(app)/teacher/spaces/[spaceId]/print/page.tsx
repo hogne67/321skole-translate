@@ -13,6 +13,8 @@ type SpacePrintData = {
   title?: unknown;
   code?: unknown;
   joinCode?: unknown;
+  allowRoomCodeOnly?: unknown;
+  join?: unknown;
 };
 
 type Copy = {
@@ -23,11 +25,17 @@ type Copy = {
   title: string;
   roomName: string;
   roomCode: string;
-  scan: string;
+  scanOpen: string;
+  scanStudentCode: string;
+  accessMode: string;
+  accessOpen: string;
+  accessStudentCode: string;
   joinTitle: string;
-  joinText: string;
+  joinTextOpen: string;
+  joinTextStudentCode: string;
   studentCodeTitle: string;
-  studentCodeText: string;
+  studentCodeTextOpen: string;
+  studentCodeTextRequired: string;
   teacherTitle: string;
   teacherText: string;
   qrAlt: string;
@@ -43,13 +51,19 @@ const copy: Record<string, Copy> = {
     title: "Romkode",
     roomName: "Rom/space",
     roomCode: "Romkode",
-    scan: "Skann QR-koden eller bruk romkoden.",
+    scanOpen: "Skann QR-koden eller bruk romkoden.",
+    scanStudentCode: "Skann QR-koden og skriv elevkoden din.",
+    accessMode: "Tilgang",
+    accessOpen: "Romkode alene er tillatt",
+    accessStudentCode: "Krever personlig elevkode",
     joinTitle: "Slik kommer eleven inn",
-    joinText: "Gå til 321school.com/join, eller skann QR-koden, og skriv inn romkoden.",
-    studentCodeTitle: "Har eleven elevkode?",
-    studentCodeText: "Skriv elevkoden etter romkoden for å åpne riktig elev og fortsette arbeid på samme bruker.",
+    joinTextOpen: "Gå til 321school.com/join, eller skann QR-koden, og skriv romkoden. Eleven kan skrive navn hvis lærer har åpnet for romkode alene.",
+    joinTextStudentCode: "Gå til 321school.com/join, eller skann QR-koden. Skriv romkoden og den personlige elevkoden fra læreren.",
+    studentCodeTitle: "Personlig elevkode",
+    studentCodeTextOpen: "Hvis eleven har elevkode, bør den brukes. Da åpnes riktig elev, og arbeid kan fortsette på ny enhet.",
+    studentCodeTextRequired: "Elevkode er nødvendig for nye elever i dette rommet. Bruk elevlenken eller elevkoden som læreren har delt.",
     teacherTitle: "Til lærer",
-    teacherText: 'Personlige elevkoder skrives ut fra "Administrer medlemmer" > "Skriv ut elevkoder".',
+    teacherText: 'Personlige elevkoder skrives ut fra "Administrer medlemmer" > "Skriv ut elevkoder". Romkode alene kan åpnes fra lærerens space-liste ved behov.',
     qrAlt: "QR-kode for å bli med i rommet",
     footer: "321school.com",
   },
@@ -61,13 +75,19 @@ const copy: Record<string, Copy> = {
     title: "Room code",
     roomName: "Room/space",
     roomCode: "Room code",
-    scan: "Scan the QR code or use the room code.",
+    scanOpen: "Scan the QR code or use the room code.",
+    scanStudentCode: "Scan the QR code and enter your student code.",
+    accessMode: "Access",
+    accessOpen: "Room code only is allowed",
+    accessStudentCode: "Requires personal student code",
     joinTitle: "How students join",
-    joinText: "Go to 321school.com/join, or scan the QR code, and enter the room code.",
-    studentCodeTitle: "Does the student have a student code?",
-    studentCodeText: "Enter the student code after the room code to open the right student and continue work on the same user.",
+    joinTextOpen: "Go to 321school.com/join, or scan the QR code, and enter the room code. Students can enter a name if the teacher has opened room-code-only access.",
+    joinTextStudentCode: "Go to 321school.com/join, or scan the QR code. Enter the room code and the personal student code from your teacher.",
+    studentCodeTitle: "Personal student code",
+    studentCodeTextOpen: "If the student has a student code, they should use it. It opens the right student and lets work continue on a new device.",
+    studentCodeTextRequired: "Student code is required for new students in this room. Use the student link or student code shared by the teacher.",
     teacherTitle: "For teachers",
-    teacherText: 'Personal student codes are printed from "Manage members" > "Print student codes".',
+    teacherText: 'Personal student codes are printed from "Manage members" > "Print student codes". Room-code-only access can be opened from the teacher space list when needed.',
     qrAlt: "QR code to join the room",
     footer: "321school.com",
   },
@@ -79,13 +99,19 @@ const copy: Record<string, Copy> = {
     title: "Código da sala",
     roomName: "Sala/space",
     roomCode: "Código da sala",
-    scan: "Escaneie o QR code ou use o código da sala.",
+    scanOpen: "Escaneie o QR code ou use o código da sala.",
+    scanStudentCode: "Escaneie o QR code e digite seu código de aluno.",
+    accessMode: "Acesso",
+    accessOpen: "Apenas código da sala está permitido",
+    accessStudentCode: "Exige código pessoal de aluno",
     joinTitle: "Como o aluno entra",
-    joinText: "Acesse 321school.com/join, ou escaneie o QR code, e digite o código da sala.",
-    studentCodeTitle: "O aluno tem código de aluno?",
-    studentCodeText: "Digite o código de aluno depois do código da sala para abrir o aluno correto e continuar no mesmo usuário.",
+    joinTextOpen: "Acesse 321school.com/join, ou escaneie o QR code, e digite o código da sala. O aluno pode digitar o nome se o professor abriu acesso apenas com código da sala.",
+    joinTextStudentCode: "Acesse 321school.com/join, ou escaneie o QR code. Digite o código da sala e o código pessoal de aluno do professor.",
+    studentCodeTitle: "Código pessoal de aluno",
+    studentCodeTextOpen: "Se o aluno tiver código de aluno, ele deve usá-lo. Assim abre o aluno correto e continua em outro dispositivo.",
+    studentCodeTextRequired: "Código de aluno é obrigatório para novos alunos nesta sala. Use o link ou código compartilhado pelo professor.",
     teacherTitle: "Para professores",
-    teacherText: 'Códigos pessoais de aluno são impressos em "Gerenciar membros" > "Imprimir códigos de aluno".',
+    teacherText: 'Códigos pessoais de aluno são impressos em "Gerenciar membros" > "Imprimir códigos de aluno". Acesso apenas com código da sala pode ser aberto na lista de spaces do professor quando necessário.',
     qrAlt: "QR code para entrar na sala",
     footer: "321school.com",
   },
@@ -109,6 +135,17 @@ function getOrigin() {
 
 function safeString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function allowRoomCodeOnlyJoin(space: SpacePrintData | null): boolean {
+  if (!space) return false;
+  if (space.allowRoomCodeOnly === true) return true;
+  if (isRecord(space.join) && space.join.allowRoomCodeOnly === true) return true;
+  return false;
 }
 
 function safeFilenamePart(value: string) {
@@ -135,6 +172,7 @@ function SpacePrintInner() {
 
   const title = safeString(space?.title, "Space");
   const code = safeString(space?.code, safeString(space?.joinCode));
+  const allowRoomCodeOnly = allowRoomCodeOnlyJoin(space);
 
   const joinUrl = useMemo(() => {
     if (!code) return "";
@@ -235,6 +273,13 @@ function SpacePrintInner() {
             <div className="mt-1 break-all rounded-xl border-2 border-slate-900 bg-slate-50 px-4 py-3 text-center text-6xl font-black tracking-[0.12em] print:text-5xl">
               {code}
             </div>
+
+            <div className="mt-4 rounded-xl border-2 border-slate-300 bg-white px-4 py-3">
+              <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.accessMode}</div>
+              <div className="mt-1 text-lg font-black text-slate-950">
+                {allowRoomCodeOnly ? text.accessOpen : text.accessStudentCode}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border-2 border-slate-900 p-4 text-center">
@@ -243,20 +288,26 @@ function SpacePrintInner() {
                 <Image src={qrDataUrl} alt={text.qrAlt} width={180} height={180} unoptimized className="h-full w-full" />
               ) : (
                 <div className="text-sm font-semibold text-slate-500">QR</div>
-              )}
+            )}
             </div>
-            <div className="mt-3 text-sm font-bold text-slate-800">{text.scan}</div>
+            <div className="mt-3 text-sm font-bold text-slate-800">
+              {allowRoomCodeOnly ? text.scanOpen : text.scanStudentCode}
+            </div>
           </div>
         </section>
 
         <section className="mt-5 grid gap-3 md:grid-cols-2 print:grid-cols-2">
           <article className="rounded-2xl border-2 border-slate-300 p-4">
             <h2 className="text-base font-black text-slate-950">{text.joinTitle}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-800">{text.joinText}</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-800">
+              {allowRoomCodeOnly ? text.joinTextOpen : text.joinTextStudentCode}
+            </p>
           </article>
           <article className="rounded-2xl border-2 border-slate-300 p-4">
             <h2 className="text-base font-black text-slate-950">{text.studentCodeTitle}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-800">{text.studentCodeText}</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-800">
+              {allowRoomCodeOnly ? text.studentCodeTextOpen : text.studentCodeTextRequired}
+            </p>
           </article>
         </section>
 

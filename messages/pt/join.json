@@ -1,7 +1,7 @@
 {
   "join": {
     "title": "Entrar",
-    "subtitle": "Digite o código da sala e seu nome. Seu nome será mostrado ao professor na lista de participantes.",
+    "subtitle": "Digite o código da sala e o código de aluno do professor. Algumas salas também permitem código da sala e nome.",
     "fields": {
       "spaceCode": {
         "label": "Código da sala",
@@ -15,8 +15,8 @@
       },
       "studentCode": {
         "label": "Código do aluno",
-        "placeholder": "Opcional, ex.: S7K4P",
-        "tip": "Se o professor deu um código de aluno, digite aqui para continuar em outro dispositivo."
+        "placeholder": "ex.: S7K4P",
+        "tip": "Use o código de aluno do professor para abrir o aluno correto e continuar em outro dispositivo."
       }
     },
     "actions": {
@@ -30,6 +30,8 @@
       "nameRequired": "Digite seu nome antes de entrar.",
       "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",
+      "studentCodeRequired": "Esta sala exige código pessoal de aluno. Use o link ou o código de aluno enviado pelo professor.",
+      "invalidStudentCode": "O código de aluno não corresponde a esta sala. Verifique o código ou peça um novo ao professor.",
       "teacherLimitReached": "O professor atingiu o limite de alunos para o plano atual.",
       "teacherLimitReachedWithCount": "Limite atingido ({used}/{limit} alunos).",
       "joinFailed": "Não foi possível entrar no espaço.",
