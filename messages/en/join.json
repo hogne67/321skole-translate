@@ -10,7 +10,8 @@
       "name": {
         "label": "Your name",
         "placeholder": "e.g. Sara Ali",
-        "tip": "Tip: this can be first name + last name, or just first name."
+        "tip": "Tip: this can be first name + last name, or just first name.",
+        "fromStudentCode": "Your name is taken from the student code your teacher gave you."
       },
       "studentCode": {
         "label": "Student code",

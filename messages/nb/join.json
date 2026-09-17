@@ -1,16 +1,17 @@
 {
   "join": {
     "title": "Bli med",
-    "subtitle": "Skriv inn koden og navnet ditt. Navnet ditt vises for læreren i deltakerlisten.",
+    "subtitle": "Skriv inn romkoden og navnet ditt. Navnet ditt vises for læreren i deltakerlisten.",
     "fields": {
       "spaceCode": {
-        "label": "Kode",
+        "label": "Romkode",
         "placeholder": "f.eks. MUR583"
       },
       "name": {
         "label": "Navnet ditt",
         "placeholder": "f.eks. Sara Ali",
-        "tip": "Tips: Dette kan være fornavn + etternavn, eller bare fornavn."
+        "tip": "Tips: Dette kan være fornavn + etternavn, eller bare fornavn.",
+        "fromStudentCode": "Navnet hentes fra elevkoden læreren har gitt deg."
       },
       "studentCode": {
         "label": "Elevkode",

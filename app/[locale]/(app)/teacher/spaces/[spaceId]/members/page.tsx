@@ -172,6 +172,9 @@ function Inner() {
   const [inviteBusy, setInviteBusy] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameBusyId, setNameBusyId] = useState<string | null>(null);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
@@ -420,6 +423,57 @@ function Inner() {
     }
   }
 
+  function startEditingName(memberId: string, currentName: string) {
+    setEditingNameId(memberId);
+    setNameDraft(currentName === t("common.dash") ? "" : currentName);
+    setInviteMessage(null);
+    setInviteError(null);
+  }
+
+  function cancelEditingName() {
+    setEditingNameId(null);
+    setNameDraft("");
+  }
+
+  async function saveStudentName(memberId: string) {
+    const displayName = nameDraft.replace(/\s+/g, " ").trim();
+    if (!spaceId || !user || !canManageStaff || !displayName) return;
+
+    setNameBusyId(memberId);
+    setInviteMessage(null);
+    setInviteError(null);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(
+        `/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/${encodeURIComponent(memberId)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ displayName }),
+        }
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Kunne ikke lagre navnet.");
+      }
+
+      setInviteMessage(`Navnet ble oppdatert til ${displayName}.`);
+      cancelEditingName();
+    } catch (error: unknown) {
+      setInviteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setNameBusyId(null);
+    }
+  }
+
   async function removeStaff(targetUid: string) {
     if (!spaceId || !user || !targetUid || !canManageStaff) return;
 
@@ -600,7 +654,47 @@ function Inner() {
 
                 return (
                   <tr key={r.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-3 font-medium">{name}</td>
+                    <td className="py-2 pr-3 font-medium">
+                      {editingNameId === r.id ? (
+                        <div className="flex min-w-[220px] flex-wrap items-center gap-2">
+                          <input
+                            value={nameDraft}
+                            onChange={(event) => setNameDraft(event.target.value)}
+                            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm outline-none focus:border-emerald-500"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void saveStudentName(r.id)}
+                            disabled={nameBusyId === r.id || !nameDraft.trim()}
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+                          >
+                            {nameBusyId === r.id ? "Lagrer..." : "Lagre"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditingName}
+                            disabled={nameBusyId === r.id}
+                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          >
+                            Avbryt
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{name}</span>
+                          {isStudent && canManageStaff ? (
+                            <button
+                              type="button"
+                              onClick={() => startEditingName(r.id, name)}
+                              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Rediger navn
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2 pr-3">{role}</td>
                     <td className="py-2 pr-3">{joined}</td>
                     <td className="py-2 pr-3">

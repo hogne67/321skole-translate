@@ -2181,16 +2181,22 @@
   },
   "join": {
     "title": "Bli med",
-    "subtitle": "Skriv inn kode og navn. Navnet vises til læreren i medlemslista.",
+    "subtitle": "Skriv inn romkode og navn. Navnet vises til læreren i medlemslista.",
     "fields": {
       "spaceCode": {
-        "label": "Space code",
+        "label": "Romkode",
         "placeholder": "F.eks. MUR583"
       },
       "name": {
         "label": "Ditt navn",
         "placeholder": "F.eks. Sara Ali",
-        "tip": "Tips: dette kan være fornavn + etternavn, eller bare fornavn."
+        "tip": "Tips: dette kan være fornavn + etternavn, eller bare fornavn.",
+        "fromStudentCode": "Navnet hentes fra elevkoden læreren har gitt deg."
+      },
+      "studentCode": {
+        "label": "Elevkode",
+        "placeholder": "Valgfritt, f.eks. S7K4P",
+        "tip": "Har du fått en elevkode av læreren? Skriv den her for å fortsette på ny enhet."
       }
     },
     "actions": {

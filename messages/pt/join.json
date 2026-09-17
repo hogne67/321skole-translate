@@ -1,16 +1,17 @@
 {
   "join": {
     "title": "Entrar",
-    "subtitle": "Digite o código e seu nome. Seu nome será mostrado ao professor na lista de participantes.",
+    "subtitle": "Digite o código da sala e seu nome. Seu nome será mostrado ao professor na lista de participantes.",
     "fields": {
       "spaceCode": {
-        "label": "Código",
+        "label": "Código da sala",
         "placeholder": "ex.: MUR583"
       },
       "name": {
         "label": "Seu nome",
         "placeholder": "ex.: Sara Ali",
-        "tip": "Dica: Pode ser nome + sobrenome ou apenas o primeiro nome."
+        "tip": "Dica: Pode ser nome + sobrenome ou apenas o primeiro nome.",
+        "fromStudentCode": "Seu nome vem do código de aluno fornecido pelo professor."
       },
       "studentCode": {
         "label": "Código do aluno",

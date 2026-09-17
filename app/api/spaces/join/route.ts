@@ -292,7 +292,7 @@ export async function POST(req: NextRequest) {
       safeString(codeMatchedData?.participantId) ||
       safeString(codeMatchedData?.uid) ||
       uid;
-    const resolvedDisplayName = displayName || safeString(codeMatchedData?.displayName);
+    const resolvedDisplayName = safeString(codeMatchedData?.displayName) || displayName;
     const resolvedStudentCode =
       safeString(codeMatchedData?.studentCode) ||
       (existingMembership

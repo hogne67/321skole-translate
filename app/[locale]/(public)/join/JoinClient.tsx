@@ -51,6 +51,7 @@ export default function JoinClient() {
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
   const initialStudentCode = useMemo(() => (sp.get("studentCode") ?? "").trim().toUpperCase(), [sp]);
   const hasPrefilledCode = initialCode.length > 0;
+  const hasPrefilledStudentCode = initialStudentCode.length > 0;
 
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
@@ -154,9 +155,9 @@ export default function JoinClient() {
   }, [initialCode, locale, router]);
 
   useEffect(() => {
-    if (!hasPrefilledCode || checkingExisting) return;
+    if (!hasPrefilledCode || hasPrefilledStudentCode || checkingExisting) return;
     nameInputRef.current?.focus();
-  }, [checkingExisting, hasPrefilledCode]);
+  }, [checkingExisting, hasPrefilledCode, hasPrefilledStudentCode]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -253,27 +254,33 @@ export default function JoinClient() {
           />
         </div>
 
-        <div>
-          <label htmlFor="displayName" className="text-sm font-medium">
-            {t("fields.name.label")}
-          </label>
-          <input
-            ref={nameInputRef}
-            id="displayName"
-            name="displayName"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder={t("fields.name.placeholder")}
-            className={[
-              "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
-              hasPrefilledCode
-                ? "border-emerald-200 bg-emerald-50 focus:border-emerald-500 focus:bg-white"
-                : "bg-white",
-            ].join(" ")}
-            disabled={busy}
-          />
-          <div className="mt-1 text-xs text-muted-foreground">{t("fields.name.tip")}</div>
-        </div>
+        {hasPrefilledStudentCode ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            {t("fields.name.fromStudentCode")}
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="displayName" className="text-sm font-medium">
+              {t("fields.name.label")}
+            </label>
+            <input
+              ref={nameInputRef}
+              id="displayName"
+              name="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={t("fields.name.placeholder")}
+              className={[
+                "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
+                hasPrefilledCode
+                  ? "border-emerald-200 bg-emerald-50 focus:border-emerald-500 focus:bg-white"
+                  : "bg-white",
+              ].join(" ")}
+              disabled={busy}
+            />
+            <div className="mt-1 text-xs text-muted-foreground">{t("fields.name.tip")}</div>
+          </div>
+        )}
 
         <div>
           <label htmlFor="studentCode" className="text-sm font-medium">
