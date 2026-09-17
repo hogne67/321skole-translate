@@ -378,6 +378,8 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.podcastNameHelp")}
             status={statusLabel(t, hasText(value.podcastName) ? "working" : "empty")}
             config={config}
+            feedback={feedback ?? null}
+            fieldKey="ideas.podcastName"
             supportWords={getSupportWords(config, "podcastName")}
             allowAi={false}
             t={t}
@@ -405,6 +407,8 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.ideasSectionHelp")}
             status={statusLabel(t, hasText(value.ideas) ? "working" : "empty")}
             config={config}
+            feedback={feedback ?? null}
+            fieldKey="ideas.ideas"
             supportWords={getSupportWords(config, "ideas")}
             t={t}
             room="ideas"
@@ -431,6 +435,8 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.participantsHelp")}
             status={statusLabel(t, hasText(value.participants) ? "working" : "empty")}
             config={config}
+            feedback={feedback ?? null}
+            fieldKey="ideas.participants"
             supportWords={getSupportWords(config, "participants")}
             t={t}
             room="ideas"
@@ -457,6 +463,8 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.importantPointsHelp")}
             status={statusLabel(t, hasText(value.importantPoints) ? "working" : "empty")}
             config={config}
+            feedback={feedback ?? null}
+            fieldKey="ideas.importantPoints"
             supportWords={getSupportWords(config, "importantPoints")}
             t={t}
             room="ideas"
@@ -483,6 +491,8 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.listenerTakeawayHelp")}
             status={statusLabel(t, hasText(value.listenerTakeaway) ? "working" : "empty")}
             config={config}
+            feedback={feedback ?? null}
+            fieldKey="ideas.listenerTakeaway"
             supportWords={getSupportWords(config, "listenerTakeaway")}
             t={t}
             room="ideas"
@@ -517,6 +527,7 @@ export default function PodcastWorkshopStudentSection({
             readOnly={readOnly}
             t={t}
             mode="plan"
+            feedback={feedback ?? null}
             onPlan={patchPlan}
             onScript={patchScript}
             supportFallbackId="segment"
@@ -539,6 +550,7 @@ export default function PodcastWorkshopStudentSection({
             readOnly={readOnly}
             t={t}
             mode="script"
+            feedback={feedback ?? null}
             onVoiceChange={patchProductionVoice}
             onPlan={patchPlan}
             onScript={patchScript}
@@ -1378,6 +1390,8 @@ function IdeaWorkCard({
   help,
   status,
   config,
+  feedback,
+  fieldKey,
   supportWords,
   allowAi = true,
   t,
@@ -1391,6 +1405,8 @@ function IdeaWorkCard({
   help: string;
   status: string;
   config: PodcastWorkshopConfig;
+  feedback: PodcastWorkshopFeedback | null;
+  fieldKey: string;
   supportWords: string[];
   allowAi?: boolean;
   t: TFn;
@@ -1407,6 +1423,7 @@ function IdeaWorkCard({
   const [usageText, setUsageText] = useState("");
   const visibleWords = supportWords.filter(Boolean);
   const aiDisabled = config.aiSupport === "off" || config.aiUsageLimit <= 0 || aiLoading;
+  const fieldFeedback = feedback?.fields?.[fieldKey] ?? null;
 
   async function handleAiHelp() {
     if (aiDisabled) return;
@@ -1472,7 +1489,7 @@ function IdeaWorkCard({
             )}
           </div>
         ) : null}
-        <div className="podcastIdeaResponseBadge">{t("podcastWorkshop.noTeacherResponse")}</div>
+        <FieldTeacherFeedback feedback={fieldFeedback} t={t} />
       </aside>
 
       <style jsx>{`
@@ -1643,6 +1660,109 @@ function IdeaWorkCard({
   );
 }
 
+function FieldTeacherFeedback({
+  feedback,
+  t,
+}: {
+  feedback: PodcastWorkshopFeedback["fields"][string] | null;
+  t: TFn;
+}) {
+  const text = String(feedback?.text ?? "").trim();
+  const status = feedback?.status ?? "";
+
+  if (!text && !status) {
+    return (
+      <div className="podcastFieldFeedbackBadge">
+        {t("podcastWorkshop.noTeacherResponse")}
+        <style jsx>{`
+          .podcastFieldFeedbackBadge {
+            border-radius: 999px;
+            background: white;
+            padding: 7px 10px;
+            color: #0f766e;
+            font-size: 12px;
+            font-weight: 900;
+            text-align: center;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div className={status === "needs_work" ? "podcastFieldFeedback needsWork" : "podcastFieldFeedback"}>
+      <div className="podcastFieldFeedbackTop">
+        <strong>{t("podcastWorkshop.teacherFeedbackTitle")}</strong>
+        {status ? (
+          <span>
+            {status === "needs_work"
+              ? t("podcastWorkshop.teacherNeedsWork")
+              : t("podcastWorkshop.teacherApproved")}
+          </span>
+        ) : null}
+      </div>
+      {text ? <p>{text}</p> : null}
+
+      <style jsx>{`
+        .podcastFieldFeedback {
+          display: grid;
+          gap: 8px;
+          border: 1px solid rgba(16, 185, 129, 0.28);
+          border-radius: 13px;
+          background: rgba(236, 253, 245, 0.98);
+          padding: 10px;
+          color: #0f172a;
+        }
+
+        .podcastFieldFeedback.needsWork {
+          border-color: rgba(245, 158, 11, 0.34);
+          background: rgba(255, 251, 235, 0.98);
+        }
+
+        .podcastFieldFeedbackTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .podcastFieldFeedbackTop strong {
+          color: #065f46;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .podcastFieldFeedback.needsWork .podcastFieldFeedbackTop strong {
+          color: #92400e;
+        }
+
+        .podcastFieldFeedbackTop span {
+          border-radius: 999px;
+          background: white;
+          color: #047857;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastFieldFeedback.needsWork .podcastFieldFeedbackTop span {
+          color: #92400e;
+        }
+
+        .podcastFieldFeedback p {
+          margin: 0;
+          white-space: pre-wrap;
+          color: #0f172a;
+          font-size: 13px;
+          font-weight: 750;
+          line-height: 1.5;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function SegmentFields({
   config,
   segments,
@@ -1650,6 +1770,7 @@ function SegmentFields({
   readOnly,
   t,
   mode,
+  feedback,
   onVoiceChange,
   onPlan,
   onScript,
@@ -1663,6 +1784,7 @@ function SegmentFields({
   readOnly: boolean;
   t: TFn;
   mode: "plan" | "script";
+  feedback: PodcastWorkshopFeedback | null;
   onVoiceChange?: (segmentId: string, voice: StudentAudioAsset | null) => void;
   onPlan: (segmentId: string, text: string) => void;
   onScript: (segmentId: string, text: string) => void;
@@ -1747,6 +1869,7 @@ function SegmentFields({
             </div>
             <SegmentSupportCard
               config={config}
+              feedback={feedback?.fields?.[`${mode}.${segment.id}`] ?? null}
               supportWords={getSupportWords(config, supportKeyForSegment(segment.id), supportFallbackId)}
               room={mode}
               sectionId={supportKeyForSegment(segment.id)}
@@ -1796,6 +1919,7 @@ function SegmentFields({
 
 function SegmentSupportCard({
   config,
+  feedback,
   supportWords,
   room,
   sectionId,
@@ -1806,6 +1930,7 @@ function SegmentSupportCard({
   t,
 }: {
   config: PodcastWorkshopConfig;
+  feedback: PodcastWorkshopFeedback["fields"][string] | null;
   supportWords: string[];
   room: RoomKey;
   sectionId: string;
@@ -1876,6 +2001,7 @@ function SegmentSupportCard({
           )}
         </div>
       ) : null}
+      <FieldTeacherFeedback feedback={feedback} t={t} />
 
       <style jsx>{`
         .segmentSupportCard {
