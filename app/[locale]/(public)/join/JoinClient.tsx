@@ -61,23 +61,22 @@ export default function JoinClient() {
   const [err, setErr] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
-  async function waitForUser(): Promise<User> {
+  async function waitForInitialAuthUser(): Promise<User | null> {
     const current = auth.currentUser;
     if (current) return current;
 
-    return await new Promise<User>((resolve, reject) => {
+    return await new Promise<User | null>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error(t("errors.authTimeout")));
+        unsub();
+        resolve(auth.currentUser ?? null);
       }, 10000);
 
       const unsub = onAuthStateChanged(
         auth,
         (u) => {
-          if (u) {
-            clearTimeout(timeout);
-            unsub();
-            resolve(u);
-          }
+          clearTimeout(timeout);
+          unsub();
+          resolve(u);
         },
         (authErr) => {
           clearTimeout(timeout);
@@ -86,6 +85,13 @@ export default function JoinClient() {
         }
       );
     });
+  }
+
+  async function getJoinUser(): Promise<User> {
+    const existingUser = await waitForInitialAuthUser();
+    if (existingUser) return existingUser;
+
+    return ensureAnonymousUser();
   }
 
   function mapApiError(data: JoinApiError, fallback: string): string {
@@ -117,9 +123,7 @@ export default function JoinClient() {
       setCheckingExisting(true);
 
       try {
-        await ensureAnonymousUser();
-
-        const u = await waitForUser();
+        const u = await getJoinUser();
         const token = await u.getIdToken();
 
         const res = await fetch("/api/spaces/join", {
@@ -176,9 +180,7 @@ export default function JoinClient() {
     setErr(null);
 
     try {
-      await ensureAnonymousUser();
-
-      const u = await waitForUser();
+      const u = await getJoinUser();
       const token = await u.getIdToken();
 
       const res = await fetch("/api/spaces/join", {
