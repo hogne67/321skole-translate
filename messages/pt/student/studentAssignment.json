@@ -260,6 +260,8 @@
       "finalNotesPlaceholder": "Escreva uma breve autoavaliação do trabalho e do podcast final.",
       "draftFooterHint": "Salve rascunhos durante o trabalho. O professor pode ver seu trabalho.",
       "goToFinalBeforeSubmit": "Vá para a Sala final antes de enviar o podcast ao professor.",
+      "finalReflectionRequired": "Escreva uma breve avaliação final antes de enviar o podcast.",
+      "criteriaRequired": "Marque os critérios antes de enviar o podcast.",
       "submitFooterHint": "Envie quando o podcast estiver totalmente pronto. Depois de enviar, você não poderá editar até o professor abrir para melhorias.",
       "supportTitle": "Apoio",
       "supportHint": "Escolha apoio quando precisar.",

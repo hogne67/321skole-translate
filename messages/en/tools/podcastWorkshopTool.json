@@ -111,8 +111,8 @@
       "aiOff": "Off",
       "aiUsageLimit": "AI uses per student",
       "aiUses": "{n} times",
-      "evaluationEnabled": "Show evaluation/checklist in the final room",
-      "evaluationHelp": "When this is off, the student submits without checking the criteria themselves.",
+      "evaluationEnabled": "Final reflection before submitting",
+      "evaluationHelp": "Recommended and usually on: the student writes a short self-assessment and checks off the criteria before submitting.",
       "locked": "Beta v1 is individual and private: only the teacher/owner can see the final product when the student flow is connected."
     },
     "overview": {

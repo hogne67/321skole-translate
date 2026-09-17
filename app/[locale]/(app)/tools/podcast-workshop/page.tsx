@@ -559,16 +559,23 @@ export default function PodcastWorkshopPage() {
               </select>
             </Field>
           </div>
-          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-800">
+          <label
+            className={[
+              "flex cursor-pointer items-start gap-4 rounded-xl border p-4 text-sm font-bold transition",
+              evaluationEnabled
+                ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                : "border-slate-300 bg-slate-50 text-slate-800",
+            ].join(" ")}
+          >
             <input
               type="checkbox"
               checked={evaluationEnabled}
               onChange={(event) => setEvaluationEnabled(event.target.checked)}
-              className="mt-1 h-4 w-4"
+              className="mt-0.5 h-6 w-6 shrink-0 accent-emerald-700"
             />
             <span>
               <span className="block text-slate-950">{t("settings.evaluationEnabled")}</span>
-              <span className="block pt-1 text-xs font-semibold leading-5 text-slate-600">
+              <span className="block pt-1 text-sm font-semibold leading-6 text-slate-700">
                 {t("settings.evaluationHelp")}
               </span>
             </span>

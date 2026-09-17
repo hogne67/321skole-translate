@@ -111,8 +111,8 @@
       "aiOff": "Desligado",
       "aiUsageLimit": "Usos de IA por estudante",
       "aiUses": "{n} vezes",
-      "evaluationEnabled": "Mostrar avaliação/lista final",
-      "evaluationHelp": "Quando desligado, o estudante envia sem marcar os critérios.",
+      "evaluationEnabled": "Avaliação final antes de enviar",
+      "evaluationHelp": "Recomendado e normalmente ligado: o estudante escreve uma breve autoavaliação e marca os critérios antes de enviar.",
       "locked": "A beta v1 é individual e privada: apenas o professor/responsável pode ver o produto final quando o fluxo do estudante for conectado."
     },
     "overview": {

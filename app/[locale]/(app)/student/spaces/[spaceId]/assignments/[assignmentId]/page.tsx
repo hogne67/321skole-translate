@@ -1456,6 +1456,27 @@ export default function StudentAssignmentPage() {
         return;
       }
 
+      const activePodcastConfig = isPodcastWorkshop ? podcastWorkshopConfig : null;
+      if (activePodcastConfig && activePodcastConfig.evaluationEnabled !== false) {
+        const hasFinalReflection = podcastWorkshopSubmission.notes.trim().length > 0;
+        if (!hasFinalReflection) {
+          setErr(null);
+          setMsg(t("podcastWorkshop.finalReflectionRequired"));
+          return;
+        }
+
+        const criteriaCount = activePodcastConfig.criteria.length;
+        const checkedCriteriaCount = Array.from({ length: criteriaCount }, (_, index) => {
+          return podcastWorkshopSubmission.selfAssessment[`criterion_${index}`] === true;
+        }).filter(Boolean).length;
+
+        if (criteriaCount > 0 && checkedCriteriaCount < criteriaCount) {
+          setErr(null);
+          setMsg(t("podcastWorkshop.criteriaRequired"));
+          return;
+        }
+      }
+
       if ((sid || editingSubmissionId) && editingSubmissionId == null) {
         setErr(null);
         setMsg(t("messages.lockedNoChanges"));
@@ -1677,6 +1698,7 @@ export default function StudentAssignmentPage() {
       audioReadingEnabled,
       audioReadingSubmission,
       isPodcastWorkshop,
+      podcastWorkshopConfig,
       podcastWorkshopSubmission,
       podcastWorkshopActiveRoom,
       readingTestTotalSeconds,

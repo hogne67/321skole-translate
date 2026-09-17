@@ -111,8 +111,8 @@
       "aiOff": "Av",
       "aiUsageLimit": "KI-bruk per elev",
       "aiUses": "{n} ganger",
-      "evaluationEnabled": "Vis evaluering/sjekkliste i sluttrommet",
-      "evaluationHelp": "Når denne er av, leverer eleven uten å huke av kriteriene selv.",
+      "evaluationEnabled": "Sluttvurdering før levering",
+      "evaluationHelp": "Anbefalt og vanligvis på: eleven må skrive en kort egenvurdering og huke av kriteriene før levering.",
       "locked": "Beta v1 er individuell og privat: bare lærer/eier kan se sluttproduktet når elevflyten kobles på."
     },
     "overview": {
