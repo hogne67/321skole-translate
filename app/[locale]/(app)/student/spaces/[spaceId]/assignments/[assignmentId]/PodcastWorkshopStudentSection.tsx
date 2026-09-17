@@ -858,39 +858,52 @@ function AssignmentRoom({
   t: TFn;
   onCriterionToggle: (key: string) => void;
 }) {
+  const assignmentCriteria = [
+    ...config.criteria.map((criterion, index) => ({
+      key: `criterion_${index}`,
+      text: criterion,
+      checked: value.selfAssessment[`criterion_${index}`] === true,
+      onToggle: () => onCriterionToggle(`criterion_${index}`),
+    })),
+    {
+      key: "targetDuration",
+      text: t("podcastWorkshop.targetDurationCriterion", { duration: formatMinutes(config.targetDurationSeconds) }),
+      checked: value.selfAssessment.targetDuration === true,
+      onToggle: () => onCriterionToggle("targetDuration"),
+    },
+  ];
+
   return (
     <RoomCard title={t("podcastWorkshop.assignmentTitle")} help={t("podcastWorkshop.assignmentHelp")}>
       <div className="podcastAssignmentRoomText">
         {config.assignmentText || t("podcastWorkshop.noAssignmentText")}
       </div>
 
-      {config.criteria.length > 0 ? (
+      {assignmentCriteria.length > 0 ? (
         <div className="podcastAssignmentCriteria">
-          <h4>{config.evaluationEnabled ? t("podcastWorkshop.finalChecklistTitle") : t("podcastWorkshop.criteria")}</h4>
+          <h4>{t("podcastWorkshop.criteria")}</h4>
+          <p>{t("podcastWorkshop.criteriaReadHint")}</p>
           {config.evaluationEnabled ? (
             <div className="podcastAssignmentChecks">
-              {config.criteria.map((criterion, index) => {
-                const key = `criterion_${index}`;
-                return (
-                  <label
-                    key={key}
-                    className={value.selfAssessment[key] ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={value.selfAssessment[key] === true}
-                      disabled={readOnly}
-                      onChange={() => onCriterionToggle(key)}
-                    />
-                    <span>{criterion}</span>
-                  </label>
-                );
-              })}
+              {assignmentCriteria.map((criterion) => (
+                <label
+                  key={criterion.key}
+                  className={criterion.checked ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={criterion.checked}
+                    disabled={readOnly}
+                    onChange={criterion.onToggle}
+                  />
+                  <span>{criterion.text}</span>
+                </label>
+              ))}
             </div>
           ) : (
             <div className="podcastAssignmentPills">
-              {config.criteria.map((criterion) => (
-                <span key={criterion}>{criterion}</span>
+              {assignmentCriteria.map((criterion) => (
+                <span key={criterion.key}>{criterion.text}</span>
               ))}
             </div>
           )}
@@ -918,6 +931,14 @@ function AssignmentRoom({
           margin: 0;
           color: #0f172a;
           font-size: 15px;
+        }
+
+        .podcastAssignmentCriteria p {
+          margin: -4px 0 2px;
+          color: #475569;
+          font-size: 13px;
+          font-weight: 750;
+          line-height: 1.45;
         }
 
         .podcastAssignmentChecks {
