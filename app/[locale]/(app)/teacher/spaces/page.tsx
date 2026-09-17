@@ -11,7 +11,6 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
-import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
 type Row = { id: string; data: SpaceDocSafe };
@@ -62,6 +61,10 @@ function getOrigin() {
   }
 
   return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+}
+
+function FutureVideoSlot() {
+  return <div aria-hidden="true" className="hidden h-10 w-[156px] shrink-0 lg:block" />;
 }
 
 export default function TeacherSpacesPage() {
@@ -346,15 +349,7 @@ function TeacherSpacesInner() {
                 <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("guestPreview.subtitle")}</p>
               </div>
 
-              <TrainingVideoPlayer
-                title={t("trainingVideo.title")}
-                videoUrl="https://youtu.be/7zjhziVmGvc"
-                buttonLabel={t("trainingVideo.button")}
-                buttonTitle={t("trainingVideo.buttonTitle")}
-                closeLabel={t("trainingVideo.close")}
-                description={t("trainingVideo.description")}
-                thumbnail
-              />
+              <FutureVideoSlot />
             </div>
           </div>
 
@@ -420,15 +415,7 @@ function TeacherSpacesInner() {
           </div>
 
           <div className="flex w-full min-w-0 flex-wrap gap-2 sm:items-center lg:w-auto lg:justify-end">
-            <TrainingVideoPlayer
-              title={t("trainingVideo.title")}
-              videoUrl="https://youtu.be/7zjhziVmGvc"
-              buttonLabel={t("trainingVideo.button")}
-              buttonTitle={t("trainingVideo.buttonTitle")}
-              closeLabel={t("trainingVideo.close")}
-              description={t("trainingVideo.description")}
-              thumbnail
-            />
+            <FutureVideoSlot />
           </div>
         </div>
       </div>

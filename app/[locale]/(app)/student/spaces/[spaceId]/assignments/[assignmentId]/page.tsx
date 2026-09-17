@@ -1994,6 +1994,8 @@ export default function StudentAssignmentPage() {
 
         {!isReadingTest && isPodcastWorkshop && podcastWorkshopConfig ? (
           <PodcastWorkshopStudentSection
+            spaceId={spaceId}
+            assignmentId={assignmentId}
             title={mainTitle}
             config={podcastWorkshopConfig}
             value={podcastWorkshopSubmission}

@@ -118,6 +118,8 @@ export default function PodcastWorkshopPage() {
   const [targetMinutes, setTargetMinutes] = useState("4");
   const [scriptMode, setScriptMode] = useState<ScriptMode>("bullet_points");
   const [aiSupport, setAiSupport] = useState<AiSupport>("coach");
+  const [aiUsageLimit, setAiUsageLimit] = useState("3");
+  const [evaluationEnabled, setEvaluationEnabled] = useState(true);
   const [criteria, setCriteria] = useState<string[]>(() => [
     t("defaults.criteria.intro"),
     t("defaults.criteria.assignment"),
@@ -246,6 +248,8 @@ export default function PodcastWorkshopPage() {
         setTargetMinutes(minutesFromSeconds(config.targetDurationSeconds) || "4");
         setScriptMode(config.scriptMode === "script" ? "script" : "bullet_points");
         setAiSupport(config.aiSupport === "off" ? "off" : "coach");
+        setAiUsageLimit(typeof config.aiUsageLimit === "number" ? String(config.aiUsageLimit) : "3");
+        setEvaluationEnabled(config.evaluationEnabled !== false);
         setCriteria(stringArray(config.criteria));
         setVocabulary(stringArray(config.vocabulary));
         setGuidingQuestions([]);
@@ -352,6 +356,8 @@ export default function PodcastWorkshopPage() {
         targetDurationSeconds,
         scriptMode,
         aiSupport,
+        aiUsageLimit: Math.max(0, Math.min(10, Math.round(Number(aiUsageLimit) || 0))),
+        evaluationEnabled,
         criteria,
         vocabulary,
         guidingQuestions,
@@ -531,7 +537,33 @@ export default function PodcastWorkshopPage() {
                 <option value="off">{t("settings.aiOff")}</option>
               </select>
             </Field>
+            <Field label={t("settings.aiUsageLimit")}>
+              <select
+                value={aiSupport === "off" ? "0" : aiUsageLimit}
+                onChange={(e) => setAiUsageLimit(e.target.value)}
+                disabled={aiSupport === "off"}
+                className={inputClass}
+              >
+                {[0, 1, 2, 3, 4, 5, 6, 8, 10].map((n) => (
+                  <option key={n} value={String(n)}>{t("settings.aiUses", { n })}</option>
+                ))}
+              </select>
+            </Field>
           </div>
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-800">
+            <input
+              type="checkbox"
+              checked={evaluationEnabled}
+              onChange={(event) => setEvaluationEnabled(event.target.checked)}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <span className="block text-slate-950">{t("settings.evaluationEnabled")}</span>
+              <span className="block pt-1 text-xs font-semibold leading-5 text-slate-600">
+                {t("settings.evaluationHelp")}
+              </span>
+            </span>
+          </label>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
             {t("settings.locked")}
           </div>

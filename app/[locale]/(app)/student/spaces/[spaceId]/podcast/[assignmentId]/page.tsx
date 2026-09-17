@@ -355,6 +355,8 @@ export default function StudentPodcastWorkshopPage() {
       </Link>
 
       <PodcastWorkshopStudentSection
+        spaceId={spaceId}
+        assignmentId={assignmentId}
         title={assignment?.title ?? t("fallback.title")}
         config={config}
         value={submission}

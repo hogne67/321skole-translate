@@ -109,6 +109,10 @@
       "aiSupport": "AI support",
       "aiCoach": "Coach",
       "aiOff": "Off",
+      "aiUsageLimit": "AI uses per student",
+      "aiUses": "{n} times",
+      "evaluationEnabled": "Show evaluation/checklist in the final room",
+      "evaluationHelp": "When this is off, the student submits without checking the criteria themselves.",
       "locked": "Beta v1 is individual and private: only the teacher/owner can see the final product when the student flow is connected."
     },
     "overview": {

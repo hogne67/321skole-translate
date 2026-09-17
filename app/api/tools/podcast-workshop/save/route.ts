@@ -16,6 +16,8 @@ type SavePodcastWorkshopBody = {
   targetDurationSeconds?: unknown;
   scriptMode?: unknown;
   aiSupport?: unknown;
+  aiUsageLimit?: unknown;
+  evaluationEnabled?: unknown;
   criteria?: unknown;
   vocabulary?: unknown;
   guidingQuestions?: unknown;
@@ -91,6 +93,17 @@ function cleanDurationSeconds(value: unknown): number | null {
   return Math.min(60 * 30, rounded);
 }
 
+function cleanInt(value: unknown, fallback: number, min: number, max: number): number {
+  const raw =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : fallback;
+  const n = Number.isFinite(raw) ? Math.round(raw) : fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
 export async function POST(req: Request) {
   try {
     const token = getBearerToken(req);
@@ -111,6 +124,8 @@ export async function POST(req: Request) {
     const targetDurationSeconds = cleanDurationSeconds(body.targetDurationSeconds);
     const scriptMode = safeString(body.scriptMode) === "script" ? "script" : "bullet_points";
     const aiSupport = safeString(body.aiSupport) === "off" ? "off" : "coach";
+    const aiUsageLimit = aiSupport === "off" ? 0 : cleanInt(body.aiUsageLimit, 3, 0, 10);
+    const evaluationEnabled = body.evaluationEnabled === false ? false : true;
     const criteria = cleanStringList(body.criteria, 12);
     const vocabulary = cleanStringList(body.vocabulary, 20);
     const guidingQuestions = cleanStringList(body.guidingQuestions, 16);
@@ -159,6 +174,8 @@ export async function POST(req: Request) {
         visibility: "teacher_only",
         scriptMode,
         aiSupport,
+        aiUsageLimit,
+        evaluationEnabled,
         criteria,
         vocabulary,
         guidingQuestions,

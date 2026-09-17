@@ -15,12 +15,15 @@ import {
   resolveStudentAudioForPlayback,
   type StudentAudioAsset,
 } from "@/lib/audio/studentAudio";
+import { authedPost } from "@/lib/authedPost";
 import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/podcastSoundLibrary";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 type RoomKey = PodcastWorkshopRoomKey;
 
 type Props = {
+  spaceId: string;
+  assignmentId: string;
   title: string;
   config: PodcastWorkshopConfig;
   value: PodcastWorkshopSubmission;
@@ -30,6 +33,24 @@ type Props = {
   t: TFn;
   onChange: (next: PodcastWorkshopSubmission) => void;
   onRoomChange?: (room: PodcastWorkshopRoomKey) => void;
+};
+
+type PodcastAiSupportResponse = {
+  supportText?: string;
+  usage?: {
+    used: number;
+    limit: number;
+    remaining: number;
+  };
+  error?: string;
+};
+
+type PodcastAiSupportRequest = {
+  sectionId: string;
+  sectionTitle: string;
+  room: RoomKey;
+  mode: "ideas" | "plan" | "script" | "segment";
+  currentText: string;
 };
 
 const cardStyle: CSSProperties = {
@@ -195,6 +216,8 @@ function blobToDataUrl(blob: Blob) {
 }
 
 export default function PodcastWorkshopStudentSection({
+  spaceId,
+  assignmentId,
   title,
   config,
   value,
@@ -284,6 +307,16 @@ export default function PodcastWorkshopStudentSection({
     patch({ selfAssessment: { ...value.selfAssessment, [key]: !value.selfAssessment[key] } });
   }
 
+  async function requestAiSupport(args: PodcastAiSupportRequest) {
+    return await authedPost<PodcastAiSupportResponse>(
+      `/api/spaces/${encodeURIComponent(spaceId)}/lessons/${encodeURIComponent(assignmentId)}/podcast-ai-support`,
+      {
+        ...args,
+        podcastWorkshop: value,
+      }
+    );
+  }
+
   function addCustomSegment() {
     const customSegments = value.customSegments ?? [];
     const nextNumber = customSegments.length + 1;
@@ -317,6 +350,10 @@ export default function PodcastWorkshopStudentSection({
             supportWords={getSupportWords(config, "podcastName")}
             allowAi={false}
             t={t}
+            room="ideas"
+            sectionId="podcastName"
+            currentText={value.podcastName ?? ""}
+            onAiHelp={requestAiSupport}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-name">{t("podcastWorkshop.podcastNameLabel")}</label>
@@ -339,6 +376,10 @@ export default function PodcastWorkshopStudentSection({
             config={config}
             supportWords={getSupportWords(config, "ideas")}
             t={t}
+            room="ideas"
+            sectionId="ideas"
+            currentText={value.ideas}
+            onAiHelp={requestAiSupport}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-ideas">{t("podcastWorkshop.ideasLabel")}</label>
@@ -361,6 +402,10 @@ export default function PodcastWorkshopStudentSection({
             config={config}
             supportWords={getSupportWords(config, "participants")}
             t={t}
+            room="ideas"
+            sectionId="participants"
+            currentText={value.participants ?? ""}
+            onAiHelp={requestAiSupport}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-participants">{t("podcastWorkshop.participantsLabel")}</label>
@@ -383,6 +428,10 @@ export default function PodcastWorkshopStudentSection({
             config={config}
             supportWords={getSupportWords(config, "importantPoints")}
             t={t}
+            room="ideas"
+            sectionId="importantPoints"
+            currentText={value.importantPoints ?? ""}
+            onAiHelp={requestAiSupport}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-important-points">{t("podcastWorkshop.importantPointsLabel")}</label>
@@ -405,6 +454,10 @@ export default function PodcastWorkshopStudentSection({
             config={config}
             supportWords={getSupportWords(config, "listenerTakeaway")}
             t={t}
+            room="ideas"
+            sectionId="listenerTakeaway"
+            currentText={value.listenerTakeaway ?? ""}
+            onAiHelp={requestAiSupport}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-listener-takeaway">{t("podcastWorkshop.listenerTakeawayLabel")}</label>
@@ -436,6 +489,7 @@ export default function PodcastWorkshopStudentSection({
             onPlan={patchPlan}
             onScript={patchScript}
             supportFallbackId="segment"
+            onAiHelp={requestAiSupport}
           />
         </RoomCard>
       );
@@ -459,6 +513,7 @@ export default function PodcastWorkshopStudentSection({
             onScript={patchScript}
             onAddSegment={addCustomSegment}
             supportFallbackId="segment"
+            onAiHelp={requestAiSupport}
           />
         </RoomCard>
       );
@@ -1145,6 +1200,10 @@ function IdeaWorkCard({
   supportWords,
   allowAi = true,
   t,
+  room,
+  sectionId,
+  currentText,
+  onAiHelp,
   children,
 }: {
   title: string;
@@ -1154,10 +1213,40 @@ function IdeaWorkCard({
   supportWords: string[];
   allowAi?: boolean;
   t: TFn;
+  room: RoomKey;
+  sectionId: string;
+  currentText: string;
+  onAiHelp: (args: PodcastAiSupportRequest) => Promise<PodcastAiSupportResponse>;
   children: ReactNode;
 }) {
   const [showSupportWords, setShowSupportWords] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [usageText, setUsageText] = useState("");
   const visibleWords = supportWords.filter(Boolean);
+  const aiDisabled = config.aiSupport === "off" || config.aiUsageLimit <= 0 || aiLoading;
+
+  async function handleAiHelp() {
+    if (aiDisabled) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await onAiHelp({
+        sectionId,
+        sectionTitle: title,
+        room,
+        mode: "ideas",
+        currentText,
+      });
+      setAiText(response.supportText ?? "");
+      setUsageText(response.usage ? t("podcastWorkshop.aiUsage", response.usage) : "");
+    } catch (error: unknown) {
+      setAiError(error instanceof Error ? error.message : t("podcastWorkshop.aiHelpFailed"));
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <section className="podcastIdeaWorkCard">
@@ -1180,9 +1269,19 @@ function IdeaWorkCard({
             {showSupportWords ? t("podcastWorkshop.hideVocabulary") : t("podcastWorkshop.showVocabulary")}
           </button>
           {allowAi ? (
-            <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+            <button type="button" disabled={aiDisabled} onClick={handleAiHelp}>
+              {aiLoading ? t("podcastWorkshop.aiLoading") : t("podcastWorkshop.getAiHelp")}
+            </button>
           ) : null}
         </div>
+        {aiText ? (
+          <div className="podcastAiResponse">
+            <strong>{t("podcastWorkshop.aiSuggestionTitle")}</strong>
+            <div>{aiText}</div>
+            {usageText ? <small>{usageText}</small> : null}
+          </div>
+        ) : null}
+        {aiError ? <div className="podcastAiError">{aiError}</div> : null}
         {showSupportWords ? (
           <div className="podcastIdeaSupportWords">
             {visibleWords.length > 0 ? (
@@ -1274,6 +1373,39 @@ function IdeaWorkCard({
           text-align: center;
         }
 
+        .podcastAiResponse,
+        .podcastAiError {
+          border-radius: 12px;
+          background: white;
+          padding: 10px;
+          color: #0f172a;
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.5;
+          white-space: pre-wrap;
+        }
+
+        .podcastAiResponse strong {
+          display: block;
+          margin-bottom: 4px;
+          color: #047857;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .podcastAiResponse small {
+          display: block;
+          margin-top: 7px;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .podcastAiError {
+          color: #9f1239;
+          background: #fff1f2;
+        }
+
         .podcastIdeaSupport p {
           margin: 0;
           font-size: 13px;
@@ -1342,6 +1474,7 @@ function SegmentFields({
   onScript,
   onAddSegment,
   supportFallbackId,
+  onAiHelp,
 }: {
   config: PodcastWorkshopConfig;
   segments: PodcastWorkshopConfig["segments"];
@@ -1354,6 +1487,7 @@ function SegmentFields({
   onScript: (segmentId: string, text: string) => void;
   onAddSegment?: () => void;
   supportFallbackId: string;
+  onAiHelp: (args: PodcastAiSupportRequest) => Promise<PodcastAiSupportResponse>;
 }) {
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -1433,6 +1567,12 @@ function SegmentFields({
             <SegmentSupportCard
               config={config}
               supportWords={getSupportWords(config, supportKeyForSegment(segment.id), supportFallbackId)}
+              room={mode}
+              sectionId={supportKeyForSegment(segment.id)}
+              sectionTitle={segment.title}
+              currentText={mode === "plan" ? value.segmentPlans[segment.id] ?? "" : value.segmentScripts[segment.id] ?? ""}
+              mode={mode === "plan" ? "plan" : "script"}
+              onAiHelp={onAiHelp}
               t={t}
             />
           </div>
@@ -1476,14 +1616,52 @@ function SegmentFields({
 function SegmentSupportCard({
   config,
   supportWords,
+  room,
+  sectionId,
+  sectionTitle,
+  currentText,
+  mode,
+  onAiHelp,
   t,
 }: {
   config: PodcastWorkshopConfig;
   supportWords: string[];
+  room: RoomKey;
+  sectionId: string;
+  sectionTitle: string;
+  currentText: string;
+  mode: "plan" | "script";
+  onAiHelp: (args: PodcastAiSupportRequest) => Promise<PodcastAiSupportResponse>;
   t: TFn;
 }) {
   const [showSupportWords, setShowSupportWords] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [usageText, setUsageText] = useState("");
   const visibleWords = supportWords.filter(Boolean);
+  const aiDisabled = config.aiSupport === "off" || config.aiUsageLimit <= 0 || aiLoading;
+
+  async function handleAiHelp() {
+    if (aiDisabled) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await onAiHelp({
+        sectionId,
+        sectionTitle,
+        room,
+        mode,
+        currentText,
+      });
+      setAiText(response.supportText ?? "");
+      setUsageText(response.usage ? t("podcastWorkshop.aiUsage", response.usage) : "");
+    } catch (error: unknown) {
+      setAiError(error instanceof Error ? error.message : t("podcastWorkshop.aiHelpFailed"));
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <aside className="segmentSupportCard">
@@ -1496,8 +1674,18 @@ function SegmentSupportCard({
         <button type="button" onClick={() => setShowSupportWords((current) => !current)}>
           {showSupportWords ? t("podcastWorkshop.hideVocabulary") : t("podcastWorkshop.showVocabulary")}
         </button>
-        <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+        <button type="button" disabled={aiDisabled} onClick={handleAiHelp}>
+          {aiLoading ? t("podcastWorkshop.aiLoading") : t("podcastWorkshop.getAiHelp")}
+        </button>
       </div>
+      {aiText ? (
+        <div className="segmentAiResponse">
+          <strong>{t("podcastWorkshop.aiSuggestionTitle")}</strong>
+          <div>{aiText}</div>
+          {usageText ? <small>{usageText}</small> : null}
+        </div>
+      ) : null}
+      {aiError ? <div className="segmentAiError">{aiError}</div> : null}
       {showSupportWords ? (
         <div className="segmentSupportWords">
           {visibleWords.length > 0 ? (
@@ -1567,6 +1755,39 @@ function SegmentSupportCard({
         .segmentSupportActions button:disabled {
           cursor: not-allowed;
           opacity: 0.55;
+        }
+
+        .segmentAiResponse,
+        .segmentAiError {
+          border-radius: 12px;
+          background: white;
+          padding: 10px;
+          color: #0f172a;
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.5;
+          white-space: pre-wrap;
+        }
+
+        .segmentAiResponse strong {
+          display: block;
+          margin-bottom: 4px;
+          color: #047857;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .segmentAiResponse small {
+          display: block;
+          margin-top: 7px;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .segmentAiError {
+          color: #9f1239;
+          background: #fff1f2;
         }
 
         .segmentSupportWords {
@@ -1902,7 +2123,7 @@ function FinalRoom({
         style={{ ...textareaStyle, minHeight: 108, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
       />
 
-      {config.criteria.length > 0 ? (
+      {config.evaluationEnabled && config.criteria.length > 0 ? (
         <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
           <h4 style={{ margin: "0 0 2px", fontSize: 15 }}>{t("podcastWorkshop.finalChecklistTitle")}</h4>
           {config.criteria.map((criterion, index) => {

@@ -13,6 +13,8 @@ export type PodcastWorkshopConfig = {
     targetDurationSeconds: number;
     scriptMode: "bullet_points" | "script";
     aiSupport: "coach" | "off";
+    aiUsageLimit: number;
+    evaluationEnabled: boolean;
     criteria: string[];
     vocabulary: string[];
     guidingQuestions: string[];
@@ -142,6 +144,17 @@ function readNumber(value: unknown, fallback: number, min: number, max: number):
     return Math.max(min, Math.min(max, n));
 }
 
+function readInt(value: unknown, fallback: number, min: number, max: number): number {
+    const raw =
+        typeof value === "number"
+            ? value
+            : typeof value === "string"
+                ? Number(value)
+                : fallback;
+    const n = Number.isFinite(raw) ? Math.round(raw) : fallback;
+    return Math.max(min, Math.min(max, n));
+}
+
 function readAudioAsset(value: unknown): StudentAudioAsset | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const data = value as Record<string, unknown>;
@@ -248,6 +261,7 @@ export function readPodcastWorkshopConfig(
 
     const scriptMode = data.scriptMode === "script" ? "script" : "bullet_points";
     const aiSupport = data.aiSupport === "off" ? "off" : "coach";
+    const aiUsageLimit = aiSupport === "off" ? 0 : readInt(data.aiUsageLimit, 3, 0, 10);
 
     return {
         version: 1,
@@ -256,6 +270,8 @@ export function readPodcastWorkshopConfig(
         targetDurationSeconds,
         scriptMode,
         aiSupport,
+        aiUsageLimit,
+        evaluationEnabled: data.evaluationEnabled === false ? false : true,
         criteria: readStringArray(data.criteria),
         vocabulary: readStringArray(data.vocabulary),
         guidingQuestions: readStringArray(data.guidingQuestions),
