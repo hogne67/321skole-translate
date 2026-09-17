@@ -20,6 +20,7 @@ import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 type RoomKey = PodcastWorkshopRoomKey;
+type StudentRoomKey = "assignment" | RoomKey;
 
 type Props = {
   spaceId: string;
@@ -91,7 +92,8 @@ function hasText(value: string | undefined) {
   return String(value ?? "").trim().length > 0;
 }
 
-function roomStatus(room: RoomKey, config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+function roomStatus(room: StudentRoomKey, config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  if (room === "assignment") return "later";
   const segments = getPodcastWorkshopSegments(config, value);
   if (room === "ideas") {
     return [value.podcastName, value.ideas, value.participants, value.importantPoints, value.listenerTakeaway].some(hasText)
@@ -228,16 +230,17 @@ export default function PodcastWorkshopStudentSection({
   onChange,
   onRoomChange,
 }: Props) {
-  const [activeRoom, setActiveRoom] = useState<RoomKey>("ideas");
+  const [activeRoom, setActiveRoom] = useState<StudentRoomKey>("assignment");
   const readOnly = disabled || submitted;
   const segments = useMemo(() => getPodcastWorkshopSegments(config, value), [config, value]);
 
   useEffect(() => {
-    onRoomChange?.(activeRoom);
+    if (activeRoom !== "assignment") onRoomChange?.(activeRoom);
   }, [activeRoom, onRoomChange]);
 
   const rooms = useMemo(
     () => [
+      { key: "assignment" as const, label: t("podcastWorkshop.assignmentTitle") },
       { key: "ideas" as const, label: t("podcastWorkshop.roomIdeas") },
       { key: "plan" as const, label: t("podcastWorkshop.roomPlan") },
       {
@@ -334,6 +337,18 @@ export default function PodcastWorkshopStudentSection({
   }
 
   function renderRoom() {
+    if (activeRoom === "assignment") {
+      return (
+        <AssignmentRoom
+          config={config}
+          value={value}
+          readOnly={readOnly}
+          t={t}
+          onCriterionToggle={toggleCriterion}
+        />
+      );
+    }
+
     if (activeRoom === "ideas") {
       return (
         <div className="podcastRoomStack">
@@ -596,20 +611,6 @@ export default function PodcastWorkshopStudentSection({
           <div className="podcastWorkshopStatus">{statusLabel(t, activeStatus)}</div>
         </div>
 
-        <div className="podcastWorkshopAssignment">
-          <strong>{t("podcastWorkshop.assignmentTitle")}</strong>
-          <div>{config.assignmentText || t("podcastWorkshop.noAssignmentText")}</div>
-          {config.criteria.length > 0 ? (
-            <div className="podcastWorkshopHeroCriteria">
-              <strong>{t("podcastWorkshop.criteria")}</strong>
-              <div>
-                {config.criteria.map((criterion) => (
-                  <span key={criterion}>{criterion}</span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
       </div>
 
       <nav aria-label={t("podcastWorkshop.roomsLabel")} className="podcastWorkshopRooms">
@@ -824,6 +825,106 @@ export default function PodcastWorkshopStudentSection({
         }
       `}</style>
     </section>
+  );
+}
+
+function AssignmentRoom({
+  config,
+  value,
+  readOnly,
+  t,
+  onCriterionToggle,
+}: {
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  readOnly: boolean;
+  t: TFn;
+  onCriterionToggle: (key: string) => void;
+}) {
+  return (
+    <RoomCard title={t("podcastWorkshop.assignmentTitle")} help={t("podcastWorkshop.assignmentHelp")}>
+      <div className="podcastAssignmentRoomText">
+        {config.assignmentText || t("podcastWorkshop.noAssignmentText")}
+      </div>
+
+      {config.criteria.length > 0 ? (
+        <div className="podcastAssignmentCriteria">
+          <h4>{config.evaluationEnabled ? t("podcastWorkshop.finalChecklistTitle") : t("podcastWorkshop.criteria")}</h4>
+          {config.evaluationEnabled ? (
+            <div className="podcastAssignmentChecks">
+              {config.criteria.map((criterion, index) => {
+                const key = `criterion_${index}`;
+                return (
+                  <label
+                    key={key}
+                    className={value.selfAssessment[key] ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={value.selfAssessment[key] === true}
+                      disabled={readOnly}
+                      onChange={() => onCriterionToggle(key)}
+                      style={{ marginTop: 3 }}
+                    />
+                    <span>{criterion}</span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="podcastAssignmentPills">
+              {config.criteria.map((criterion) => (
+                <span key={criterion}>{criterion}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <style jsx>{`
+        .podcastAssignmentRoomText {
+          border: 1px solid rgba(15, 23, 42, 0.10);
+          border-radius: 12px;
+          background: rgba(248, 250, 252, 0.78);
+          color: #0f172a;
+          line-height: 1.65;
+          padding: 14px;
+          white-space: pre-wrap;
+        }
+
+        .podcastAssignmentCriteria {
+          display: grid;
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .podcastAssignmentCriteria h4 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 15px;
+        }
+
+        .podcastAssignmentChecks {
+          display: grid;
+          gap: 8px;
+        }
+
+        .podcastAssignmentPills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .podcastAssignmentPills span {
+          border-radius: 999px;
+          background: rgba(236, 253, 245, 0.98);
+          color: #065f46;
+          padding: 7px 10px;
+          font-size: 12px;
+          font-weight: 850;
+        }
+      `}</style>
+    </RoomCard>
   );
 }
 

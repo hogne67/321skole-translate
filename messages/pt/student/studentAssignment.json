@@ -151,9 +151,10 @@
       }
     },
     "podcastWorkshop": {
-      "kicker": "Oficina de podcast",
-      "assignmentTitle": "Atividade",
-      "subjectFallback": "Podcast",
+        "kicker": "Oficina de podcast",
+        "assignmentTitle": "Atividade",
+        "assignmentHelp": "Leia a estrutura do podcast e consulte os critérios quando precisar.",
+        "subjectFallback": "Podcast",
       "roomsLabel": "Salas da oficina de podcast",
       "roomIdeas": "Sala de ideias",
       "roomPlan": "Sala de planejamento",

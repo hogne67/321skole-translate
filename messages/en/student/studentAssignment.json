@@ -151,9 +151,10 @@
       }
     },
     "podcastWorkshop": {
-      "kicker": "Podcast workshop",
-      "assignmentTitle": "Assignment",
-      "subjectFallback": "Podcast",
+        "kicker": "Podcast workshop",
+        "assignmentTitle": "Assignment",
+        "assignmentHelp": "Read the podcast frame and check the criteria when you need them.",
+        "subjectFallback": "Podcast",
       "roomsLabel": "Podcast workshop rooms",
       "roomIdeas": "Idea room",
       "roomPlan": "Planning room",

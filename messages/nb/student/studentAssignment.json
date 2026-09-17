@@ -151,9 +151,10 @@
       }
     },
     "podcastWorkshop": {
-      "kicker": "Podcastverksted",
-      "assignmentTitle": "Oppgave",
-      "subjectFallback": "Podcast",
+        "kicker": "Podcastverksted",
+        "assignmentTitle": "Oppgave",
+        "assignmentHelp": "Les rammene for podcasten og sjekk kriteriene når du trenger det.",
+        "subjectFallback": "Podcast",
       "roomsLabel": "Rom i Podcastverksted",
       "roomIdeas": "Idérom",
       "roomPlan": "Planleggingsrom",
