@@ -2,6 +2,7 @@
   "studentSpaces": {
     "title": "Meus spaces",
     "subtitle": "Aqui você encontra os spaces dos quais você é membro.",
+    "joinHint": "Recebeu um código da sala, código de aluno ou link do professor? Adicione a sala aqui.",
     "loading": "Carregando…",
     "defaultTitle": "Sem título",
     "empty": "Você ainda não é membro de nenhum space. Clique em <b>Entrar em um space</b> para começar.",
@@ -9,7 +10,7 @@
       "loadFailed": "Não foi possível carregar os spaces."
     },
     "actions": {
-      "joinSpace": "Entrar em um space",
+      "joinSpace": "Adicionar sala com código",
       "openSpace": "Abrir space",
       "openBoard": "Abrir quadro",
       "board": "Quadro"

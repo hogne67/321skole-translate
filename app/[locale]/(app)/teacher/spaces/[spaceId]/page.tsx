@@ -631,12 +631,18 @@ function Inner() {
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr]">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
             <Link
               href={withLocale(locale, `/teacher/spaces/${spaceId}/print`)}
               className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-sky-700 bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sky-500"
             >
               {t("actions.printRoom")}
+            </Link>
+            <Link
+              href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
+              className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-emerald-700 bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
+            >
+              Skriv ut elevtilganger
             </Link>
             <SpaceOpenSwitch
               checked={space?.isOpen === true}

@@ -2,6 +2,7 @@
   "studentSpaces": {
     "title": "My spaces",
     "subtitle": "Here you can find the spaces you are a member of.",
+    "joinHint": "Have you received a room code, student code, or link from your teacher? Add the room here.",
     "loading": "Loading…",
     "defaultTitle": "Untitled space",
     "empty": "You are not a member of any spaces yet. Press <b>Join space</b> to get started.",
@@ -9,7 +10,7 @@
       "loadFailed": "Could not load spaces."
     },
     "actions": {
-      "joinSpace": "Join space",
+      "joinSpace": "Add room with code",
       "openSpace": "Open space",
       "openBoard": "Open board",
       "board": "Board"

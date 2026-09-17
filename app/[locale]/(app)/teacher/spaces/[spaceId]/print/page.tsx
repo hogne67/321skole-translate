@@ -54,13 +54,14 @@ const copy: Record<string, Copy> = {
     roomCode: "Romkode",
     scan: "Skann QR-koden eller bruk romkoden.",
     joinTitle: "Slik kommer eleven inn",
-    joinText: 'Gå til 321school og trykk på "Spaces". Velg "Bli med i space" og skriv inn koden.',
+    joinText:
+      'Gå til 321school og trykk på "Spaces". Velg "Bli med i space" og skriv inn romkoden. Har eleven fått elevkode, skriver eleven inn den også.',
     anonymousTitle: "Anonym tilgang",
     anonymousText:
-      "Eleven kan bli med med romkode eller QR uten konto og uten e-post. Lærer kan se navnet eleven skriver inn og arbeidet som gjøres i rommet. Anonym tilgang huskes vanligvis bare på samme enhet og nettleser.",
+      "Eleven kan bli med med romkode eller QR uten konto og uten e-post. Med elevkode/lenke kan samme elev fortsette arbeidet sitt på ny enhet eller i ny nettleser.",
     accountTitle: "Innlogget bruker",
     accountText:
-      "Konto kan brukes når skolen eller foresatte har åpnet for det. Med konto kan arbeid lagres og brukes på tvers av enheter.",
+      "Konto kan brukes når skolen eller foresatte har åpnet for det. Elevkode fungerer også for innloggede elever og knytter arbeidet til riktig elev i rommet.",
     freeTitle: "Gratis for elever",
     freeText: "All bruk i spaces er gratis for elever og studenter med gyldig romkode delt av lærer eller skole.",
     passwordTitle: "Brukernavn og passord",
@@ -85,13 +86,14 @@ const copy: Record<string, Copy> = {
     roomCode: "Room code",
     scan: "Scan the QR code or use the room code.",
     joinTitle: "How students join",
-    joinText: 'Go to 321school and open "Spaces". Choose "Join space" and enter the code.',
+    joinText:
+      'Go to 321school and open "Spaces". Choose "Join space" and enter the room code. If the student has a student code, enter that too.',
     anonymousTitle: "Anonymous access",
     anonymousText:
-      "Students can join with a room code or QR code without an account and without email. The teacher can see the name the student enters and the work done in the room. Anonymous access is usually remembered only on the same device and browser.",
+      "Students can join with a room code or QR code without an account and without email. With a student code/link, the same student can continue their work on a new device or browser.",
     accountTitle: "Signed-in user",
     accountText:
-      "An account can be used when the school or guardians have approved it. With an account, work can be saved and used across devices.",
+      "An account can be used when the school or guardians have approved it. Student codes also work for signed-in students and connect the work to the right student in the room.",
     freeTitle: "Free for students",
     freeText: "Using spaces is free for students with a valid room code shared by a teacher or school.",
     passwordTitle: "Username and password",
@@ -116,13 +118,14 @@ const copy: Record<string, Copy> = {
     roomCode: "Código da sala",
     scan: "Escaneie o QR code ou use o código da sala.",
     joinTitle: "Como o aluno entra",
-    joinText: 'Acesse o 321school e abra "Spaces". Escolha "Entrar no space" e digite o código.',
+    joinText:
+      'Acesse o 321school e abra "Spaces". Escolha "Entrar no space" e digite o código da sala. Se o aluno tiver código de aluno, digite também.',
     anonymousTitle: "Acesso anônimo",
     anonymousText:
-      "O aluno pode entrar com código da sala ou QR code sem conta e sem e-mail. O professor pode ver o nome informado pelo aluno e o trabalho feito na sala. O acesso anônimo normalmente é lembrado apenas no mesmo dispositivo e navegador.",
+      "O aluno pode entrar com código da sala ou QR code sem conta e sem e-mail. Com código/link de aluno, o mesmo aluno pode continuar o trabalho em outro dispositivo ou navegador.",
     accountTitle: "Usuário conectado",
     accountText:
-      "Uma conta pode ser usada quando a escola ou os responsáveis tiverem autorizado. Com conta, o trabalho pode ser salvo e usado em diferentes dispositivos.",
+      "Uma conta pode ser usada quando a escola ou os responsáveis tiverem autorizado. Códigos de aluno também funcionam para alunos conectados e ligam o trabalho ao aluno correto na sala.",
     freeTitle: "Grátis para alunos",
     freeText: "O uso de spaces é grátis para alunos com código válido compartilhado por professor ou escola.",
     passwordTitle: "Usuário e senha",

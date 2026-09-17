@@ -2,6 +2,7 @@
   "studentSpaces": {
     "title": "Mine spaces",
     "subtitle": "Her finner du spaces du er medlem av.",
+    "joinHint": "Har du fått romkode, elevkode eller lenke fra lærer? Legg til rommet her.",
     "loading": "Laster…",
     "defaultTitle": "Uten navn",
     "empty": "Du er ikke medlem av noen spaces ennå. Trykk <b>Bli med i space</b> for å komme i gang.",
@@ -9,7 +10,7 @@
       "loadFailed": "Kunne ikke laste spaces."
     },
     "actions": {
-      "joinSpace": "Bli med i space",
+      "joinSpace": "Legg til rom med kode",
       "openSpace": "Åpne space",
       "openBoard": "Åpne tavle",
       "board": "Tavle"

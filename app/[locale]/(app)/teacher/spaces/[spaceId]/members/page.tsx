@@ -473,6 +473,12 @@ function Inner() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
+            href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 no-underline hover:bg-emerald-100"
+          >
+            Skriv ut elevtilganger
+          </Link>
+          <Link
             href={withLocale(locale, `/teacher/spaces/${spaceId}`)}
             className="rounded-xl border px-3 py-2 text-sm no-underline hover:shadow-sm"
           >
