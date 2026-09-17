@@ -37,6 +37,7 @@ export type PodcastWorkshopSubmission = {
     segmentScripts: Record<string, string>;
     productionSegments: Record<string, PodcastWorkshopProductionSegment>;
     productionMix: PodcastWorkshopProductionMix;
+    assignmentChecklist: Record<string, boolean>;
     selfAssessment: Record<string, boolean>;
 };
 
@@ -284,9 +285,12 @@ export function createPodcastWorkshopSubmission(
     config: PodcastWorkshopConfig | null
 ): PodcastWorkshopSubmission {
     const selfAssessment: Record<string, boolean> = {};
+    const assignmentChecklist: Record<string, boolean> = {};
     (config?.criteria ?? []).forEach((_criterion, index) => {
         selfAssessment[`criterion_${index}`] = false;
+        assignmentChecklist[`criterion_${index}`] = false;
     });
+    assignmentChecklist.targetDuration = false;
 
     return {
         version: 1,
@@ -303,6 +307,7 @@ export function createPodcastWorkshopSubmission(
         segmentScripts: {},
         productionSegments: {},
         productionMix: { introSoundId: "", transitionSoundId: "", transitionSoundIds: {}, outroSoundId: "" },
+        assignmentChecklist,
         selfAssessment,
     };
 }
@@ -342,6 +347,10 @@ export function readPodcastWorkshopSubmission(
             ...readProductionSegments(data.productionSegments),
         },
         productionMix: readProductionMix(data.productionMix),
+        assignmentChecklist: {
+            ...base.assignmentChecklist,
+            ...readBoolMap(data.assignmentChecklist),
+        },
         selfAssessment: {
             ...base.selfAssessment,
             ...readBoolMap(data.selfAssessment),

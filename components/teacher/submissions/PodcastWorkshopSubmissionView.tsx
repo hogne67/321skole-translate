@@ -384,7 +384,7 @@ export default function PodcastWorkshopSubmissionView({
             <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2">
                 {rooms.map((room) => {
                     const active = room.key === activeRoom;
-                    const roomStatus = feedback.rooms[room.key]?.status ?? "";
+                    const roomStatus = room.key === "final" ? feedback.rooms[room.key]?.status ?? "" : "";
                     return (
                         <button
                             key={room.key}
@@ -406,16 +406,18 @@ export default function PodcastWorkshopSubmissionView({
             </nav>
 
             <div className="grid gap-3">
-                <RoomFeedbackBox
-                    room={activeRoom}
-                    feedback={feedback}
-                    canOperate={canOperate}
-                    saving={saving}
-                    saveMsg={saveMsg}
-                    onFeedbackChange={onFeedbackChange}
-                    onSaveFeedback={onSaveFeedback}
-                    t={t}
-                />
+                {activeRoom === "final" ? (
+                    <RoomFeedbackBox
+                        room={activeRoom}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        saveMsg={saveMsg}
+                        onFeedbackChange={onFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                ) : null}
                 {renderRoom({
                     room: activeRoom,
                     config,

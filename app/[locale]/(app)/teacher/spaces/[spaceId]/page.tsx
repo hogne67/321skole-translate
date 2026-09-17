@@ -22,6 +22,7 @@ import {
 } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { setSpaceOpen } from "@/lib/spacesClient";
+import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 import { useLocale, useTranslations } from "next-intl";
 
 type AccessState = "checking" | "allowed" | "denied";
@@ -41,6 +42,10 @@ type AssignmentDoc = {
   studentMessage?: string;
   studentMessageUpdatedAt?: unknown;
   dueAt?: unknown;
+  lessonType?: string;
+  taskType?: string;
+  contentType?: string;
+  podcastWorkshopConfig?: unknown;
 };
 
 type AssignmentRow = { id: string; data: AssignmentDoc };
@@ -151,6 +156,15 @@ function isReviewedStatus(statusRaw: unknown): boolean {
 function isVisibleSubmissionStatus(statusRaw: unknown): boolean {
   const s = typeof statusRaw === "string" ? statusRaw.toLowerCase().trim() : "";
   return s !== "draft";
+}
+
+function isPodcastWorkshopAssignment(assignment: AssignmentDoc): boolean {
+  return (
+    isPodcastWorkshopType(assignment.lessonType) ||
+    isPodcastWorkshopType(assignment.taskType) ||
+    isPodcastWorkshopType(assignment.contentType) ||
+    !!assignment.podcastWorkshopConfig
+  );
 }
 
 function withLocale(locale: string, href: string): string {
@@ -440,9 +454,10 @@ function Inner() {
         (snap) => {
           let newCount = 0;
           let total = 0;
+          const includeDrafts = isPodcastWorkshopAssignment(a.data);
           snap.docs.forEach((d) => {
             const data = (d.data() as SubmissionData) ?? {};
-            if (!isVisibleSubmissionStatus(data.status)) return;
+            if (!includeDrafts && !isVisibleSubmissionStatus(data.status)) return;
             total += 1;
             if (!isReviewedStatus(data.status)) newCount += 1;
           });

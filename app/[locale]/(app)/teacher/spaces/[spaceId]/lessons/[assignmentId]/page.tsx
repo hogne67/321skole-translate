@@ -40,6 +40,10 @@ type LessonDoc = {
   topic?: string;
   isActive?: boolean;
   tasks?: unknown;
+  lessonType?: string;
+  taskType?: string;
+  contentType?: string;
+  podcastWorkshopConfig?: unknown;
 };
 
 type SourceType = "myContent" | "library";
@@ -313,6 +317,27 @@ export default function TeacherSpaceAssignedTaskPage() {
 
   const dash = tCommon("dash");
   const unknownErr = tCommon("unknownError");
+  const isPodcastWorkshopAssignment = useMemo(
+    () =>
+      isPodcastWorkshopType(assignment?.lessonType) ||
+      isPodcastWorkshopType(assignment?.taskType) ||
+      isPodcastWorkshopType(assignment?.contentType) ||
+      !!assignment?.podcastWorkshopConfig ||
+      isPodcastWorkshopType(lesson?.lessonType) ||
+      isPodcastWorkshopType(lesson?.taskType) ||
+      isPodcastWorkshopType(lesson?.contentType) ||
+      !!lesson?.podcastWorkshopConfig,
+    [
+      assignment?.lessonType,
+      assignment?.taskType,
+      assignment?.contentType,
+      assignment?.podcastWorkshopConfig,
+      lesson?.lessonType,
+      lesson?.taskType,
+      lesson?.contentType,
+      lesson?.podcastWorkshopConfig,
+    ]
+  );
 
   useEffect(() => {
     const unsub = onAuthStateChanged(getAuth(), (u) => setAuthUser(u));
@@ -379,7 +404,7 @@ export default function TeacherSpaceAssignedTaskPage() {
       (snap) => {
         const rows = snap.docs
           .map((d) => ({ id: d.id, data: (d.data() as SubmissionDoc) ?? {} }))
-          .filter((row) => normalizeStatus(row.data.status) !== "draft");
+          .filter((row) => isPodcastWorkshopAssignment || normalizeStatus(row.data.status) !== "draft");
 
         setSubmissions(rows);
         setLoadingSubs(false);
@@ -391,7 +416,7 @@ export default function TeacherSpaceAssignedTaskPage() {
     );
 
     return () => unsub();
-  }, [spaceId, assignmentId, unknownErr]);
+  }, [spaceId, assignmentId, unknownErr, isPodcastWorkshopAssignment]);
 
   useEffect(() => {
     let alive = true;
@@ -641,15 +666,9 @@ export default function TeacherSpaceAssignedTaskPage() {
                 const hasAudio = !!readStudentAudioAsset(s.data.audioReading, "audio_reading");
                 const linkedCode = typeof s.data.linkedStudentCode === "string" ? s.data.linkedStudentCode.trim() : "";
 
-                const isPodcastWorkshop =
-                  isPodcastWorkshopType(assignment?.lessonType) ||
-                  isPodcastWorkshopType(assignment?.taskType) ||
-                  isPodcastWorkshopType(assignment?.contentType) ||
-                  !!assignment?.podcastWorkshopConfig;
-
                 const openHref = withLocale(
                   locale,
-                  isPodcastWorkshop
+                  isPodcastWorkshopAssignment
                     ? `/teacher/spaces/${spaceId}/podcast/${assignmentId}/submissions/${s.id}`
                     : `/teacher/spaces/${spaceId}/lessons/${assignmentId}/submissions/${s.id}`
                 );

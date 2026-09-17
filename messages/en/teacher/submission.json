@@ -130,7 +130,7 @@
       "empty": "Not filled in",
       "checked": "Checked",
       "notChecked": "Not checked",
-      "feedbackForRoom": "Feedback for this room",
+      "feedbackForRoom": "Final feedback",
       "feedbackForField": "Feedback for this field",
       "feedbackPlaceholder": "Write feedback the student can use next...",
       "fieldFeedbackPlaceholder": "Write feedback the student can use on this field...",

@@ -316,6 +316,16 @@ export default function PodcastWorkshopStudentSection({
     });
   }
 
+  function toggleAssignmentChecklist(key: string) {
+    onChange({
+      ...value,
+      assignmentChecklist: {
+        ...value.assignmentChecklist,
+        [key]: !value.assignmentChecklist[key],
+      },
+    });
+  }
+
   async function requestAiSupport(args: PodcastAiSupportRequest) {
     return await authedPost<PodcastAiSupportResponse>(
       `/api/spaces/${encodeURIComponent(spaceId)}/lessons/${encodeURIComponent(assignmentId)}/podcast-ai-support`,
@@ -350,7 +360,7 @@ export default function PodcastWorkshopStudentSection({
           value={value}
           readOnly={readOnly}
           t={t}
-          onCriterionToggle={toggleCriterion}
+          onCriterionToggle={toggleAssignmentChecklist}
         />
       );
     }
@@ -895,13 +905,13 @@ function AssignmentRoom({
     ...config.criteria.map((criterion, index) => ({
       key: `criterion_${index}`,
       text: criterion,
-      checked: value.selfAssessment[`criterion_${index}`] === true,
+      checked: value.assignmentChecklist[`criterion_${index}`] === true,
       onToggle: () => onCriterionToggle(`criterion_${index}`),
     })),
     {
       key: "targetDuration",
       text: t("podcastWorkshop.targetDurationCriterion", { duration: formatMinutes(config.targetDurationSeconds) }),
-      checked: value.selfAssessment.targetDuration === true,
+      checked: value.assignmentChecklist.targetDuration === true,
       onToggle: () => onCriterionToggle("targetDuration"),
     },
   ];
