@@ -19,10 +19,14 @@ type SpacePrintData = {
 type MemberData = {
   displayName?: unknown;
   role?: unknown;
+  uid?: unknown;
+  userId?: unknown;
+  participantId?: unknown;
   archived?: unknown;
   active?: unknown;
   status?: unknown;
   studentCode?: unknown;
+  studentCodeKey?: unknown;
   createdAt?: unknown;
 };
 
@@ -43,9 +47,10 @@ type Copy = {
   intro: string;
   roomName: string;
   roomCode: string;
+  roomMeta: string;
   studentName: string;
   studentCode: string;
-  open: string;
+  manualTitle: string;
   tip: string;
   noStudents: string;
   footer: string;
@@ -62,10 +67,11 @@ const copy: Record<string, Copy> = {
     intro: "Del én lapp per elev. Eleven kan bruke samme elevkode/lenke på mobil, PC eller ny nettleser.",
     roomName: "Rom",
     roomCode: "Romkode",
+    roomMeta: "Romkode ved manuell innlogging",
     studentName: "Elev",
-    studentCode: "Elevkode",
-    open: "Åpne",
-    tip: "Gå til 321school.com/join, skriv romkode og elevkode. QR-koden gjør det samme automatisk.",
+    studentCode: "Din elevkode",
+    manualTitle: "Hvis QR-koden ikke brukes",
+    tip: "Gå til 321school.com/join og skriv romkode + elevkode.",
     noStudents: "Ingen elever med elevkode ennå.",
     footer: "321school.com",
     qrAlt: "QR-kode for elevtilgang",
@@ -79,10 +85,11 @@ const copy: Record<string, Copy> = {
     intro: "Del én lapp per elev. Eleven kan bruke samme elevkode/lenke på mobil, PC eller ny nettleser.",
     roomName: "Rom",
     roomCode: "Romkode",
+    roomMeta: "Romkode ved manuell innlogging",
     studentName: "Elev",
-    studentCode: "Elevkode",
-    open: "Åpne",
-    tip: "Gå til 321school.com/join, skriv romkode og elevkode. QR-koden gjør det samme automatisk.",
+    studentCode: "Din elevkode",
+    manualTitle: "Hvis QR-koden ikke brukes",
+    tip: "Gå til 321school.com/join og skriv romkode + elevkode.",
     noStudents: "Ingen elever med elevkode ennå.",
     footer: "321school.com",
     qrAlt: "QR-kode for elevtilgang",
@@ -96,10 +103,11 @@ const copy: Record<string, Copy> = {
     intro: "Share one slip per student. The student can use the same code/link on mobile, computer, or a new browser.",
     roomName: "Room",
     roomCode: "Room code",
+    roomMeta: "Room code for manual login",
     studentName: "Student",
-    studentCode: "Student code",
-    open: "Open",
-    tip: "Go to 321school.com/join, enter the room code and student code. The QR code does the same automatically.",
+    studentCode: "Your student code",
+    manualTitle: "If QR is not used",
+    tip: "Go to 321school.com/join and enter room code + student code.",
     noStudents: "No students with student codes yet.",
     footer: "321school.com",
     qrAlt: "QR code for student access",
@@ -113,10 +121,11 @@ const copy: Record<string, Copy> = {
     intro: "Compartilhe um cartão por aluno. O aluno pode usar o mesmo código/link no celular, computador ou navegador novo.",
     roomName: "Sala",
     roomCode: "Código da sala",
+    roomMeta: "Código da sala para entrada manual",
     studentName: "Aluno",
-    studentCode: "Código do aluno",
-    open: "Abrir",
-    tip: "Acesse 321school.com/join e digite o código da sala e o código do aluno. O QR code faz o mesmo automaticamente.",
+    studentCode: "Seu código de aluno",
+    manualTitle: "Se não usar QR",
+    tip: "Acesse 321school.com/join e digite código da sala + código do aluno.",
     noStudents: "Ainda não há alunos com código.",
     footer: "321school.com",
     qrAlt: "QR code para acesso do aluno",
@@ -175,6 +184,61 @@ function isActiveStudent(data: MemberData) {
   );
 }
 
+function asMillis(value: unknown): number {
+  try {
+    if (!value || typeof value !== "object" || !("toMillis" in value)) return 0;
+    const millis = (value as { toMillis: () => number }).toMillis();
+    return Number.isFinite(millis) ? millis : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function memberUid(member: { data: MemberData }) {
+  return safeString(member.data.userId) || safeString(member.data.uid);
+}
+
+function memberGroupKey(member: { id: string; data: MemberData }) {
+  const participantId = safeString(member.data.participantId);
+  if (participantId) return `participant:${participantId}`;
+
+  const studentCodeKey = safeString(member.data.studentCodeKey);
+  if (studentCodeKey) return `student-code:${studentCodeKey}`;
+
+  const studentCode = safeString(member.data.studentCode);
+  if (studentCode) return `student-code:${studentCode}`;
+
+  const uid = memberUid(member);
+  return uid ? `uid:${uid}` : `doc:${member.id}`;
+}
+
+function preferStudentRow(
+  current: { id: string; data: MemberData },
+  candidate: { id: string; data: MemberData }
+) {
+  const currentHasCode = Boolean(safeString(current.data.studentCode));
+  const candidateHasCode = Boolean(safeString(candidate.data.studentCode));
+  if (!currentHasCode && candidateHasCode) return candidate;
+  if (currentHasCode && !candidateHasCode) return current;
+
+  const currentHasUid = Boolean(memberUid(current));
+  const candidateHasUid = Boolean(memberUid(candidate));
+  if (!currentHasUid && candidateHasUid) return candidate;
+  if (currentHasUid && !candidateHasUid) return current;
+
+  return asMillis(candidate.data.createdAt) >= asMillis(current.data.createdAt) ? candidate : current;
+}
+
+function mergeStudentRows(students: Array<{ id: string; data: MemberData }>) {
+  const groups = new Map<string, Array<{ id: string; data: MemberData }>>();
+  for (const student of students) {
+    const key = memberGroupKey(student);
+    groups.set(key, [...(groups.get(key) ?? []), student]);
+  }
+
+  return Array.from(groups.values()).map((group) => group.reduce(preferStudentRow));
+}
+
 function StudentAccessPrintInner() {
   const locale = useLocale();
   const params = useParams<{ spaceId: string }>();
@@ -191,7 +255,7 @@ function StudentAccessPrintInner() {
 
   const rows = useMemo<StudentAccessRow[]>(() => {
     if (!code) return [];
-    return students
+    return mergeStudentRows(students)
       .map((student): StudentAccessRow | null => {
         const name = safeString(student.data.displayName, "Student");
         const studentCode = safeString(student.data.studentCode);
@@ -338,15 +402,13 @@ function StudentAccessPrintInner() {
                     <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{text.studentName}</div>
                     <div className="mt-1 break-words text-xl font-black text-slate-950">{row.name}</div>
 
-                    <div className="mt-4 grid gap-2 text-sm">
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{text.roomCode}</div>
-                        <div className="font-mono text-lg font-black">{code}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{text.studentCode}</div>
-                        <div className="font-mono text-2xl font-black text-emerald-800">{row.studentCode}</div>
-                      </div>
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                      <div className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">{text.studentCode}</div>
+                      <div className="mt-1 font-mono text-3xl font-black text-emerald-900">{row.studentCode}</div>
+                    </div>
+
+                    <div className="mt-3 text-xs leading-5 text-slate-600">
+                      <span className="font-semibold text-slate-900">{text.roomName}:</span> {title}
                     </div>
                   </div>
 
@@ -367,9 +429,12 @@ function StudentAccessPrintInner() {
                 </div>
 
                 <div className="mt-4 border-t border-slate-200 pt-3 text-xs leading-5 text-slate-600">
-                  {text.tip}
+                  <div className="font-bold text-slate-900">{text.manualTitle}</div>
+                  <div>{text.tip}</div>
+                  <div className="mt-1">
+                    {text.roomMeta}: <span className="font-mono font-black text-slate-950">{code}</span>
+                  </div>
                 </div>
-                <div className="mt-2 break-all font-mono text-[10px] leading-4 text-slate-500">{row.joinUrl}</div>
               </article>
             ))}
           </div>

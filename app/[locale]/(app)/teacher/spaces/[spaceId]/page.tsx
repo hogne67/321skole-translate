@@ -642,7 +642,7 @@ function Inner() {
               href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
               className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-emerald-700 bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
             >
-              Skriv ut elevtilganger
+              Skriv ut elevkoder
             </Link>
             <SpaceOpenSwitch
               checked={space?.isOpen === true}
