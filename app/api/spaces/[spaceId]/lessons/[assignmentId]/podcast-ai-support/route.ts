@@ -137,6 +137,34 @@ function buildPrompt(args: {
   ].filter(Boolean).join("\n");
 }
 
+async function readPodcastConfigForAssignment(
+  db: FirebaseFirestore.Firestore,
+  assignment: FirebaseFirestore.DocumentData
+) {
+  const directConfig = readPodcastWorkshopConfig(
+    assignment.podcastWorkshopConfig,
+    safeString(assignment.sourceText) || safeString(assignment.text)
+  );
+  if (directConfig) return { config: directConfig, source: assignment };
+
+  const sourceId = safeString(assignment.sourceId) || safeString(assignment.copiedFromLessonId);
+  if (!sourceId) return { config: null, source: assignment };
+
+  const sourceType = safeString(assignment.sourceType).toLowerCase();
+  const collectionName = sourceType === "library" ? "published_lessons" : "lessons";
+  const sourceSnap = await db.collection(collectionName).doc(sourceId).get();
+  if (!sourceSnap.exists) return { config: null, source: assignment };
+
+  const source = sourceSnap.data() ?? {};
+  return {
+    config: readPodcastWorkshopConfig(
+      source.podcastWorkshopConfig,
+      safeString(source.sourceText) || safeString(source.text)
+    ),
+    source,
+  };
+}
+
 export async function POST(req: Request, ctx: RouteParams) {
   try {
     if (!process.env.OPENAI_API_KEY) return json({ error: "OPENAI_API_KEY is not configured" }, 500);
@@ -169,10 +197,7 @@ export async function POST(req: Request, ctx: RouteParams) {
     if (!membership.ok) return json({ error: "Not a member of this space." }, 403);
 
     const assignment = assignmentSnap.data() ?? {};
-    const config = readPodcastWorkshopConfig(
-      assignment.podcastWorkshopConfig,
-      safeString(assignment.sourceText) || safeString(assignment.text)
-    );
+    const { config, source } = await readPodcastConfigForAssignment(db, assignment);
     if (!config) return json({ error: "Podcast workshop config missing." }, 404);
     if (config.aiSupport === "off" || config.aiUsageLimit <= 0) {
       return json({ error: "AI support is disabled for this podcast workshop." }, 403);
@@ -202,9 +227,9 @@ export async function POST(req: Request, ctx: RouteParams) {
       config
     );
     const prompt = buildPrompt({
-      title: safeString(assignment.title) || "Podcastverksted",
-      level: safeString(assignment.level),
-      language: safeString(assignment.language) || "nb",
+      title: safeString(assignment.title) || safeString(source.title) || "Podcastverksted",
+      level: safeString(assignment.level) || safeString(source.level),
+      language: safeString(assignment.language) || safeString(source.language) || "nb",
       sectionTitle,
       sectionId,
       room,
@@ -218,7 +243,7 @@ export async function POST(req: Request, ctx: RouteParams) {
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
-        { role: "system", content: buildSystemPrompt(safeString(assignment.language) || "nb") },
+        { role: "system", content: buildSystemPrompt(safeString(assignment.language) || safeString(source.language) || "nb") },
         { role: "user", content: prompt },
       ],
     });
