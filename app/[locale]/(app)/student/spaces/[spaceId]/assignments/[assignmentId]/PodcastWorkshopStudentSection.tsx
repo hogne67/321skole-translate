@@ -307,7 +307,13 @@ export default function PodcastWorkshopStudentSection({
   }
 
   function toggleCriterion(key: string) {
-    patch({ selfAssessment: { ...value.selfAssessment, [key]: !value.selfAssessment[key] } });
+    onChange({
+      ...value,
+      selfAssessment: {
+        ...value.selfAssessment,
+        [key]: !value.selfAssessment[key],
+      },
+    });
   }
 
   async function requestAiSupport(args: PodcastAiSupportRequest) {
@@ -803,36 +809,63 @@ export default function PodcastWorkshopStudentSection({
           white-space: nowrap;
         }
 
-        .podcastWorkshopCheck {
+        :global(.podcastWorkshopCheck) {
           display: flex;
           align-items: flex-start;
-          gap: 12px;
-          padding: 11px 12px;
-          border: 1px solid rgba(15, 23, 42, 0.14);
-          border-radius: 12px;
-          background: white;
+          gap: 14px;
+          padding: 13px 14px;
+          border: 2px solid rgba(15, 23, 42, 0.20);
+          border-radius: 14px;
+          background: #ffffff;
           color: #0f172a;
-          font-weight: 800;
+          cursor: pointer;
+          font-weight: 850;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         }
 
-        .podcastWorkshopCheck input {
-          width: 22px;
-          height: 22px;
+        :global(.podcastWorkshopCheck input) {
+          appearance: none;
+          width: 28px;
+          height: 28px;
           flex: 0 0 auto;
           margin: 0;
-          accent-color: #047857;
+          border: 2px solid #64748b;
+          border-radius: 8px;
+          background: white;
           cursor: pointer;
+          display: grid;
+          place-items: center;
         }
 
-        .podcastWorkshopCheck span {
+        :global(.podcastWorkshopCheck input:checked) {
+          border-color: #047857;
+          background: #047857;
+        }
+
+        :global(.podcastWorkshopCheck input:checked::after) {
+          content: "";
+          width: 8px;
+          height: 14px;
+          border: solid white;
+          border-width: 0 3px 3px 0;
+          transform: rotate(45deg) translate(-1px, -1px);
+        }
+
+        :global(.podcastWorkshopCheck span) {
           min-width: 0;
           line-height: 1.45;
         }
 
-        .podcastWorkshopCheck.isChecked {
-          border-color: rgba(4, 120, 87, 0.42);
-          background: rgba(220, 252, 231, 0.9);
+        :global(.podcastWorkshopCheck.isChecked) {
+          border-color: rgba(4, 120, 87, 0.75);
+          background: rgba(220, 252, 231, 0.96);
           color: #064e3b;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+        }
+
+        :global(.podcastWorkshopCheck:has(input:focus-visible)) {
+          outline: 3px solid rgba(245, 158, 11, 0.55);
+          outline-offset: 2px;
         }
 
         @media (max-width: 820px) {
