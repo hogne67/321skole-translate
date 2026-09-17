@@ -141,6 +141,8 @@ export default function PodcastWorkshopPage() {
     ideas: linesFromText(t("defaults.supportWords.ideas")),
     importantPoints: linesFromText(t("defaults.supportWords.importantPoints")),
     listenerTakeaway: linesFromText(t("defaults.supportWords.listenerTakeaway")),
+    "segment:intro": linesFromText(t("defaults.supportWords.introSegment")),
+    "segment:ending": linesFromText(t("defaults.supportWords.endingSegment")),
     segment: linesFromText(t("defaults.supportWords.segment")),
   }));
   const [segments, setSegments] = useState<Segment[]>(() => [

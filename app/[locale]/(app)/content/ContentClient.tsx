@@ -1731,6 +1731,7 @@ export default function ContentClient() {
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
     const isReadingTest = isReadingTestLesson(ls);
+    const isPodcastWorkshop = isPodcastWorkshopLesson(ls);
     const isImageWriting = isImageWritingLesson(ls);
     const isQuiz = isQuizLesson(ls);
     const isImportedQuiz = isImportedQuizLesson(ls);
@@ -1766,6 +1767,45 @@ export default function ContentClient() {
           },
         ]
         : [];
+
+    if (isPodcastWorkshop) {
+      return [
+        ...restoreAction,
+        ...(canEdit
+          ? [
+            {
+              key: "edit",
+              label: t("actions.edit"),
+              disabled: busy,
+              onClick: () => router.push(editHref),
+            },
+          ]
+          : []),
+        ...(canShareToSpace
+          ? [
+            {
+              key: "shareToSpace",
+              label: t("actions.shareToSpace"),
+              disabled: busy,
+              onClick: () =>
+                openPickSpace({
+                  lessonId: ls.id,
+                  title: titleForCard(ls),
+                  sourceType: "myContent",
+                  sourceId: ls.id,
+                }),
+            },
+          ]
+          : []),
+        {
+          key: "delete",
+          label: t("actions.delete"),
+          danger: true,
+          disabled: busy || !canDelete,
+          onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
+        },
+      ];
+    }
 
     if (isMathArchive) {
       return [

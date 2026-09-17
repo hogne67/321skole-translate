@@ -182,6 +182,8 @@
         "ideas": "I want to explain\none example is\nwe meet this in everyday life\nI need to investigate\nthe source says\non one hand\non the other hand",
         "importantPoints": "the most important thing is\nthe listener needs to understand\nthe main point is\nthis connects to\nthis should be explained clearly",
         "listenerTakeaway": "in the end, the listener should\nI want the listener to remember\nafter the podcast, you should understand\na question to think about next is",
+        "introSegment": "Welcome to our podcast\ntoday we have with us\nin this episode we will talk about\nyou will hear more about\nwe chose this topic because\nfirst, we will explain",
+        "endingSegment": "thank you for listening\nto sum up\nwe have talked about\nthe most important thing to remember is\nwe hope you learned more about\nfinally, we want to say",
         "segment": "first\nnext\nfor example\nan important point\nat the same time\non the other hand\nfinally"
       }
     }

@@ -182,6 +182,8 @@
         "ideas": "quero explicar\num exemplo é\nencontramos isso no dia a dia\npreciso investigar\na fonte diz\npor um lado\npor outro lado",
         "importantPoints": "o mais importante é\no ouvinte precisa entender\no ponto principal é\nisso se relaciona com\nisso deve ser explicado com clareza",
         "listenerTakeaway": "no final, o ouvinte deve\neu quero que o ouvinte lembre\ndepois do podcast, deve-se entender\numa pergunta para continuar pensando é",
+        "introSegment": "Bem-vindos ao nosso podcast\nhoje temos conosco\nneste episódio vamos falar sobre\nvocê vai ouvir mais sobre\nescolhemos este tema porque\nprimeiro vamos explicar",
+        "endingSegment": "obrigado por ouvir\npara resumir\nfalamos sobre\no mais importante para lembrar é\nesperamos que você tenha aprendido mais sobre\npara terminar, queremos dizer",
         "segment": "primeiro\ndepois\npor exemplo\num ponto importante\nao mesmo tempo\npor outro lado\npor fim"
       }
     }
