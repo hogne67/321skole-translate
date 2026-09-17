@@ -193,7 +193,15 @@
       "questionAnswerPlaceholder": "Write thoughts, answers or talking points...",
       "showVocabulary": "Show words",
       "hideVocabulary": "Hide words",
+        "showRecordingTips": "Show recording tips",
+        "hideRecordingTips": "Hide recording tips",
         "noVocabulary": "No support words added",
+        "noRecordingTips": "No recording tips added",
+        "studioTips": {
+          "intro": "smile a little with your voice\nsay the title clearly\ntake a short pause after the welcome\nspeak calmly\nimagine the listener",
+          "part": "use your own words\nexplain one point at a time\ngive one example\ntake a small pause before the next point\ntry again if you stop",
+          "ending": "speak a little more calmly\nsummarize in one sentence\nsay what the listener should remember\nthank them for listening\nend clearly"
+        },
         "getAiHelp": "Get AI help",
         "aiLoading": "Getting help...",
         "aiSuggestionTitle": "AI help",

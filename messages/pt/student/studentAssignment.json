@@ -193,7 +193,15 @@
       "questionAnswerPlaceholder": "Escreva pensamentos, respostas ou pontos de fala...",
       "showVocabulary": "Mostrar palavras",
       "hideVocabulary": "Ocultar palavras",
+        "showRecordingTips": "Mostrar dicas de gravação",
+        "hideRecordingTips": "Ocultar dicas de gravação",
         "noVocabulary": "Nenhuma palavra de apoio adicionada",
+        "noRecordingTips": "Nenhuma dica de gravação adicionada",
+        "studioTips": {
+          "intro": "sorria um pouco com a voz\ndiga o título claramente\nfaça uma pequena pausa depois das boas-vindas\nfale com calma\nimagine o ouvinte",
+          "part": "use suas próprias palavras\nexplique um ponto de cada vez\ndê um exemplo\nfaça uma pequena pausa antes do próximo ponto\ntente de novo se parar",
+          "ending": "fale um pouco mais devagar\nresuma em uma frase\ndiga o que o ouvinte deve lembrar\nagradeça por ouvirem\ntermine com clareza"
+        },
         "getAiHelp": "Pedir ajuda da IA",
         "aiLoading": "Buscando ajuda...",
         "aiSuggestionTitle": "Ajuda da IA",

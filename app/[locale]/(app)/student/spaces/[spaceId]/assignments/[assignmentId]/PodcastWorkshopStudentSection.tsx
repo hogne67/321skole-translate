@@ -197,6 +197,20 @@ function getSupportWords(config: PodcastWorkshopConfig, sectionId: string, fallb
   return words && words.length > 0 ? words : [];
 }
 
+function linesFromTranslatedText(value: string) {
+  return String(value ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function getStudioTips(segmentId: string, segmentIndex: number, t: TFn) {
+  if (segmentId === "intro") return linesFromTranslatedText(t("podcastWorkshop.studioTips.intro"));
+  if (segmentId === "ending") return linesFromTranslatedText(t("podcastWorkshop.studioTips.ending"));
+  if (segmentIndex === 0) return linesFromTranslatedText(t("podcastWorkshop.studioTips.intro"));
+  return linesFromTranslatedText(t("podcastWorkshop.studioTips.part"));
+}
+
 function getSupportedMimeType() {
   if (typeof MediaRecorder === "undefined") return "";
   const candidates = [
@@ -1794,7 +1808,7 @@ function SegmentFields({
 }) {
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {segments.map((segment) => (
+      {segments.map((segment, index) => (
         <div
           key={segment.id}
           style={{
@@ -1870,7 +1884,12 @@ function SegmentFields({
             <SegmentSupportCard
               config={config}
               feedback={feedback?.fields?.[`${mode}.${segment.id}`] ?? null}
-              supportWords={getSupportWords(config, supportKeyForSegment(segment.id), supportFallbackId)}
+              supportWords={
+                mode === "script"
+                  ? getStudioTips(segment.id, index, t)
+                  : getSupportWords(config, supportKeyForSegment(segment.id), supportFallbackId)
+              }
+              supportKind={mode === "script" ? "recordingTips" : "words"}
               room={mode}
               sectionId={supportKeyForSegment(segment.id)}
               sectionTitle={segment.title}
@@ -1921,6 +1940,7 @@ function SegmentSupportCard({
   config,
   feedback,
   supportWords,
+  supportKind,
   room,
   sectionId,
   sectionTitle,
@@ -1932,6 +1952,7 @@ function SegmentSupportCard({
   config: PodcastWorkshopConfig;
   feedback: PodcastWorkshopFeedback["fields"][string] | null;
   supportWords: string[];
+  supportKind: "words" | "recordingTips";
   room: RoomKey;
   sectionId: string;
   sectionTitle: string;
@@ -1978,7 +1999,13 @@ function SegmentSupportCard({
       <p>{t("podcastWorkshop.supportHint")}</p>
       <div className="segmentSupportActions">
         <button type="button" onClick={() => setShowSupportWords((current) => !current)}>
-          {showSupportWords ? t("podcastWorkshop.hideVocabulary") : t("podcastWorkshop.showVocabulary")}
+          {supportKind === "recordingTips"
+            ? showSupportWords
+              ? t("podcastWorkshop.hideRecordingTips")
+              : t("podcastWorkshop.showRecordingTips")
+            : showSupportWords
+              ? t("podcastWorkshop.hideVocabulary")
+              : t("podcastWorkshop.showVocabulary")}
         </button>
         <button type="button" disabled={aiDisabled} onClick={handleAiHelp}>
           {aiLoading ? t("podcastWorkshop.aiLoading") : t("podcastWorkshop.getAiHelp")}
@@ -1997,7 +2024,11 @@ function SegmentSupportCard({
           {visibleWords.length > 0 ? (
             visibleWords.map((word) => <span key={word}>{word}</span>)
           ) : (
-            <em>{t("podcastWorkshop.noVocabulary")}</em>
+            <em>
+              {supportKind === "recordingTips"
+                ? t("podcastWorkshop.noRecordingTips")
+                : t("podcastWorkshop.noVocabulary")}
+            </em>
           )}
         </div>
       ) : null}

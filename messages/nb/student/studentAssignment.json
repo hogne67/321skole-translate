@@ -193,7 +193,15 @@
       "questionAnswerPlaceholder": "Skriv tanker, svar eller stikkord...",
       "showVocabulary": "Vis hjelpeord",
       "hideVocabulary": "Skjul hjelpeord",
+        "showRecordingTips": "Vis innlesingstips",
+        "hideRecordingTips": "Skjul innlesingstips",
         "noVocabulary": "Ingen hjelpeord lagt inn",
+        "noRecordingTips": "Ingen innlesingstips lagt inn",
+        "studioTips": {
+          "intro": "smil litt med stemmen\nsi tittelen tydelig\nta en kort pause etter velkommen\nsnakk rolig\nse for deg lytteren",
+          "part": "bruk egne ord\nforklar ett poeng om gangen\ngi ett eksempel\nta en liten pause før neste poeng\nprøv på nytt hvis du stopper",
+          "ending": "snakk litt roligere\noppsummer med én setning\nsi hva lytteren bør huske\ntakk for at de lyttet\navslutt tydelig"
+        },
         "getAiHelp": "Få KI-hjelp",
         "aiLoading": "Henter hjelp...",
         "aiSuggestionTitle": "KI-hjelp",
