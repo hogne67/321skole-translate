@@ -52,6 +52,11 @@ type Copy = {
   studentCode: string;
   manualTitle: string;
   tip: string;
+  guardianTitle: string;
+  guardianAccess: string;
+  guardianNoPassword: string;
+  guardianContact: string;
+  privacyText: string;
   noStudents: string;
   footer: string;
   qrAlt: string;
@@ -72,6 +77,11 @@ const copy: Record<string, Copy> = {
     studentCode: "Din elevkode",
     manualTitle: "Hvis QR-koden ikke brukes",
     tip: "Gå til 321school.com/join og skriv romkode + elevkode.",
+    guardianTitle: "Til foresatte",
+    guardianAccess: "Denne elevkoden gir tilgang til elevens arbeid og tilbakemeldinger i dette rommet. Ikke del koden med andre.",
+    guardianNoPassword: "Eleven trenger ikke e-post eller passord for å bruke koden.",
+    guardianContact: "Ta kontakt med lærer eller skole hvis koden mistes eller bør byttes.",
+    privacyText: "321school bruker koden til å koble arbeidet til riktig elev i dette rommet.",
     noStudents: "Ingen elever med elevkode ennå.",
     footer: "321school.com",
     qrAlt: "QR-kode for elevtilgang",
@@ -90,6 +100,11 @@ const copy: Record<string, Copy> = {
     studentCode: "Din elevkode",
     manualTitle: "Hvis QR-koden ikke brukes",
     tip: "Gå til 321school.com/join og skriv romkode + elevkode.",
+    guardianTitle: "Til foresatte",
+    guardianAccess: "Denne elevkoden gir tilgang til elevens arbeid og tilbakemeldinger i dette rommet. Ikke del koden med andre.",
+    guardianNoPassword: "Eleven trenger ikke e-post eller passord for å bruke koden.",
+    guardianContact: "Ta kontakt med lærer eller skole hvis koden mistes eller bør byttes.",
+    privacyText: "321school bruker koden til å koble arbeidet til riktig elev i dette rommet.",
     noStudents: "Ingen elever med elevkode ennå.",
     footer: "321school.com",
     qrAlt: "QR-kode for elevtilgang",
@@ -108,6 +123,11 @@ const copy: Record<string, Copy> = {
     studentCode: "Your student code",
     manualTitle: "If QR is not used",
     tip: "Go to 321school.com/join and enter room code + student code.",
+    guardianTitle: "For parents/guardians",
+    guardianAccess: "This student code gives access to the student's work and feedback in this room. Do not share it with others.",
+    guardianNoPassword: "The student does not need email or a password to use the code.",
+    guardianContact: "Contact the teacher or school if the code is lost or should be changed.",
+    privacyText: "321school uses the code to connect the work to the correct student in this room.",
     noStudents: "No students with student codes yet.",
     footer: "321school.com",
     qrAlt: "QR code for student access",
@@ -126,6 +146,11 @@ const copy: Record<string, Copy> = {
     studentCode: "Seu código de aluno",
     manualTitle: "Se não usar QR",
     tip: "Acesse 321school.com/join e digite código da sala + código do aluno.",
+    guardianTitle: "Para pais/responsáveis",
+    guardianAccess: "Este código de aluno dá acesso ao trabalho e aos feedbacks do aluno nesta sala. Não compartilhe com outras pessoas.",
+    guardianNoPassword: "O aluno não precisa de e-mail nem senha para usar o código.",
+    guardianContact: "Entre em contato com o professor ou a escola se o código for perdido ou precisar ser trocado.",
+    privacyText: "O 321school usa o código para ligar o trabalho ao aluno correto nesta sala.",
     noStudents: "Ainda não há alunos com código.",
     footer: "321school.com",
     qrAlt: "QR code para acesso do aluno",
@@ -435,6 +460,14 @@ function StudentAccessPrintInner() {
                     {text.roomMeta}: <span className="font-mono font-black text-slate-950">{code}</span>
                   </div>
                 </div>
+
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">
+                  <div className="font-bold text-slate-950">{text.guardianTitle}</div>
+                  <p className="mt-1">{text.guardianAccess}</p>
+                  <p className="mt-1">{text.guardianNoPassword}</p>
+                  <p className="mt-1">{text.guardianContact}</p>
+                  <p className="mt-2 font-semibold text-slate-600">{text.privacyText}</p>
+                </div>
               </article>
             ))}
           </div>
@@ -466,7 +499,7 @@ function StudentAccessPrintInner() {
           }
 
           .student-slip {
-            min-height: 78mm;
+            min-height: 102mm;
             page-break-inside: avoid;
           }
         }

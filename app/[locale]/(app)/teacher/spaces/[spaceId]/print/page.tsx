@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import type React from "react";
 import { useLocale } from "next-intl";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
@@ -27,18 +26,10 @@ type Copy = {
   scan: string;
   joinTitle: string;
   joinText: string;
-  anonymousTitle: string;
-  anonymousText: string;
-  accountTitle: string;
-  accountText: string;
-  freeTitle: string;
-  freeText: string;
-  passwordTitle: string;
-  passwordText: string;
-  under13Title: string;
-  under13Text: string;
-  parentTitle: string;
-  parentText: string;
+  studentCodeTitle: string;
+  studentCodeText: string;
+  teacherTitle: string;
+  teacherText: string;
   qrAlt: string;
   footer: string;
 };
@@ -49,30 +40,16 @@ const copy: Record<string, Copy> = {
     notFound: "Fant ikke rommet.",
     back: "Tilbake til rommet",
     print: "Skriv ut / lagre PDF",
-    title: "Velkommen til 321school",
+    title: "Romkode",
     roomName: "Rom/space",
     roomCode: "Romkode",
     scan: "Skann QR-koden eller bruk romkoden.",
     joinTitle: "Slik kommer eleven inn",
-    joinText:
-      'Gå til 321school og trykk på "Spaces". Velg "Bli med i space" og skriv inn romkoden. Har eleven fått elevkode, skriver eleven inn den også.',
-    anonymousTitle: "Anonym tilgang",
-    anonymousText:
-      "Eleven kan bli med med romkode eller QR uten konto og uten e-post. Med elevkode/lenke kan samme elev fortsette arbeidet sitt på ny enhet eller i ny nettleser.",
-    accountTitle: "Innlogget bruker",
-    accountText:
-      "Konto kan brukes når skolen eller foresatte har åpnet for det. Elevkode fungerer også for innloggede elever og knytter arbeidet til riktig elev i rommet.",
-    freeTitle: "Gratis for elever",
-    freeText: "All bruk i spaces er gratis for elever og studenter med gyldig romkode delt av lærer eller skole.",
-    passwordTitle: "Brukernavn og passord",
-    passwordText:
-      "Hvis eleven bruker konto: bruk riktig e-postadresse, lag et godt passord og ikke del passordet med andre. Mister du tilgang, spør læreren eller en voksen hjemme.",
-    under13Title: "For barn under 13 år",
-    under13Text:
-      "Barn under 13 år bør bruke anonym tilgang med romkode, med mindre skolen eller foresatte har avklart bruk av konto.",
-    parentTitle: "Til foreldre/foresatte",
-    parentText:
-      "Dette rommet brukes til skolearbeid i 321school. Elever trenger ikke privat e-post for å bli med anonymt. Ta kontakt med lærer/skole ved spørsmål om bruk eller sletting av elevens arbeid.",
+    joinText: "Gå til 321school.com/join, eller skann QR-koden, og skriv inn romkoden.",
+    studentCodeTitle: "Har eleven elevkode?",
+    studentCodeText: "Skriv elevkoden etter romkoden for å åpne riktig elev og fortsette arbeid på samme bruker.",
+    teacherTitle: "Til lærer",
+    teacherText: 'Personlige elevkoder skrives ut fra "Administrer medlemmer" > "Skriv ut elevkoder".',
     qrAlt: "QR-kode for å bli med i rommet",
     footer: "321school.com",
   },
@@ -81,30 +58,16 @@ const copy: Record<string, Copy> = {
     notFound: "Room not found.",
     back: "Back to room",
     print: "Print / save PDF",
-    title: "Welcome to 321school",
+    title: "Room code",
     roomName: "Room/space",
     roomCode: "Room code",
     scan: "Scan the QR code or use the room code.",
     joinTitle: "How students join",
-    joinText:
-      'Go to 321school and open "Spaces". Choose "Join space" and enter the room code. If the student has a student code, enter that too.',
-    anonymousTitle: "Anonymous access",
-    anonymousText:
-      "Students can join with a room code or QR code without an account and without email. With a student code/link, the same student can continue their work on a new device or browser.",
-    accountTitle: "Signed-in user",
-    accountText:
-      "An account can be used when the school or guardians have approved it. Student codes also work for signed-in students and connect the work to the right student in the room.",
-    freeTitle: "Free for students",
-    freeText: "Using spaces is free for students with a valid room code shared by a teacher or school.",
-    passwordTitle: "Username and password",
-    passwordText:
-      "If the student uses an account: use the correct email address, make a strong password, and do not share it. If access is lost, ask the teacher or an adult at home.",
-    under13Title: "For children under 13",
-    under13Text:
-      "Children under 13 should use anonymous access with the room code unless the school or guardians have approved account use.",
-    parentTitle: "For parents/guardians",
-    parentText:
-      "This room is used for schoolwork in 321school. Students do not need a private email address to join anonymously. Contact the teacher/school with questions about use or deletion of student work.",
+    joinText: "Go to 321school.com/join, or scan the QR code, and enter the room code.",
+    studentCodeTitle: "Does the student have a student code?",
+    studentCodeText: "Enter the student code after the room code to open the right student and continue work on the same user.",
+    teacherTitle: "For teachers",
+    teacherText: 'Personal student codes are printed from "Manage members" > "Print student codes".',
     qrAlt: "QR code to join the room",
     footer: "321school.com",
   },
@@ -113,30 +76,16 @@ const copy: Record<string, Copy> = {
     notFound: "Sala não encontrada.",
     back: "Voltar para a sala",
     print: "Imprimir / salvar PDF",
-    title: "Bem-vindo ao 321school",
+    title: "Código da sala",
     roomName: "Sala/space",
     roomCode: "Código da sala",
     scan: "Escaneie o QR code ou use o código da sala.",
     joinTitle: "Como o aluno entra",
-    joinText:
-      'Acesse o 321school e abra "Spaces". Escolha "Entrar no space" e digite o código da sala. Se o aluno tiver código de aluno, digite também.',
-    anonymousTitle: "Acesso anônimo",
-    anonymousText:
-      "O aluno pode entrar com código da sala ou QR code sem conta e sem e-mail. Com código/link de aluno, o mesmo aluno pode continuar o trabalho em outro dispositivo ou navegador.",
-    accountTitle: "Usuário conectado",
-    accountText:
-      "Uma conta pode ser usada quando a escola ou os responsáveis tiverem autorizado. Códigos de aluno também funcionam para alunos conectados e ligam o trabalho ao aluno correto na sala.",
-    freeTitle: "Grátis para alunos",
-    freeText: "O uso de spaces é grátis para alunos com código válido compartilhado por professor ou escola.",
-    passwordTitle: "Usuário e senha",
-    passwordText:
-      "Se o aluno usar conta: use o e-mail correto, crie uma boa senha e não compartilhe com outras pessoas. Se perder acesso, peça ajuda ao professor ou a um adulto em casa.",
-    under13Title: "Para crianças menores de 13 anos",
-    under13Text:
-      "Crianças menores de 13 anos devem usar acesso anônimo com o código da sala, a menos que a escola ou os responsáveis tenham autorizado o uso de conta.",
-    parentTitle: "Para pais/responsáveis",
-    parentText:
-      "Esta sala é usada para atividades escolares no 321school. Alunos não precisam de e-mail particular para entrar anonimamente. Entre em contato com o professor/escola em caso de dúvidas sobre uso ou exclusão do trabalho do aluno.",
+    joinText: "Acesse 321school.com/join, ou escaneie o QR code, e digite o código da sala.",
+    studentCodeTitle: "O aluno tem código de aluno?",
+    studentCodeText: "Digite o código de aluno depois do código da sala para abrir o aluno correto e continuar no mesmo usuário.",
+    teacherTitle: "Para professores",
+    teacherText: 'Códigos pessoais de aluno são impressos em "Gerenciar membros" > "Imprimir códigos de aluno".',
     qrAlt: "QR code para entrar na sala",
     footer: "321school.com",
   },
@@ -301,17 +250,20 @@ function SpacePrintInner() {
         </section>
 
         <section className="mt-5 grid gap-3 md:grid-cols-2 print:grid-cols-2">
-          <InfoBox title={text.joinTitle}>{text.joinText}</InfoBox>
-          <InfoBox title={text.freeTitle}>{text.freeText}</InfoBox>
-          <InfoBox title={text.anonymousTitle}>{text.anonymousText}</InfoBox>
-          <InfoBox title={text.accountTitle}>{text.accountText}</InfoBox>
-          <InfoBox title={text.under13Title}>{text.under13Text}</InfoBox>
-          <InfoBox title={text.passwordTitle}>{text.passwordText}</InfoBox>
-          <InfoBox title={text.parentTitle}>{text.parentText}</InfoBox>
+          <article className="rounded-2xl border-2 border-slate-300 p-4">
+            <h2 className="text-base font-black text-slate-950">{text.joinTitle}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-800">{text.joinText}</p>
+          </article>
+          <article className="rounded-2xl border-2 border-slate-300 p-4">
+            <h2 className="text-base font-black text-slate-950">{text.studentCodeTitle}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-800">{text.studentCodeText}</p>
+          </article>
         </section>
 
-        <footer className="mt-5 rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 text-center text-sm font-semibold text-slate-900">
-          {joinUrl}
+        <footer className="mt-5 rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 text-sm text-slate-900">
+          <div className="font-black">{text.teacherTitle}</div>
+          <div className="mt-1 leading-relaxed">{text.teacherText}</div>
+          <div className="mt-3 break-all font-mono text-xs font-semibold text-slate-600">{joinUrl}</div>
         </footer>
       </section>
 
@@ -359,15 +311,6 @@ function SpacePrintInner() {
         }
       `}</style>
     </main>
-  );
-}
-
-function InfoBox({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <article className="rounded-2xl border-2 border-slate-300 p-4">
-      <h2 className="text-base font-black text-slate-950">{title}</h2>
-      <p className="mt-1 text-sm leading-relaxed text-slate-800">{children}</p>
-    </article>
   );
 }
 
