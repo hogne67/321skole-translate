@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase";
+import { Link } from "@/i18n/navigation";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { authedPost } from "@/lib/authedPost";
@@ -350,7 +350,7 @@ export default function StudentPodcastWorkshopPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 p-3 pb-28">
-      <Link href={`../assignments/${assignmentId}`} className="text-sm font-semibold text-emerald-900 underline">
+      <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
         {t("actions.backToSpace")}
       </Link>
 
