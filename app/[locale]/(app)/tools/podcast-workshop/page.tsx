@@ -142,6 +142,8 @@ export default function PodcastWorkshopPage() {
     importantPoints: linesFromText(t("defaults.supportWords.importantPoints")),
     listenerTakeaway: linesFromText(t("defaults.supportWords.listenerTakeaway")),
     "segment:intro": linesFromText(t("defaults.supportWords.introSegment")),
+    "segment:part_1": linesFromText(t("defaults.supportWords.part1Segment")),
+    "segment:part_2": linesFromText(t("defaults.supportWords.part2Segment")),
     "segment:ending": linesFromText(t("defaults.supportWords.endingSegment")),
     segment: linesFromText(t("defaults.supportWords.segment")),
   }));
@@ -309,13 +311,14 @@ export default function PodcastWorkshopPage() {
   }
 
   function addSegment() {
+    const segmentId = makeId("segment");
     setSegments((current) => {
       const nextPartNumber = current.filter((segment) => {
         const normalizedTitle = segment.title.trim().toLowerCase();
         return normalizedTitle !== "intro" && !isEndingSegmentTitle(segment.title);
       }).length + 1;
       const newSegment = {
-        id: makeId("segment"),
+        id: segmentId,
         title: t("segments.defaultPartTitle", { n: nextPartNumber }),
         hint: "",
         order: current.length,
@@ -326,6 +329,10 @@ export default function PodcastWorkshopPage() {
         : [...current, newSegment];
       return next.map((segment, order) => ({ ...segment, order }));
     });
+    setSupportWordsBySection((current) => ({
+      ...current,
+      [supportKeyForSegment(segmentId)]: linesFromText(t("defaults.supportWords.part2Segment")),
+    }));
   }
 
   function updateSegment(index: number, patch: Partial<Segment>) {

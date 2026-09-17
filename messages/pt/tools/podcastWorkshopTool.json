@@ -183,8 +183,10 @@
         "importantPoints": "o mais importante é\no ouvinte precisa entender\no ponto principal é\nisso se relaciona com\nisso deve ser explicado com clareza",
         "listenerTakeaway": "no final, o ouvinte deve\neu quero que o ouvinte lembre\ndepois do podcast, deve-se entender\numa pergunta para continuar pensando é",
         "introSegment": "Bem-vindos ao nosso podcast\nhoje temos conosco\nneste episódio vamos falar sobre\nvocê vai ouvir mais sobre\nescolhemos este tema porque\nprimeiro vamos explicar",
+        "part1Segment": "primeiro vamos falar sobre\ncomeçamos com\npara entender o tema, primeiro precisamos\numa pergunta importante é\nvocê pode contar um pouco sobre\nvocê já ouviu falar de",
+        "part2Segment": "agora você vai ouvir mais sobre\ndepois vamos falar sobre\nvocê pode contar um pouco mais sobre\no que você pensa sobre\nvocê tem um exemplo de\npor que isso é importante",
         "endingSegment": "obrigado por ouvir\npara resumir\nfalamos sobre\no mais importante para lembrar é\nesperamos que você tenha aprendido mais sobre\npara terminar, queremos dizer",
-        "segment": "primeiro\ndepois\npor exemplo\num ponto importante\nao mesmo tempo\npor outro lado\npor fim"
+        "segment": "agora você vai ouvir mais sobre\ndepois vamos falar sobre\nvocê pode contar um pouco sobre\no que você pensa sobre\nvocê tem um exemplo de\npor que isso é importante"
       }
     }
   }

@@ -183,8 +183,10 @@
         "importantPoints": "det viktigste er\nlytteren må forstå\nhovedpoenget er\ndette henger sammen med\ndette bør forklares tydelig",
         "listenerTakeaway": "til slutt skal lytteren\njeg vil at lytteren skal huske\netter podcasten skal man forstå\net spørsmål å tenke videre på er",
         "introSegment": "Velkommen til vår podcast\ni dag har vi med oss\ni denne episoden skal vi snakke om\ndu skal få høre mer om\nvi har valgt dette temaet fordi\nførst skal vi forklare",
+        "part1Segment": "først skal vi snakke om\nvi starter med\nfor å forstå temaet må vi først\net viktig spørsmål er\nkan du fortelle litt om\nhar du hørt om",
+        "part2Segment": "nå skal du få høre mer om\nvidere skal vi snakke om\nkan du fortelle litt mer om\nhva tenker du om\nhar du et eksempel på\nhvorfor er dette viktig",
         "endingSegment": "takk for at du hørte på\nfor å oppsummere\nvi har snakket om\ndet viktigste vi vil at du skal huske er\nvi håper du har lært mer om\nhelt til slutt vil vi si",
-        "segment": "først\nvidere\nfor eksempel\net viktig poeng\nsamtidig\npå den andre siden\ntil slutt"
+        "segment": "nå skal du få høre mer om\nvidere skal vi snakke om\nkan du fortelle litt om\nhva tenker du om\nhar du et eksempel på\nhvorfor er dette viktig"
       }
     }
   }
