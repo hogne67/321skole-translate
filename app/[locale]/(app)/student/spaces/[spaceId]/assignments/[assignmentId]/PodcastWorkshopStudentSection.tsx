@@ -806,16 +806,33 @@ export default function PodcastWorkshopStudentSection({
         .podcastWorkshopCheck {
           display: flex;
           align-items: flex-start;
-          gap: 9px;
-          padding: 9px 10px;
-          border-radius: 10px;
-          background: rgba(248, 250, 252, 0.95);
+          gap: 12px;
+          padding: 11px 12px;
+          border: 1px solid rgba(15, 23, 42, 0.14);
+          border-radius: 12px;
+          background: white;
           color: #0f172a;
-          font-weight: 750;
+          font-weight: 800;
+        }
+
+        .podcastWorkshopCheck input {
+          width: 22px;
+          height: 22px;
+          flex: 0 0 auto;
+          margin: 0;
+          accent-color: #047857;
+          cursor: pointer;
+        }
+
+        .podcastWorkshopCheck span {
+          min-width: 0;
+          line-height: 1.45;
         }
 
         .podcastWorkshopCheck.isChecked {
+          border-color: rgba(4, 120, 87, 0.42);
           background: rgba(220, 252, 231, 0.9);
+          color: #064e3b;
         }
 
         @media (max-width: 820px) {
@@ -864,7 +881,6 @@ function AssignmentRoom({
                       checked={value.selfAssessment[key] === true}
                       disabled={readOnly}
                       onChange={() => onCriterionToggle(key)}
-                      style={{ marginTop: 3 }}
                     />
                     <span>{criterion}</span>
                   </label>
@@ -2239,7 +2255,6 @@ function FinalRoom({
                   checked={value.selfAssessment[key] === true}
                   disabled={readOnly}
                   onChange={() => onCriterionToggle(key)}
-                  style={{ marginTop: 3 }}
                 />
                 <span>{criterion}</span>
               </label>
