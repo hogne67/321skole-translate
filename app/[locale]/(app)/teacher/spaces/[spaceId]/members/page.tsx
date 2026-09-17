@@ -181,6 +181,7 @@ function Inner() {
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [nameBusyId, setNameBusyId] = useState<string | null>(null);
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [removingUid, setRemovingUid] = useState<string | null>(null);
@@ -714,46 +715,40 @@ function Inner() {
           </div>
         </div>
 
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-3">{t("table.name")}</th>
-                <th className="py-2 pr-3">{t("table.role")}</th>
-                <th className="py-2 pr-3">{t("table.joined")}</th>
-                <th className="py-2 pr-3">{t("table.type")}</th>
-                <th className="py-2 pr-3">{t("table.studentCode")}</th>
-                <th className="py-2 pr-3">{t("table.uid")}</th>
-                <th className="py-2 pr-3">Tilgang</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                const name = String(r.data.displayName ?? t("common.dash"));
-                const staffRole = String(r.data.staffRole ?? "");
-                const role = staffRole || String(r.data.role ?? "member");
-                const joined = fmt(asDate(r.data.createdAt));
-                const isAnon = Boolean(r.data.isAnon);
-                const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
-                const studentCode = String(r.data.studentCode ?? t("common.dash"));
-                const isStudent = role === "student";
-                const deviceCount = r.deviceCount ?? 1;
-                const canRemoveStaff = Boolean(
-                  canManageStaff &&
-                  uid &&
-                    uid !== t("common.dash") &&
-                    (staffRole === "co_teacher" || staffRole === "observer" || r.data.role === "teacher")
-                );
+        <div className="mt-3 grid gap-2">
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-muted-foreground">
+              {t("empty")}
+            </div>
+          ) : (
+            filtered.map((r) => {
+              const name = String(r.data.displayName ?? t("common.dash"));
+              const staffRole = String(r.data.staffRole ?? "");
+              const role = staffRole || String(r.data.role ?? "member");
+              const joined = fmt(asDate(r.data.createdAt));
+              const isAnon = Boolean(r.data.isAnon);
+              const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
+              const studentCode = String(r.data.studentCode ?? t("common.dash"));
+              const isStudent = role === "student";
+              const deviceCount = r.deviceCount ?? 1;
+              const isOpen = expandedMemberId === r.id;
+              const canRemoveStaff = Boolean(
+                canManageStaff &&
+                uid &&
+                  uid !== t("common.dash") &&
+                  (staffRole === "co_teacher" || staffRole === "observer" || r.data.role === "teacher")
+              );
 
-                return (
-                  <tr key={r.id} className="border-b last:border-b-0">
-                    <td className="py-2 pr-3 font-medium">
+              return (
+                <article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
                       {editingNameId === r.id ? (
-                        <div className="flex min-w-[220px] flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <input
                             value={nameDraft}
                             onChange={(event) => setNameDraft(event.target.value)}
-                            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm outline-none focus:border-emerald-500"
+                            className="min-w-[220px] flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm outline-none focus:border-emerald-500"
                             autoFocus
                           />
                           <button
@@ -774,30 +769,64 @@ function Inner() {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span>{name}</span>
-                          {isStudent && canManageStaff ? (
-                            <button
-                              type="button"
-                              onClick={() => startEditingName(r.id, name)}
-                              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                            >
-                              Rediger navn
-                            </button>
-                          ) : null}
+                        <div className="min-w-0">
+                          <div className="break-words text-base font-semibold text-slate-950">{name}</div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                              {role}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isAnon ? "bg-slate-100 text-slate-700" : "bg-emerald-50 text-emerald-800"}`}>
+                              {isAnon ? t("types.anon") : t("types.signedIn")}
+                            </span>
+                            {deviceCount > 1 ? (
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                                {t("devices.count", { count: deviceCount })}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       )}
-                    </td>
-                    <td className="py-2 pr-3">{role}</td>
-                    <td className="py-2 pr-3">{joined}</td>
-                    <td className="py-2 pr-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${isAnon ? "bg-slate-100" : "bg-emerald-50"}`}>
-                        {isAnon ? t("types.anon") : t("types.signedIn")}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs">{studentCode}</span>
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {isStudent && canManageStaff && editingNameId !== r.id ? (
+                        <button
+                          type="button"
+                          onClick={() => startEditingName(r.id, name)}
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Rediger navn
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedMemberId(isOpen ? null : r.id)}
+                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? "Lukk" : "Åpne"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isOpen ? (
+                    <div className="mt-3 border-t border-slate-100 pt-3">
+                      <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">{t("table.joined")}</div>
+                          <div className="mt-1 text-slate-900">{joined}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">{t("table.studentCode")}</div>
+                          <div className="mt-1 font-mono text-sm font-semibold text-slate-900">{studentCode}</div>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <div className="text-xs font-semibold text-slate-500">{t("table.uid")}</div>
+                          <div className="mt-1 break-all font-mono text-xs text-slate-700">{uid}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         {isStudent && canManageStaff ? (
                           <>
                             {studentCode !== t("common.dash") ? (
@@ -832,47 +861,24 @@ function Inner() {
                             </button>
                           </>
                         ) : null}
+
+                        {canRemoveStaff ? (
+                          <button
+                            type="button"
+                            onClick={() => removeStaff(uid)}
+                            disabled={removingUid === uid}
+                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                          >
+                            {removingUid === uid ? "Fjerner..." : "Fjern tilgang"}
+                          </button>
+                        ) : null}
                       </div>
-                    </td>
-                    <td className="py-2 pr-3">
-                      <div className="font-mono text-xs">{uid}</div>
-                      {deviceCount > 1 ? (
-                        <div className="mt-1 text-xs font-semibold text-slate-500">
-                          {t("devices.count", { count: deviceCount })}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {canRemoveStaff ? (
-                        <button
-                          type="button"
-                          onClick={() => removeStaff(uid)}
-                          disabled={removingUid === uid}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                        >
-                          {removingUid === uid ? "Fjerner..." : "Fjern"}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
-                    {t("empty")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="mt-3 text-xs text-muted-foreground">
-            {t("tip.prefix")} <b>displayName</b> {t("tip.suffix")}
-          </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
