@@ -985,25 +985,28 @@ function AssignmentRoom({
           border-radius: 12px;
           background: rgba(248, 250, 252, 0.78);
           color: #0f172a;
-          line-height: 1.65;
-          padding: 14px;
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.7;
+          padding: 16px 18px;
           white-space: pre-wrap;
         }
 
         .podcastAssignmentCriteria {
           display: grid;
-          gap: 10px;
-          margin-top: 14px;
+          gap: 8px;
+          margin-top: 16px;
         }
 
         .podcastAssignmentCriteria h4 {
           margin: 0;
           color: #0f172a;
-          font-size: 15px;
+          font-size: 20px;
+          line-height: 1.2;
         }
 
         .podcastAssignmentCriteria p {
-          margin: -4px 0 2px;
+          margin: -2px 0 4px;
           color: #475569;
           font-size: 13px;
           font-weight: 750;
@@ -1012,7 +1015,32 @@ function AssignmentRoom({
 
         .podcastAssignmentChecks {
           display: grid;
-          gap: 8px;
+          gap: 6px;
+        }
+
+        .podcastAssignmentChecks :global(.podcastWorkshopCheck) {
+          align-items: center;
+          gap: 11px;
+          min-height: 42px;
+          padding: 8px 11px;
+          border-radius: 12px;
+        }
+
+        .podcastAssignmentChecks :global(.podcastWorkshopCheck input) {
+          width: 23px;
+          height: 23px;
+          border-radius: 7px;
+        }
+
+        .podcastAssignmentChecks :global(.podcastWorkshopCheck input:checked::after) {
+          width: 7px;
+          height: 12px;
+          border-width: 0 3px 3px 0;
+        }
+
+        .podcastAssignmentChecks :global(.podcastWorkshopCheck span) {
+          font-size: 14px;
+          line-height: 1.35;
         }
 
         .podcastAssignmentPills {

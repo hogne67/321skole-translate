@@ -10,7 +10,7 @@ import type {
     PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
-import { getPodcastSound, getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
+import { getPodcastSound, getSoundDuration, getSoundTailSeconds, playPodcastSound } from "@/lib/podcastSoundLibrary";
 import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
 import { auth } from "@/lib/firebase";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
@@ -27,6 +27,7 @@ type PodcastExportClip = {
     url?: string;
     asset?: StudentAudioAsset;
     label: string;
+    tailSeconds?: number;
 };
 
 type Props = {
@@ -207,18 +208,19 @@ async function renderPodcastWav(clips: PodcastExportClip[]) {
         const decoded = await Promise.all(clips.map((clip) => decodePodcastExportClip(context, clip)));
         const sampleRate = context.sampleRate;
         const channels = Math.min(2, Math.max(1, ...decoded.map((buffer) => buffer.numberOfChannels)));
-        const totalLength = decoded.reduce((sum, buffer) => {
-            return sum + Math.ceil(buffer.duration * sampleRate);
+        const totalLength = decoded.reduce((sum, buffer, index) => {
+            const tailSeconds = Math.max(0, clips[index]?.tailSeconds ?? 0);
+            return sum + Math.ceil((buffer.duration + tailSeconds) * sampleRate);
         }, 0);
         const offline = new OfflineAudioContext(channels, Math.max(1, totalLength), sampleRate);
         let cursor = 0;
 
-        decoded.forEach((buffer) => {
+        decoded.forEach((buffer, index) => {
             const source = offline.createBufferSource();
             source.buffer = buffer;
             source.connect(offline.destination);
             source.start(cursor / sampleRate);
-            cursor += Math.ceil(buffer.duration * sampleRate);
+            cursor += Math.ceil((buffer.duration + Math.max(0, clips[index]?.tailSeconds ?? 0)) * sampleRate);
         });
 
         const rendered = await offline.startRendering();
@@ -586,14 +588,22 @@ function PodcastFullPlayback({
             if ((playableVoice?.audioDataUrl || voice?.storagePath) && hasNextVoice) {
                 const transition = getPodcastSound(getTransitionSoundId(submission, segment.id));
                 if (transition) {
-                    clips.push({ url: transition.src, label: "overgang" });
+                    clips.push({
+                        url: transition.src,
+                        label: "overgang",
+                        tailSeconds: getSoundTailSeconds(transition.id),
+                    });
                 }
             }
         }
 
         const outro = getPodcastSound(submission.productionMix.outroSoundId);
         if (outro) {
-            clips.push({ url: outro.src, label: "outro" });
+            clips.push({
+                url: outro.src,
+                label: "outro",
+                tailSeconds: getSoundTailSeconds(outro.id),
+            });
         }
 
         return clips;

@@ -10,6 +10,11 @@ export type PodcastSoundDefinition = {
 };
 
 const SOUND_FADE_OUT_SECONDS = 0.5;
+const SOUND_TAIL_SECONDS_BY_GROUP: Partial<Record<PodcastSoundGroup, number>> = {
+    transition: 1,
+    effect: 1,
+    outro: 1,
+};
 
 export const PODCAST_SOUND_LIBRARY: PodcastSoundDefinition[] = [
     { id: "intro_warm", group: "intro", durationSeconds: 6, src: "/audio/podcast-library/intro-warm.mp3" },
@@ -40,7 +45,15 @@ export function getPodcastSound(soundId: PodcastSoundId) {
 }
 
 export function getSoundDuration(soundId: PodcastSoundId) {
-    return getPodcastSound(soundId)?.durationSeconds ?? 0;
+    const sound = getPodcastSound(soundId);
+    if (!sound) return 0;
+    return sound.durationSeconds + getSoundTailSeconds(soundId);
+}
+
+export function getSoundTailSeconds(soundId: PodcastSoundId) {
+    const sound = getPodcastSound(soundId);
+    if (!sound) return 0;
+    return SOUND_TAIL_SECONDS_BY_GROUP[sound.group] ?? 0;
 }
 
 function playToneFallback(soundId: PodcastSoundId) {
@@ -84,7 +97,10 @@ function playToneFallback(soundId: PodcastSoundId) {
         oscillator.stop(now + start + duration + 0.03);
     });
 
-    const totalMs = Math.max(...tones.map(([, start, duration]) => start + duration)) * 1000 + 80;
+    const totalMs =
+        Math.max(...tones.map(([, start, duration]) => start + duration)) * 1000
+        + getSoundTailSeconds(soundId) * 1000
+        + 80;
     return new Promise<void>((resolve) => {
         window.setTimeout(() => {
             void context.close();
@@ -100,6 +116,7 @@ export function playPodcastSound(soundId: PodcastSoundId) {
     return new Promise<void>((resolve) => {
         const audio = new Audio(sound.src);
         const maxSeconds = Math.max(0.1, sound.durationSeconds);
+        const tailSeconds = getSoundTailSeconds(soundId);
         let settled = false;
         let stopTimer: number | null = null;
         let fadeTimer: number | null = null;
@@ -117,7 +134,12 @@ export function playPodcastSound(soundId: PodcastSoundId) {
             audio.currentTime = 0;
             resolve();
         };
-        audio.onended = finish;
+        const finishAfterTail = () => {
+            if (settled) return;
+            clearTimers();
+            stopTimer = window.setTimeout(finish, tailSeconds * 1000);
+        };
+        audio.onended = finishAfterTail;
         audio.onerror = () => {
             clearTimers();
             void playToneFallback(soundId).then(finish);
@@ -129,6 +151,6 @@ export function playPodcastSound(soundId: PodcastSoundId) {
         fadeTimer = window.setTimeout(() => {
             audio.volume = 0.25;
         }, Math.max(0, maxSeconds - SOUND_FADE_OUT_SECONDS) * 1000);
-        stopTimer = window.setTimeout(finish, maxSeconds * 1000);
+        stopTimer = window.setTimeout(finish, (maxSeconds + tailSeconds) * 1000);
     });
 }

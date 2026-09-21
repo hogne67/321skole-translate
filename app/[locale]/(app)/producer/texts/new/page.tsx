@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
@@ -17,6 +18,9 @@ import { trackCreateLesson } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
 import { getTextTypeLabel, type TextTypeKey } from "@/lib/textTypes";
 import { X } from "lucide-react";
+
+const GUIDE_IMAGE_WIDTH = 1024;
+const GUIDE_IMAGE_HEIGHT = 1536;
 
 type MCQ = {
   q: string;
@@ -579,26 +583,32 @@ export default function NewTextPage() {
   const locale = useLocale();
   const t = useTranslations("generateNewText");
   const { profile } = useUserProfile();
-  const videoCopy = useMemo(() => {
+  const guideCopy = useMemo(() => {
     const lang = locale.toLocaleLowerCase();
     if (lang.startsWith("en")) {
       return {
-        title: "Instruction video",
-        body: "See how to create a worksheet lesson",
-        close: "Close video",
+        title: "Guide: Create new assignment",
+        body: "See the flow from level and text to tasks and finalization",
+        close: "Close",
+        download: "Download PNG",
+        imageUrl: "/guides/teacher-assignment-generator-guide-en.png",
       };
     }
     if (lang.startsWith("pt")) {
       return {
-        title: "Vídeo de instrução",
-        body: "Veja como criar uma lesson com tarefas",
-        close: "Fechar vídeo",
+        title: "Guia: Criar nova tarefa",
+        body: "Veja o fluxo do nível e texto até tarefas e finalização",
+        close: "Fechar",
+        download: "Baixar PNG",
+        imageUrl: "/guides/teacher-assignment-generator-guide-pt-br.png",
       };
     }
     return {
-      title: "Instruksjonsvideo",
-      body: "Se hvordan du lager en worksheet lesson",
-      close: "Lukk video",
+      title: "Guide: Lag ny oppgave",
+      body: "Se flyten fra nivå og tekst til oppgaver og ferdigstilling",
+      close: "Lukk",
+      download: "Last ned PNG",
+      imageUrl: "/guides/teacher-assignment-generator-guide-no.png",
     };
   }, [locale]);
 
@@ -726,29 +736,6 @@ export default function NewTextPage() {
     flex: "0 0 auto",
   };
 
-  const playCircle: CSSProperties = {
-    position: "absolute",
-    left: "50%",
-    top: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    background: "#2563eb",
-    display: "grid",
-    placeItems: "center",
-    boxShadow: "0 8px 18px rgba(37,99,235,0.22)",
-  };
-
-  const playTriangle: CSSProperties = {
-    width: 0,
-    height: 0,
-    borderTop: "8px solid transparent",
-    borderBottom: "8px solid transparent",
-    borderLeft: "12px solid #ffffff",
-    marginLeft: 3,
-  };
-
   const videoOverlay: CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -761,10 +748,13 @@ export default function NewTextPage() {
 
   const videoModal: CSSProperties = {
     width: "min(960px, 100%)",
+    maxHeight: "94vh",
     overflow: "hidden",
     borderRadius: 22,
     background: "#ffffff",
     boxShadow: "0 24px 70px rgba(0,0,0,0.28)",
+    display: "flex",
+    flexDirection: "column",
   };
 
   const videoModalHeader: CSSProperties = {
@@ -793,14 +783,10 @@ export default function NewTextPage() {
   };
 
   const videoFrameShell: CSSProperties = {
-    aspectRatio: "16 / 9",
-    background: "#000000",
-  };
-
-  const videoFrame: CSSProperties = {
-    width: "100%",
-    height: "100%",
-    border: 0,
+    minHeight: 0,
+    overflow: "auto",
+    background: "#f1f5f9",
+    padding: 16,
   };
 
   const [isNarrow, setIsNarrow] = useState(false);
@@ -1658,43 +1644,69 @@ export default function NewTextPage() {
             type="button"
             onClick={() => setVideoOpen(true)}
             style={videoLink}
-            aria-label={videoCopy.title}
+            aria-label={guideCopy.title}
           >
             <div style={videoThumb}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://img.youtube.com/vi/X8lX6hSRNvs/mqdefault.jpg"
+              <Image
+                src={guideCopy.imageUrl}
                 alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                fill
+                sizes="92px"
+                style={{ objectFit: "cover" }}
+                aria-hidden="true"
               />
-              <div style={playCircle} aria-hidden="true">
-                <span style={playTriangle} />
-              </div>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{videoCopy.title}</div>
-              <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{videoCopy.body}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{guideCopy.title}</div>
+              <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{guideCopy.body}</div>
             </div>
           </button>
         </div>
 
         {videoOpen ? (
-          <div style={videoOverlay} role="dialog" aria-modal="true" aria-label={videoCopy.title} onClick={() => setVideoOpen(false)}>
+          <div style={videoOverlay} role="dialog" aria-modal="true" aria-label={guideCopy.title} onClick={() => setVideoOpen(false)}>
             <div style={videoModal} onClick={(event) => event.stopPropagation()}>
               <div style={videoModalHeader}>
-                <div style={{ fontSize: 18, fontWeight: 950, color: "#0f172a" }}>{videoCopy.title}</div>
-                <button type="button" onClick={() => setVideoOpen(false)} style={closeVideoButton} aria-label={videoCopy.close}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 950, color: "#0f172a" }}>{guideCopy.title}</div>
+                  <div style={{ marginTop: 4, fontSize: 13, color: "#64748b" }}>{guideCopy.body}</div>
+                </div>
+                <button type="button" onClick={() => setVideoOpen(false)} style={closeVideoButton} aria-label={guideCopy.close}>
                   <X size={18} strokeWidth={2.5} />
                 </button>
               </div>
               <div style={videoFrameShell}>
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/X8lX6hSRNvs?autoplay=1&rel=0&modestbranding=1"
-                  title={videoCopy.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  style={videoFrame}
+                <Image
+                  src={guideCopy.imageUrl}
+                  alt={guideCopy.title}
+                  width={GUIDE_IMAGE_WIDTH}
+                  height={GUIDE_IMAGE_HEIGHT}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: GUIDE_IMAGE_WIDTH,
+                    height: "auto",
+                    margin: "0 auto",
+                    borderRadius: 14,
+                    boxShadow: "0 1px 3px rgba(15,23,42,0.10)",
+                  }}
                 />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                  borderTop: "1px solid #e2e8f0",
+                  padding: "12px 18px",
+                }}
+              >
+                <a href={guideCopy.imageUrl} download style={{ ...buttonSecondary, textDecoration: "none" }}>
+                  {guideCopy.download}
+                </a>
+                <button type="button" onClick={() => setVideoOpen(false)} style={buttonPrimary}>
+                  {guideCopy.close}
+                </button>
               </div>
             </div>
           </div>

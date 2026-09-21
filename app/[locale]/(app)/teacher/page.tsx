@@ -2,13 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { X } from "lucide-react";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
-import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { db } from "@/lib/firebase";
 import {
@@ -206,38 +207,146 @@ function formatBillingStatus(
   return t("billing.statuses.none");
 }
 
-function getDashboardIntroVideo(locale: string) {
+function getDashboardIntroGuide(locale: string) {
   if (locale === "en") {
     return {
       title: "Introduction to 321school",
-      videoUrl: "https://youtu.be/bm1DnFLlyWU",
-      buttonLabel: "Watch introduction video",
+      imageUrl: "/guides/teacher-dashboard-guide-en.png",
+      buttonLabel: "See quick guide",
       closeLabel: "Close",
-      description: "A short walkthrough of the dashboard and the most important choices.",
+      downloadLabel: "Download PNG",
+      description: "A visual overview of the dashboard and the most important choices.",
     };
   }
 
   if (locale === "pt") {
     return {
       title: "Introdução ao 321school",
-      videoUrl: "https://youtu.be/gHGqNLz2Imc",
-      buttonLabel: "Ver vídeo de introdução",
+      imageUrl: "/guides/teacher-dashboard-guide-pt-br.png",
+      buttonLabel: "Ver guia rápido",
       closeLabel: "Fechar",
-      description: "Uma breve apresentação do painel e das escolhas mais importantes.",
+      downloadLabel: "Baixar PNG",
+      description: "Uma visão geral visual do painel e das escolhas mais importantes.",
     };
   }
 
   if (locale === "nb" || locale === "no") {
     return {
       title: "Introduksjon til 321skole",
-      videoUrl: "https://youtu.be/TWwYWnkFbJM",
-      buttonLabel: "Se introduksjonsvideo",
+      imageUrl: "/guides/teacher-dashboard-guide-no.png",
+      buttonLabel: "Se hurtigguide",
       closeLabel: "Lukk",
-      description: "En kort gjennomgang av dashbordet og de viktigste valgene.",
+      downloadLabel: "Last ned PNG",
+      description: "En visuell oversikt over dashbordet og de viktigste valgene.",
     };
   }
 
   return null;
+}
+
+type DashboardIntroGuide = NonNullable<ReturnType<typeof getDashboardIntroGuide>>;
+
+const GUIDE_IMAGE_WIDTH = 1024;
+const GUIDE_IMAGE_HEIGHT = 1536;
+
+function DashboardGuidePoster({ guide }: { guide: DashboardIntroGuide }) {
+  const [open, setOpen] = useState(false);
+  const titleId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title={guide.buttonLabel}
+        className="inline-flex min-h-[70px] w-full min-w-0 max-w-none items-center justify-start gap-2 rounded-[20px] border border-blue-200 bg-white/90 p-2 text-left text-sm font-bold text-slate-900 shadow-[0_10px_24px_rgba(37,99,235,0.09)] transition hover:bg-white active:translate-y-px sm:min-h-[84px] sm:min-w-[250px] sm:gap-3 sm:p-2.5"
+      >
+        <span className="relative block aspect-video w-[76px] shrink-0 overflow-hidden rounded-[14px] bg-blue-100 sm:w-[92px]">
+          <Image src={guide.imageUrl} alt="" fill sizes="92px" className="object-cover" aria-hidden="true" />
+          <span className="absolute inset-0 bg-gradient-to-br from-white/0 to-blue-900/10" aria-hidden="true" />
+        </span>
+        <span className="min-w-0">
+          <span className="block break-words text-[13px] font-black leading-5 text-slate-950">{guide.buttonLabel}</span>
+          <span className="mt-0.5 hidden break-words text-[13px] font-medium leading-5 text-slate-500 sm:block">
+            {guide.description}
+          </span>
+        </span>
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/72 p-3 sm:p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 sm:p-5">
+              <div className="min-w-0">
+                <h2 id={titleId} className="break-words text-lg font-extrabold text-slate-950 sm:text-xl">
+                  {guide.title}
+                </h2>
+                <p className="mt-1 break-words text-sm text-slate-600">{guide.description}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                aria-label={guide.closeLabel}
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="min-h-0 overflow-auto bg-slate-100 p-2 sm:p-4">
+              <Image
+                src={guide.imageUrl}
+                alt={guide.title}
+                width={GUIDE_IMAGE_WIDTH}
+                height={GUIDE_IMAGE_HEIGHT}
+                className="mx-auto h-auto w-full max-w-[1024px] rounded-xl bg-white object-contain shadow-sm"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
+              <a
+                href={guide.imageUrl}
+                download
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                {guide.downloadLabel}
+              </a>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
+              >
+                {guide.closeLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 type StatCardProps = {
@@ -717,7 +826,7 @@ export default function TeacherPage() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
   const showCoursesSection = false;
-  const dashboardIntroVideo = getDashboardIntroVideo(locale);
+  const dashboardIntroGuide = getDashboardIntroGuide(locale);
   const teacherLoginHref = withLocale(locale, `/login?next=${encodeURIComponent(`/${locale}/teacher`)}`);
   const billingHref = isAnon ? teacherLoginHref : withLocale(locale, "/account/billing");
   const plannerHref = withLocale(locale, "/teacher/planner");
@@ -1028,17 +1137,8 @@ export default function TeacherPage() {
         actionRegisterHref={`/login?next=/${locale}/teacher`}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
         rightSlot={
-          dashboardIntroVideo ? (
-            <TrainingVideoPlayer
-              title={dashboardIntroVideo.title}
-              videoUrl={dashboardIntroVideo.videoUrl}
-              buttonLabel={dashboardIntroVideo.buttonLabel}
-              buttonTitle={dashboardIntroVideo.buttonLabel}
-              closeLabel={dashboardIntroVideo.closeLabel}
-              description={dashboardIntroVideo.description}
-              thumbnail
-              className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
-            />
+          dashboardIntroGuide ? (
+            <DashboardGuidePoster guide={dashboardIntroGuide} />
           ) : null
         }
       />
