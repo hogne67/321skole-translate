@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { normalizeMathWorksheetLanguage } from "@/lib/math/taxonomy";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 
 export const runtime = "nodejs";
@@ -59,20 +60,24 @@ export async function POST(req: Request) {
         }
 
         const { db } = getAdmin();
+        const normalizedWorksheet: FractionWorksheet = {
+            ...worksheet,
+            language: normalizeMathWorksheetLanguage(worksheet.language),
+        };
 
         const docRef = await db.collection("lessons").add({
             ownerId: uid,
-            title: worksheet.title,
-            level: worksheet.level,
-            language: worksheet.language === "nb" ? "no" : worksheet.language,
+            title: normalizedWorksheet.title,
+            level: normalizedWorksheet.level,
+            language: normalizedWorksheet.language,
 
             type: "math_worksheet",
             mathType: "fractions",
             contentType: "fraction_worksheet",
             source: body.source || "math-fractions-generator",
 
-            mathWorksheet: worksheet,
-            fractionWorksheet: worksheet,
+            mathWorksheet: normalizedWorksheet,
+            fractionWorksheet: normalizedWorksheet,
 
             visibility: "private",
             archived: false,

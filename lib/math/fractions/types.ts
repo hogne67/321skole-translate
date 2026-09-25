@@ -1,16 +1,18 @@
 // lib/math/fractions/types.ts
 
-export type FractionLanguage = "nb" | "en" | "pt";
+import type {
+    MathDifficulty,
+    MathWorksheetLanguage,
+} from "@/lib/math/taxonomy";
+
+export type FractionLanguage = MathWorksheetLanguage;
 
 export type FractionLevel =
     | "grade_2_4"
     | "grade_5_7"
     | "grade_8_10";
 
-export type FractionDifficulty =
-    | "easy"
-    | "medium"
-    | "hard";
+export type FractionDifficulty = MathDifficulty;
 
 export type FractionTopic =
     | "part_of_whole"

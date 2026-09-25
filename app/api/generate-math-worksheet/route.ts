@@ -7,73 +7,26 @@ import {
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import {
+  GEOMETRY_FIGURES,
+  isDifficulty,
+  isFigureKind,
+  isGeometryAnswerSpace,
+  isGeometryLevel,
+  isGeometryTopic,
+  normalizeWorksheetLanguage,
+  type Difficulty,
+  type FigureKind,
+  type FigureSpec,
+  type GeometryAnswerSpace as AnswerSpace,
+  type GeometryLevel,
+  type GeometryTopic,
+  type MathWorksheet,
+  type MathWorksheetTask,
+  type WorksheetLanguage,
+} from "@/lib/math/geometry/types";
 
 export const runtime = "nodejs";
-
-type WorksheetLanguage = "nb" | "en" | "pt";
-type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
-type Difficulty = "easy" | "medium" | "hard";
-type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
-type AnswerSpace = "small" | "medium" | "large";
-
-type FigureKind =
-  | "rectangle"
-  | "square"
-  | "parallelogram"
-  | "rhombus"
-  | "trapezoid"
-  | "triangle_right"
-  | "triangle_isosceles"
-  | "triangle_equilateral"
-  | "circle";
-
-type FigureSpec = {
-  kind: FigureKind;
-  widthCm?: number;
-  heightCm?: number;
-  sideCm?: number;
-  baseCm?: number;
-  topCm?: number;
-  sideLeftCm?: number;
-  sideRightCm?: number;
-  sideAcm?: number;
-  sideBcm?: number;
-  sideCcm?: number;
-  radiusCm?: number;
-};
-
-type MathWorksheetTask = {
-  id: string;
-  type: "shape_name" | "perimeter" | "area" | "all_in_one";
-  prompt: string;
-  figure?: FigureSpec;
-  answer: string;
-  explanation?: string;
-  hint?: string;
-  formula?: string;
-  inputMode?: "shape_name" | "number_with_unit" | "split_name_perimeter_area";
-  expected?: {
-    shapeName?: string;
-    perimeterValue?: number | null;
-    areaValue?: number | null;
-    perimeterUnit?: "cm" | null;
-    areaUnit?: "cm2" | null;
-  };
-};
-
-type MathWorksheet = {
-  title: string;
-  language: WorksheetLanguage;
-  level: GeometryLevel;
-  topic: GeometryTopic;
-  difficulty: Difficulty;
-  instructions: string;
-  showAnswerKey: boolean;
-  showFormulas: boolean;
-  answerSpace?: AnswerSpace;
-  selectedShapes: FigureKind[];
-  tasks: MathWorksheetTask[];
-};
 
 type GenerateMathWorksheetRequest = {
   language?: string;
@@ -96,60 +49,7 @@ type RequestUserContext = {
   studentAccessMode?: string | null;
 };
 
-const ALL_FIGURES: FigureKind[] = [
-  "square",
-  "rectangle",
-  "parallelogram",
-  "rhombus",
-  "trapezoid",
-  "triangle_right",
-  "triangle_isosceles",
-  "triangle_equilateral",
-  "circle",
-];
-
-function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
-  return value === "nb" || value === "en" || value === "pt";
-}
-
-function isGeometryTopic(value: unknown): value is GeometryTopic {
-  return (
-    value === "shapes" ||
-    value === "perimeter" ||
-    value === "area" ||
-    value === "all"
-  );
-}
-
-function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
-}
-
-function isGeometryLevel(value: unknown): value is GeometryLevel {
-  return (
-    value === "grade_3_4" ||
-    value === "grade_5_7" ||
-    value === "grade_8_10"
-  );
-}
-
-function isAnswerSpace(value: unknown): value is AnswerSpace {
-  return value === "small" || value === "medium" || value === "large";
-}
-
-function isFigureKind(value: unknown): value is FigureKind {
-  return (
-    value === "rectangle" ||
-    value === "square" ||
-    value === "parallelogram" ||
-    value === "rhombus" ||
-    value === "trapezoid" ||
-    value === "triangle_right" ||
-    value === "triangle_isosceles" ||
-    value === "triangle_equilateral" ||
-    value === "circle"
-  );
-}
+const ALL_FIGURES: FigureKind[] = [...GEOMETRY_FIGURES];
 
 function normalizeSelectedShapes(value: unknown): FigureKind[] {
   if (!Array.isArray(value)) return ALL_FIGURES;
@@ -171,8 +71,7 @@ function makeId(index: number): string {
 }
 
 function normalizeLanguage(value: unknown): WorksheetLanguage {
-  if (value === "no") return "nb";
-  return isWorksheetLanguage(value) ? value : "nb";
+  return normalizeWorksheetLanguage(value);
 }
 
 function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
@@ -1313,7 +1212,7 @@ function normalizeRequest(body: GenerateMathWorksheetRequest) {
     typeof body.showAnswerKey === "boolean" ? body.showAnswerKey : false;
   const showFormulas =
     typeof body.showFormulas === "boolean" ? body.showFormulas : false;
-  const answerSpace: AnswerSpace = isAnswerSpace(body.answerSpace)
+  const answerSpace: AnswerSpace = isGeometryAnswerSpace(body.answerSpace)
     ? body.answerSpace
     : "medium";
   const selectedShapes = normalizeSelectedShapes(body.selectedShapes);

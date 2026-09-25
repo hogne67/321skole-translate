@@ -21,6 +21,7 @@ import ReadingTestPlayer, {
 
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
+import ArithmeticWorksheetStudentView from "@/components/generators/math/arithmetic/ArithmeticWorksheetStudentView";
 
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import { gradeGeometryWorksheet } from "@/lib/math/geometry/autoCheck";
@@ -64,6 +65,7 @@ import {
 } from "./autoGrade";
 
 import { gradeFractionWorksheet } from "./fractionGrade";
+import { gradeArithmeticWorksheet } from "./arithmeticGrade";
 import { normalizeGeometryAnswersByTaskId } from "./geometrySubmissionHelpers";
 import { isMathWorksheet } from "./worksheetTypeGuards";
 import { translateOne } from "./translationHelpers";
@@ -421,8 +423,10 @@ export default function StudentAssignmentPage() {
     isReadingTest,
     geometryWorksheet,
     fractionWorksheet,
+    arithmeticWorksheet,
     isGeometryAssignment,
     isFractionAssignment,
+    isArithmeticAssignment,
   } = getAssignmentDerivedState(lesson, assignment);
 
   const tMap = useMemo(() => {
@@ -1306,6 +1310,7 @@ export default function StudentAssignmentPage() {
         const subId = buildSubmissionId(spaceId, assignmentId, activeParticipantId, editingSubmissionId);
 
         const isGeometryDraft = isGeometryAssignment && !!geometryWorksheet;
+        const isArithmeticDraft = isArithmeticAssignment && !!arithmeticWorksheet;
         const normalizedGeometryAnswers = isGeometryDraft
           ? normalizeGeometryAnswersByTaskId(answers)
           : null;
@@ -1335,10 +1340,24 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: currentDraftStatus,
 
-          taskType: isGeometryDraft ? "math_geometry" : null,
-          lessonType: isGeometryDraft ? "math_geometry" : lesson?.lessonType ?? null,
-          contentType: isGeometryDraft ? null : lesson?.contentType ?? null,
+          taskType: isGeometryDraft
+            ? "math_geometry"
+            : isArithmeticDraft
+              ? "math_arithmetic"
+              : null,
+          lessonType: isGeometryDraft
+            ? "math_geometry"
+            : isArithmeticDraft
+              ? "math_arithmetic"
+              : lesson?.lessonType ?? null,
+          contentType: isGeometryDraft
+            ? null
+            : isArithmeticDraft
+              ? "arithmetic_worksheet"
+              : lesson?.contentType ?? null,
           mathWorksheet: isGeometryDraft ? geometryWorksheet : null,
+          arithmeticWorksheet: isArithmeticDraft ? arithmeticWorksheet : null,
+          mathType: isArithmeticDraft ? "arithmetic" : lesson?.mathType ?? null,
 
           answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
           answersByTaskId: isGeometryDraft ? normalizedGeometryAnswers : undefined,
@@ -1397,6 +1416,8 @@ export default function StudentAssignmentPage() {
       editingSubmissionId,
       isGeometryAssignment,
       geometryWorksheet,
+      isArithmeticAssignment,
+      arithmeticWorksheet,
       answers,
       isPodcastWorkshop,
       podcastWorkshopSubmission,
@@ -1542,6 +1563,10 @@ export default function StudentAssignmentPage() {
           auto = gradeFractionWorksheet(fractionWorksheet, finalAnswers);
         }
 
+        if (isArithmeticAssignment && arithmeticWorksheet) {
+          auto = gradeArithmeticWorksheet(arithmeticWorksheet, finalAnswers);
+        }
+
         const readingTestSecondsLeftAtSubmit =
           isReadingTest
             ? mode === "timeout"
@@ -1588,18 +1613,31 @@ export default function StudentAssignmentPage() {
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
-              : null,
+              : isArithmeticAssignment
+                ? "math_arithmetic"
+                : null,
 
           lessonType: isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
-              : lesson?.lessonType ?? null,
+              : isArithmeticAssignment
+                ? "math_arithmetic"
+                : lesson?.lessonType ?? null,
 
           mathWorksheet: isGeometryAssignment ? geometryWorksheet : null,
           fractionWorksheet: isFractionAssignment ? fractionWorksheet : null,
-          mathType: isFractionAssignment ? "fractions" : lesson?.mathType ?? null,
-          contentType: isFractionAssignment ? "fraction_worksheet" : lesson?.contentType ?? null,
+          arithmeticWorksheet: isArithmeticAssignment ? arithmeticWorksheet : null,
+          mathType: isFractionAssignment
+            ? "fractions"
+            : isArithmeticAssignment
+              ? "arithmetic"
+              : lesson?.mathType ?? null,
+          contentType: isFractionAssignment
+            ? "fraction_worksheet"
+            : isArithmeticAssignment
+              ? "arithmetic_worksheet"
+              : lesson?.contentType ?? null,
 
           answers: isGeometryAssignment ? normalizedGeometryAnswers : finalAnswers,
           answersByTaskId: isGeometryAssignment ? normalizedGeometryAnswers : undefined,
@@ -1691,6 +1729,8 @@ export default function StudentAssignmentPage() {
       geometryWorksheet,
       isFractionAssignment,
       fractionWorksheet,
+      isArithmeticAssignment,
+      arithmeticWorksheet,
       assignment,
       lesson,
       isAnon,
@@ -2014,6 +2054,15 @@ export default function StudentAssignmentPage() {
           />
         ) : null}
 
+        {!isReadingTest && isArithmeticAssignment && arithmeticWorksheet ? (
+          <ArithmeticWorksheetStudentView
+            worksheet={arithmeticWorksheet}
+            answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)}
+            readOnly={lock || submitted}
+          />
+        ) : null}
+
         {!isReadingTest && isPodcastWorkshop && podcastWorkshopConfig ? (
           <PodcastWorkshopStudentSection
             spaceId={spaceId}
@@ -2029,7 +2078,11 @@ export default function StudentAssignmentPage() {
           />
         ) : null}
 
-        {!isReadingTest && !isGeometryAssignment && !isFractionAssignment && !isPodcastWorkshop ? (
+        {!isReadingTest &&
+        !isGeometryAssignment &&
+        !isFractionAssignment &&
+        !isArithmeticAssignment &&
+        !isPodcastWorkshop ? (
           <StandardAssignmentSection
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
             textSize={effectiveStudentTextSize}

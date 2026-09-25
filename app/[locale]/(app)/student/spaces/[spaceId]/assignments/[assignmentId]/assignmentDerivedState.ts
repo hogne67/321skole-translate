@@ -1,6 +1,10 @@
 import { safeTasksArray } from "./helpers";
 
-import { isFractionWorksheet, isMathWorksheet } from "./worksheetTypeGuards";
+import {
+    isArithmeticWorksheet,
+    isFractionWorksheet,
+    isMathWorksheet,
+} from "./worksheetTypeGuards";
 
 import type {
     AssignmentDoc,
@@ -8,6 +12,7 @@ import type {
 } from "./types";
 
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 
 export function getAssignmentDerivedState(
     lesson: Lesson | null,
@@ -61,6 +66,34 @@ export function getAssignmentDerivedState(
             isFractionWorksheet(lesson?.mathWorksheet)
         ) {
             return lesson.mathWorksheet as FractionWorksheet;
+        }
+
+        return null;
+    })();
+
+    const arithmeticWorksheet = (() => {
+        if (isArithmeticWorksheet(lesson?.arithmeticWorksheet)) {
+            return lesson.arithmeticWorksheet;
+        }
+
+        const mathType = String(
+            lesson?.mathType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        const contentType = String(
+            lesson?.contentType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        if (
+            (mathType === "arithmetic" ||
+                contentType === "arithmetic_worksheet") &&
+            isArithmeticWorksheet(lesson?.mathWorksheet)
+        ) {
+            return lesson.mathWorksheet as ArithmeticWorksheet;
         }
 
         return null;
@@ -134,12 +167,48 @@ export function getAssignmentDerivedState(
         );
     })();
 
+    const isArithmeticAssignment = (() => {
+        const mathType = String(
+            lesson?.mathType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        const contentType = String(
+            lesson?.contentType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        const assignmentMathType = String(
+            assignment?.mathType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        const assignmentContentType = String(
+            assignment?.contentType ?? ""
+        )
+            .trim()
+            .toLowerCase();
+
+        return (
+            mathType === "arithmetic" ||
+            contentType === "arithmetic_worksheet" ||
+            assignmentMathType === "arithmetic" ||
+            assignmentContentType === "arithmetic_worksheet" ||
+            !!arithmeticWorksheet
+        );
+    })();
+
     return {
         tasksOriginal,
         isReadingTest,
         geometryWorksheet,
         fractionWorksheet,
+        arithmeticWorksheet,
         isGeometryAssignment,
         isFractionAssignment,
+        isArithmeticAssignment,
     };
 }

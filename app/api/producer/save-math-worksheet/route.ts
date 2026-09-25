@@ -2,73 +2,20 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import {
+  isDifficulty,
+  isFigureKind,
+  isGeometryAnswerSpace,
+  isGeometryLevel,
+  isGeometryTopic,
+  isStoredWorksheetLanguage,
+  normalizeWorksheetLanguage,
+  type FigureSpec,
+  type MathWorksheet,
+  type MathWorksheetTask,
+} from "@/lib/math/geometry/types";
 
 export const runtime = "nodejs";
-
-type WorksheetLanguage = "no" | "en" | "pt";
-type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
-type Difficulty = "easy" | "medium" | "hard";
-type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
-type AnswerSpace = "small" | "medium" | "large";
-
-type FigureKind =
-  | "rectangle"
-  | "square"
-  | "parallelogram"
-  | "rhombus"
-  | "trapezoid"
-  | "triangle_right"
-  | "triangle_isosceles"
-  | "triangle_equilateral"
-  | "circle";
-
-type FigureSpec = {
-  kind: FigureKind;
-  widthCm?: number;
-  heightCm?: number;
-  sideCm?: number;
-  baseCm?: number;
-  topCm?: number;
-  sideLeftCm?: number;
-  sideRightCm?: number;
-  sideAcm?: number;
-  sideBcm?: number;
-  sideCcm?: number;
-  radiusCm?: number;
-};
-
-type MathWorksheetTask = {
-  id: string;
-  type: "shape_name" | "perimeter" | "area" | "all_in_one";
-  prompt: string;
-  figure?: FigureSpec;
-  answer: string;
-  explanation?: string;
-  hint?: string;
-  formula?: string;
-  inputMode?: "shape_name" | "number_with_unit" | "split_name_perimeter_area";
-  expected?: {
-    shapeName?: string;
-    perimeterValue?: number | null;
-    areaValue?: number | null;
-    perimeterUnit?: "cm" | null;
-    areaUnit?: "cm2" | null;
-  };
-};
-
-type MathWorksheet = {
-  title: string;
-  language: WorksheetLanguage;
-  level: GeometryLevel;
-  topic: GeometryTopic;
-  difficulty: Difficulty;
-  instructions: string;
-  showAnswerKey: boolean;
-  showFormulas: boolean;
-  answerSpace?: AnswerSpace;
-  selectedShapes: FigureKind[];
-  tasks: MathWorksheetTask[];
-};
 
 type SaveMathWorksheetRequest = {
   worksheet?: MathWorksheet;
@@ -81,40 +28,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function safeString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value.trim() : fallback;
-}
-
-function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
-  return value === "no" || value === "en" || value === "pt";
-}
-
-function isGeometryTopic(value: unknown): value is GeometryTopic {
-  return value === "shapes" || value === "perimeter" || value === "area" || value === "all";
-}
-
-function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
-}
-
-function isGeometryLevel(value: unknown): value is GeometryLevel {
-  return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
-}
-
-function isAnswerSpace(value: unknown): value is AnswerSpace {
-  return value === "small" || value === "medium" || value === "large";
-}
-
-function isFigureKind(value: unknown): value is FigureKind {
-  return (
-    value === "rectangle" ||
-    value === "square" ||
-    value === "parallelogram" ||
-    value === "rhombus" ||
-    value === "trapezoid" ||
-    value === "triangle_right" ||
-    value === "triangle_isosceles" ||
-    value === "triangle_equilateral" ||
-    value === "circle"
-  );
 }
 
 function stripUndefinedDeep<T>(value: T): T {
@@ -244,7 +157,7 @@ function sanitizeWorksheet(value: unknown): MathWorksheet | null {
   const instructions = safeString(value.instructions);
 
   if (!title || !instructions) return null;
-  if (!isWorksheetLanguage(value.language)) return null;
+  if (!isStoredWorksheetLanguage(value.language)) return null;
   if (!isGeometryLevel(value.level)) return null;
   if (!isGeometryTopic(value.topic)) return null;
   if (!isDifficulty(value.difficulty)) return null;
@@ -262,14 +175,14 @@ function sanitizeWorksheet(value: unknown): MathWorksheet | null {
 
   return {
     title,
-    language: value.language,
+    language: normalizeWorksheetLanguage(value.language),
     level: value.level,
     topic: value.topic,
     difficulty: value.difficulty,
     instructions,
     showAnswerKey: value.showAnswerKey === true,
     showFormulas: value.showFormulas === true,
-    answerSpace: isAnswerSpace(value.answerSpace) ? value.answerSpace : undefined,
+    answerSpace: isGeometryAnswerSpace(value.answerSpace) ? value.answerSpace : undefined,
     selectedShapes,
     tasks,
   };

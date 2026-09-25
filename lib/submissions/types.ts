@@ -1,6 +1,7 @@
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import type { ReadingTestConfig } from "@/components/student/ReadingTestPlayer";
 
 export type Role = "student" | "teacher" | "admin" | "parent" | "creator";
@@ -90,8 +91,9 @@ export type SubmissionDoc = {
     taskType?: string | null;
     lessonType?: string | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
+    arithmeticWorksheet?: ArithmeticWorksheet | null;
     mathType?: string | null;
     contentType?: string | null;
 
@@ -136,8 +138,9 @@ export type AssignmentDoc = {
     tasks?: unknown;
     coverImageUrl?: string;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
+    arithmeticWorksheet?: ArithmeticWorksheet | null;
 
     mathType?: string;
     contentType?: string;
@@ -162,8 +165,9 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
+    arithmeticWorksheet?: ArithmeticWorksheet | null;
 
     mathType?: string;
     contentType?: string;

@@ -75,6 +75,7 @@
       "openPreview": "Åpne preview",
       "subtypes": {
         "geometry": "Geometri",
+        "arithmetic": "Regnearter",
         "algebra": "Algebra",
         "fractions": "Brøk",
         "percent": "Prosent",

@@ -9,16 +9,18 @@ import { getAuth } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
 import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
+import ArithmeticWorksheetView from "@/components/generators/math/arithmetic/ArithmeticWorksheetView";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
+import { sanitizeArithmeticWorksheet } from "@/lib/math/arithmetic/sanitize";
 import type {
   LessonDocWithMathWorksheet as LessonDoc,
   GeometryAnswerSpace,
   MathWorksheet,
-  WorksheetLanguage,
 } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 
 const GEOMETRY_DRAFT_STORAGE_KEY = "321school.math.geometry.previewDraft";
 
@@ -42,17 +44,6 @@ function getErrorMessage(err: unknown): string {
     if (typeof message === "string") return message;
   }
   return String(err);
-}
-
-function normalizeLanguageForSave(language: WorksheetLanguage): "no" | "en" | "pt" {
-  return language === "nb" ? "no" : language;
-}
-
-function normalizeWorksheetForSave(worksheet: MathWorksheet) {
-  return {
-    ...worksheet,
-    language: normalizeLanguageForSave(worksheet.language),
-  };
 }
 
 async function readErrorMessage(
@@ -96,6 +87,8 @@ export default function MathWorksheetPreviewPage() {
     useState<GeometryAnswerSpace>("medium");
   const [fractionWorksheet, setFractionWorksheet] =
     useState<FractionWorksheet | null>(null);
+  const [arithmeticWorksheet, setArithmeticWorksheet] =
+    useState<ArithmeticWorksheet | null>(null);
 
   const localizeError = useCallback(
     (message: string): string => {
@@ -127,6 +120,7 @@ export default function MathWorksheetPreviewPage() {
             setLesson(null);
             setWorksheet(null);
             setFractionWorksheet(null);
+            setArithmeticWorksheet(null);
             setLoading(false);
             return;
           }
@@ -139,6 +133,7 @@ export default function MathWorksheetPreviewPage() {
             setLesson(null);
             setWorksheet(null);
             setFractionWorksheet(null);
+            setArithmeticWorksheet(null);
             setLoading(false);
             return;
           }
@@ -154,6 +149,7 @@ export default function MathWorksheetPreviewPage() {
           setWorksheet(draftWorksheet);
           setAnswerSpace(draftWorksheet.answerSpace ?? "medium");
           setFractionWorksheet(null);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -188,6 +184,7 @@ export default function MathWorksheetPreviewPage() {
           setLesson(null);
           setWorksheet(null);
           setFractionWorksheet(null);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -196,6 +193,7 @@ export default function MathWorksheetPreviewPage() {
           contentType?: unknown;
           mathType?: unknown;
           fractionWorksheet?: unknown;
+          arithmeticWorksheet?: unknown;
         };
         const contentType =
           typeof loadedRecord.contentType === "string"
@@ -208,11 +206,29 @@ export default function MathWorksheetPreviewPage() {
           (mathType === "fractions" || contentType === "fraction_worksheet"
             ? loadedRecord.mathWorksheet
             : null);
+        const arithmeticCandidate =
+          loadedRecord.arithmeticWorksheet ??
+          (mathType === "arithmetic" || contentType === "arithmetic_worksheet"
+            ? loadedRecord.mathWorksheet
+            : null);
+
+        const sanitizedArithmetic =
+          sanitizeArithmeticWorksheet(arithmeticCandidate);
+
+        if (sanitizedArithmetic) {
+          setLesson(loadedLesson);
+          setWorksheet(null);
+          setFractionWorksheet(null);
+          setArithmeticWorksheet(sanitizedArithmetic);
+          setLoading(false);
+          return;
+        }
 
         if (fractionCandidate && typeof fractionCandidate === "object") {
           setLesson(loadedLesson);
           setWorksheet(null);
           setFractionWorksheet(fractionCandidate as FractionWorksheet);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -223,6 +239,7 @@ export default function MathWorksheetPreviewPage() {
           setLesson(loadedLesson);
           setWorksheet(null);
           setFractionWorksheet(null);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -231,6 +248,7 @@ export default function MathWorksheetPreviewPage() {
         setWorksheet(mathWorksheet);
         setAnswerSpace(mathWorksheet.answerSpace ?? "medium");
         setFractionWorksheet(null);
+        setArithmeticWorksheet(null);
         setLoading(false);
       } catch (error) {
         if (!alive) return;
@@ -262,7 +280,7 @@ export default function MathWorksheetPreviewPage() {
           ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
         body: JSON.stringify({
-          worksheet: normalizeWorksheetForSave(worksheet),
+          worksheet,
           source: "math-geometry-generator",
         }),
       });
@@ -339,7 +357,7 @@ export default function MathWorksheetPreviewPage() {
     );
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet)) {
     return (
       <main className="mx-auto min-h-screen max-w-4xl bg-slate-50 px-4 py-8">
         <h1 className="text-2xl font-black text-slate-950">
@@ -371,7 +389,10 @@ export default function MathWorksheetPreviewPage() {
                 {t("controlPreview.eyebrow")}
               </p>
               <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                {worksheet?.title || fractionWorksheet?.title || tPrint("worksheet")}
+                {worksheet?.title ||
+                  fractionWorksheet?.title ||
+                  arithmeticWorksheet?.title ||
+                  tPrint("worksheet")}
               </h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
                 {t("controlPreview.description")}
@@ -396,6 +417,14 @@ export default function MathWorksheetPreviewPage() {
               showAutoCheck={false}
               showIdentityFields={true}
               readOnly
+            />
+          ) : arithmeticWorksheet ? (
+            <ArithmeticWorksheetView
+              worksheet={arithmeticWorksheet}
+              t={tView}
+              tBrand={tBrand}
+              printRef={previewRef}
+              showIdentityFields={true}
             />
           ) : worksheet ? (
             <GeometryWorksheetView

@@ -75,6 +75,7 @@
       "openPreview": "Open preview",
       "subtypes": {
         "geometry": "Geometry",
+        "arithmetic": "Arithmetic",
         "algebra": "Algebra",
         "fractions": "Fractions",
         "percent": "Percent",

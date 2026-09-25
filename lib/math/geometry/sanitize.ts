@@ -1,16 +1,19 @@
 // lib/math/geometry/sanitize.ts
 
 import type {
-  Difficulty,
   FigureKind,
   FigureSpec,
-  GeometryLevel,
-  GeometryAnswerSpace,
-  GeometryTopic,
   MathWorksheet,
   MathWorksheetTask,
-  StoredWorksheetLanguage,
-  WorksheetLanguage,
+} from "./types";
+import {
+  isDifficulty,
+  isFigureKind,
+  isGeometryAnswerSpace,
+  isGeometryLevel,
+  isGeometryTopic,
+  isStoredWorksheetLanguage,
+  normalizeWorksheetLanguage,
 } from "./types";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -19,45 +22,6 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function safeString(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
-}
-
-function isStoredWorksheetLanguage(value: unknown): value is StoredWorksheetLanguage {
-  return value === "nb" || value === "no" || value === "en" || value === "pt";
-}
-
-export function normalizeWorksheetLanguage(value: unknown): WorksheetLanguage {
-  if (value === "en" || value === "pt") return value;
-  return "nb";
-}
-
-function isGeometryTopic(value: unknown): value is GeometryTopic {
-  return value === "shapes" || value === "perimeter" || value === "area" || value === "all";
-}
-
-function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
-}
-
-function isGeometryLevel(value: unknown): value is GeometryLevel {
-  return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
-}
-
-function isGeometryAnswerSpace(value: unknown): value is GeometryAnswerSpace {
-  return value === "small" || value === "medium" || value === "large";
-}
-
-export function isFigureKind(value: unknown): value is FigureKind {
-  return (
-    value === "rectangle" ||
-    value === "square" ||
-    value === "parallelogram" ||
-    value === "rhombus" ||
-    value === "trapezoid" ||
-    value === "triangle_right" ||
-    value === "triangle_isosceles" ||
-    value === "triangle_equilateral" ||
-    value === "circle"
-  );
 }
 
 export function sanitizeFigureSpec(value: unknown): FigureSpec | undefined {

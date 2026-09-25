@@ -50,11 +50,13 @@ import StandardSubmissionView from "@/components/teacher/submissions/StandardSub
 import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/PodcastWorkshopSubmissionView";
 import GeometrySubmissionView from "@/components/teacher/submissions/GeometrySubmissionView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
+import ArithmeticWorksheetStudentView from "@/components/generators/math/arithmetic/ArithmeticWorksheetStudentView";
 import {
   assignmentSnapshotToLesson,
   hasAssignmentSnapshotContent,
   isMathWorksheet,
   isFractionWorksheet,
+  isArithmeticWorksheet,
   isReadingTestLesson,
   readAnswerMap,
   readAuth,
@@ -111,6 +113,18 @@ function withLocale(locale: string, href: string): string {
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
+}
+
+function formatLevelLabel(value: unknown) {
+  const raw = String(value ?? "").trim();
+  const labels: Record<string, string> = {
+    grade_1_2: "1.–2. trinn",
+    grade_3_4: "3.–4. trinn",
+    grade_5_7: "5.–7. trinn",
+    grade_8_10: "8.–10. trinn",
+  };
+
+  return labels[raw] ?? raw;
 }
 
 function StudentAudioReadingPanel({
@@ -456,6 +470,34 @@ function Inner() {
     lesson?.contentType,
   ]);
 
+  const arithmeticWorksheet = useMemo(() => {
+    if (isArithmeticWorksheet(lesson?.arithmeticWorksheet)) {
+      return lesson.arithmeticWorksheet;
+    }
+
+    const mathType = String(lesson?.mathType ?? "").trim().toLowerCase();
+    const contentType = String(lesson?.contentType ?? "").trim().toLowerCase();
+
+    if (
+      (mathType === "arithmetic" || contentType === "arithmetic_worksheet") &&
+      isArithmeticWorksheet(lesson?.mathWorksheet)
+    ) {
+      return lesson.mathWorksheet;
+    }
+
+    if (isArithmeticWorksheet(sub?.arithmeticWorksheet)) {
+      return sub.arithmeticWorksheet;
+    }
+
+    return null;
+  }, [
+    lesson?.arithmeticWorksheet,
+    lesson?.mathWorksheet,
+    lesson?.mathType,
+    lesson?.contentType,
+    sub?.arithmeticWorksheet,
+  ]);
+
   const isGeometryAssignment = useMemo(() => {
     const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
     const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
@@ -508,6 +550,50 @@ function Inner() {
     assignment?.mathType,
     assignment?.contentType,
     fractionWorksheet,
+  ]);
+
+  const isArithmeticAssignment = useMemo(() => {
+    const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
+    const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
+    const lessonMathType = String(lesson?.mathType ?? "").trim().toLowerCase();
+    const lessonContentType = String(lesson?.contentType ?? "")
+      .trim()
+      .toLowerCase();
+
+    const assignmentLessonType = String(assignment?.lessonType ?? "")
+      .trim()
+      .toLowerCase();
+    const assignmentTaskType = String(assignment?.taskType ?? "")
+      .trim()
+      .toLowerCase();
+    const assignmentMathType = String(assignment?.mathType ?? "")
+      .trim()
+      .toLowerCase();
+    const assignmentContentType = String(assignment?.contentType ?? "")
+      .trim()
+      .toLowerCase();
+
+    return (
+      lessonType === "math_arithmetic" ||
+      lessonTaskType === "math_arithmetic" ||
+      lessonMathType === "arithmetic" ||
+      lessonContentType === "arithmetic_worksheet" ||
+      assignmentLessonType === "math_arithmetic" ||
+      assignmentTaskType === "math_arithmetic" ||
+      assignmentMathType === "arithmetic" ||
+      assignmentContentType === "arithmetic_worksheet" ||
+      !!arithmeticWorksheet
+    );
+  }, [
+    lesson?.lessonType,
+    lesson?.taskType,
+    lesson?.mathType,
+    lesson?.contentType,
+    assignment?.lessonType,
+    assignment?.taskType,
+    assignment?.mathType,
+    assignment?.contentType,
+    arithmeticWorksheet,
   ]);
 
   useEffect(() => {
@@ -891,6 +977,7 @@ function Inner() {
 
   const lessonTitle = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
+  const lessonLevelLabel = formatLevelLabel(lessonLevel);
   const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
   const rawCover = String(lesson?.coverImageUrl ?? "").trim() || null;
 
@@ -1355,14 +1442,14 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
                 </div>
-                {lessonLevel ? (
+                {lessonLevelLabel ? (
                   <div className="text-sm text-slate-600">
-                    {t("studentView.level", { v: lessonLevel })}
+                    {t("studentView.level", { v: lessonLevelLabel })}
                   </div>
                 ) : null}
               </div>
@@ -1371,7 +1458,7 @@ function Inner() {
             {isPodcastWorkshop && podcastWorkshopConfig ? (
               <PodcastWorkshopSubmissionView
                 title={lessonTitle}
-                level={lessonLevel}
+                level={lessonLevelLabel}
                 config={podcastWorkshopConfig}
                 submission={podcastWorkshopSubmission}
                 feedback={podcastWorkshopFeedback}
@@ -1385,10 +1472,10 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isPodcastWorkshop ? (
+            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
-                lessonLevel={lessonLevel}
+                lessonLevel={lessonLevelLabel}
                 cover={cover}
                 sourceText={sourceText}
                 tasksOriginal={tasksOriginal}
@@ -1401,7 +1488,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1426,6 +1513,12 @@ function Inner() {
                     auto={geometryAuto}
                     tGeometry={tGeometryAny}
                     tBrand={tBrandAny}
+                  />
+                ) : isArithmeticAssignment && arithmeticWorksheet ? (
+                  <ArithmeticWorksheetStudentView
+                    worksheet={arithmeticWorksheet}
+                    answersByTaskId={answersMap}
+                    readOnly={true}
                   />
                 ) : null}
               </div>

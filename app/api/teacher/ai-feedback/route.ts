@@ -63,6 +63,22 @@ type MathWorksheet = {
   tasks?: MathWorksheetTask[];
 };
 
+type ArithmeticWorksheetTask = {
+  id?: string;
+  expression?: string;
+  prompt?: string;
+  answer?: number;
+};
+
+type ArithmeticWorksheet = {
+  title?: string;
+  level?: string;
+  language?: string;
+  operation?: string;
+  layout?: string;
+  tasks?: ArithmeticWorksheetTask[];
+};
+
 type GeometryAnswerRow = {
   taskId?: string;
   shapeName?: string;
@@ -152,7 +168,21 @@ function safeImageTasksArray(tasks: unknown): ImageWritingTask[] {
 
 function isMathWorksheet(value: unknown): value is MathWorksheet {
   if (!isRecord(value)) return false;
-  return Array.isArray(value.tasks) && typeof value.title === "string";
+  return (
+    Array.isArray(value.tasks) &&
+    typeof value.title === "string" &&
+    (Array.isArray(value.selectedShapes) || typeof value.showFormulas === "boolean")
+  );
+}
+
+function isArithmeticWorksheet(value: unknown): value is ArithmeticWorksheet {
+  if (!isRecord(value)) return false;
+  return (
+    Array.isArray(value.tasks) &&
+    typeof value.title === "string" &&
+    typeof value.operation === "string" &&
+    typeof value.layout === "string"
+  );
 }
 
 function hasAssignmentSnapshotContent(a: Record<string, unknown> | null): boolean {
@@ -161,7 +191,13 @@ function hasAssignmentSnapshotContent(a: Record<string, unknown> | null): boolea
   const hasTasks = safeTasksArray(a.tasks).length > 0;
   const hasImage = safeString(a.coverImageUrl).trim().length > 0;
   const hasMathWorksheet = isMathWorksheet(a.mathWorksheet);
-  return hasText || hasTasks || hasImage || hasMathWorksheet;
+  const hasArithmeticWorksheet =
+    isArithmeticWorksheet(a.arithmeticWorksheet) ||
+    (
+      (a.mathType === "arithmetic" || a.contentType === "arithmetic_worksheet") &&
+      isArithmeticWorksheet(a.mathWorksheet)
+    );
+  return hasText || hasTasks || hasImage || hasMathWorksheet || hasArithmeticWorksheet;
 }
 
 function getStableTaskId(t: Task, idx: number): string {
@@ -982,6 +1018,88 @@ function buildGeometrySystemPrompt(lang: Lang) {
   ].join("\n");
 }
 
+function buildArithmeticSystemPrompt(lang: Lang) {
+  const headings = getGeometryHeadings(lang);
+  const safety = buildCommonSafetyLines(lang);
+
+  if (lang === "en") {
+    return [
+      "You are an experienced math teacher giving feedback to a student.",
+      "Write directly to the student using 'you'.",
+      "Be supportive, concrete, and short.",
+      "Use the automatic arithmetic result actively.",
+      "Do not claim that tasks were unanswered if automatic result data or the answer list shows answered tasks.",
+      "Mention what the student got right, what needs practice, and one useful next step.",
+      "Do not explain every single task in detail.",
+      "",
+      "IMPORTANT:",
+      ...safety,
+      "",
+      "FORMATTING:",
+      "- Use plain text headings only.",
+      "- Do not use markdown.",
+      "- Do not use ###, ##, #, bullet markers, or numbered heading formatting.",
+      "",
+      "Use these exact headings:",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      "",
+      "Keep it concise and teacher-like.",
+    ].join("\n");
+  }
+
+  if (lang === "pt") {
+    return [
+      "Você é um professor experiente de matemática dando feedback ao aluno.",
+      "Fale diretamente com o aluno usando 'você'.",
+      "Seja encorajador, concreto e breve.",
+      "Use ativamente o resultado automático de aritmética.",
+      "Não diga que as tarefas não foram respondidas se os dados automáticos ou a lista de respostas mostram respostas.",
+      "",
+      "IMPORTANTE:",
+      ...safety,
+      "",
+      "FORMATAÇÃO:",
+      "- Use títulos em texto simples.",
+      "- Não use markdown.",
+      "- Não use ###, ##, #, marcadores ou numeração de headings.",
+      "",
+      "Use estes títulos exatos:",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      "",
+      "Seja conciso.",
+    ].join("\n");
+  }
+
+  return [
+    "Du er en erfaren matematikklærer som gir tilbakemelding til en elev.",
+    "Skriv direkte til eleven med 'du'.",
+    "Vær vennlig, konkret og kort.",
+    "Bruk automatisk resultat for regneartene aktivt.",
+    "Ikke skriv at eleven ikke har besvart oppgavene hvis automatisk resultat eller svarlisten viser besvarte oppgaver.",
+    "Trekk fram hva eleven har fått til, hva som bør øves mer på, og ett konkret neste steg.",
+    "Ikke forklar hver enkelt oppgave i detalj.",
+    "",
+    "VIKTIG:",
+    ...safety,
+    "",
+    "FORMATERING:",
+    "- Bruk rene overskrifter som vanlig tekst.",
+    "- Ikke bruk markdown.",
+    "- Ikke bruk ###, ##, #, punktlister eller nummererte overskrifter.",
+    "",
+    "Bruk nøyaktig disse overskriftene:",
+    headings.h1,
+    headings.h2,
+    headings.h3,
+    "",
+    "Hold det kort og læreraktig.",
+  ].join("\n");
+}
+
 function summarizeAutoResult(auto: unknown, lang: Lang): string {
   const t = getPromptText(lang);
 
@@ -1082,6 +1200,42 @@ function summarizeGeometryWorksheet(
     .join("\n\n");
 }
 
+function summarizeArithmeticWorksheet(
+  worksheet: ArithmeticWorksheet | null,
+  answers: AnswersMap,
+  auto: unknown,
+  lang: Lang
+): string {
+  const t = getPromptText(lang);
+
+  if (!worksheet || !Array.isArray(worksheet.tasks) || worksheet.tasks.length === 0) {
+    return t.noTasksFound;
+  }
+
+  const autoByTask =
+    isRecord(auto) && isRecord(auto.byTask)
+      ? (auto.byTask as Record<string, unknown>)
+      : {};
+
+  return worksheet.tasks
+    .map((task, idx) => {
+      const taskId = safeString(task.id).trim() || String(idx + 1);
+      const studentAnswer = answers[taskId];
+      const autoEntry = isRecord(autoByTask[taskId]) ? autoByTask[taskId] : null;
+      const isCorrect = safeBoolean(autoEntry?.isCorrect);
+
+      return [
+        `#${idx + 1}`,
+        `${t.taskId}: ${taskId}`,
+        `${t.prompt}: ${safeString(task.expression || task.prompt) || t.noPrompt} =`,
+        `Correct answer: ${task.answer ?? t.unknown}`,
+        `${t.answer}: ${asText(studentAnswer).trim() || t.notAnswered}`,
+        `Correct: ${isCorrect === true ? t.yes : isCorrect === false ? t.no : t.unknown}`,
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
 function buildLanguageContextBlock(args: {
   lang: Lang;
   contentLanguage: string;
@@ -1169,6 +1323,38 @@ function buildReadingUserContent(args: {
     `${t.allTasksAndAnswers}:\n${taskOverviewBlock}\n\n` +
     openTasksSection +
     `${t.instruction}:\n${t.readingInstruction}`
+  );
+}
+
+function buildArithmeticUserContent(args: {
+  lang: Lang;
+  contentLanguage: string;
+  lessonTitle: string;
+  level: string;
+  languageHint: string;
+  arithmeticWorksheet: ArithmeticWorksheet | null;
+  auto: unknown;
+  answers: AnswersMap;
+}) {
+  const {
+    lang,
+    contentLanguage,
+    lessonTitle,
+    level,
+    languageHint,
+    arithmeticWorksheet,
+    auto,
+    answers,
+  } = args;
+  const t = getPromptText(lang);
+
+  return (
+    `${buildLanguageContextBlock({ lang, contentLanguage, languageHint })}\n\n` +
+    `${t.worksheetTitle}: ${arithmeticWorksheet?.title || lessonTitle}\n` +
+    `${t.level}: ${level}\n\n` +
+    `${t.autoResult}:\n${summarizeAutoResult(auto, lang)}\n\n` +
+    `${t.allTasksAndAnswers}:\n${summarizeArithmeticWorksheet(arithmeticWorksheet, answers, auto, lang)}\n\n` +
+    `${t.instruction}:\nUse the automatic score and the answer list. Give short arithmetic feedback. If the student answered only some tasks, say how many were answered and focus next steps on the relevant operation.`
   );
 }
 
@@ -1389,12 +1575,79 @@ export async function POST(req: Request) {
 
     const lessonType = safeString(lesson.lessonType || assignment.lessonType).toLowerCase().trim();
     const taskType = safeString(lesson.taskType || assignment.taskType).toLowerCase().trim();
+    const mathType = safeString(lesson.mathType || assignment.mathType).toLowerCase().trim();
+    const contentType = safeString(lesson.contentType || assignment.contentType).toLowerCase().trim();
     const mathWorksheet = isMathWorksheet(lesson.mathWorksheet) ? (lesson.mathWorksheet as MathWorksheet) : null;
+    const arithmeticWorksheet =
+      isArithmeticWorksheet(lesson.arithmeticWorksheet)
+        ? (lesson.arithmeticWorksheet as ArithmeticWorksheet)
+        : (mathType === "arithmetic" || contentType === "arithmetic_worksheet") &&
+            isArithmeticWorksheet(lesson.mathWorksheet)
+          ? (lesson.mathWorksheet as ArithmeticWorksheet)
+          : null;
 
-    const isGeometry = lessonType === "math_geometry" || taskType === "math_geometry" || !!mathWorksheet;
+    const isArithmetic =
+      lessonType === "math_arithmetic" ||
+      taskType === "math_arithmetic" ||
+      mathType === "arithmetic" ||
+      contentType === "arithmetic_worksheet" ||
+      !!arithmeticWorksheet;
+
+    const isGeometry = !isArithmetic && (lessonType === "math_geometry" || taskType === "math_geometry" || !!mathWorksheet);
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();
+
+    if (isArithmetic) {
+      const answers = readAnswerMap(subDoc.answers);
+
+      const systemPrompt = buildArithmeticSystemPrompt(locale);
+      const userContent = buildArithmeticUserContent({
+        lang: locale,
+        contentLanguage,
+        lessonTitle,
+        level,
+        languageHint,
+        arithmeticWorksheet,
+        auto: subDoc.auto,
+        answers,
+      });
+
+      const resp = await client.responses.create({
+        model,
+        temperature: 0.3,
+        input: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      });
+
+      const textOut = cleanAiFeedback((resp.output_text || "").trim());
+      if (!textOut) return json({ error: "Empty AI response" }, 502);
+
+      const payload = {
+        aiFeedback: {
+          text: textOut,
+          updatedAt: FieldValue.serverTimestamp(),
+          teacherUid: uid,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      const batch = db.batch();
+      batch.set(subRef, payload, { merge: true });
+      batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
+      await batch.commit();
+
+      await consumeServerFeature({
+        db,
+        uid,
+        feature: "ai_feedback",
+      });
+
+      return json({ text: textOut }, 200);
+    }
 
     if (isGeometry) {
       const answersByTaskId = readAnswerMap(subDoc.answersByTaskId);

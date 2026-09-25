@@ -11,12 +11,15 @@ import { db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
+import ArithmeticWorksheetView from "@/components/generators/math/arithmetic/ArithmeticWorksheetView";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
+import { sanitizeArithmeticWorksheet } from "@/lib/math/arithmetic/sanitize";
 import type {
   LessonDocWithMathWorksheet as LessonDoc,
   MathWorksheet,
 } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import { logUsageEvent } from "@/lib/usageClient";
 
 function uidNow() {
@@ -50,6 +53,8 @@ export default function MathWorksheetPrintPage() {
   const [lesson, setLesson] = useState<LessonDoc | null>(null);
   const [worksheet, setWorksheet] = useState<MathWorksheet | null>(null);
   const [fractionWorksheet, setFractionWorksheet] = useState<FractionWorksheet | null>(null);
+  const [arithmeticWorksheet, setArithmeticWorksheet] =
+    useState<ArithmeticWorksheet | null>(null);
 
   const localizeError = useCallback(
     (message: string): string => {
@@ -109,6 +114,8 @@ export default function MathWorksheetPrintPage() {
           setErr(t("errors.notFound"));
           setLesson(null);
           setWorksheet(null);
+          setFractionWorksheet(null);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -117,6 +124,7 @@ export default function MathWorksheetPrintPage() {
           contentType?: unknown;
           mathType?: unknown;
           fractionWorksheet?: unknown;
+          arithmeticWorksheet?: unknown;
         };
         const contentType = typeof loadedRecord.contentType === "string" ? loadedRecord.contentType : "";
         const mathType = typeof loadedRecord.mathType === "string" ? loadedRecord.mathType : "";
@@ -125,11 +133,29 @@ export default function MathWorksheetPrintPage() {
           (mathType === "fractions" || contentType === "fraction_worksheet"
             ? loadedRecord.mathWorksheet
             : null);
+        const arithmeticCandidate =
+          loadedRecord.arithmeticWorksheet ??
+          (mathType === "arithmetic" || contentType === "arithmetic_worksheet"
+            ? loadedRecord.mathWorksheet
+            : null);
+
+        const sanitizedArithmetic =
+          sanitizeArithmeticWorksheet(arithmeticCandidate);
+
+        if (sanitizedArithmetic) {
+          setLesson(loadedLesson);
+          setWorksheet(null);
+          setFractionWorksheet(null);
+          setArithmeticWorksheet(sanitizedArithmetic);
+          setLoading(false);
+          return;
+        }
 
         if (fractionCandidate && typeof fractionCandidate === "object") {
           setLesson(loadedLesson);
           setWorksheet(null);
           setFractionWorksheet(fractionCandidate as FractionWorksheet);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -141,6 +167,7 @@ export default function MathWorksheetPrintPage() {
           setLesson(loadedLesson);
           setWorksheet(null);
           setFractionWorksheet(null);
+          setArithmeticWorksheet(null);
           setLoading(false);
           return;
         }
@@ -148,6 +175,7 @@ export default function MathWorksheetPrintPage() {
         setLesson(loadedLesson);
         setWorksheet(mathWorksheet);
         setFractionWorksheet(null);
+        setArithmeticWorksheet(null);
         setLoading(false);
       } catch (e: unknown) {
         if (!alive) return;
@@ -163,7 +191,7 @@ export default function MathWorksheetPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!worksheet && !fractionWorksheet) return;
+    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet) return;
 
     let alive = true;
     const status =
@@ -187,16 +215,17 @@ export default function MathWorksheetPrintPage() {
         setLesson(null);
         setWorksheet(null);
         setFractionWorksheet(null);
+        setArithmeticWorksheet(null);
       }
     })();
 
     return () => {
       alive = false;
     };
-  }, [worksheet, fractionWorksheet, lesson, lessonId, t]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lesson, lessonId, t]);
 
   const handlePrint = useCallback(() => {
-    if (fractionWorksheet) {
+    if (fractionWorksheet || arithmeticWorksheet) {
       window.print();
       return;
     }
@@ -529,7 +558,7 @@ export default function MathWorksheetPrintPage() {
         img.onerror = done;
       }
     });
-  }, [worksheet, fractionWorksheet]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet]);
 
   const tView = useCallback(
     (key: string) => {
@@ -587,7 +616,7 @@ export default function MathWorksheetPrintPage() {
     return <main style={{ padding: 20 }}>{t("loading")}</main>;
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet)) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
@@ -635,6 +664,14 @@ export default function MathWorksheetPrintPage() {
                 showAutoCheck={false}
                 showIdentityFields={true}
                 printMode
+              />
+            ) : arithmeticWorksheet ? (
+              <ArithmeticWorksheetView
+                worksheet={arithmeticWorksheet}
+                t={tView}
+                tBrand={tBrand}
+                printRef={printRef}
+                showIdentityFields={true}
               />
             ) : worksheet ? (
               <GeometryWorksheetView

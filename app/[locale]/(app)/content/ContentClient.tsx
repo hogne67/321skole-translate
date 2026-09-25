@@ -298,6 +298,9 @@ function isMathContent(it: ContentItem) {
     "math_generator",
     "geometry",
     "geometry_worksheet",
+    "arithmetic",
+    "arithmetic_worksheet",
+    "math_arithmetic",
     "algebra",
     "fractions",
     "fraction_worksheet",
@@ -327,6 +330,7 @@ function getMathSubtype(it: ContentItem): string | null {
   const all = new Set<string>([...meta, ...lessonSignals]);
 
   if (all.has("geometry") || all.has("geometry_worksheet") || all.has("math_geometry")) return "geometry";
+  if (all.has("arithmetic") || all.has("arithmetic_worksheet") || all.has("math_arithmetic")) return "arithmetic";
   if (all.has("algebra")) return "algebra";
   if (all.has("fractions") || all.has("fraction_worksheet")) return "fractions";
   if (all.has("percent")) return "percent";
@@ -491,6 +495,9 @@ export default function ContentClient() {
     if (mathSubtype === "geometry") {
       return `/${locale}/producer/math/${it.id}/preview`;
     }
+    if (mathSubtype === "arithmetic") {
+      return `/${locale}/producer/math/${it.id}/preview`;
+    }
     if (mathSubtype === "fractions") {
       return `/${locale}/producer/math/${it.id}/print`;
     }
@@ -516,6 +523,9 @@ export default function ContentClient() {
     }
     if (getMathSubtype(it) === "geometry") {
       return `/${locale}/producer/math/geometry?edit=${it.id}`;
+    }
+    if (getMathSubtype(it) === "arithmetic") {
+      return `/${locale}/producer/math/arithmetic`;
     }
     return `/${locale}/producer/${it.id}`;
   }

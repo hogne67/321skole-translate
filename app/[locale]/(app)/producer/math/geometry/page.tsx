@@ -13,8 +13,18 @@ import {
   type FeatureStatus,
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
+import {
+  GEOMETRY_FIGURES,
+  isDifficulty,
+  isFigureKind,
+  isGeometryAnswerSpace,
+  isGeometryLevel,
+  isGeometryTopic,
+  isWorksheetLanguage,
+} from "@/lib/math/geometry/types";
 import type {
   FigureKind,
+  GeometryAnswerSpace,
   MathWorksheet,
   WorksheetLanguage,
   GeometryTopic,
@@ -23,7 +33,7 @@ import type {
 } from "@/lib/math/geometry/types";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
 
-type AnswerSpace = "small" | "medium" | "large";
+type AnswerSpace = GeometryAnswerSpace;
 
 type GenerateResponse =
   | {
@@ -35,44 +45,10 @@ type GenerateResponse =
       error: string;
     };
 
-const ALL_FIGURES: FigureKind[] = [
-  "square",
-  "rectangle",
-  "parallelogram",
-  "rhombus",
-  "trapezoid",
-  "triangle_right",
-  "triangle_isosceles",
-  "triangle_equilateral",
-  "circle",
-];
+const ALL_FIGURES: FigureKind[] = [...GEOMETRY_FIGURES];
 
 type TFn = (key: string) => string;
 const GEOMETRY_DRAFT_STORAGE_KEY = "321school.math.geometry.previewDraft";
-
-function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
-  return value === "nb" || value === "en" || value === "pt";
-}
-
-function isGeometryLevel(value: unknown): value is GeometryLevel {
-  return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
-}
-
-function isGeometryTopic(value: unknown): value is GeometryTopic {
-  return value === "shapes" || value === "perimeter" || value === "area" || value === "all";
-}
-
-function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
-}
-
-function isAnswerSpace(value: unknown): value is AnswerSpace {
-  return value === "small" || value === "medium" || value === "large";
-}
-
-function isFigureKind(value: unknown): value is FigureKind {
-  return typeof value === "string" && ALL_FIGURES.includes(value as FigureKind);
-}
 
 function clampTaskCount(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
@@ -327,7 +303,7 @@ export default function ProducerMathGeometryPage() {
       if (typeof settings.includeHints === "boolean") setIncludeHints(settings.includeHints);
       if (typeof settings.showAnswerKey === "boolean") setShowAnswerKey(settings.showAnswerKey);
       if (typeof settings.showFormulas === "boolean") setShowFormulas(settings.showFormulas);
-      if (isAnswerSpace(settings.answerSpace)) setAnswerSpace(settings.answerSpace);
+      if (isGeometryAnswerSpace(settings.answerSpace)) setAnswerSpace(settings.answerSpace);
 
       const restoredTaskCount = clampTaskCount(settings.taskCount);
       if (restoredTaskCount !== null) setTaskCount(restoredTaskCount);

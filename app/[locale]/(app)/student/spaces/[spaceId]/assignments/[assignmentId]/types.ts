@@ -1,6 +1,7 @@
 import type { ReadingTestConfig } from "@/components/student/ReadingTestPlayer";
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 
 export type TextSize = "normal" | "large" | "xlarge";
 
@@ -25,6 +26,7 @@ export type Lesson = {
     textSize?: TextSize;
     mathWorksheet?: MathWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
+    arithmeticWorksheet?: ArithmeticWorksheet | null;
     mathType?: string;
     contentType?: string;
     audioReadingEnabled?: boolean;
@@ -62,6 +64,7 @@ export type AssignmentDoc = {
 
     mathWorksheet?: MathWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
+    arithmeticWorksheet?: ArithmeticWorksheet | null;
 
     mathType?: string;
     contentType?: string;
@@ -122,7 +125,7 @@ export type TeacherFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse";
+    type: "mcq" | "truefalse" | "arithmetic";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;

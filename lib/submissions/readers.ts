@@ -2,6 +2,7 @@ import type { Firestore } from "firebase/firestore";
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import type {
     AnswersMap,
     AssignmentDoc,
@@ -41,6 +42,23 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
     );
 }
 
+export function isArithmeticWorksheet(value: unknown): value is ArithmeticWorksheet {
+    if (!value || typeof value !== "object") return false;
+    const v = value as {
+        tasks?: unknown;
+        title?: unknown;
+        operation?: unknown;
+        layout?: unknown;
+    };
+
+    return (
+        Array.isArray(v.tasks) &&
+        typeof v.title === "string" &&
+        typeof v.operation === "string" &&
+        typeof v.layout === "string"
+    );
+}
+
 export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
     if (!a) return false;
 
@@ -54,6 +72,12 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
             (a.mathType === "fractions" || a.contentType === "fraction_worksheet") &&
             isFractionWorksheet(a.mathWorksheet)
         );
+    const hasArithmeticWorksheet =
+        isArithmeticWorksheet(a.arithmeticWorksheet) ||
+        (
+            (a.mathType === "arithmetic" || a.contentType === "arithmetic_worksheet") &&
+            isArithmeticWorksheet(a.mathWorksheet)
+        );
     const hasPodcastWorkshop = !!a.podcastWorkshopConfig && typeof a.podcastWorkshopConfig === "object";
     const isPodcastWorkshop =
         isPodcastWorkshopType(a.lessonType) ||
@@ -62,7 +86,7 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasPodcastWorkshop;
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop;
 }
 
 export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
@@ -82,6 +106,7 @@ export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
 
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,
+        arithmeticWorksheet: a.arithmeticWorksheet ?? null,
 
         mathType: a.mathType,
         contentType: a.contentType,
