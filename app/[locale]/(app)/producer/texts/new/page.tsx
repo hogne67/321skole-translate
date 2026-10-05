@@ -6,6 +6,7 @@ import Image from "next/image";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
+import { normalizeLessonTasks, type LessonTask, type LessonTaskType } from "@/lib/lessons/tasks";
 import type { CSSProperties } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -43,15 +44,7 @@ type ContentPack = {
   };
 };
 
-type TaskType = "truefalse" | "mcq" | "open";
-type LessonTask = {
-  id: string;
-  order?: number;
-  type: TaskType;
-  prompt: string;
-  options?: string[];
-  correctAnswer?: unknown;
-};
+type TaskType = LessonTaskType;
 
 type GenerateTextResp = {
   title?: string;
@@ -1481,7 +1474,7 @@ export default function NewTextPage() {
         highFrequencyWord: isA1StartHighFrequency ? a1StartWord || highFrequencyWordFromTitle(title) : "",
         highFrequencyReadingSentences: isA1StartHighFrequency ? visibleHighFrequencyReadingSentences : "",
         highFrequencyExplanation: isA1StartHighFrequency ? visibleHighFrequencyExplanation : "",
-        tasks: renumberOrders(lessonTasks),
+        tasks: normalizeLessonTasks(lessonTasks),
         aiQuality: {
           factCheckRequired: publishFactCheckRequired,
           factChecked: currentTextFactChecked,

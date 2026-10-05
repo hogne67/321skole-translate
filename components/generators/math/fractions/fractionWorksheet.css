@@ -1,0 +1,55 @@
+.fraction-worksheet, .fraction-worksheet * { box-sizing: border-box; letter-spacing: 0; }
+.fraction-worksheet fieldset { margin: 0; padding: 0; border: 0; }
+.fraction-worksheet .fraction-print-task-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); align-items: center; gap: 24px; }
+.fraction-worksheet .fraction-print-task-shade_fraction .fraction-print-task-layout { grid-template-columns: minmax(0, 1fr); }
+.fraction-worksheet .fraction-print-task-shade_fraction .fraction-print-answer:empty { display: none; }
+.fraction-worksheet .fraction-answer-key .fraction-visual { width: 80px !important; max-height: 60px; }
+.fraction-worksheet input[type="text"] { min-width: 0; max-width: 100%; border-radius: 8px; }
+.fraction-worksheet .fraction-visual path:hover[aria-pressed="true"] { fill: #059669; }
+@media (max-width: 640px) {
+  .fraction-worksheet .fraction-print-task-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .fraction-worksheet .fraction-print-options { max-width: 280px; }
+  .fraction-worksheet h2 { font-size: 22px; }
+}
+@media print {
+  body:has(.fraction-worksheet) { background: white !important; }
+  .fraction-worksheet { max-width: none; color: #111; }
+  .fraction-worksheet .fraction-worksheet-header { display: block !important; padding: 0 0 4mm; }
+  .fraction-worksheet .fraction-worksheet-brand { margin-bottom: 3mm; align-items: center; }
+  .fraction-worksheet .fraction-worksheet-brand img { height: 9mm; }
+  .fraction-worksheet .fraction-worksheet-brand .text-lg { font-size: 11pt; }
+  .fraction-worksheet .fraction-worksheet-brand .text-xs { font-size: 8pt; }
+  .fraction-worksheet h2 { margin: 0; font-size: 15pt; line-height: 1.2; }
+  .fraction-worksheet .fraction-worksheet-header > p { margin: 2mm 0 0; font-size: 9pt; line-height: 1.3; }
+  .fraction-worksheet .fraction-worksheet-identity { grid-template-columns: 2fr 1fr 1fr; gap: 3mm; margin-top: 3mm; }
+  .fraction-worksheet .fraction-worksheet-identity > div { grid-column: auto; padding: 2mm; background: white; border-bottom: 1px solid #94a3b8; border-radius: 0; font-size: 8pt; }
+  .fraction-worksheet .fraction-worksheet-content { padding: 0; }
+  .fraction-worksheet .fraction-task-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5mm 7mm; align-items: start; }
+  .fraction-worksheet .fraction-print-task { break-inside: avoid; page-break-inside: avoid; min-width: 0; padding: 0 0 3mm; border-radius: 0; box-shadow: none; }
+  .fraction-worksheet .fraction-print-prompt { gap: 2mm; margin-bottom: 2mm; }
+  .fraction-worksheet .fraction-print-prompt > div:first-child { width: 6mm; height: 6mm; font-size: 8pt; }
+  .fraction-worksheet .fraction-print-prompt h3 { margin: 0; font-size: 9pt; line-height: 1.3; }
+  .fraction-worksheet .fraction-print-prompt h3 > span[aria-label] { font-size: 12pt; }
+  .fraction-worksheet .fraction-print-task-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) 22mm; gap: 3mm; min-height: 31mm; }
+  .fraction-worksheet .fraction-print-task-shade_fraction .fraction-print-task-layout { grid-template-columns: minmax(0, 1fr); }
+  .fraction-worksheet .fraction-print-task-choose_fraction .fraction-print-task-layout { grid-template-columns: minmax(0, 1fr); gap: 2mm; }
+  .fraction-worksheet .fraction-print-figure { padding: 1mm 0; }
+  .fraction-worksheet .fraction-visual { width: 44mm !important; max-width: 100%; max-height: none; }
+  .fraction-worksheet .fraction-visual[data-visual="circle"] { width: 28mm !important; }
+  .fraction-worksheet .fraction-print-task-shade_fraction .fraction-visual { width: 60mm !important; }
+  .fraction-worksheet .fraction-print-task-shade_fraction .fraction-visual[data-visual="circle"] { width: 32mm !important; }
+  .fraction-worksheet .fraction-print-answer { padding: 0; }
+  .fraction-worksheet .fraction-blank { width: 22mm; }
+  .fraction-worksheet .fraction-blank > div:first-child,
+  .fraction-worksheet .fraction-blank > div:last-child { width: 14mm; height: 9mm; border-radius: 2px; }
+  .fraction-worksheet .fraction-blank > div:nth-child(2) { width: 18mm; margin: 1mm 0; }
+  .fraction-worksheet .fraction-print-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm; max-width: none; }
+  .fraction-worksheet .fraction-print-options button { min-height: 16mm; padding: 1.5mm; border-radius: 2px; }
+  .fraction-worksheet .fraction-print-options button > span { font-size: 12pt; }
+  .fraction-worksheet .fraction-task-hint { margin-top: 2mm; padding: 1.5mm 0; border-radius: 0; background: white; font-size: 8pt; line-height: 1.35; }
+  .fraction-worksheet .fraction-answer-key { break-before: page; margin-top: 0; padding-top: 4mm; }
+  .fraction-worksheet .fraction-answer-key > h3 { margin: 0 0 4mm; font-size: 14pt; }
+  .fraction-worksheet .fraction-answer-key > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fraction-worksheet .fraction-answer-key > .grid > div { break-inside: avoid; }
+  .fraction-worksheet * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

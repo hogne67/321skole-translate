@@ -81,6 +81,8 @@
         "percent": "Percent",
         "equations": "Equations",
         "measurement": "Measurement",
+        "comparison": "Compare numbers",
+        "percentage": "Percentages",
         "math": "Math"
       }
     },

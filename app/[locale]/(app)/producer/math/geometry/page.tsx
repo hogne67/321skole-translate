@@ -1,9 +1,11 @@
 // app\[locale]\(app)\producer\math\geometry\page.tsx
 "use client";
 
+import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBackLink";
+
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 import { auth, db } from "@/lib/firebase";
@@ -20,7 +22,6 @@ import {
   isGeometryAnswerSpace,
   isGeometryLevel,
   isGeometryTopic,
-  isWorksheetLanguage,
 } from "@/lib/math/geometry/types";
 import type {
   FigureKind,
@@ -32,6 +33,9 @@ import type {
   GeometryLevel,
 } from "@/lib/math/geometry/types";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
+import { applyGeometryDisplayOptions } from "@/lib/math/geometry/displayOptions";
+import GeometryGeneratorPanel from "@/components/generators/math/geometry/GeometryGeneratorPanel";
+import GeometryGeneratorPreview from "@/components/generators/math/geometry/GeometryGeneratorPreview";
 
 type AnswerSpace = GeometryAnswerSpace;
 
@@ -112,13 +116,6 @@ function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
   };
 }
 
-function getShapeLabel(t: TFn, kind: FigureKind) {
-  if (kind === "triangle_right") return t("triangleRight");
-  if (kind === "triangle_isosceles") return t("triangleIsosceles");
-  if (kind === "triangle_equilateral") return t("triangleEquilateral");
-  return t(kind);
-}
-
 function getStatusMessage(status: FeatureStatus | null, t: TFn): string {
   if (!status?.reason) return "";
   if (status.reason === "teacher_only") return t("teacherOnly");
@@ -127,43 +124,8 @@ function getStatusMessage(status: FeatureStatus | null, t: TFn): string {
   return t("failed");
 }
 
-function ToggleChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm transition ${
-        active
-          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-      }`}
-    >
-      <span
-        className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-bold ${
-          active
-            ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-slate-300 bg-white text-transparent"
-        }`}
-      >
-        ✓
-      </span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("mathGeometry");
 
@@ -172,7 +134,8 @@ export default function ProducerMathGeometryPage() {
 
   const { profile } = useUserProfile();
 
-  const [language, setLanguage] = useState<WorksheetLanguage>(initialLanguage);
+  const language = initialLanguage;
+  // Retain legacy metadata when opening existing worksheets, not as a task setting.
   const [level, setLevel] = useState<GeometryLevel>("grade_5_7");
   const [topic, setTopic] = useState<GeometryTopic>("all");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
@@ -185,6 +148,9 @@ export default function ProducerMathGeometryPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [hasCountedDraft, setHasCountedDraft] = useState<boolean>(false);
+  const [worksheet, setWorksheet] = useState<MathWorksheet | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState<boolean>(true);
@@ -218,7 +184,6 @@ export default function ProducerMathGeometryPage() {
     async function loadEditableWorksheet() {
       if (startNew) {
         window.sessionStorage.removeItem(GEOMETRY_DRAFT_STORAGE_KEY);
-        setLanguage(initialLanguage);
         setLevel("grade_5_7");
         setTopic("all");
         setDifficulty("easy");
@@ -229,6 +194,7 @@ export default function ProducerMathGeometryPage() {
         setAnswerSpace("medium");
         setSelectedShapes([]);
         setHasCountedDraft(false);
+        setWorksheet(null);
         return true;
       }
 
@@ -242,7 +208,7 @@ export default function ProducerMathGeometryPage() {
         const savedWorksheet = sanitizeWorksheet(data.mathWorksheet);
         if (!savedWorksheet) return true;
 
-        setLanguage(savedWorksheet.language);
+        setWorksheet(savedWorksheet);
         setLevel(savedWorksheet.level);
         setTopic(savedWorksheet.topic);
         setDifficulty(savedWorksheet.difficulty);
@@ -253,26 +219,6 @@ export default function ProducerMathGeometryPage() {
         setAnswerSpace(savedWorksheet.answerSpace ?? "medium");
         setSelectedShapes(savedWorksheet.selectedShapes.filter(isFigureKind));
         setHasCountedDraft(true);
-        window.sessionStorage.setItem(
-          GEOMETRY_DRAFT_STORAGE_KEY,
-          JSON.stringify({
-            worksheet: savedWorksheet,
-            settings: {
-              language: savedWorksheet.language,
-              level: savedWorksheet.level,
-              topic: savedWorksheet.topic,
-              difficulty: savedWorksheet.difficulty,
-              taskCount: Math.max(4, Math.min(12, savedWorksheet.tasks.length || 6)),
-              includeHints: savedWorksheet.tasks.some((task) => !!task.hint),
-              showAnswerKey: savedWorksheet.showAnswerKey,
-              showFormulas: savedWorksheet.showFormulas,
-              answerSpace: savedWorksheet.answerSpace ?? "medium",
-              selectedShapes: savedWorksheet.selectedShapes,
-            },
-            usageCounted: true,
-            createdAt: new Date().toISOString(),
-          })
-        );
       } catch {
         // Keep the blank generator if the saved lesson cannot be loaded.
       }
@@ -290,13 +236,14 @@ export default function ProducerMathGeometryPage() {
       const draft = JSON.parse(rawDraft) as {
         settings?: Record<string, unknown>;
         usageCounted?: unknown;
+        worksheet?: unknown;
       };
+      setWorksheet(sanitizeWorksheet(draft.worksheet));
       const settings = draft.settings;
       if (!settings) return;
 
       setHasCountedDraft(draft.usageCounted === true);
 
-      if (isWorksheetLanguage(settings.language)) setLanguage(settings.language);
       if (isGeometryLevel(settings.level)) setLevel(settings.level);
       if (isGeometryTopic(settings.topic)) setTopic(settings.topic);
       if (isDifficulty(settings.difficulty)) setDifficulty(settings.difficulty);
@@ -442,6 +389,7 @@ export default function ProducerMathGeometryPage() {
 
     setLoading(true);
     setError("");
+    setSaved(false);
 
     try {
       const currentUser = auth.currentUser;
@@ -490,32 +438,12 @@ export default function ProducerMathGeometryPage() {
         answerSpace,
       };
 
-      window.sessionStorage.setItem(
-        GEOMETRY_DRAFT_STORAGE_KEY,
-        JSON.stringify({
-          worksheet: generatedWorksheet,
-          settings: {
-            language,
-            level,
-            topic,
-            difficulty,
-            taskCount,
-            includeHints,
-            showAnswerKey,
-            showFormulas,
-            answerSpace,
-            selectedShapes,
-          },
-          usageCounted: true,
-          createdAt: new Date().toISOString(),
-        })
-      );
 
       setHasCountedDraft(true);
+      setWorksheet(generatedWorksheet);
       if (shouldCountUsage) {
         await refreshFeatureStatus();
       }
-      router.push(`/${locale}/producer/math/draft/preview`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failed"));
     } finally {
@@ -523,303 +451,101 @@ export default function ProducerMathGeometryPage() {
     }
   }
 
+  const previewWorksheet = worksheet
+    ? applyGeometryDisplayOptions(worksheet, { answerSpace, showAnswerKey, showFormulas, includeHints })
+    : null;
+
+  useEffect(() => {
+    if (!worksheet) return;
+    window.sessionStorage.setItem(GEOMETRY_DRAFT_STORAGE_KEY, JSON.stringify({
+      worksheet: applyGeometryDisplayOptions(worksheet, { answerSpace, showAnswerKey, showFormulas, includeHints }),
+      settings: { language, level, topic, difficulty, taskCount, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes },
+      usageCounted: hasCountedDraft,
+      createdAt: new Date().toISOString(),
+    }));
+  }, [worksheet, language, level, topic, difficulty, taskCount, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes, hasCountedDraft]);
+
+  async function saveToMyContent() {
+    if (!previewWorksheet || saving) return;
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error(t("saveFailed"));
+      const token = await currentUser.getIdToken();
+      const response = await fetch("/api/producer/save-math-worksheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          worksheet: previewWorksheet,
+          source: "math-geometry-generator",
+        }),
+      });
+      const data = await response.json() as { ok?: boolean; error?: string; id?: string };
+      if (!response.ok || !data.ok || !data.id) throw new Error(data.error || t("saveFailed"));
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 pb-44 print:bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
-        <section className="rounded-[28px] border border-blue-100 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-teal-700">
-                {t("mathBrand")}
-              </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                {t("pageTitle")}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600 sm:text-base">
-                {t("pageSubtitle")}
-              </p>
-            </div>
-
-            <div className="flex w-full items-center gap-4 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm md:max-w-sm">
-              <div className="grid h-14 w-20 shrink-0 place-items-center rounded-2xl border border-blue-200 bg-slate-100">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/25">
-                  ▶
-                </div>
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-black text-slate-950">
-                  {t("video.title")}
-                </div>
-                <div className="mt-1 text-sm font-semibold leading-5 text-slate-500">
-                  {t("video.placeholder")}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-5 rounded-[28px] border border-blue-100 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-950">
-                {t("builder")}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-                {t("generatorIntro")}
-              </p>
-            </div>
-
-            {!statusLoading && featureStatus ? (
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm">
-                {t("usageLeft")}: {generatorsRemaining} / {generatorsLimit}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="mt-4 grid gap-4">
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
-              <h3 className="text-base font-black text-slate-950">
-                {t("sections.setup")}
-              </h3>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("language")}
-                  </span>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value as WorksheetLanguage)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-400"
-                  >
-                    <option value="nb">{t("languages.nb")}</option>
-                    <option value="en">{t("languages.en")}</option>
-                    <option value="pt">{t("languages.pt")}</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("level")}
-                  </span>
-                  <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value as GeometryLevel)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                  >
-                    <option value="grade_3_4">{t("grade34")}</option>
-                    <option value="grade_5_7">{t("grade57")}</option>
-                    <option value="grade_8_10">{t("grade810")}</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("topic")}
-                  </span>
-                  <select
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value as GeometryTopic)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                  >
-                    <option value="shapes">{t("shapes")}</option>
-                    <option value="perimeter">{t("perimeter")}</option>
-                    <option value="area">{t("area")}</option>
-                    <option value="all">{t("all")}</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("difficulty")}
-                  </span>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                  >
-                    <option value="easy">{t("easy")}</option>
-                    <option value="medium">{t("medium")}</option>
-                    <option value="hard">{t("hard")}</option>
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("taskCount")}
-                  </span>
-                  <input
-                    type="number"
-                    min={4}
-                    max={12}
-                    value={taskCount}
-                    onChange={(e) => setTaskCount(Number(e.target.value))}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    {t("answerSpace")}
-                  </span>
-                  <select
-                    value={answerSpace}
-                    onChange={(e) => setAnswerSpace(e.target.value as AnswerSpace)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                  >
-                    <option value="small">{t("small")}</option>
-                    <option value="medium">{t("mediumSpace")}</option>
-                    <option value="large">{t("large")}</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-black text-slate-950">
-                    {t("sections.shapes")}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                    {t("selectedCount")}: {selectedShapes.length}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={selectAllShapes}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
-                  >
-                    {t("selectAll")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearAllShapes}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
-                  >
-                    {t("clearAll")}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {ALL_FIGURES.map((shape) => {
-                  const checked = selectedShapes.includes(shape);
-
-                  return (
-                    <button
-                      key={shape}
-                      type="button"
-                      onClick={() => toggleShape(shape)}
-                      className={`flex min-h-12 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm font-bold transition ${
-                        checked
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
-                      aria-pressed={checked}
-                    >
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-black ${
-                          checked
-                            ? "border-emerald-500 bg-emerald-500 text-white"
-                            : "border-slate-300 bg-white text-transparent"
-                        }`}
-                      >
-                        ✓
-                      </span>
-                      <span>{getShapeLabel(t, shape)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {selectedShapes.length === 0 ? (
-                <p className="mt-3 text-sm font-semibold text-red-600">
-                  {t("selectAtLeastOneShape")}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4">
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
-              <h3 className="text-base font-black text-slate-950">
-                {t("sections.options")}
-              </h3>
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <ToggleChip
-                  label={t("hints")}
-                  active={includeHints}
-                  onClick={() => setIncludeHints((v) => !v)}
-                />
-                <ToggleChip
-                  label={t("showFormulas")}
-                  active={showFormulas}
-                  onClick={() => setShowFormulas((v) => !v)}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
-              <h3 className="text-base font-black text-slate-950">
-                {t("sections.answerKey")}
-              </h3>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                {t("answerKeyHelp")}
-              </p>
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <ToggleChip
-                  label={t("showAnswerKey")}
-                  active={showAnswerKey}
-                  onClick={() => setShowAnswerKey((v) => !v)}
-                />
-              </div>
-            </div>
-
-            {!statusLoading && featureBlocked ? (
-              <Link
-                href={`/${locale}/pricing`}
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
-              >
-                {t("seePlans")}
-              </Link>
-            ) : null}
-          </div>
-        </section>
-
-          {error ? (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              {error}
+    <main className="geometry-generator min-h-screen bg-slate-50 pb-12">
+      <div className="geometry-generator-layout mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className="geometry-generator-controls h-fit bg-white p-5">
+          <MathGeneratorBackLink />
+          <p className="text-xs font-black uppercase text-teal-700">{t("mathBrand")}</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-950">{t("pageTitle")}</h1>
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{t("pageSubtitle")}</p>
+          <GeometryGeneratorPanel
+            t={t}
+            topic={topic}
+            difficulty={difficulty}
+            taskCount={taskCount}
+            answerSpace={answerSpace}
+            selectedShapes={selectedShapes}
+            includeHints={includeHints}
+            showFormulas={showFormulas}
+            showAnswerKey={showAnswerKey}
+            onTopicChange={setTopic}
+            onMeasurementsChange={setDifficulty}
+            onTaskCountChange={setTaskCount}
+            onAnswerSpaceChange={setAnswerSpace}
+            onToggleShape={toggleShape}
+            onSelectAll={selectAllShapes}
+            onClearAll={clearAllShapes}
+            onHintsChange={setIncludeHints}
+            onFormulasChange={setShowFormulas}
+            onAnswerKeyChange={setShowAnswerKey}
+            onGenerate={handleGenerateAndPreview}
+            onSave={saveToMyContent}
+            onPrint={() => window.print()}
+            generating={loading}
+            saving={saving}
+            canGenerate={!loading && !saving && !statusLoading && !featureBlocked && selectedShapes.length > 0 && !!uid}
+            hasWorksheet={!!worksheet}
+          />
+          {!statusLoading && featureStatus ? (
+            <p className="mt-4 text-xs text-slate-500">{t("usageLeft")}: {generatorsRemaining} / {generatorsLimit}</p>
+          ) : null}
+          {featureBlocked ? (
+            <Link href={`/${locale}/pricing`} className="mt-3 block text-sm font-semibold text-teal-700 underline">{t("seePlans")}</Link>
+          ) : null}
+          {error ? <p role="alert" className="mt-4 text-sm text-red-700">{error}</p> : null}
+          {saved ? (
+            <div role="status" className="mt-4 text-sm text-emerald-800">
+              <p>{t("savedToMyContent")}</p>
+              <Link href={`/${locale}/content`} className="mt-1 inline-block underline">{t("controlPreview.openMyContent")}</Link>
             </div>
           ) : null}
-
+        </aside>
+        <section aria-label={t("preview")} className="geometry-generator-preview min-w-0 bg-white p-5 sm:p-6">
+          <GeometryGeneratorPreview worksheet={previewWorksheet} includeHints={includeHints} />
+        </section>
       </div>
-
-      <section className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-14px_40px_rgba(15,23,42,0.12)] backdrop-blur print:hidden">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-black text-slate-950">
-              {t("saveBar.title")}
-            </p>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 sm:text-sm">
-              {t("saveBar.description")}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <button
-              type="button"
-              onClick={handleGenerateAndPreview}
-              disabled={loading || statusLoading || featureBlocked || selectedShapes.length === 0 || !uid}
-              className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? t("generating") : t("generateAndPreview")}
-            </button>
-          </div>
-        </div>
-      </section>
-
     </main>
   );
 }

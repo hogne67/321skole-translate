@@ -3,6 +3,11 @@ import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
+import { isLengthWorksheet } from "@/lib/math/length/worksheet";
+import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
+export { isLengthWorksheet } from "@/lib/math/length/worksheet";
 import type {
     AnswersMap,
     AssignmentDoc,
@@ -33,11 +38,16 @@ export function isMathWorksheet(value: unknown): value is MathWorksheet {
 
 export function isFractionWorksheet(value: unknown): value is FractionWorksheet {
     if (!value || typeof value !== "object") return false;
-    const v = value as { tasks?: unknown; title?: unknown; selectedShapes?: unknown };
+    const v = value as { tasks?: unknown; title?: unknown; selectedShapes?: unknown; kind?: unknown };
 
     return (
         Array.isArray(v.tasks) &&
         typeof v.title === "string" &&
+        v.kind !== "length" &&
+        v.kind !== "measurement" &&
+        v.kind !== "comparison" &&
+        v.kind !== "percentage" &&
+        v.kind !== "equations" &&
         !Array.isArray(v.selectedShapes)
     );
 }
@@ -86,7 +96,7 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop;
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || isLengthWorksheet(a.measurementWorksheet ?? a.lengthWorksheet ?? a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
@@ -107,6 +117,8 @@ export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,
         arithmeticWorksheet: a.arithmeticWorksheet ?? null,
+        lengthWorksheet: a.lengthWorksheet ?? null,
+        measurementWorksheet: a.measurementWorksheet ?? null,
 
         mathType: a.mathType,
         contentType: a.contentType,
@@ -174,6 +186,7 @@ export function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
     return {
         totalAuto,
         correctAuto,
+        ...(typeof r.partialAuto === "number" ? { partialAuto: r.partialAuto } : {}),
         wrongAuto,
         unansweredAuto,
         percentAuto,

@@ -1,13 +1,19 @@
-import type { FigureSpec } from "@/lib/math/geometry/types";
+import { formatFigureMeta, formatNumber } from "@/lib/math/geometry/measurements";
+import type { FigureSpec, WorksheetLanguage } from "@/lib/math/geometry/types";
 
 export default function GeometryFigure({
   figure,
   className = "",
+  language = "nb",
 }: {
   figure?: FigureSpec;
   className?: string;
+  language?: WorksheetLanguage;
 }) {
   if (!figure) return null;
+
+  const description = formatFigureMeta(figure, language);
+  const accessibility = { role: "img", "aria-label": description };
 
   const svgClass = className || "h-36 w-full max-w-[260px]";
 
@@ -16,7 +22,8 @@ export default function GeometryFigure({
     const height = figure.heightCm ?? 5;
 
     return (
-      <svg viewBox="0 0 240 150" className={svgClass}>
+      <svg {...accessibility} viewBox="0 0 240 150" className={svgClass}>
+        <title>{description}</title>
         <rect
           x="40"
           y="28"
@@ -28,10 +35,10 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="120" y="20" textAnchor="middle" fontSize="11" fill="#334155">
-          {width} cm
+          {formatNumber(width, language)} cm
         </text>
         <text x="222" y="76" textAnchor="middle" fontSize="11" fill="#334155">
-          {height} cm
+          {formatNumber(height, language)} cm
         </text>
       </svg>
     );
@@ -41,7 +48,8 @@ export default function GeometryFigure({
     const side = figure.sideCm ?? 6;
 
     return (
-      <svg viewBox="0 0 180 160" className={className || "h-36 w-full max-w-[220px]"}>
+      <svg {...accessibility} viewBox="0 0 180 160" className={className || "h-36 w-full max-w-[220px]"}>
+        <title>{description}</title>
         <rect
           x="40"
           y="30"
@@ -53,10 +61,10 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="85" y="20" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
         <text x="155" y="78" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
       </svg>
     );
@@ -68,7 +76,8 @@ export default function GeometryFigure({
     const height = figure.heightCm ?? 4;
 
     return (
-      <svg viewBox="0 0 260 160" className={className || "h-36 w-full max-w-[280px]"}>
+      <svg {...accessibility} viewBox="0 0 260 160" className={className || "h-36 w-full max-w-[280px]"}>
+        <title>{description}</title>
         <polygon
           points="55,120 95,40 215,40 175,120"
           fill="white"
@@ -85,13 +94,13 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="125" y="136" textAnchor="middle" fontSize="11" fill="#334155">
-          {base} cm
+          {formatNumber(base, language)} cm
         </text>
         <text x="42" y="86" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
-        <text x="125" y="86" textAnchor="end" fontSize="11" fill="#334155">
-          {height} cm
+        <text x="104" y="86" textAnchor="start" fontSize="10" fill="#334155">
+          h = {formatNumber(height, language)} cm
         </text>
       </svg>
     );
@@ -102,7 +111,8 @@ export default function GeometryFigure({
     const height = figure.heightCm ?? 4;
 
     return (
-      <svg viewBox="0 0 260 170" className={className || "h-36 w-full max-w-[280px]"}>
+      <svg {...accessibility} viewBox="0 0 260 170" className={className || "h-36 w-full max-w-[280px]"}>
+        <title>{description}</title>
         <polygon
           points="70,120 110,50 190,50 150,120"
           fill="white"
@@ -119,13 +129,13 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="130" y="42" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
         <text x="58" y="88" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
-        <text x="143" y="86" textAnchor="end" fontSize="11" fill="#334155">
-          {height} cm
+        <text x="119" y="86" textAnchor="start" fontSize="9" fill="#334155">
+          h = {formatNumber(height, language)} cm
         </text>
       </svg>
     );
@@ -139,7 +149,8 @@ export default function GeometryFigure({
     const sideRight = figure.sideRightCm ?? 5;
 
     return (
-      <svg viewBox="0 0 250 170" className={className || "h-36 w-full max-w-[270px]"}>
+      <svg {...accessibility} viewBox="0 0 250 170" className={className || "h-36 w-full max-w-[270px]"}>
+        <title>{description}</title>
         <polygon
           points="45,122 80,44 170,44 205,122"
           fill="white"
@@ -156,19 +167,19 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="125" y="34" textAnchor="middle" fontSize="11" fill="#334155">
-          {top} cm
+          {formatNumber(top, language)} cm
         </text>
         <text x="125" y="143" textAnchor="middle" fontSize="11" fill="#334155">
-          {base} cm
+          {formatNumber(base, language)} cm
         </text>
         <text x="28" y="86" textAnchor="middle" fontSize="11" fill="#334155">
-          {sideLeft} cm
+          {formatNumber(sideLeft, language)} cm
         </text>
         <text x="222" y="86" textAnchor="middle" fontSize="11" fill="#334155">
-          {sideRight} cm
+          {formatNumber(sideRight, language)} cm
         </text>
-        <text x="120" y="105" textAnchor="end" fontSize="11" fill="#334155">
-          {height} cm
+        <text x="89" y="105" textAnchor="start" fontSize="10" fill="#334155">
+          h = {formatNumber(height, language)} cm
         </text>
       </svg>
     );
@@ -180,13 +191,15 @@ export default function GeometryFigure({
     const hyp = figure.sideCcm ?? 10;
 
     return (
-      <svg viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+      <svg {...accessibility} viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+        <title>{description}</title>
         <polygon
           points="45,130 45,50 165,130"
           fill="white"
           stroke="#334155"
           strokeWidth="2"
         />
+        <polyline points="45,122 53,122 53,130" fill="none" stroke="#334155" />
         <line
           x1="45"
           y1="50"
@@ -197,13 +210,13 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="100" y="146" textAnchor="middle" fontSize="11" fill="#334155">
-          {base} cm
+          {formatNumber(base, language)} cm
         </text>
         <text x="20" y="94" textAnchor="middle" fontSize="11" fill="#334155">
-          {leftSide} cm
+          {formatNumber(leftSide, language)} cm
         </text>
         <text x="122" y="86" textAnchor="middle" fontSize="11" fill="#334155">
-          {hyp} cm
+          {formatNumber(hyp, language)} cm
         </text>
       </svg>
     );
@@ -216,7 +229,8 @@ export default function GeometryFigure({
     const height = figure.heightCm ?? 4;
 
     return (
-      <svg viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+      <svg {...accessibility} viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+        <title>{description}</title>
         <polygon
           points="45,130 105,40 165,130"
           fill="white"
@@ -233,16 +247,17 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="105" y="146" textAnchor="middle" fontSize="11" fill="#334155">
-          {base} cm
+          {formatNumber(base, language)} cm
         </text>
         <text x="50" y="88" textAnchor="middle" fontSize="11" fill="#334155">
-          {leftSide} cm
+          {formatNumber(leftSide, language)} cm
         </text>
         <text x="160" y="88" textAnchor="middle" fontSize="11" fill="#334155">
-          {rightSide} cm
+          {formatNumber(rightSide, language)} cm
         </text>
-        <text x="135" y="110" textAnchor="end" fontSize="11" fill="#334155">
-          {height} cm
+        <text x="110" y="107" textAnchor="start" fontSize="10" fill="#334155">
+          <tspan>{"h = "}</tspan>
+          <tspan x="110" dy="12">{formatNumber(height, language)} cm</tspan>
         </text>
       </svg>
     );
@@ -253,7 +268,8 @@ export default function GeometryFigure({
     const height = figure.heightCm ?? 5.2;
 
     return (
-      <svg viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+      <svg {...accessibility} viewBox="0 0 240 170" className={className || "h-36 w-full max-w-[250px]"}>
+        <title>{description}</title>
         <polygon
           points="45,130 105,40 165,130"
           fill="white"
@@ -270,16 +286,17 @@ export default function GeometryFigure({
           strokeWidth="2"
         />
         <text x="105" y="146" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
         <text x="50" y="88" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
         <text x="160" y="88" textAnchor="middle" fontSize="11" fill="#334155">
-          {side} cm
+          {formatNumber(side, language)} cm
         </text>
-        <text x="144" y="115" textAnchor="end" fontSize="11" fill="#334155">
-          {height} cm
+        <text x="110" y="107" textAnchor="start" fontSize="10" fill="#334155">
+          <tspan>{"h = "}</tspan>
+          <tspan x="110" dy="12">{formatNumber(height, language)} cm</tspan>
         </text>
       </svg>
     );
@@ -288,7 +305,8 @@ export default function GeometryFigure({
   const radius = figure.radiusCm ?? 5;
 
   return (
-    <svg viewBox="0 0 220 170" className={className || "h-36 w-full max-w-[240px]"}>
+    <svg {...accessibility} viewBox="0 0 220 170" className={className || "h-36 w-full max-w-[240px]"}>
+      <title>{description}</title>
       <circle
         cx="110"
         cy="85"
@@ -307,7 +325,7 @@ export default function GeometryFigure({
         strokeWidth="2"
       />
       <text x="135" y="76" textAnchor="middle" fontSize="11" fill="#334155">
-        {radius} cm
+        r = {formatNumber(radius, language)} cm
       </text>
     </svg>
   );

@@ -8,6 +8,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint app lib components",
+    "test:lessons": "node --conditions=react-server --import tsx --test lib/lessons/input.test.ts lib/lessons/server/createLessonForUser.test.ts",
+    "test:lessons:rules": "node --import tsx --test lib/lessons/firestore.rules.test.ts",
     "geo:no": "node scripts/generate-no-municipalities.mjs",
     "geo:no:watch": "node scripts/generate-no-municipalities.mjs && next dev"
   },
@@ -16,6 +18,7 @@
     "cheerio": "^1.2.0",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.6.0",
+    "fraction.js": "^5.3.4",
     "lucide-react": "^1.14.0",
     "next": "16.1.1",
     "next-intl": "^4.8.3",
@@ -23,9 +26,11 @@
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "server-only": "^0.0.1",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",

@@ -51,6 +51,14 @@ import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/Podc
 import GeometrySubmissionView from "@/components/teacher/submissions/GeometrySubmissionView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import ArithmeticWorksheetStudentView from "@/components/generators/math/arithmetic/ArithmeticWorksheetStudentView";
+import LengthWorksheetView from "@/components/generators/math/length/LengthWorksheetView";
+import PercentageWorksheetView from "@/components/generators/math/percentage/PercentageWorksheetView";
+import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
+import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
+import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
+import { sanitizeLengthWorksheet } from "@/lib/math/length/worksheet";
 import {
   assignmentSnapshotToLesson,
   hasAssignmentSnapshotContent,
@@ -498,6 +506,19 @@ function Inner() {
     sub?.arithmeticWorksheet,
   ]);
 
+  const equationWorksheet = useMemo(() => sanitizeEquationWorksheet(lesson?.mathWorksheet) ?? sanitizeEquationWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const percentageWorksheet = useMemo(() => sanitizePercentageWorksheet(lesson?.mathWorksheet) ?? sanitizePercentageWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const isEquationAssignment = !!equationWorksheet || assignment?.contentType === "equations_worksheet";
+  const isPercentageAssignment = !!percentageWorksheet || assignment?.contentType === "percentage_worksheet";
+
+  const comparisonWorksheet = useMemo(() => sanitizeComparisonWorksheet(lesson?.mathWorksheet) ?? sanitizeComparisonWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const isComparisonAssignment = !!comparisonWorksheet || assignment?.contentType === "comparison_worksheet";
+
+  const lengthWorksheet = useMemo(() => {
+    return sanitizeLengthWorksheet(lesson?.measurementWorksheet) ?? sanitizeLengthWorksheet(lesson?.lengthWorksheet) ?? sanitizeLengthWorksheet(lesson?.mathWorksheet) ?? sanitizeLengthWorksheet(sub?.measurementWorksheet) ?? sanitizeLengthWorksheet(sub?.lengthWorksheet);
+  }, [lesson?.measurementWorksheet, lesson?.lengthWorksheet, lesson?.mathWorksheet, sub?.measurementWorksheet, sub?.lengthWorksheet]);
+  const isLengthAssignment = !!lengthWorksheet || assignment?.contentType === "length_worksheet" || assignment?.contentType === "measurement_worksheet";
+
   const isGeometryAssignment = useMemo(() => {
     const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
     const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
@@ -730,6 +751,8 @@ function Inner() {
             assignment?.fractionWorksheet ??
             sourceLesson.fractionWorksheet ??
             null,
+          lengthWorksheet: assignment?.lengthWorksheet ?? sourceLesson.lengthWorksheet ?? null,
+          measurementWorksheet: assignment?.measurementWorksheet ?? sourceLesson.measurementWorksheet ?? null,
           mathType: assignment?.mathType ?? sourceLesson.mathType,
           contentType: assignment?.contentType ?? sourceLesson.contentType,
           podcastWorkshopConfig:
@@ -992,7 +1015,7 @@ function Inner() {
   );
 
   const auto =
-    isGeometryAssignment || isFractionAssignment ? null : readAutoGrade(sub);
+    isGeometryAssignment && !isFractionAssignment ? null : readAutoGrade(sub);
 
   const geometryAuto =
     isGeometryAssignment && !isFractionAssignment ? readGeometryAuto(sub) : null;
@@ -1245,11 +1268,7 @@ function Inner() {
       </div>
 
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-blue-300 bg-blue-100 p-3 shadow-md sm:p-5">
-        {isFractionAssignment ? (
-          <div className="text-sm text-slate-600">
-            Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
-          </div>
-        ) : isGeometryAssignment ? (
+        {isGeometryAssignment && !isFractionAssignment ? (
           geometryAuto ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
@@ -1303,7 +1322,7 @@ function Inner() {
             </div>
           )
         ) : auto ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className={`grid grid-cols-2 gap-3 ${(fractionWorksheet?.topic === "calculation" || isEquationAssignment || isPercentageAssignment) ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
             <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {correctLabel}
@@ -1312,6 +1331,11 @@ function Inner() {
                 {auto.correctAuto}
               </div>
             </div>
+
+            {(fractionWorksheet?.topic === "calculation" || isEquationAssignment || isPercentageAssignment) ? <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{partialLabel}</div>
+              <div className="mt-1 text-2xl font-black text-slate-950">{auto.partialAuto ?? 0}</div>
+            </div> : null}
 
             <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -1442,12 +1466,12 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
                 </div>
-                {lessonLevelLabel ? (
+                {lessonLevelLabel && !isGeometryAssignment && !isFractionAssignment ? (
                   <div className="text-sm text-slate-600">
                     {t("studentView.level", { v: lessonLevelLabel })}
                   </div>
@@ -1472,7 +1496,7 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isPodcastWorkshop ? (
+            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}
@@ -1488,7 +1512,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1514,6 +1538,14 @@ function Inner() {
                     tGeometry={tGeometryAny}
                     tBrand={tBrandAny}
                   />
+                ) : isEquationAssignment && equationWorksheet ? (
+                  <EquationWorksheetView worksheet={equationWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isPercentageAssignment && percentageWorksheet ? (
+                  <PercentageWorksheetView worksheet={percentageWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isComparisonAssignment && comparisonWorksheet ? (
+                  <ComparisonWorksheetView worksheet={comparisonWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isLengthAssignment && lengthWorksheet ? (
+                  <LengthWorksheetView worksheet={lengthWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isArithmeticAssignment && arithmeticWorksheet ? (
                   <ArithmeticWorksheetStudentView
                     worksheet={arithmeticWorksheet}

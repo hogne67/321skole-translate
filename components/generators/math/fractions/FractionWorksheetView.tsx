@@ -1,13 +1,18 @@
 // components/generators/math/fractions/FractionWorksheetView.tsx
 "use client";
 
+import MathText from "@/components/generators/math/MathTextSupport";
+
 import { useEffect, useMemo, useState } from "react";
+import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
+import "./fractionWorksheet.css";
 import FractionDisplay from "@/components/generators/math/fractions/FractionDisplay";
 import FractionInput from "@/components/generators/math/fractions/FractionInput";
 import FractionShadeInput, {
     getSelectedFractionParts,
 } from "@/components/generators/math/fractions/FractionShadeInput";
 import FractionVisual from "@/components/generators/math/fractions/FractionVisual";
+import FractionCalculationView from "./FractionCalculationView";
 import type { FractionTask, FractionWorksheet } from "@/lib/math/fractions/types";
 
 type TFn = (key: string) => string;
@@ -192,6 +197,7 @@ export default function FractionWorksheetView({
     variant = "worksheet",
     includeHints,
     printMode = false,
+    showAnswerKey,
 }: {
     worksheet: FractionWorksheet;
     t?: TFn;
@@ -202,12 +208,14 @@ export default function FractionWorksheetView({
     onAnswerChange?: (taskId: string, value: unknown) => void;
     readOnly?: boolean;
     showAutoCheck?: boolean;
-    variant?: "worksheet" | "embedded";
+    variant?: "worksheet" | "embedded" | "generator";
     includeHints?: boolean;
     printMode?: boolean;
+    showAnswerKey?: boolean;
 }) {
     const [localAnswers, setLocalAnswers] = useState<FractionAnswersByTaskId>({});
     const shouldShowHints = includeHints ?? worksheet.showHints ?? true;
+    const shouldShowAnswerKey = showAnswerKey ?? (variant !== "embedded" && worksheet.showAnswerKey);
 
     useEffect(() => {
         setLocalAnswers({});
@@ -251,274 +259,145 @@ export default function FractionWorksheetView({
     const correctCount = results.filter((result) => result.isCorrect === true).length;
     const answeredCount = results.filter((result) => result.hasAnswer).length;
 
+    const copy = getFractionCopy(worksheet.language);
+    const answerLabel = t ? getAnswerLabel(t) : copy.answer;
+    const school = tBrand ? tBrand("school") : copy.school;
+    const documentView = printMode || variant === "generator";
+
+    if (worksheet.topic === "calculation") return <FractionCalculationView
+        worksheet={worksheet} answers={answers} onAnswerChange={setAnswer} readOnly={readOnly}
+        showAutoCheck={showAutoCheck} printMode={printMode} showIdentityFields={showIdentityFields}
+        showAnswerKey={!!shouldShowAnswerKey} printRef={printRef} embedded={variant === "embedded"}
+    />;
+
     return (
-        <div
-            ref={printRef}
-            className={`mx-auto bg-white text-slate-900 ${printMode
-                ? "print-root max-w-[980px]"
-                : variant === "embedded" ? "max-w-none" : "max-w-[980px]"
-                }`}
-        >
-            <div
-                className={printMode
-                    ? "print-card"
-                    : variant === "embedded"
-                    ? "bg-white"
-                    : "rounded-3xl border border-slate-200 bg-white shadow-sm"
-                }
-            >
-                <div
-                    className={printMode
-                        ? "border-b border-slate-200 pb-5"
-                        : variant === "embedded"
-                        ? "border-b border-slate-200 pb-5"
-                        : "border-b border-slate-200 px-6 py-5"
-                    }
-                >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className={`items-center gap-3 ${variant === "embedded" ? "hidden" : "flex"}`}>
-                            <img
-                                src="/logo321ny.png"
-                                alt="321 school"
-                                className="h-12 w-auto object-contain"
-                            />
-
-                            <div>
-                                <div className="text-lg font-extrabold text-slate-900">
-                                    321 {tBrand ? tBrand("school") : "school"}
-                                </div>
-                                <div className="text-xs font-semibold text-slate-500">
-                                    321school.com
+        <div ref={printRef} className={`fraction-worksheet mx-auto bg-white text-slate-900 ${printMode ? "print-root" : ""} ${variant === "embedded" ? "max-w-none" : "max-w-[980px]"}`}>
+            <div className={documentView || variant === "embedded" ? "bg-white" : "rounded-lg border border-slate-200 bg-white"}>
+                <header className={`fraction-worksheet-header ${documentView || variant === "embedded" ? "pb-5" : "px-6 pt-5"}`}>
+                    {variant !== "embedded" ? (
+                        <div className="fraction-worksheet-brand mb-5 flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <img src="/logo321ny.png" alt={`321 ${school}`} className="h-12 w-auto shrink-0 object-contain" />
+                                <div>
+                                    <div className="text-lg font-extrabold">321 {school}</div>
+                                    <div className="text-xs font-semibold text-slate-500">321school.com</div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className={variant === "embedded"
-                            ? "hidden"
-                            : "rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700"
-                        }>
-                            {getWorksheetLabel(t)}
-                        </div>
-                    </div>
-
-                    <div className="mt-5">
-                        <h2 className="text-2xl font-bold text-slate-900">{worksheet.title}</h2>
-                        <p className="mt-2 text-sm text-slate-600">{worksheet.instructions}</p>
-                    </div>
-
-                    {showIdentityFields ? (
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                                <span className="font-medium">Navn:</span>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                                <span className="font-medium">Dato:</span>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:col-span-2">
-                                <span className="font-medium">Klasse:</span>
-                            </div>
+                            <span className="shrink-0 rounded-lg bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">{t ? getWorksheetLabel(t) : copy.worksheet}</span>
                         </div>
                     ) : null}
-                </div>
-
-                <div className={printMode || variant === "embedded" ? "py-5" : "px-6 py-6"}>
-                    {worksheet.tasks.length === 0 ? (
-                        <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-                            Lag et brøkark for å se forhåndsvisning.
+                    <h2 className="break-words text-2xl font-bold">{worksheet.title}</h2>
+                    <p className="mt-2 text-sm text-slate-600"><MathText text={worksheet.instructions} /></p>
+                    {showIdentityFields ? (
+                        <div className="fraction-worksheet-identity mt-5 grid grid-cols-2 gap-2">
+                            <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">{copy.name}:</div>
+                            <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">{copy.date}:</div>
+                            <div className="col-span-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">{copy.classLabel}:</div>
                         </div>
+                    ) : null}
+                </header>
+
+                <div className={`fraction-worksheet-content ${documentView || variant === "embedded" ? "py-5" : "px-6 py-6"}`}>
+                    {worksheet.tasks.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">{copy.emptyTitle}</div>
                     ) : (
                         <>
-                            {showAutoCheck ? (
-                                <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                                    Besvart: {answeredCount} / {worksheet.tasks.length} · Riktig:{" "}
-                                    {correctCount} / {worksheet.tasks.length}
-                                </div>
-                            ) : null}
-
-                            <div className="grid gap-5">
+                            {showAutoCheck && !printMode ? <div className="mb-5 border-b border-slate-200 pb-4 text-sm text-slate-600">
+                                {copy.answered}: {answeredCount} / {worksheet.tasks.length} · {copy.correct}: {correctCount} / {worksheet.tasks.length}
+                            </div> : null}
+                            <div className="fraction-task-list grid gap-6">
                                 {worksheet.tasks.map((task, idx) => {
                                     const taskId = task.id || `task-${idx}`;
                                     const studentAnswer = answers[taskId];
                                     const studentAnswerText = answerToString(studentAnswer);
                                     const correctAnswer = answerToString(task.answer);
                                     const hasAnswer = hasTaskAnswer(task, studentAnswer);
-                                    const isCorrect = hasAnswer
-                                        ? isCorrectTaskAnswer(task, studentAnswer, correctAnswer)
-                                        : null;
-
-                                    const feedback =
-                                        showAutoCheck && hasAnswer ? (
-                                            <div
-                                                className={`mt-3 rounded-xl px-3 py-2 text-sm font-semibold ${isCorrect
-                                                    ? "bg-emerald-50 text-emerald-800"
-                                                    : "bg-red-50 text-red-800"
-                                                    }`}
-                                            >
-                                                {isCorrect ? (
-                                                    "Riktig"
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-2">
-                                                        <span>
-                                                            {task.type === "shade_fraction"
-                                                                ? `Ikke helt. Marker ${task.fraction.numerator} deler.`
-                                                                : "Ikke helt. Riktig svar er"}
-                                                        </span>
-                                                        {task.type === "shade_fraction" ? null : (
-                                                            <FractionDisplay value={correctAnswer} size="sm" />
-                                                        )}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : null;
-
+                                    const isCorrect = hasAnswer ? isCorrectTaskAnswer(task, studentAnswer, correctAnswer) : null;
+                                    const feedback = showAutoCheck && hasAnswer && !printMode ? (
+                                        <div className={`mt-3 text-sm font-semibold ${isCorrect ? "text-emerald-700" : "text-red-700"}`}>
+                                            {isCorrect ? copy.correct : task.type === "shade_fraction" ? copy.tryAgain : (
+                                                <span className="inline-flex flex-wrap items-center gap-2">
+                                                    <span>{copy.correctAnswer}</span>
+                                                    <FractionDisplay value={correctAnswer} size="sm" />
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : null;
                                     return (
-                                        <article
-                                            key={taskId}
-                                            className={`fraction-print-task fraction-print-task-${task.type} rounded-3xl border border-slate-200 bg-white p-4 shadow-sm`}
-                                        >
-                                            <div
-                                                className={`fraction-print-task-layout grid items-center gap-4 ${task.type === "shade_fraction"
-                                                    ? "lg:grid-cols-[minmax(190px,1fr)_auto_minmax(230px,0.9fr)]"
-                                                    : task.type === "choose_fraction"
-                                                        ? "lg:grid-cols-[minmax(160px,0.85fr)_minmax(170px,220px)_minmax(270px,1.2fr)]"
-                                                        : "lg:grid-cols-[minmax(190px,1fr)_220px_minmax(160px,0.8fr)]"
-                                                    }`}
-                                            >
-                                                <div className="fraction-print-prompt flex items-start gap-3">
-                                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                                                        {idx + 1}
-                                                    </div>
-                                                    <h3 className="min-w-0 text-base font-semibold text-slate-900">
-                                                        {getTaskPromptLabel(task, worksheet.language)}
-                                                    </h3>
+                                        <article key={taskId} className={`fraction-print-task fraction-print-task-${task.type} border-b border-slate-200 pb-6`}>
+                                            <div className="fraction-print-prompt mb-4 flex items-start gap-3">
+                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">{idx + 1}</div>
+                                                <h3 className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold leading-6">
+                                                    {task.type === "shade_fraction" ? <>
+                                                        <MathText text={copy.shadePrompt} />
+                                                        <FractionDisplay fraction={task.fraction} size="md" />
+                                                    </> : <MathText text={getTaskPromptLabel(task, worksheet.language)} />}
+                                                </h3>
+                                            </div>
+                                            <div className="fraction-print-task-layout">
+                                                <div className="fraction-print-figure flex min-w-0 items-center justify-center py-3">
+                                                    {task.type === "shade_fraction" && !printMode ? (
+                                                        <FractionShadeInput
+                                                            numerator={task.fraction.numerator}
+                                                            denominator={task.fraction.denominator}
+                                                            visual={task.visual}
+                                                            language={worksheet.language}
+                                                            value={studentAnswer}
+                                                            disabled={readOnly}
+                                                            onChange={(value) => setAnswer(taskId, value)}
+                                                        />
+                                                    ) : (
+                                                        <FractionVisual
+                                                            fraction={task.fraction}
+                                                            shadedParts={task.type === "shade_fraction" ? 0 : task.shadedParts}
+                                                            visual={task.visual}
+                                                            language={worksheet.language}
+                                                        />
+                                                    )}
                                                 </div>
-
-                                                {task.type === "shade_fraction" ? (
-                                                    <div className="fraction-print-target-fraction flex justify-center">
-                                                        <FractionDisplay fraction={task.fraction} size="lg" />
-                                                    </div>
-                                                ) : (
-                                                    <div className={`fraction-print-figure rounded-2xl bg-slate-50 ${task.type === "choose_fraction" ? "p-2" : "p-3"}`}>
-                                                        <div className={`flex flex-col items-center justify-center ${task.type === "choose_fraction"
-                                                            ? "min-h-[104px]"
-                                                            : "min-h-[120px]"
-                                                            }`}>
-                                                            <FractionVisual
-                                                                fraction={task.fraction}
-                                                                shadedParts={task.shadedParts}
-                                                                visual={task.visual}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {task.type === "shade_fraction" ? (
-                                                    <div className="fraction-print-answer rounded-2xl border border-dashed border-slate-300 bg-white p-3">
-                                                        {printMode ? (
-                                                            <FractionVisual
-                                                                fraction={task.fraction}
-                                                                shadedParts={0}
-                                                                visual="rectangle"
-                                                            />
-                                                        ) : (
-                                                            <FractionShadeInput
-                                                                numerator={task.fraction.numerator}
-                                                                denominator={task.fraction.denominator}
-                                                                value={studentAnswer}
-                                                                disabled={readOnly}
-                                                                onChange={(value) => setAnswer(taskId, value)}
-                                                            />
-                                                        )}
-                                                        {feedback}
-                                                    </div>
-                                                ) : task.type === "choose_fraction" && task.options?.length ? (
-                                                    <div className="fraction-print-options-wrap">
-                                                        <div className="fraction-print-options grid gap-2 sm:grid-cols-3">
+                                                <div className="fraction-print-answer flex min-w-0 flex-col items-center justify-center">
+                                                    {task.type === "shade_fraction" ? null : task.type === "choose_fraction" && task.options?.length ? (
+                                                        <div className="fraction-print-options grid w-full grid-cols-3 gap-2">
                                                             {task.options.map((option) => (
-                                                                <button
-                                                                    key={option}
-                                                                    type="button"
-                                                                    disabled={readOnly}
+                                                                <button key={option} type="button" disabled={readOnly || printMode}
+                                                                    aria-pressed={!printMode && normalizeAnswerText(studentAnswerText) === normalizeAnswerText(option)}
                                                                     onClick={() => setAnswer(taskId, option)}
-                                                                    className={`rounded-2xl border px-3 py-2.5 text-center text-lg font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${normalizeAnswerText(studentAnswerText) ===
-                                                                        normalizeAnswerText(option)
-                                                                        ? "border-emerald-400 bg-emerald-50 text-emerald-900"
-                                                                        : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
-                                                                        }`}
+                                                                    className={`flex min-h-20 min-w-0 items-center justify-center rounded-lg border px-2 py-3 focus-visible:outline-2 focus-visible:outline-teal-600 disabled:cursor-default ${!printMode && normalizeAnswerText(studentAnswerText) === normalizeAnswerText(option) ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white hover:bg-slate-50"}`}
                                                                 >
                                                                     <FractionDisplay value={option} />
                                                                 </button>
                                                             ))}
                                                         </div>
-                                                        {feedback}
-                                                    </div>
-                                                ) : (
-                                                    <div className="fraction-print-answer rounded-2xl border border-dashed border-slate-300 bg-white p-4">
-                                                        <label className="sr-only">{getAnswerLabel(t)}</label>
-                                                        {printMode ? (
-                                                            <div className="inline-flex min-w-[112px] flex-col items-center">
-                                                                <div className="h-9 w-[68px]" />
-                                                                <div className="my-1.5 h-0.5 w-20 rounded-full bg-slate-900" />
-                                                                <div className="h-9 w-[68px]" />
-                                                            </div>
-                                                        ) : (
-                                                            <FractionInput
-                                                                value={studentAnswerText}
-                                                                disabled={readOnly}
-                                                                onChange={(value) => setAnswer(taskId, value)}
-                                                                label={getAnswerLabel(t)}
-                                                            />
-                                                        )}
-                                                        {feedback}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {shouldShowHints && task.hint ? (
-                                                <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-slate-800">
-                                                    <span className="font-semibold">Hint:</span> {task.hint}
+                                                    ) : printMode ? (
+                                                        <div className="fraction-blank inline-flex w-24 flex-col items-center" aria-label={answerLabel}>
+                                                            <div className="h-10 w-16 rounded-lg border border-dashed border-slate-300" />
+                                                            <div className="my-1.5 h-0.5 w-20 bg-slate-900" />
+                                                            <div className="h-10 w-16 rounded-lg border border-dashed border-slate-300" />
+                                                        </div>
+                                                    ) : (
+                                                        <FractionInput value={studentAnswerText} disabled={readOnly}
+                                                            onChange={(value) => setAnswer(taskId, value)} label={answerLabel} language={worksheet.language}
+                                                        />
+                                                    )}
+                                                    {feedback}
                                                 </div>
-                                            ) : null}
+                                            </div>
+                                            {shouldShowHints && task.hint ? <div className="fraction-task-hint mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-slate-700"><strong>{copy.hint}:</strong> <MathText text={task.hint} /></div> : null}
                                         </article>
                                     );
                                 })}
                             </div>
-
-                            {worksheet.showAnswerKey ? (
-                                <section className="mt-10 border-t-2 border-slate-300 pt-8">
-                                    <div className="print-page-break" />
-                                    <div className="mb-6">
-                                        <h3 className="text-2xl font-bold text-slate-900">Fasit</h3>
-                                    </div>
-
-                                    <div className="grid gap-4">
-                                        {worksheet.tasks.map((task, idx) => {
-                                            const correctAnswer = answerToString(task.answer);
-
-                                            return (
-                                                <article
-                                                    key={`answer-key-${task.id || idx}`}
-                                                    className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5"
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-sm font-semibold text-white">
-                                                            {idx + 1}
-                                                        </div>
-
-                                                        <div className="min-w-0">
-                                                            <h4 className="text-base font-semibold text-emerald-950">
-                                                                Oppgave {idx + 1}
-                                                            </h4>
-                                                            <p className="mt-1 text-sm text-slate-700">{task.prompt}</p>
-                                                            <div className="mt-4 inline-flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-950">
-                                                                <span className="font-semibold">Svar:</span>
-                                                                <FractionDisplay value={correctAnswer} size="md" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </article>
-                                            );
-                                        })}
+                            {shouldShowAnswerKey ? (
+                                <section className="fraction-answer-key mt-8 border-t-2 border-slate-300 pt-6">
+                                    <h3 className="mb-5 text-xl font-bold">{copy.answerKeyTitle}</h3>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        {worksheet.tasks.map((task, idx) => (
+                                            <div key={task.id || idx} className="flex items-center gap-4 border-b border-slate-200 pb-4">
+                                                <span className="text-sm font-semibold">{copy.task} {idx + 1}</span>
+                                                <FractionDisplay value={answerToString(task.answer)} size="md" />
+                                                {task.type === "shade_fraction" ? <FractionVisual fraction={task.fraction} visual={task.visual} language={worksheet.language} /> : null}
+                                            </div>
+                                        ))}
                                     </div>
                                 </section>
                             ) : null}

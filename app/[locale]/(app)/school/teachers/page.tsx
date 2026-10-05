@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import SchoolNav from "@/components/school/SchoolNav";
+import TeacherInviteBatch from "@/components/school/TeacherInviteBatch";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
+import { canAccessSchoolAdmin } from "@/lib/schools/access";
 
 type TimestampLike =
   | string
@@ -33,6 +36,8 @@ type SchoolTeacher = {
 };
 
 type SchoolInvite = {
+  displayName?: string | null;
+  inviteCode?: string;
   id?: string;
   email?: string | null;
   role?: string;
@@ -68,6 +73,7 @@ type SchoolSummary = {
 };
 
 type ActionResponse = {
+  inviteCode?: string;
   ok?: boolean;
   error?: string;
   reason?: string;
@@ -91,18 +97,29 @@ export default function SchoolTeachersPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
   const [temporaryInviteLink, setTemporaryInviteLink] = useState("");
   const [temporaryInviteEmail, setTemporaryInviteEmail] = useState("");
+  const [temporaryInviteName, setTemporaryInviteName] = useState("");
+  const [temporaryInviteCode, setTemporaryInviteCode] = useState("");
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  useEffect(() => {
+    if (state !== "success") return;
+    const target = window.location.hash;
+    if (target !== "#invite" && target !== "#invitations") return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(target.slice(1))?.scrollIntoView({ block: "start" });
+      if (target === "#invite") document.querySelector<HTMLInputElement>("#invite input")?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [state]);
+
   const schoolId = profile?.schoolId ?? "";
-  const hasSchoolAdminAccess =
-    Boolean(schoolId) &&
-    profile?.schoolRole === "school_admin" &&
-    profile?.schoolStatus === "active";
+  const hasSchoolAdminAccess = canAccessSchoolAdmin(profile);
 
   const activeTeachers = teachers.filter((teacher) => teacher.status === "active");
   const disabledTeachers = teachers.filter((teacher) => teacher.status !== "active");
@@ -235,7 +252,7 @@ export default function SchoolTeachersPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ schoolId, email, locale }),
+        body: JSON.stringify({ schoolId, email, displayName: inviteName, locale }),
       });
       const data = (await response.json().catch(() => ({}))) as ActionResponse;
 
@@ -245,7 +262,10 @@ export default function SchoolTeachersPage() {
       }
 
       setInviteEmail("");
+      setInviteName("");
       setTemporaryInviteEmail(email);
+      setTemporaryInviteName(inviteName);
+      setTemporaryInviteCode(data.inviteCode || "");
       setEmailSent(data.emailSent ?? null);
       setActionMessage(data.emailSent ? t("invites.createdSent") : t("invites.createdNoEmail"));
 
@@ -371,6 +391,8 @@ export default function SchoolTeachersPage() {
           locale,
           link: buildInviteLink(locale, data.token),
           email: invite.email ?? "",
+          name: invite.displayName ?? "",
+          code: invite.inviteCode ?? "",
           schoolName,
           adminName: profile?.displayName || user?.displayName || user?.email || "",
         }),
@@ -441,7 +463,7 @@ export default function SchoolTeachersPage() {
 
   return (
     <main style={styles.page}>
-      <SchoolNav locale={locale} active="teachers" t={t} />
+      <SchoolNav locale={locale} active="teachers" />
 
       <section style={styles.header}>
         <div>
@@ -462,7 +484,7 @@ export default function SchoolTeachersPage() {
 
       {state === "success" ? (
         <>
-          <section style={styles.card}>
+          <section style={{ ...styles.card, background: "#fffdf8", borderColor: "#eee7d9" }}>
             <div style={styles.cardHeader}>
               <div>
                 <h2 style={styles.sectionTitle}>{t("invites.inviteTitle")}</h2>
@@ -492,7 +514,11 @@ export default function SchoolTeachersPage() {
               <span>{formatSeatsRemaining(t, seatsRemaining)}</span>
             </div>
 
-            <form onSubmit={submitInvite} style={styles.form}>
+            <form id="invite" onSubmit={submitInvite} style={styles.form}>
+              <label style={styles.label}>
+                {t("batch.name")}
+                <input value={inviteName} onChange={(event) => setInviteName(event.target.value)} maxLength={120} style={styles.input} disabled={Boolean(actionId)} />
+              </label>
               <label style={styles.label}>
                 {t("invites.email")}
                 <input
@@ -515,6 +541,7 @@ export default function SchoolTeachersPage() {
                 {actionId === "invite" ? t("invites.sending") : t("invites.send")}
               </button>
             </form>
+            <TeacherInviteBatch schoolId={schoolId} seatsRemaining={seatsRemaining} disabled={Boolean(actionId)} onCreated={(message) => { setActionMessage(message); setRefreshKey((current) => current + 1); }} />
 
             {isSeatLimitReached ? (
               <Notice title={t("overview.licenseFullTitle")} text={t("overview.licenseFullText")} />
@@ -535,6 +562,8 @@ export default function SchoolTeachersPage() {
                       locale,
                       link: temporaryInviteLink,
                       email: temporaryInviteEmail,
+                      name: temporaryInviteName,
+                      code: temporaryInviteCode,
                       schoolName,
                       adminName: profile?.displayName || user?.displayName || user?.email || "",
                     })}
@@ -549,7 +578,7 @@ export default function SchoolTeachersPage() {
             ) : null}
           </section>
 
-          <section style={styles.statsGrid}>
+          {teachers.length > 0 || pendingInvites.length > 0 ? <section style={styles.statsGrid}>
             <StatCard
               label={t("teachers.activeTeachers")}
               value={String(activeTeachers.length)}
@@ -565,12 +594,13 @@ export default function SchoolTeachersPage() {
               value={String(disabledTeachers.length)}
               helper={t("teachers.disabledText")}
             />
-          </section>
+          </section> : null}
 
           <section style={styles.card}>
             <div style={styles.cardHeader}>
               <div>
-                <h2 style={styles.sectionTitle}>{t("teachers.pendingInvitesTitle")}</h2>
+                <h2 id="invitations" style={styles.sectionTitle}>{t("teachers.pendingInvitesTitle")}</h2>
+                <Link href={`/${locale}/school/invites/print-list?schoolId=${encodeURIComponent(schoolId)}`} target="_blank" style={styles.secondaryLinkButton}>{t("batch.printList")}</Link>
                 <p style={styles.mutedCompact}>{t("teachers.pendingInvitesText")}</p>
               </div>
             </div>
@@ -638,7 +668,7 @@ export default function SchoolTeachersPage() {
             </div>
 
             {filteredTeachers.length === 0 ? (
-              <p style={styles.muted}>{t("teachers.empty")}</p>
+              <div className="schoolEmptyState">{t(teachers.length === 0 ? "welcome.noTeachers" : "teachers.empty")}</div>
             ) : (
               <div style={styles.list}>
                 {filteredTeachers.map((teacher) => (
@@ -657,46 +687,6 @@ export default function SchoolTeachersPage() {
         </>
       ) : null}
     </main>
-  );
-}
-
-function SchoolNav({
-  locale,
-  active,
-  t,
-}: {
-  locale: string;
-  active: "overview" | "teachers" | "spaces";
-  t: SchoolAdminTranslator;
-}) {
-  return (
-    <nav style={styles.nav}>
-      <SchoolNavLink href={`/${locale}/school`} active={active === "overview"}>
-        {t("nav.overview")}
-      </SchoolNavLink>
-      <SchoolNavLink href={`/${locale}/school/teachers`} active={active === "teachers"}>
-        {t("nav.teachers")}
-      </SchoolNavLink>
-      <SchoolNavLink href={`/${locale}/school/spaces`} active={active === "spaces"}>
-        {t("nav.spaces")}
-      </SchoolNavLink>
-    </nav>
-  );
-}
-
-function SchoolNavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link href={href} style={active ? styles.navLinkActive : styles.navLink}>
-      {children}
-    </Link>
   );
 }
 
@@ -779,6 +769,8 @@ function InviteRow({
         locale,
         link: buildInviteLink(locale, invite.inviteToken),
         email: invite.email ?? "",
+        name: invite.displayName ?? "",
+        code: invite.inviteCode ?? "",
         schoolName,
         adminName,
       })
@@ -787,7 +779,9 @@ function InviteRow({
   return (
     <article style={styles.rowCard}>
       <div style={styles.rowMain}>
-        <div style={styles.rowTitle}>{invite.email || "-"}</div>
+        <div style={styles.rowTitle}>{invite.displayName || invite.email || "-"}</div>
+        {invite.displayName ? <div style={styles.rowMeta}>{invite.email}</div> : null}
+        {invite.inviteCode ? <div style={styles.rowMeta}>{t("batch.code")}: {invite.inviteCode}</div> : null}
         <div style={styles.rowMeta}>
           {t("invites.created")}: {formatDate(invite.createdAt)} | {t("invites.expires")}:{" "}
           {formatDate(invite.expiresAt)}
@@ -887,6 +881,7 @@ function getTeacherAccessErrorMessage(
 
 function getInviteErrorMessage(data: ActionResponse, t: SchoolAdminTranslator): string {
   if (data.error) return data.error;
+  if (data.reason && t.has(`batch.${data.reason}`)) return t(`batch.${data.reason}`);
 
   switch (data.reason) {
     case "school_not_found":
@@ -969,18 +964,24 @@ function buildInvitationPrintHref({
   email,
   schoolName,
   adminName,
+  name = "",
+  code = "",
 }: {
   locale: string;
   link: string;
   email: string;
   schoolName: string;
   adminName: string;
+  name?: string;
+  code?: string;
 }) {
   const params = new URLSearchParams({
     link,
     email,
     schoolName,
     adminName,
+    name,
+    code,
   });
 
   return `/${locale}/school/invites/print?${params.toString()}`;

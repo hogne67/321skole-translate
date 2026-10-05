@@ -1,7 +1,12 @@
 import type { ReadingTestConfig } from "@/components/student/ReadingTestPlayer";
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
+import type { FractionAutoGrade } from "@/lib/math/fractions/gradeWorksheet";
 import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
+import type { LengthWorksheet } from "@/lib/math/length/worksheet";
+import type { PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import type { EquationWorksheet } from "@/lib/math/equations/worksheet";
+import type { ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 
 export type TextSize = "normal" | "large" | "xlarge";
 
@@ -24,7 +29,9 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
-    mathWorksheet?: MathWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    lengthWorksheet?: LengthWorksheet | null;
+    measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     arithmeticWorksheet?: ArithmeticWorksheet | null;
     mathType?: string;
@@ -62,7 +69,9 @@ export type AssignmentDoc = {
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
 
-    mathWorksheet?: MathWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    lengthWorksheet?: LengthWorksheet | null;
+    measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     arithmeticWorksheet?: ArithmeticWorksheet | null;
 
@@ -107,7 +116,7 @@ export type TranslatingState =
     | `section:${string}`
     | `task:${string}`;
 
-export type TtsLang = "no" | "en" | "pt-BR";
+export type TtsLang = string;
 
 export type SubmissionStatus =
     | "draft"
@@ -125,7 +134,7 @@ export type TeacherFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "arithmetic";
+    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;
@@ -134,28 +143,14 @@ export type AutoGradeEntry = {
 export type AutoGrade = {
     totalAuto: number;
     correctAuto: number;
+    partialAuto?: number;
     wrongAuto: number;
     unansweredAuto: number;
     percentAuto: number | null;
     byTask: Record<string, AutoGradeEntry>;
 };
 
-export type FractionAutoGrade = {
-    totalAuto: number;
-    correctAuto: number;
-    wrongAuto: number;
-    unansweredAuto: number;
-    percentAuto: number | null;
-    byTask: Record<
-        string,
-        {
-            type: "fraction";
-            isCorrect: boolean;
-            studentAnswer: unknown;
-            correctAnswer: unknown;
-        }
-    >;
-};
+export type { FractionAutoGrade } from "@/lib/math/fractions/gradeWorksheet";
 
 export type SubmissionDoc = {
     uid?: string;

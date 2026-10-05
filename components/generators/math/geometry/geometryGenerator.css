@@ -1,0 +1,59 @@
+.geometry-generator { letter-spacing: 0; }
+.geometry-generator *, .geometry-generator *::before, .geometry-generator *::after { box-sizing: border-box; }
+.geometry-generator input[type="checkbox"] { appearance: auto; width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; display: inline-block; flex-shrink: 0; box-shadow: none; accent-color: #059669; }
+.geometry-generator-controls fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.geometry-generator-preview .print-brandbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.geometry-generator-preview .print-brandleft { display: flex; align-items: center; gap: 12px; }
+.geometry-generator-preview .print-brandlogo { width: 48px; height: auto; }
+.geometry-generator-preview .print-brandtitle { font-size: 20px; font-weight: 800; }
+.geometry-generator-preview .print-brandsite { font-size: 12px; color: #64748b; }
+.geometry-generator-preview .print-badge { font-size: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 8px; }
+.geometry-generator-preview .print-title { font-size: 24px; line-height: 1.25; font-weight: 800; overflow-wrap: anywhere; }
+.geometry-generator-preview .print-instructions { margin-top: 8px; font-size: 14px; color: #475569; }
+.geometry-generator-preview .print-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 28px; }
+.geometry-generator-preview .print-meta-box { padding: 10px 12px; background: #f8fafc; border-radius: 8px; font-size: 13px; }
+.geometry-generator-preview .print-meta-box:last-child { grid-column: 1 / -1; }
+.geometry-generator-preview .print-task-list { display: grid; gap: 28px; }
+.geometry-generator-preview .print-task { padding-bottom: 24px; border-bottom: 1px solid #e2e8f0; break-inside: avoid; }
+.geometry-generator-preview .print-task-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.geometry-generator-preview .print-task-num { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 50%; background: #0f172a; color: white; font-size: 13px; font-weight: 700; }
+.geometry-generator-preview .print-task-prompt { font-size: 15px; line-height: 1.5; font-weight: 700; overflow-wrap: anywhere; }
+.geometry-generator-preview .print-task-grid { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); align-items: start; gap: 16px; }
+.geometry-generator-preview .print-task-grid > * { min-width: 0; }
+.geometry-generator-preview .print-figure-box { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; background: #f8fafc; border-radius: 8px; }
+.geometry-generator-preview .figure-meta-text { margin: 0; font-size: 12px; line-height: 1.5; color: #475569; text-align: center; }
+.geometry-generator-preview .print-answer-box { padding: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; }
+.geometry-generator-preview .print-answer-label { font-size: 13px; color: #64748b; }
+.geometry-generator-preview .print-formula,
+.geometry-generator-preview .print-hint,
+.geometry-generator-preview .print-answer-key,
+.geometry-generator-preview .print-explanation { padding: 12px; margin-top: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.geometry-generator-preview .print-formula { background: #eff6ff; }
+.geometry-generator-preview .print-hint { background: #fffbeb; }
+.geometry-generator-preview .print-answer-key { background: #ecfdf5; }
+.geometry-generator-preview .print-explanation { background: #f8fafc; }
+.geometry-generator-preview .print-pre { white-space: pre-line; }
+.geometry-generator-preview .print-strong { font-weight: 700; }
+@media (max-width: 640px) {
+  .geometry-generator-preview .print-brandlogo { width: 36px; }
+  .geometry-generator-preview .print-brandtitle { font-size: 16px; }
+  .geometry-generator-preview .print-task-grid { grid-template-columns: minmax(0, 1fr); }
+  .geometry-generator-preview .print-title { font-size: 22px; }
+}
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body:has(.geometry-generator) * { visibility: hidden; }
+  body:has(.geometry-generator) header,
+  body:has(.geometry-generator) nav,
+  body:has(.geometry-generator) .sectionHeader,
+  body:has(.geometry-generator) .libraryWrap,
+  body:has(.geometry-generator) footer { display: none !important; }
+  .geometry-generator-preview, .geometry-generator-preview * { visibility: visible !important; }
+  .geometry-generator { min-height: 0 !important; padding: 0 !important; background: white !important; }
+  .geometry-generator-controls { display: none !important; }
+  .geometry-generator-layout { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .geometry-generator-preview { position: absolute; inset: 0; padding: 0 !important; width: 100%; }
+  .geometry-generator-preview * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .geometry-generator-preview .print-task-grid { grid-template-columns: 220px minmax(0, 1fr); }
+  .geometry-generator-preview .print-page-break { break-before: page; }
+}

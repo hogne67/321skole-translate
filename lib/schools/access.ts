@@ -3,6 +3,8 @@ import type { SchoolMemberDoc, SchoolMemberRole } from "@/lib/schools/types";
 export type SchoolProfileLike = {
   schoolId?: string | null;
   schoolRole?: SchoolMemberRole | null;
+  schoolStatus?: "active" | "disabled" | null;
+  disabled?: boolean;
 };
 
 export function hasSchoolMembership(
@@ -26,7 +28,7 @@ export function isSchoolTeacherProfile(
 export function canAccessSchoolAdmin(
   profile: SchoolProfileLike | null | undefined
 ): boolean {
-  return isSchoolAdminProfile(profile);
+  return isSchoolAdminProfile(profile) && profile?.schoolStatus === "active" && profile?.disabled !== true;
 }
 
 export function isActiveSchoolTeacherMember(

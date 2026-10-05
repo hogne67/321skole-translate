@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 
 import { schoolInvitesCollectionRef } from "@/lib/schools/server/refs";
-import { hashInviteToken } from "@/lib/schools/server/tokens";
+import { inviteLookupField } from "@/lib/schools/server/tokens";
 import type { SchoolInviteDoc } from "@/lib/schools/types";
 
 export type GetInviteByTokenResult = {
@@ -18,9 +18,9 @@ function isExpired(expiresAt: SchoolInviteDoc["expiresAt"]): boolean {
 }
 
 export async function getInviteByToken(token: string): Promise<GetInviteByTokenResult> {
-  const inviteTokenHash = hashInviteToken(token);
+  const lookup = inviteLookupField(token);
   const snapshot = await schoolInvitesCollectionRef()
-    .where("inviteTokenHash", "==", inviteTokenHash)
+    .where(lookup.field, "==", lookup.hash)
     .limit(1)
     .get();
 

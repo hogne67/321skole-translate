@@ -1,6 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { assertSchoolAssignmentAvailable, resolveSchoolAdministrator } from "@/lib/schools/administrator";
 import {
   schoolMemberDocRef,
   schoolsCollectionRef,
@@ -14,7 +15,8 @@ export type CreateSchoolInput = {
   billingType: BillingType;
   planKey: SchoolPlanKey;
   teacherSeatLimit: number;
-  adminUid: string;
+  adminUid?: string;
+  createdByUid?: string;
   adminEmail?: string | null;
   adminDisplayName?: string | null;
 };
@@ -26,6 +28,7 @@ export type CreatedSchoolDoc = SchoolDoc & {
 
 export type CreateSchoolResult = {
   schoolId: string;
+  administratorUid: string;
   school: CreatedSchoolDoc;
 };
 
@@ -44,8 +47,8 @@ type SchoolMemberWriteData = Omit<
 };
 
 export async function createSchool(input: CreateSchoolInput): Promise<CreateSchoolResult> {
-  const { db } = getAdmin();
-  const batch = db.batch();
+  const { db, auth } = getAdmin();
+  const administrator = await resolveSchoolAdministrator(auth, input);
   const schoolRef = schoolsCollectionRef().doc();
   const schoolId = schoolRef.id;
   const now = FieldValue.serverTimestamp();
@@ -59,16 +62,16 @@ export async function createSchool(input: CreateSchoolInput): Promise<CreateScho
     billingType: input.billingType,
     teacherSeatLimit: input.teacherSeatLimit,
     activeTeacherCount: 0,
-    createdByUid: input.adminUid,
+    createdByUid: input.createdByUid ?? administrator.uid,
     createdAt: now,
     updatedAt: now,
   };
 
   const adminMember: SchoolMemberWriteData = {
     schoolId,
-    uid: input.adminUid,
-    email: input.adminEmail ?? null,
-    displayName: input.adminDisplayName ?? null,
+    uid: administrator.uid,
+    email: administrator.email ?? null,
+    displayName: administrator.displayName || input.adminDisplayName || null,
     role: "school_admin",
     status: "active",
     invitedByUid: null,
@@ -77,13 +80,23 @@ export async function createSchool(input: CreateSchoolInput): Promise<CreateScho
     updatedAt: now,
   };
 
-  batch.set(schoolRef, school);
-  batch.set(schoolMemberDocRef(schoolId, input.adminUid), adminMember);
-
-  await batch.commit();
+  await db.runTransaction(async (transaction) => {
+    const profileRef = db.collection("users").doc(administrator.uid);
+    const profile = await transaction.get(profileRef);
+    assertSchoolAssignmentAvailable(profile.data(), schoolId);
+    transaction.set(schoolRef, school);
+    transaction.set(schoolMemberDocRef(schoolId, administrator.uid), adminMember);
+    transaction.set(profileRef, {
+      schoolId,
+      schoolRole: "school_admin",
+      schoolStatus: "active",
+      updatedAt: now,
+    }, { merge: true });
+  });
 
   return {
     schoolId,
+    administratorUid: administrator.uid,
     school: {
       id: schoolId,
       name: school.name,

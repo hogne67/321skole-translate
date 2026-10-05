@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import SchoolNav from "@/components/school/SchoolNav";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
+import { canAccessSchoolAdmin } from "@/lib/schools/access";
 
 type SchoolSpace = {
   id: string;
@@ -25,7 +27,6 @@ type SpacesResponse = {
 };
 
 type LoadState = "idle" | "loading" | "success" | "error";
-type SchoolAdminTranslator = ReturnType<typeof useTranslations>;
 
 export default function SchoolSpacesPage() {
   const locale = useLocale();
@@ -38,10 +39,7 @@ export default function SchoolSpacesPage() {
   const [showClosed, setShowClosed] = useState(true);
 
   const schoolId = profile?.schoolId ?? "";
-  const hasSchoolAdminAccess =
-    Boolean(schoolId) &&
-    profile?.schoolRole === "school_admin" &&
-    profile?.schoolStatus === "active";
+  const hasSchoolAdminAccess = canAccessSchoolAdmin(profile);
 
   const filteredSpaces = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -124,7 +122,7 @@ export default function SchoolSpacesPage() {
 
   return (
     <main style={styles.page}>
-      <SchoolNav locale={locale} active="spaces" t={t} />
+      <SchoolNav locale={locale} active="spaces" />
 
       <section style={styles.header}>
         <div>
@@ -163,7 +161,7 @@ export default function SchoolSpacesPage() {
         {state === "loading" ? <p style={styles.muted}>{t("spaces.loading")}</p> : null}
 
         {state === "success" && filteredSpaces.length === 0 ? (
-          <p style={styles.muted}>{t("spaces.empty")}</p>
+          <div className="schoolEmptyState">{t(spaces.length === 0 ? "welcome.noRooms" : "spaces.empty")}</div>
         ) : null}
 
         <div style={styles.list}>
@@ -206,52 +204,6 @@ export default function SchoolSpacesPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-function SchoolNav({
-  locale,
-  active,
-  t,
-}: {
-  locale: string;
-  active: "overview" | "teachers" | "spaces";
-  t: SchoolAdminTranslator;
-}) {
-  return (
-    <nav style={styles.nav}>
-      <SchoolNavLink href={`/${locale}/school`} active={active === "overview"}>
-        {t("nav.overview")}
-      </SchoolNavLink>
-      <SchoolNavLink href={`/${locale}/school/teachers`} active={active === "teachers"}>
-        {t("nav.teachers")}
-      </SchoolNavLink>
-      <SchoolNavLink href={`/${locale}/school/spaces`} active={active === "spaces"}>
-        {t("nav.spaces")}
-      </SchoolNavLink>
-    </nav>
-  );
-}
-
-function SchoolNavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      style={{
-        ...styles.navLink,
-        ...(active ? styles.navLinkActive : null),
-      }}
-    >
-      {children}
-    </Link>
   );
 }
 

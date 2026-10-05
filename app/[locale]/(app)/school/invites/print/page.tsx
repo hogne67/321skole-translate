@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 type Copy = {
@@ -80,11 +80,14 @@ function safeFilenamePart(value: string) {
 
 export default function SchoolInvitePrintPage() {
   const locale = useLocale();
+  const t = useTranslations("schoolAdmin.batch");
   const text = pickCopy(locale);
   const params = useSearchParams();
 
   const link = safeText(params.get("link"), "");
   const email = safeText(params.get("email"), "");
+  const recipientName = safeText(params.get("name"), "");
+  const code = safeText(params.get("code"), "");
   const schoolName = safeText(params.get("schoolName"), text.schoolFallback);
   const adminName = safeText(params.get("adminName"), text.adminFallback);
 
@@ -153,6 +156,8 @@ export default function SchoolInvitePrintPage() {
 
         <section style={styles.hero}>
           <h2 style={styles.heroTitle}>{title}</h2>
+          {recipientName ? <h3>{recipientName}</h3> : null}
+          <p>{t("registerHelp")}</p>
           <p style={styles.loginText}>{text.loginWith}</p>
           <div style={styles.emailBox}>{email || "-"}</div>
         </section>
@@ -161,6 +166,7 @@ export default function SchoolInvitePrintPage() {
           <div style={styles.linkBlock}>
             <h3 style={styles.sectionTitle}>{text.linkAndQr}</h3>
             <p style={styles.linkText}>{link}</p>
+            {code ? <><p>{t("code")}</p><strong style={{ fontFamily:"monospace", fontSize:20 }}>{code}</strong><p>{t("manualHelp", { url: link.split("?")[0] })}</p></> : null}
           </div>
 
           <div style={styles.qrBox}>

@@ -21,6 +21,10 @@
     "premium": {
       "title": "Premium-generatorer",
       "items": {
+        "mathematics": {
+          "title": "Matematikk",
+          "description": "Regnearter, geometri, brøk, omregning av enheter og sammenligning av tall."
+        },
         "quizGenerator": {
           "title": "Quiz-generator",
           "description": "Lag redigerbare quizer fra tema eller lesson-tekst med AI."
@@ -44,6 +48,10 @@
         "geometryGenerator": {
           "title": "Geometrigenerator",
           "description": "Lag utskrivbare geometrioppgaver med figurer, omkrets og areal."
+        },
+        "arithmeticGenerator": {
+          "title": "Regnearter",
+          "description": "Lag regneark med mengdetrening, oppstilt regning eller figurer. Skriv ut eller del digitalt i Spaces."
         },
         "academyGenerator": {
           "title": "Lag kurs",
@@ -71,6 +79,10 @@
       "fractionGenerator": {
         "title": "Brøkgenerator",
         "description": "Lag brøkoppgaver for digital bruk, deling og utskrift."
+      },
+      "fractionCalculationGenerator": {
+        "title": "Brøkregning",
+        "description": "Mengdetrening med de fire regneartene, like eller ulike nevnere og valgfri forkorting, digitalt eller på papir."
       },
       "vocab": {
         "title": "Ordlistegenerator",

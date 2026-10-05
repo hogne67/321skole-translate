@@ -4,6 +4,7 @@ import Badge from "./Badge";
 import type {
     AnswersMap,
     AutoGrade,
+    AutoGradeEntry,
     Task,
 } from "@/lib/submissions/types";
 
@@ -23,12 +24,7 @@ type Props = {
     getAutoEntry: (
         auto: AutoGrade | null,
         stableId: string
-    ) => {
-        type: "mcq" | "truefalse";
-        isCorrect: boolean;
-        studentAnswer: unknown;
-        correctAnswer: unknown;
-    } | undefined;
+    ) => AutoGradeEntry | undefined;
 
     renderValue: (value: unknown) => string;
 };

@@ -1,16 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBackLink";
+
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { auth } from "@/lib/firebase";
 import ArithmeticWorksheetView from "@/components/generators/math/arithmetic/ArithmeticWorksheetView";
+import {
+  DEFAULT_RULES,
+  defaultPresetFor,
+  rulesForTaskType,
+  taskTypeOptionsFor,
+  type RulesState,
+} from "@/lib/math/arithmetic/presets";
+import { UI_COPY, copyValue } from "@/lib/math/arithmetic/uiCopy";
+import { clampVisualRange, constrainVisualConfig, visualOperandLimits } from "@/lib/math/arithmetic/visualLimits";
+import { alignDividendRange } from "@/lib/math/arithmetic/ranges";
 import type {
+  ArithmeticConcreteOperation,
   ArithmeticDifficulty,
   ArithmeticLanguage,
   ArithmeticLayout,
   ArithmeticLevel,
+  ArithmeticNumberRange,
   ArithmeticOperation,
+  ArithmeticTaskType,
   ArithmeticWorksheet,
 } from "@/lib/math/arithmetic/types";
 
@@ -26,50 +41,16 @@ type SaveResponse = {
   lessonId?: string;
 };
 
+const MIXED_OPERATION_OPTIONS: ArithmeticConcreteOperation[] = [
+  "addition",
+  "subtraction",
+  "multiplication",
+  "division",
+];
+
 function normalizeLocale(locale: string): ArithmeticLanguage {
   if (locale === "en" || locale === "pt") return locale;
   return "nb";
-}
-
-function defaultRange(
-  level: ArithmeticLevel,
-  difficulty: ArithmeticDifficulty,
-  operation: ArithmeticOperation,
-  layout: ArithmeticLayout
-) {
-  if (layout === "visual") {
-    if (difficulty === "easy") return { min: 0, max: 10 };
-    if (difficulty === "medium") return { min: 0, max: 15 };
-    return { min: 0, max: 20 };
-  }
-
-  if (operation === "multiplication" || operation === "division") {
-    if (difficulty === "easy") return { min: 0, max: 5 };
-    if (difficulty === "medium") return { min: 0, max: 10 };
-    return { min: 0, max: level === "grade_8_10" ? 15 : 12 };
-  }
-
-  if (level === "grade_1_2") {
-    if (difficulty === "easy") return { min: 0, max: 10 };
-    if (difficulty === "medium") return { min: 0, max: 20 };
-    return { min: 0, max: 50 };
-  }
-
-  if (level === "grade_3_4") {
-    if (difficulty === "easy") return { min: 0, max: 50 };
-    if (difficulty === "medium") return { min: 0, max: 100 };
-    return { min: 0, max: 500 };
-  }
-
-  if (level === "grade_5_7") {
-    if (difficulty === "easy") return { min: 0, max: 100 };
-    if (difficulty === "medium") return { min: 0, max: 1000 };
-    return { min: 0, max: 5000 };
-  }
-
-  if (difficulty === "easy") return { min: -20, max: 100 };
-  if (difficulty === "medium") return { min: -100, max: 1000 };
-  return { min: -500, max: 5000 };
 }
 
 function maxTaskCount(layout: ArithmeticLayout) {
@@ -78,27 +59,35 @@ function maxTaskCount(layout: ArithmeticLayout) {
   return 18;
 }
 
-function supportsVisualLevel(level: ArithmeticLevel) {
-  return level === "grade_1_2" || level === "grade_3_4";
-}
-
-function supportsVisualDifficulty(difficulty: ArithmeticDifficulty) {
-  return difficulty === "easy" || difficulty === "medium";
+function defaultTaskCount(layout: ArithmeticLayout) {
+  if (layout === "grid") return 100;
+  if (layout === "vertical") return 36;
+  return 18;
 }
 
 export default function ProducerMathArithmeticPage() {
   const locale = useLocale();
   const printRef = useRef<HTMLDivElement | null>(null);
-  const [language, setLanguage] = useState<ArithmeticLanguage>(
-    normalizeLocale(locale)
-  );
-  const [level, setLevel] = useState<ArithmeticLevel>("grade_3_4");
+  const language = normalizeLocale(locale);
+  const level: ArithmeticLevel = "grade_3_4";
   const [operation, setOperation] = useState<ArithmeticOperation>("addition");
-  const [difficulty, setDifficulty] = useState<ArithmeticDifficulty>("easy");
+  const difficulty: ArithmeticDifficulty = "easy";
+  const [taskType, setTaskType] = useState<ArithmeticTaskType>("standard");
   const [layout, setLayout] = useState<ArithmeticLayout>("grid");
-  const [taskCount, setTaskCount] = useState(60);
+  const [taskCount, setTaskCount] = useState(defaultTaskCount("grid"));
   const [showAnswerKey, setShowAnswerKey] = useState(false);
-  const [{ min, max }, setRange] = useState({ min: 0, max: 50 });
+  const [operandA, setOperandA] = useState<ArithmeticNumberRange>({
+    min: 0,
+    max: 50,
+  });
+  const [operandB, setOperandB] = useState<ArithmeticNumberRange>({
+    min: 0,
+    max: 50,
+  });
+  const [rules, setRules] = useState<RulesState>(DEFAULT_RULES);
+  const [mixedOperations, setMixedOperations] = useState<
+    ArithmeticConcreteOperation[]
+  >(MIXED_OPERATION_OPTIONS);
   const [worksheet, setWorksheet] = useState<ArithmeticWorksheet | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,23 +95,162 @@ export default function ProducerMathArithmeticPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const copy = UI_COPY[language];
   const taskMax = maxTaskCount(layout);
   const safeTaskCount = Math.max(4, Math.min(taskMax, taskCount));
 
-  const suggestedRange = useMemo(
-    () => defaultRange(level, difficulty, operation, layout),
-    [level, difficulty, operation, layout]
+  const taskTypeOptions = useMemo(
+    () => taskTypeOptionsFor(operation, copy, layout),
+    [copy, layout, operation]
   );
-  const rangeHint = `${suggestedRange.min}–${suggestedRange.max}`;
+  const operandLabels = useMemo(() => {
+    if (taskType === "missing_number") {
+      return operation === "multiplication"
+        ? {
+            operandA: copy.operandLabels.missingMultiplicationA,
+            operandB: copy.operandLabels.missingMultiplicationB,
+          }
+        : {
+            operandA: copy.operandLabels.missingA,
+            operandB: copy.operandLabels.missingB,
+          };
+    }
 
-  useEffect(() => {
-    if (layout !== "visual") return;
-    if (!supportsVisualLevel(level)) setLevel("grade_1_2");
-    if (!supportsVisualDifficulty(difficulty)) setDifficulty("easy");
-  }, [difficulty, layout, level]);
+    if (operation === "addition") {
+      return {
+        operandA: copy.operandLabels.additionA,
+        operandB: copy.operandLabels.additionB,
+      };
+    }
 
-  function applySuggestedRange() {
-    setRange(suggestedRange);
+    if (operation === "subtraction") {
+      return {
+        operandA: copy.operandLabels.subtractionA,
+        operandB: copy.operandLabels.subtractionB,
+      };
+    }
+
+    if (operation === "multiplication") {
+      return {
+        operandA: copy.operandLabels.multiplicationA,
+        operandB: copy.operandLabels.multiplicationB,
+      };
+    }
+
+    if (operation === "division") {
+      return {
+        operandA: copy.operandLabels.divisionA,
+        operandB: copy.operandLabels.divisionB,
+      };
+    }
+
+    return {
+      operandA: copy.operandLabels.mixedA,
+      operandB: copy.operandLabels.mixedB,
+    };
+  }, [copy, operation, taskType]);
+  const isMissingNumber = taskType === "missing_number";
+  const rangeLimits = layout === "visual"
+    ? visualOperandLimits(operation, mixedOperations)
+    : undefined;
+
+  function applyVisualLimits(
+    nextOperation: ArithmeticOperation,
+    nextA: ArithmeticNumberRange,
+    nextB: ArithmeticNumberRange,
+    nextTaskType: ArithmeticTaskType,
+    nextRules: RulesState,
+    nextMixedOperations = mixedOperations
+  ) {
+    const config = constrainVisualConfig(nextOperation, {
+      taskType: nextTaskType,
+      operandA: nextA,
+      operandB: nextB,
+      rules: nextRules,
+      mixedOperations: nextMixedOperations,
+    });
+    setOperandA(nextOperation === "division"
+      ? alignDividendRange(config.operandA, config.operandB)
+      : config.operandA);
+    setOperandB(config.operandB);
+    setTaskType(config.taskType);
+    setRules({ ...nextRules, ...config.rules });
+  }
+
+  function handleOperationChange(nextOperation: ArithmeticOperation) {
+    setOperation(nextOperation);
+    if (nextOperation === "mixed") {
+      setMixedOperations(MIXED_OPERATION_OPTIONS);
+    }
+
+    if (nextOperation === "multiplication" && layout === "vertical") {
+      setTaskType("two_digit_by_one_digit");
+      setOperandA({ min: 10, max: 99 });
+      setOperandB({ min: 2, max: 9 });
+      setRules(DEFAULT_RULES);
+      return;
+    }
+
+    const preset = defaultPresetFor(nextOperation);
+    if (layout === "visual") {
+      applyVisualLimits(nextOperation, preset.operandA, preset.operandB, preset.taskType, preset.rules, MIXED_OPERATION_OPTIONS);
+      return;
+    }
+    setTaskType(preset.taskType);
+    setOperandA(nextOperation === "division"
+      ? alignDividendRange(preset.operandA, preset.operandB)
+      : preset.operandA);
+    setOperandB(preset.operandB);
+    setRules(preset.rules);
+  }
+
+  function handleTaskTypeChange(nextTaskType: ArithmeticTaskType) {
+    setTaskType(nextTaskType);
+    setRules((current) => rulesForTaskType(nextTaskType, current));
+  }
+
+  function applyLayoutDefaults(nextLayout: ArithmeticLayout) {
+    if (nextLayout === "visual") {
+      applyVisualLimits(operation, operandA, operandB, taskType, rules);
+      return;
+    }
+
+    if (operation === "multiplication" && nextLayout === "vertical") {
+      setTaskType("two_digit_by_one_digit");
+      setOperandA({ min: 10, max: 99 });
+      setOperandB({ min: 2, max: 9 });
+      setRules(DEFAULT_RULES);
+    }
+  }
+
+  function updateRange(
+    operand: "operandA" | "operandB",
+    key: keyof ArithmeticNumberRange,
+    value: number
+  ) {
+    const current = operand === "operandA" ? operandA : operandB;
+    const limits = rangeLimits?.[operand];
+    const next = {
+      ...current,
+      [key]: value,
+    };
+    const range = limits ? clampVisualRange(next, limits) : next;
+    const nextA = operand === "operandA" ? range : operandA;
+    const nextB = operand === "operandB" ? range : operandB;
+    setOperandA(operation === "division" ? alignDividendRange(nextA, nextB) : nextA);
+    setOperandB(nextB);
+  }
+
+  function toggleMixedOperation(nextOperation: ArithmeticConcreteOperation) {
+    const next = mixedOperations.includes(nextOperation)
+      ? mixedOperations.length === 1
+        ? mixedOperations
+        : mixedOperations.filter((operation) => operation !== nextOperation)
+      : [...mixedOperations, nextOperation];
+    setMixedOperations(next);
+    if (layout === "visual") {
+      applyVisualLimits(operation, operandA, operandB, taskType, rules, next);
+    }
   }
 
   async function handleGenerate() {
@@ -136,7 +264,7 @@ export default function ProducerMathArithmeticPage() {
       const idToken = currentUser ? await currentUser.getIdToken() : null;
 
       if (!idToken) {
-        setError("Du må være logget inn.");
+        setError(copy.loginError);
         return;
       }
 
@@ -152,9 +280,12 @@ export default function ProducerMathArithmeticPage() {
           operation,
           difficulty,
           layout,
+          taskType,
           taskCount: safeTaskCount,
-          minNumber: min,
-          maxNumber: max,
+          operandA,
+          operandB,
+          rules,
+          mixedOperations,
           showAnswerKey,
         }),
       });
@@ -162,13 +293,13 @@ export default function ProducerMathArithmeticPage() {
       const data = (await response.json()) as GenerateResponse;
 
       if (!response.ok || !data.ok) {
-        throw new Error("error" in data ? data.error : "Kunne ikke lage arket.");
+        throw new Error("error" in data ? data.error : copy.generateError);
       }
 
       setWorksheet(data.worksheet);
-      setSuccess("Regnearket er laget.");
+      setSuccess(copy.generated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke lage arket.");
+      setError(err instanceof Error ? err.message : copy.generateError);
     } finally {
       setLoading(false);
     }
@@ -181,7 +312,7 @@ export default function ProducerMathArithmeticPage() {
     const idToken = currentUser ? await currentUser.getIdToken() : null;
 
     if (!idToken) {
-      throw new Error("Du må være logget inn.");
+      throw new Error(copy.loginError);
     }
 
     const response = await fetch("/api/producer/save-arithmetic-worksheet", {
@@ -200,7 +331,7 @@ export default function ProducerMathArithmeticPage() {
     const data = text ? (JSON.parse(text) as SaveResponse) : {};
 
     if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Kunne ikke lagre regnearket.");
+      throw new Error(data.error || copy.saveError);
     }
 
     return data.id || data.worksheetId || data.lessonId || null;
@@ -214,14 +345,14 @@ export default function ProducerMathArithmeticPage() {
     try {
       const id = await saveWorksheetAndGetId();
       if (!id) {
-        setError("Arket ble ikke lagret.");
+        setError(copy.notSaved);
         return;
       }
 
       setSavedId(id);
-      setSuccess("Regnearket er lagret i Mitt innhold.");
+      setSuccess(copy.saved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke lagre regnearket.");
+      setError(err instanceof Error ? err.message : copy.saveError);
     } finally {
       setSaving(false);
     }
@@ -232,121 +363,72 @@ export default function ProducerMathArithmeticPage() {
     window.print();
   }
 
+  const previewCopy = worksheet ? UI_COPY[worksheet.language] : copy;
+
   return (
     <main className="min-h-screen bg-slate-50 pb-32">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="h-fit rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+          <MathGeneratorBackLink />
           <div>
             <p className="text-xs font-black uppercase tracking-[0.14em] text-teal-700">
-              321school matematikk
+              {copy.sectionLabel}
             </p>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-              Regnearter
+              {copy.title}
             </h1>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-              Lag mengdetrening, oppstilt regning eller enkle ark med visuell støtte.
+              {copy.description}
             </p>
           </div>
 
           <div className="mt-6 grid gap-4">
             <label className="block">
               <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                Språk
-              </span>
-              <select
-                value={language}
-                onChange={(event) =>
-                  setLanguage(event.target.value as ArithmeticLanguage)
-                }
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-              >
-                <option value="nb">Norsk</option>
-                <option value="en">English</option>
-                <option value="pt">Português</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                Trinn
-              </span>
-              <select
-                value={level}
-                onChange={(event) => setLevel(event.target.value as ArithmeticLevel)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-              >
-                <option value="grade_1_2">1.–2. trinn</option>
-                <option value="grade_3_4">3.–4. trinn</option>
-                <option value="grade_5_7" disabled={layout === "visual"}>
-                  5.–7. trinn
-                </option>
-                <option value="grade_8_10" disabled={layout === "visual"}>
-                  8.–10. trinn
-                </option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                Regneart
+                {copy.operation}
               </span>
               <select
                 value={operation}
                 onChange={(event) =>
-                  setOperation(event.target.value as ArithmeticOperation)
+                  handleOperationChange(event.target.value as ArithmeticOperation)
                 }
                 className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
               >
-                <option value="addition">Addisjon</option>
-                <option value="subtraction">Subtraksjon</option>
-                <option value="multiplication">Multiplikasjon</option>
-                <option value="division">Divisjon</option>
-                <option value="mixed">Blandet</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                Vanskegrad
-              </span>
-              <select
-                value={difficulty}
-                onChange={(event) =>
-                  setDifficulty(event.target.value as ArithmeticDifficulty)
-                }
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-              >
-                <option value="easy">Lett</option>
-                <option value="medium">Middels</option>
-                <option value="hard" disabled={layout === "visual"}>
-                  Vanskelig
+                <option value="addition">{copy.operations.addition}</option>
+                <option value="subtraction">{copy.operations.subtraction}</option>
+                <option value="multiplication">
+                  {copy.operations.multiplication}
                 </option>
+                <option value="division">{copy.operations.division}</option>
+                <option value="mixed">{copy.operations.mixed}</option>
               </select>
             </label>
 
             <div>
               <span className="mb-2 block text-sm font-bold text-slate-700">
-                Oppsett
+                {copy.layout}
               </span>
               <div className="grid gap-2">
                 {[
-                  ["grid", "Mengdetrening"],
-                  ["vertical", "Oppstilt under hverandre"],
-                  ["visual", "Med figurer på lavt nivå"],
-                ].map(([value, label]) => (
+                  "grid",
+                  "vertical",
+                  "visual",
+                ].map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => {
                       const nextLayout = value as ArithmeticLayout;
                       setLayout(nextLayout);
-                      setTaskCount(Math.min(taskCount, maxTaskCount(nextLayout)));
-                      if (nextLayout === "visual") {
-                        if (!supportsVisualLevel(level)) setLevel("grade_1_2");
-                        if (!supportsVisualDifficulty(difficulty)) {
-                          setDifficulty("easy");
-                        }
-                      }
+                      applyLayoutDefaults(nextLayout);
+                      setTaskCount((current) =>
+                        Math.min(
+                          current === defaultTaskCount(layout)
+                            ? defaultTaskCount(nextLayout)
+                            : current,
+                          maxTaskCount(nextLayout)
+                        )
+                      );
                     }}
                     className={`rounded-2xl border px-3 py-2 text-left text-sm font-bold ${
                       layout === value
@@ -355,67 +437,216 @@ export default function ProducerMathArithmeticPage() {
                     }`}
                   >
                     {layout === value ? "✓ " : ""}
-                    {label}
+                    {copy.layouts[value as ArithmeticLayout]}
                   </button>
                 ))}
               </div>
             </div>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                Antall oppgaver
-              </span>
-              <input
-                type="number"
-                min={4}
-                max={taskMax}
-                value={taskCount}
-                onChange={(event) => setTaskCount(Number(event.target.value))}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-              />
-            </label>
-
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-3">
+              {operation === "mixed" ? (
                 <div>
-                  <div className="text-sm font-black text-slate-900">
-                    Tallområde
+                  <div className="mb-2 text-xs font-bold text-slate-600">
+                    {copy.mixedOperations}
                   </div>
-                  <div className="mt-1 text-xs font-semibold text-slate-500">
-                    Forslag for valgt nivå og regneart: {rangeHint}
+                  <div className="grid grid-cols-2 gap-2">
+                    {MIXED_OPERATION_OPTIONS.map((option) => {
+                      const selected = mixedOperations.includes(option);
+
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => toggleMixedOperation(option)}
+                          className={`rounded-xl border px-3 py-2 text-left text-xs font-black ${
+                            selected
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {selected ? "✓ " : ""}
+                          {copy.operations[option]}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={applySuggestedRange}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700"
+              ) : null}
+
+              <label className={operation === "mixed" ? "mt-4 block" : "block"}>
+                <span className="mb-1.5 block text-xs font-bold text-slate-600">
+                  {copy.type}
+                </span>
+                <select
+                  value={taskType}
+                  onChange={(event) => {
+                    handleTaskTypeChange(event.target.value as ArithmeticTaskType);
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
                 >
-                  Bruk forslag
-                </button>
+                  {taskTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-xs font-bold text-slate-600">
+                  {copy.taskCount}
+                </span>
+                <input
+                  type="number"
+                  min={4}
+                  max={taskMax}
+                  value={taskCount}
+                  onChange={(event) => setTaskCount(Number(event.target.value))}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                />
+              </label>
+
+              <div className="mt-4 grid gap-3">
+                <div>
+                  <div className="mb-1.5 text-xs font-bold text-slate-600">
+                    {operandLabels.operandA}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      value={operandA.min}
+                      min={rangeLimits?.operandA.min}
+                      max={rangeLimits?.operandA.max}
+                      onChange={(event) =>
+                        updateRange(
+                          "operandA",
+                          "min",
+                          Number(event.target.value)
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={operandA.max}
+                      min={rangeLimits?.operandA.min}
+                      max={rangeLimits?.operandA.max}
+                      onChange={(event) =>
+                        updateRange(
+                          "operandA",
+                          "max",
+                          Number(event.target.value)
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-1.5 text-xs font-bold text-slate-600">
+                    {operandLabels.operandB}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      value={operandB.min}
+                      min={rangeLimits?.operandB.min}
+                      max={rangeLimits?.operandB.max}
+                      onChange={(event) =>
+                        updateRange(
+                          "operandB",
+                          "min",
+                          Number(event.target.value)
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={operandB.max}
+                      min={rangeLimits?.operandB.min}
+                      max={rangeLimits?.operandB.max}
+                      onChange={(event) =>
+                        updateRange(
+                          "operandB",
+                          "max",
+                          Number(event.target.value)
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  value={min}
-                  onChange={(event) =>
-                    setRange((current) => ({
-                      ...current,
-                      min: Number(event.target.value),
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-                />
-                <input
-                  type="number"
-                  value={max}
-                  onChange={(event) =>
-                    setRange((current) => ({
-                      ...current,
-                      max: Number(event.target.value),
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-                />
+
+              {isMissingNumber ? (
+                <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+                  {copy.operandHint}
+                </p>
+              ) : null}
+
+              <div className="mt-4 grid gap-2">
+                {operation === "addition" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRules((current) => ({
+                        ...current,
+                        allowCarry: !current.allowCarry,
+                      }));
+                    }}
+                    className={`rounded-xl border px-3 py-2 text-left text-xs font-black ${
+                      rules.allowCarry
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                        : "border-slate-300 bg-white text-slate-700"
+                    }`}
+                  >
+                    {rules.allowCarry ? "✓ " : ""}
+                    {isMissingNumber ? copy.allowCarryMissing : copy.allowCarry}
+                  </button>
+                ) : null}
+
+                {operation === "subtraction" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRules((current) => ({
+                          ...current,
+                          allowBorrow: !current.allowBorrow,
+                        }));
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-left text-xs font-black ${
+                        rules.allowBorrow
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      {rules.allowBorrow ? "✓ " : ""}
+                      {isMissingNumber
+                        ? copy.allowBorrowMissing
+                        : copy.allowBorrow}
+                    </button>
+                    {layout !== "visual" ? <button
+                      type="button"
+                      onClick={() => {
+                        setRules((current) => ({
+                          ...current,
+                          allowNegative: !current.allowNegative,
+                        }));
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-left text-xs font-black ${
+                        rules.allowNegative
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      {rules.allowNegative ? "✓ " : ""}
+                      {copy.allowNegative}
+                    </button> : null}
+                  </>
+                ) : null}
               </div>
             </div>
 
@@ -428,7 +659,7 @@ export default function ProducerMathArithmeticPage() {
                   : "border-slate-200 bg-white text-slate-700"
               }`}
             >
-              {showAnswerKey ? "✓ Vis fasit" : "Vis fasit"}
+              {showAnswerKey ? `✓ ${copy.answerKey}` : copy.answerKey}
             </button>
 
             {error ? (
@@ -449,7 +680,7 @@ export default function ProducerMathArithmeticPage() {
               disabled={loading}
               className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:opacity-50"
             >
-              {loading ? "Lager..." : "Lag regneark"}
+              {loading ? copy.generating : copy.generate}
             </button>
 
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
@@ -459,7 +690,7 @@ export default function ProducerMathArithmeticPage() {
                 disabled={saving || !worksheet}
                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50 disabled:opacity-50"
               >
-                {saving ? "Lagrer..." : "Lagre"}
+                {saving ? copy.saving : copy.save}
               </button>
               <button
                 type="button"
@@ -467,7 +698,7 @@ export default function ProducerMathArithmeticPage() {
                 disabled={!worksheet}
                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50 disabled:opacity-50"
               >
-                Skriv ut
+                {copy.print}
               </button>
             </div>
 
@@ -476,7 +707,7 @@ export default function ProducerMathArithmeticPage() {
                 href={`/${locale}/content`}
                 className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-black text-sky-900 transition hover:bg-sky-100"
               >
-                Åpne i Mitt innhold
+                {copy.openContent}
               </Link>
             ) : null}
           </div>
@@ -484,15 +715,20 @@ export default function ProducerMathArithmeticPage() {
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           {worksheet ? (
-            <ArithmeticWorksheetView worksheet={worksheet} printRef={printRef} />
+            <ArithmeticWorksheetView
+              worksheet={worksheet}
+              printRef={printRef}
+              t={(key) => copyValue(previewCopy.worksheet, key)}
+              tBrand={(key) => copyValue(previewCopy.brand, key)}
+            />
           ) : (
             <div className="grid min-h-[560px] place-items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
               <div>
                 <h2 className="text-2xl font-black text-slate-950">
-                  Klar for første regneark
+                  {copy.readyTitle}
                 </h2>
                 <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-slate-600">
-                  Velg regneart, nivå og oppsett. Forhåndsvisningen kommer her.
+                  {copy.readyText}
                 </p>
               </div>
             </div>

@@ -66,6 +66,7 @@
       "audioDeleteSaved": "Lydopptaket er slettet.",
       "audioDeleteFailed": "Kunne ikke slette lydopptaket: {msg}",
       "tasksTitle": "Oppgaver",
+      "geometryTitle": "Geometriark",
       "noTasks": "Ingen oppgaver i denne leksjonen (eller leksjonen ble ikke funnet).",
       "noTasksHint": "Dette betyr vanligvis at assignment.sourceId mangler eller at lesson.tasks er tom.",
       "taskN": "Oppgave {n}",

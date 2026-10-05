@@ -108,7 +108,7 @@ function normalizeNext(raw: string | null | undefined, locale: string, chosenRol
   ]);
 
   if (blocked.has(normalized)) return fallback;
-  if (/^\/(en|no|pt)(\/|$)/.test(normalized)) return normalized || fallback;
+  if (/^\/(en|nb|no|pt)(\/|$)/.test(normalized)) return normalized || fallback;
 
   return `/${locale}${normalized}`;
 }

@@ -10,6 +10,14 @@ import { useLocale, useTranslations } from "next-intl";
 import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import ArithmeticWorksheetView from "@/components/generators/math/arithmetic/ArithmeticWorksheetView";
+import LengthWorksheetView from "@/components/generators/math/length/LengthWorksheetView";
+import PercentageWorksheetView from "@/components/generators/math/percentage/PercentageWorksheetView";
+import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
+import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
+import { sanitizeComparisonWorksheet, type ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
+import { sanitizeLengthWorksheet, type LengthWorksheet } from "@/lib/math/length/worksheet";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
@@ -83,6 +91,10 @@ export default function MathWorksheetPreviewPage() {
   const [err, setErr] = useState<string | null>(null);
   const [lesson, setLesson] = useState<LessonDoc | null>(null);
   const [worksheet, setWorksheet] = useState<MathWorksheet | null>(null);
+  const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
+  const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
+  const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [comparisonWorksheet, setComparisonWorksheet] = useState<ComparisonWorksheet | null>(null);
   const [answerSpace, setAnswerSpace] =
     useState<GeometryAnswerSpace>("medium");
   const [fractionWorksheet, setFractionWorksheet] =
@@ -104,6 +116,10 @@ export default function MathWorksheetPreviewPage() {
     (async () => {
       setErr(null);
       setLoading(true);
+      setLengthWorksheet(null);
+      setComparisonWorksheet(null);
+      setEquationWorksheet(null);
+      setPercentageWorksheet(null);
 
       try {
         await ensureAnonymousUser();
@@ -194,7 +210,33 @@ export default function MathWorksheetPreviewPage() {
           mathType?: unknown;
           fractionWorksheet?: unknown;
           arithmeticWorksheet?: unknown;
+          lengthWorksheet?: unknown;
+          measurementWorksheet?: unknown;
         };
+        const equations = sanitizeEquationWorksheet(loadedRecord.mathWorksheet);
+        if (equations) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setEquationWorksheet(equations); setLoading(false); return;
+        }
+        const percentage = sanitizePercentageWorksheet(loadedRecord.mathWorksheet);
+        if (percentage) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const comparison = sanitizeComparisonWorksheet(loadedRecord.mathWorksheet);
+        if (comparison) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setComparisonWorksheet(comparison); setLoading(false); return;
+        }
+        const length = sanitizeLengthWorksheet(loadedRecord.measurementWorksheet ?? loadedRecord.lengthWorksheet ?? loadedRecord.mathWorksheet);
+        if (length) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setLengthWorksheet(length); setLoading(false); return;
+        }
         const contentType =
           typeof loadedRecord.contentType === "string"
             ? loadedRecord.contentType
@@ -357,7 +399,7 @@ export default function MathWorksheetPreviewPage() {
     );
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main className="mx-auto min-h-screen max-w-4xl bg-slate-50 px-4 py-8">
         <h1 className="text-2xl font-black text-slate-950">
@@ -392,6 +434,9 @@ export default function MathWorksheetPreviewPage() {
                 {worksheet?.title ||
                   fractionWorksheet?.title ||
                   arithmeticWorksheet?.title ||
+                  lengthWorksheet?.title ||
+                  equationWorksheet?.title || percentageWorksheet?.title ||
+                  comparisonWorksheet?.title ||
                   tPrint("worksheet")}
               </h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
@@ -409,7 +454,15 @@ export default function MathWorksheetPreviewPage() {
         </section>
 
         <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          {fractionWorksheet ? (
+          {equationWorksheet ? (
+              <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={previewRef} />
+            ) : percentageWorksheet ? (
+              <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={previewRef} />
+            ) : comparisonWorksheet ? (
+            <ComparisonWorksheetView worksheet={comparisonWorksheet} printMode printRef={previewRef} />
+          ) : lengthWorksheet ? (
+            <LengthWorksheetView worksheet={lengthWorksheet} printMode printRef={previewRef} />
+          ) : fractionWorksheet ? (
             <FractionWorksheetView
               worksheet={fractionWorksheet}
               tBrand={tBrand}
@@ -435,9 +488,8 @@ export default function MathWorksheetPreviewPage() {
               tBrand={tBrand}
               printRef={previewRef}
               producerName={lesson.producerName?.trim() || undefined}
-              levelLabel={(worksheet.level || lesson.level)?.trim() || undefined}
               showIdentityFields={true}
-              showFigureMeta={true}
+              showFigureMeta={false}
               emptyStateKey="worksheet"
             />
           ) : null}
@@ -468,7 +520,7 @@ export default function MathWorksheetPreviewPage() {
               </button>
             ) : (
               <Link
-                href={`/${locale}/producer/math/geometry`}
+                href={`/${locale}/producer/math/${equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : "geometry"}`}
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:bg-slate-50"
               >
                 {t("controlPreview.backToGenerator")}

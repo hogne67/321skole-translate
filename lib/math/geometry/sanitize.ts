@@ -167,6 +167,11 @@ export function sanitizeTask(value: unknown, index: number): MathWorksheetTask |
   const prompt = safeString(value.prompt).trim();
   if (!prompt) return null;
 
+  const expected = isRecord(value.expected) ? value.expected : null;
+  const numericValue = (v: unknown) =>
+    v === null ? null : typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  const inputMode = value.inputMode;
+
   return {
     id: safeString(value.id, String(index + 1)),
     type,
@@ -176,6 +181,17 @@ export function sanitizeTask(value: unknown, index: number): MathWorksheetTask |
     explanation: safeString(value.explanation).trim() || undefined,
     hint: safeString(value.hint).trim() || undefined,
     formula: safeString(value.formula).trim() || undefined,
+    inputMode:
+      inputMode === "shape_name" || inputMode === "number_with_unit" || inputMode === "split_name_perimeter_area"
+        ? inputMode
+        : undefined,
+    expected: expected ? {
+      shapeName: safeString(expected.shapeName).trim() || undefined,
+      perimeterValue: numericValue(expected.perimeterValue),
+      areaValue: numericValue(expected.areaValue),
+      perimeterUnit: expected.perimeterUnit === "cm" || expected.perimeterUnit === null ? expected.perimeterUnit : undefined,
+      areaUnit: expected.areaUnit === "cm2" || expected.areaUnit === null ? expected.areaUnit : undefined,
+    } : undefined,
   };
 }
 

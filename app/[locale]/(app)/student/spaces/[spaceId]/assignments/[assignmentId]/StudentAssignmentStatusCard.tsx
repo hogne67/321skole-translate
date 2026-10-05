@@ -37,7 +37,6 @@ type Props = {
     teacherFeedbackTargetLang: string;
     teacherFeedbackTranslating: boolean;
     teacherFeedbackTtsBusy: null | "teacherFeedback" | "teacherFeedbackTranslation";
-    onTeacherFeedbackTargetLangChange: (value: string) => void;
     onTranslateTeacherFeedback: () => void;
     onPlayTeacherFeedback: () => void;
     onPlayTeacherFeedbackTranslation: () => void;
@@ -135,7 +134,6 @@ export default function StudentAssignmentStatusCard({
     teacherFeedbackTargetLang,
     teacherFeedbackTranslating,
     teacherFeedbackTtsBusy,
-    onTeacherFeedbackTargetLangChange,
     onTranslateTeacherFeedback,
     onPlayTeacherFeedback,
     onPlayTeacherFeedbackTranslation,
@@ -219,7 +217,6 @@ export default function StudentAssignmentStatusCard({
                     translating={teacherFeedbackTranslating}
                     ttsBusy={teacherFeedbackTtsBusy}
                     t={t}
-                    onTargetLangChange={onTeacherFeedbackTargetLangChange}
                     onTranslate={onTranslateTeacherFeedback}
                     onPlayOriginal={onPlayTeacherFeedback}
                     onPlayTranslation={onPlayTeacherFeedbackTranslation}

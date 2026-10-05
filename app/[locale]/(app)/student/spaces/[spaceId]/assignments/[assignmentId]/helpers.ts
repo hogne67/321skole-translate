@@ -1,3 +1,7 @@
+import { normalizeAudioLanguage } from "@/lib/audio/language";
+import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import type {
     AssignmentDoc,
     Lesson,
@@ -63,10 +67,7 @@ export function getStableTaskId(t: Task, idx: number): string {
 }
 
 export function toTtsLang(lang: string): TtsLang {
-    const v = (lang || "").toLowerCase().trim();
-    if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt-BR";
-    if (v === "en") return "en";
-    return "no";
+    return normalizeAudioLanguage(lang || "no");
 }
 
 export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
@@ -76,6 +77,7 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
     const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
     const hasMathWorksheet = !!a.mathWorksheet && typeof a.mathWorksheet === "object";
     const hasFractionWorksheet = !!a.fractionWorksheet && typeof a.fractionWorksheet === "object";
+    const hasArithmeticWorksheet = !!a.arithmeticWorksheet && typeof a.arithmeticWorksheet === "object";
     const hasPodcastWorkshop = !!a.podcastWorkshopConfig && typeof a.podcastWorkshopConfig === "object";
     const isPodcastWorkshop =
         String(a.lessonType ?? "").trim().toLowerCase() === "podcast_workshop" ||
@@ -84,7 +86,7 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasPodcastWorkshop;
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentToLesson(a: AssignmentDoc): Lesson {
@@ -108,6 +110,9 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         textSize: a.textSize,
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,
+        arithmeticWorksheet: a.arithmeticWorksheet ?? null,
+        lengthWorksheet: a.lengthWorksheet ?? null,
+        measurementWorksheet: a.measurementWorksheet ?? null,
         mathType: a.mathType,
         contentType: a.contentType,
         audioReadingEnabled: a.audioReadingEnabled,

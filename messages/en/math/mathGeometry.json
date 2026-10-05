@@ -2,7 +2,14 @@
   "mathGeometry": {
     "mathBrand": "321school mathematics",
     "pageTitle": "Geometry",
-    "pageSubtitle": "Create lessons with perimeter and area that are ready for printing or digital completion.",
+    "pageSubtitle": "Shapes, perimeter and area.",
+    "generator": {
+      "taskType": "Task type",
+      "nameShapes": "Name the shapes",
+      "combined": "Name, perimeter and area",
+      "measurements": "Shape measurements",
+      "emptyTitle": "Ready for your first geometry worksheet"
+    },
     "builder": "Settings",
     "preview": "Preview",
     "generatorIntro": "Choose level, topic and shapes. Use the bottom panel to create the worksheet and open the control preview.",
@@ -148,6 +155,8 @@
       "length": "length",
       "width": "width",
       "side": "side",
+      "leg": "leg",
+      "hypotenuse": "hypotenuse",
       "base": "base",
       "height": "height",
       "topBase": "top base",

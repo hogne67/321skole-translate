@@ -8,7 +8,7 @@ import {
   schoolMemberDocRef,
   schoolMembersCollectionRef,
 } from "@/lib/schools/server/refs";
-import { hashInviteToken } from "@/lib/schools/server/tokens";
+import { inviteLookupField } from "@/lib/schools/server/tokens";
 import type { SchoolDoc, SchoolInviteDoc } from "@/lib/schools/types";
 
 export type AcceptSchoolInviteInput = {
@@ -28,7 +28,10 @@ export type AcceptSchoolInviteResult = {
     | "school_not_found"
     | "school_not_active"
     | "invalid_seat_limit"
-    | "seat_limit_reached";
+    | "seat_limit_reached"
+    | "already_school_member"
+    | "account_disabled"
+    | "member_role_conflict";
   schoolId?: string;
   memberId?: string;
   inviteId?: string;
@@ -48,13 +51,13 @@ export async function acceptSchoolInvite(
   input: AcceptSchoolInviteInput
 ): Promise<AcceptSchoolInviteResult> {
   const email = normalizeEmail(input.email);
-  const inviteTokenHash = hashInviteToken(input.token);
+  const lookup = inviteLookupField(input.token);
   const { db } = getAdmin();
 
   return db.runTransaction(async (transaction) => {
     const inviteSnapshot = await transaction.get(
       schoolInvitesCollectionRef()
-        .where("inviteTokenHash", "==", inviteTokenHash)
+        .where(lookup.field, "==", lookup.hash)
         .limit(1)
     );
 
@@ -155,13 +158,22 @@ export async function acceptSchoolInvite(
     const inviteRef = schoolInviteDocRef(inviteId);
     const profileRef = db.collection("users").doc(input.uid);
     const memberSnapshot = await transaction.get(memberRef);
+    const profileSnapshot = await transaction.get(profileRef);
+    const profile = profileSnapshot.data();
+    if (profile?.disabled === true) return { ok: false, reason: "account_disabled" };
+    if (profile?.schoolStatus === "active" && profile.schoolId && profile.schoolId !== invite.schoolId) {
+      return { ok: false, reason: "already_school_member" };
+    }
+    if (memberSnapshot.get("role") === "school_admin" && invite.role === "school_teacher") {
+      return { ok: false, reason: "member_role_conflict" };
+    }
     const memberId = memberRef.id;
     const now = FieldValue.serverTimestamp();
     const memberData = {
       schoolId: invite.schoolId,
       uid: input.uid,
       email,
-      displayName: input.displayName ?? null,
+      displayName: input.displayName || invite.displayName || null,
       role: invite.role,
       status: "active",
       invitedByUid: invite.invitedByUid,
@@ -177,6 +189,7 @@ export async function acceptSchoolInvite(
         schoolId: invite.schoolId,
         schoolRole: invite.role,
         schoolStatus: "active",
+        role: profile?.role === "admin" || profile?.role === "creator" ? profile.role : profile?.roles?.admin === true ? "admin" : "teacher",
         updatedAt: now,
       },
       { merge: true }
@@ -187,6 +200,7 @@ export async function acceptSchoolInvite(
       acceptedAt: now,
       updatedAt: now,
     });
+    transaction.update(schoolDocRef(invite.schoolId), { updatedAt: now });
 
     return {
       ok: true,

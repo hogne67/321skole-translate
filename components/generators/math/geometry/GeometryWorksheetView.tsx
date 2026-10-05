@@ -4,6 +4,8 @@
 import type { RefObject } from "react";
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
 import FigureMeta from "@/components/generators/math/geometry/FigureMeta";
+import GeometryFigureNote from "./GeometryFigureNote";
+import { getGeometryTaskPrompt } from "@/lib/math/geometry/measurements";
 import type { MathWorksheet, MathWorksheetTask } from "@/lib/math/geometry/types";
 
 type TFn = (key: string) => string;
@@ -12,6 +14,8 @@ type MeasurementKey =
   | "length"
   | "width"
   | "side"
+  | "leg"
+  | "hypotenuse"
   | "base"
   | "height"
   | "topBase"
@@ -53,7 +57,7 @@ export default function GeometryWorksheetView({
   producerName,
   levelLabel,
   showIdentityFields = true,
-  showFigureMeta = true,
+  showFigureMeta = false,
   emptyStateKey = "generate",
 }: {
   worksheet: MathWorksheet;
@@ -147,7 +151,7 @@ export default function GeometryWorksheetView({
                   <div className="print-task-head">
                     <div className="print-task-num">{idx + 1}</div>
                     <div className="min-w-0">
-                      <h4 className="print-task-prompt">{task.prompt}</h4>
+                      <h4 className="print-task-prompt">{getGeometryTaskPrompt(task, worksheet.language)}</h4>
                     </div>
                   </div>
 
@@ -155,8 +159,10 @@ export default function GeometryWorksheetView({
                     <div className="print-figure-box">
                       <GeometryFigure
                         figure={task.figure}
+                        language={worksheet.language}
                         className="h-36 w-full max-w-[260px]"
                       />
+                      <GeometryFigureNote figure={task.figure} language={worksheet.language} />
                       {showFigureMeta ? (
                         <FigureMeta
                           figure={task.figure}
@@ -210,7 +216,7 @@ export default function GeometryWorksheetView({
                           <h4 className="print-task-prompt">
                             {t("taskLabel")} {idx + 1}
                           </h4>
-                          <p className="mt-1 text-sm text-slate-700">{task.prompt}</p>
+                          <p className="mt-1 text-sm text-slate-700">{getGeometryTaskPrompt(task, worksheet.language)}</p>
                         </div>
                       </div>
 
@@ -218,8 +224,10 @@ export default function GeometryWorksheetView({
                         <div className="print-figure-box" style={{ background: "#fff" }}>
                           <GeometryFigure
                             figure={task.figure}
+                            language={worksheet.language}
                             className="h-36 w-full max-w-[260px]"
                           />
+                          <GeometryFigureNote figure={task.figure} language={worksheet.language} />
                           {showFigureMeta ? (
                             <FigureMeta
                               figure={task.figure}

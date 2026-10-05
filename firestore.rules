@@ -517,16 +517,22 @@ allow update: if signedIn()
       }
 
       function isPublishedForStudents() {
-        return resource != null && (
+        return resource != null
+          && !("visibility" in resource.data && resource.data.visibility == "private")
+          && !("publishVisibility" in resource.data && resource.data.publishVisibility == "private")
+          && !("publish" in resource.data && resource.data.publish is map
+            && "visibility" in resource.data.publish && resource.data.publish.visibility == "private")
+          && (
           (("status" in resource.data) && (resource.data.status == "published" || resource.data.status == "unlisted"))
           || (("isActive" in resource.data) && resource.data.isActive == true)
         );
       }
 
-      allow get: if signedIn() || isAdmin() || isOwner();
+      allow get: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
       allow list: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
       allow create: if false;
-      allow update: if isOwner();
+      allow update: if isOwner()
+        && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if false;
     }
 

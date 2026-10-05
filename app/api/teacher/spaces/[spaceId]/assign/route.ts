@@ -52,6 +52,9 @@ type SourceLessonData = {
 
   mathWorksheet?: unknown;
   fractionWorksheet?: unknown;
+  arithmeticWorksheet?: unknown;
+  lengthWorksheet?: unknown;
+  measurementWorksheet?: unknown;
   mathType?: string;
   contentType?: string;
   podcastWorkshopConfig?: unknown;
@@ -136,6 +139,9 @@ function pickSourceLessonData(
 
     mathWorksheet: d.mathWorksheet ?? null,
     fractionWorksheet: d.fractionWorksheet ?? null,
+    arithmeticWorksheet: d.arithmeticWorksheet ?? null,
+    lengthWorksheet: d.lengthWorksheet ?? null,
+    measurementWorksheet: d.measurementWorksheet ?? null,
     mathType: nonEmptyOrUndefined(d.mathType),
     contentType: nonEmptyOrUndefined(d.contentType),
   };
@@ -463,6 +469,9 @@ export async function POST(
 
         mathWorksheet: isFractions ? fractionWorksheet : source.mathWorksheet ?? null,
         fractionWorksheet: isFractions ? fractionWorksheet : source.fractionWorksheet ?? null,
+        arithmeticWorksheet: source.arithmeticWorksheet ?? null,
+        lengthWorksheet: source.lengthWorksheet ?? null,
+        measurementWorksheet: source.measurementWorksheet ?? null,
         mathType: isFractions ? "fractions" : source.mathType ?? null,
         contentType: isFractions
           ? "fraction_worksheet"

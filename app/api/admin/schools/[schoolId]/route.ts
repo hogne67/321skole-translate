@@ -151,8 +151,10 @@ export async function GET(req: Request, context: RouteContext) {
       .orderBy("createdAt", "desc")
       .get();
 
-    const members = membersSnap.docs.map((doc) => {
+    const members = await Promise.all(membersSnap.docs.map(async (doc) => {
       const data = doc.data();
+      const uid = typeof data.uid === "string" && data.uid ? data.uid : doc.id;
+      const profile = (await db.collection("users").doc(uid).get()).data();
 
       return {
         id: doc.id,
@@ -161,11 +163,13 @@ export async function GET(req: Request, context: RouteContext) {
         displayName: data.displayName ?? null,
         role: data.role ?? null,
         status: data.status ?? null,
+        profileLinked: profile?.schoolId === schoolId && profile?.schoolRole === data.role &&
+          profile?.schoolStatus === data.status && profile?.disabled !== true,
         createdAt: serializeTimestamp(data.createdAt),
         joinedAt: serializeTimestamp(data.joinedAt),
         disabledAt: serializeTimestamp(data.disabledAt ?? data.deactivatedAt),
       };
-    });
+    }));
 
     const activeTeacherCount = members.filter(
       (member) => member.role === "school_teacher" && member.status === "active"

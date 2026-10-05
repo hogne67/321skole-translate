@@ -28,6 +28,16 @@ export const ARITHMETIC_LEVELS = [
 
 export const ARITHMETIC_LAYOUTS = ["grid", "vertical", "visual"] as const;
 
+export const ARITHMETIC_TASK_TYPES = [
+  "standard",
+  "no_transition",
+  "with_transition",
+  "times_table",
+  "two_digit_by_one_digit",
+  "whole_division",
+  "missing_number",
+] as const;
+
 export const ARITHMETIC_WORKSHEET_LANGUAGES = MATH_WORKSHEET_LANGUAGES;
 export const STORED_ARITHMETIC_WORKSHEET_LANGUAGES =
   STORED_MATH_WORKSHEET_LANGUAGES;
@@ -37,17 +47,41 @@ export type ArithmeticLanguage = MathWorksheetLanguage;
 export type StoredArithmeticLanguage = StoredMathWorksheetLanguage;
 export type ArithmeticDifficulty = MathDifficulty;
 export type ArithmeticOperation = (typeof ARITHMETIC_OPERATIONS)[number];
+export type ArithmeticConcreteOperation = Exclude<ArithmeticOperation, "mixed">;
 export type ArithmeticLevel = (typeof ARITHMETIC_LEVELS)[number];
 export type ArithmeticLayout = (typeof ARITHMETIC_LAYOUTS)[number];
+export type ArithmeticTaskType = (typeof ARITHMETIC_TASK_TYPES)[number];
+
+export type ArithmeticNumberRange = {
+  min: number;
+  max: number;
+};
+
+export type ArithmeticGeneratorRules = {
+  allowCarry?: boolean;
+  allowBorrow?: boolean;
+  allowNegative?: boolean;
+  wholeNumberDivision?: boolean;
+};
+
+export type ArithmeticGeneratorConfig = {
+  taskType: ArithmeticTaskType;
+  operandA: ArithmeticNumberRange;
+  operandB: ArithmeticNumberRange;
+  rules?: ArithmeticGeneratorRules;
+  mixedOperations?: ArithmeticConcreteOperation[];
+  presetId?: string;
+};
 
 export type ArithmeticTask = {
   id: string;
-  operation: Exclude<ArithmeticOperation, "mixed">;
+  operation: ArithmeticConcreteOperation;
   left: number;
   right: number;
   answer: number;
   expression: string;
   prompt: string;
+  unknownPosition?: "left" | "right";
   visualCount?: number;
 };
 
@@ -66,6 +100,7 @@ export type ArithmeticWorksheet = {
     min: number;
     max: number;
   };
+  generatorConfig?: ArithmeticGeneratorConfig;
   tasks: ArithmeticTask[];
 };
 
@@ -101,4 +136,8 @@ export function isArithmeticLevel(value: unknown): value is ArithmeticLevel {
 
 export function isArithmeticLayout(value: unknown): value is ArithmeticLayout {
   return ARITHMETIC_LAYOUTS.includes(value as ArithmeticLayout);
+}
+
+export function isArithmeticTaskType(value: unknown): value is ArithmeticTaskType {
+  return ARITHMETIC_TASK_TYPES.includes(value as ArithmeticTaskType);
 }

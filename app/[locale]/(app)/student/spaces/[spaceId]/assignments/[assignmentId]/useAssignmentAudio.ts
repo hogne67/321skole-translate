@@ -19,6 +19,8 @@ export function useAssignmentAudio({
     t,
 }: Params) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioRequest = useRef<AbortController | null>(null);
+    const requestVersion = useRef(0);
 
     const [ttsBusy, setTtsBusy] = useState<null | "original" | "translation">(null);
     const [ttsErr, setTtsErr] = useState<string | null>(null);
@@ -29,6 +31,10 @@ export function useAssignmentAudio({
     const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
 
     function stopAudio() {
+        requestVersion.current += 1;
+        audioRequest.current?.abort();
+        audioRequest.current = null;
+        setTtsBusy(null);
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
@@ -112,6 +118,11 @@ export function useAssignmentAudio({
         const clean = text.trim();
         if (!clean) return;
 
+        audioRequest.current?.abort();
+        const controller = new AbortController();
+        audioRequest.current = controller;
+        const version = ++requestVersion.current;
+
         setTtsErr(null);
         setTtsBusy(mode);
 
@@ -122,6 +133,7 @@ export function useAssignmentAudio({
             }
 
             const res = await fetch("/api/tts", {
+                signal: controller.signal,
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -146,6 +158,7 @@ export function useAssignmentAudio({
 
             const url = String(d?.url ?? "").trim();
             if (!url) throw new Error("TTS returned no url");
+            if (controller.signal.aborted || version !== requestVersion.current) return;
 
             const a = new Audio(url);
             a.playbackRate = playbackRate;
@@ -163,14 +176,27 @@ export function useAssignmentAudio({
 
             await a.play();
         } catch (e: unknown) {
+            if (controller.signal.aborted || version !== requestVersion.current) return;
             const m = (e as { message?: unknown })?.message;
             setTtsErr(typeof m === "string" ? m : t("tts.failed"));
             setActiveSentenceIndex(null);
             setActiveTextMode(null);
         } finally {
-            setTtsBusy(null);
+            if (version === requestVersion.current) {
+                audioRequest.current = null;
+                setTtsBusy(null);
+            }
         }
     }
+
+    useEffect(() => {
+        return () => {
+            requestVersion.current += 1;
+            audioRequest.current?.abort();
+            audioRef.current?.pause();
+            audioRef.current = null;
+        };
+    }, [assignmentId]);
 
     useEffect(() => {
         if (audioRef.current) audioRef.current.playbackRate = playbackRate;

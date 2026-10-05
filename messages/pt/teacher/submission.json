@@ -66,6 +66,7 @@
       "audioDeleteSaved": "A gravação de áudio foi excluída.",
       "audioDeleteFailed": "Não foi possível excluir a gravação de áudio: {msg}",
       "tasksTitle": "Atividades",
+      "geometryTitle": "Ficha de geometria",
       "noTasks": "Nenhuma atividade nesta lição (ou a lição não foi encontrada).",
       "noTasksHint": "Isso geralmente significa que assignment.sourceId está ausente ou lesson.tasks está vazio.",
       "taskN": "Atividade {n}",

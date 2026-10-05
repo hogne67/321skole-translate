@@ -91,29 +91,6 @@ function GoogleIcon() {
   );
 }
 
-function FeideIcon() {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        background: "#1f4aa8",
-        color: "#fff",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 13,
-        fontWeight: 900,
-        lineHeight: 1,
-      }}
-    >
-      F
-    </span>
-  );
-}
-
 export default function LoginClient() {
   const t = useTranslations("login");
   const locale = useLocale();
@@ -151,7 +128,7 @@ export default function LoginClient() {
     return `/${locale}/post-login${q}`;
   }, [sp, locale]);
 
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(sp.get("mode") === "signup" ? "signup" : "signin");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("choice");
 
   const [email, setEmail] = useState("");
@@ -792,16 +769,26 @@ export default function LoginClient() {
   };
 
   const feideButtonStyle: React.CSSProperties = {
-    ...googleButtonStyle,
-    background: "#ffffff",
-    border: "1px solid rgba(31,74,168,0.26)",
+    justifySelf: "center",
+    padding: "6px 12px",
+    minHeight: 36,
+    borderRadius: 8,
+    background: "transparent",
+    border: "none",
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: 500,
+    textDecoration: "underline",
+    textUnderlineOffset: 3,
+    cursor: busy ? "wait" : "pointer",
+    opacity: busy ? 0.6 : 1,
   };
 
   const feideHintStyle: React.CSSProperties = {
-    margin: "-4px 8px 2px",
+    margin: "-8px 8px 2px",
     color: "#64748b",
     fontSize: 12,
-    fontWeight: 650,
+    fontWeight: 400,
     lineHeight: 1.4,
     textAlign: "center",
   };
@@ -947,7 +934,7 @@ export default function LoginClient() {
                     "Create an account or log in to keep everything you have made."
                   )
                   : mode === "signin"
-                    ? safeT("intro.normal", "Log in with Feide, Google or email.")
+                    ? safeT("intro.normal", "Log in with Google or email.")
                     : safeT(
                       "intro.signup",
                       "Create your account first. Then choose whether you are a student, teacher or parent."
@@ -1004,19 +991,6 @@ export default function LoginClient() {
                 <span>{loadingGoogle ? safeT("buttons.working", "Working…") : googleLabel}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => handleFeide()}
-                disabled={busy}
-                style={feideButtonStyle}
-              >
-                {!loadingFeide ? <FeideIcon /> : null}
-                <span>{loadingFeide ? safeT("buttons.working", "Working…") : feideLabel}</span>
-              </button>
-              <p style={feideHintStyle}>
-                {safeT("hints.feideAvailability", "For municipalities and schools with a Feide agreement.")}
-              </p>
-
               {!showEmailForm ? (
                 <button
                   type="button"
@@ -1037,14 +1011,26 @@ export default function LoginClient() {
                   {mode === "signin"
                     ? safeT(
                       "hints.methodSignin",
-                      "Use Feide or Google if that is how you signed up before. Otherwise choose email."
+                      "Use Google or Feide if that is how you signed up before. Otherwise choose email."
                     )
                     : safeT(
                       "hints.methodSignup",
-                      "Choose Feide if you use a school account, Google for a fast start, or email if you prefer password login."
+                      "Choose Google for a fast start, or email if you prefer password login."
                     )}
                 </p>
               ) : null}
+              <button
+                type="button"
+                onClick={() => handleFeide()}
+                disabled={busy}
+                aria-describedby="feide-availability"
+                style={feideButtonStyle}
+              >
+                {loadingFeide ? safeT("buttons.working", "Working…") : feideLabel}
+              </button>
+              <p id="feide-availability" style={feideHintStyle}>
+                {safeT("hints.feideAvailability", "For municipalities and schools with a Feide agreement.")}
+              </p>
             </div>
 
             {showEmailForm ? (

@@ -1,177 +1,72 @@
 "use client";
 
-import type {
-    FractionSpec,
-    FractionVisualKind,
-} from "@/lib/math/fractions/types";
-
-function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
-    const radians = ((angle - 90) * Math.PI) / 180;
-
-    return {
-        x: cx + r * Math.cos(radians),
-        y: cy + r * Math.sin(radians),
-    };
-}
-
-function describeSlice(
-    cx: number,
-    cy: number,
-    r: number,
-    startAngle: number,
-    endAngle: number
-) {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    return [
-        `M ${cx} ${cy}`,
-        `L ${start.x} ${start.y}`,
-        `A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
-        "Z",
-    ].join(" ");
-}
-
-function CircleFraction({
-    total,
-    shaded,
-}: {
-    total: number;
-    shaded: number;
-}) {
-    const cx = 100;
-    const cy = 100;
-    const r = 88;
-    const angle = 360 / total;
-
-    return (
-        <svg
-            viewBox="-8 -8 216 216"
-            width="160"
-            height="160"
-            role="img"
-            aria-label={`${shaded} av ${total}`}
-            style={{
-                display: "block",
-                background: "#f1f5f9",
-                border: "3px solid #111827",
-                borderRadius: 18,
-                padding: 8,
-            }}
-        >
-            {Array.from({ length: total }).map((_, idx) => {
-                const startAngle = idx * angle;
-                const endAngle = (idx + 1) * angle;
-                const active = idx < shaded;
-
-                return (
-                    <path
-                        key={idx}
-                        d={describeSlice(cx, cy, r, startAngle, endAngle)}
-                        fill={active ? "#10b981" : "#f8fafc"}
-                        stroke="#111827"
-                        strokeWidth="2"
-                    />
-                );
-            })}
-
-            <circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill="none"
-                stroke="#111827"
-                strokeWidth="3"
-            />
-        </svg>
-    );
-}
+import { getFractionVisualLayout } from "@/lib/math/fractions/visualLayout";
+import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
+import type { FractionSpec, FractionVisualKind, FractionLanguage } from "@/lib/math/fractions/types";
 
 export default function FractionVisual({
     fraction,
     shadedParts,
     visual = "bar",
+    language = "nb",
+    selectedParts,
+    onTogglePart,
+    disabled = false,
 }: {
     fraction: FractionSpec;
     shadedParts?: number;
     visual?: FractionVisualKind;
+    language?: FractionLanguage;
+    selectedParts?: number[];
+    onTogglePart?: (index: number) => void;
+    disabled?: boolean;
 }) {
-    const total = Math.max(1, Number(fraction.denominator) || 1);
-    const shaded = Math.max(
-        0,
-        Math.min(Number(shadedParts ?? fraction.numerator) || 0, total)
-    );
-    const barPartWidth = Math.max(18, Math.min(42, Math.floor(168 / total)));
-    const rectanglePartSize = total > 8 ? 34 : 42;
-
-    if (visual === "circle") {
-        return <CircleFraction total={total} shaded={shaded} />;
-    }
-
-    if (visual === "rectangle") {
-        return (
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(total))}, ${rectanglePartSize}px)`,
-                    gap: 0,
-                    padding: 10,
-                    border: "3px solid #111827",
-                    background: "#f1f5f9",
-                    maxWidth: "100%",
-                    width: "fit-content",
-                }}
-            >
-                {Array.from({ length: total }).map((_, idx) => {
-                    const active = idx < shaded;
-
-                    return (
-                        <div
-                            key={idx}
-                            style={{
-                                width: rectanglePartSize,
-                                height: rectanglePartSize,
-                                border: "2px solid #111827",
-                                marginLeft: -2,
-                                marginTop: -2,
-                                background: active ? "#10b981" : "#f8fafc",
-                            }}
-                        />
-                    );
-                })}
-            </div>
-        );
-    }
+    const total = Math.max(1, Math.floor(Number(fraction.denominator) || 1));
+    const shaded = Math.max(0, Math.min(Number(shadedParts ?? fraction.numerator) || 0, total));
+    const layout = getFractionVisualLayout(total, visual);
+    const copy = getFractionCopy(language);
+    const selected = new Set(selectedParts ?? Array.from({ length: shaded }, (_, index) => index));
+    const interactive = !!onTogglePart && !disabled;
+    const description = `${selected.size} ${copy.of} ${total} ${copy.shaded}`;
 
     return (
-        <div
+        <svg
+            className="fraction-visual"
+            data-visual={visual}
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            role={interactive ? "group" : "img"}
+            aria-label={description}
             style={{
-                display: "inline-block",
-                padding: 10,
-                border: "3px solid #111827",
-                background: "#f1f5f9",
+                width: visual === "circle" ? 176 : 240,
                 maxWidth: "100%",
+                height: "auto",
+                aspectRatio: `${layout.width} / ${layout.height}`,
+                display: "block",
+                overflow: "visible",
             }}
         >
-            <div style={{ display: "flex" }}>
-                {Array.from({ length: total }).map((_, idx) => {
-                    const active = idx < shaded;
-
-                    return (
-                        <div
-                            key={idx}
-                            style={{
-                                width: barPartWidth,
-                                height: 68,
-                                border: "2px solid #111827",
-                                marginLeft: idx === 0 ? 0 : -2,
-                                background: active ? "#10b981" : "#f8fafc",
-                            }}
-                        />
-                    );
-                })}
-            </div>
-        </div>
+            <title>{description}</title>
+            {layout.parts.map((path, index) => (
+                <path
+                    key={index}
+                    d={path}
+                    fill={selected.has(index) ? "#10b981" : "#fff"}
+                    stroke="#334155"
+                    strokeWidth={1.5}
+                    role={interactive ? "button" : undefined}
+                    tabIndex={interactive ? 0 : undefined}
+                    aria-label={interactive ? `${copy.part} ${index + 1} ${copy.of} ${total}` : undefined}
+                    aria-pressed={interactive ? selected.has(index) : undefined}
+                    onClick={interactive ? () => onTogglePart?.(index) : undefined}
+                    onKeyDown={interactive ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onTogglePart?.(index);
+                        }
+                    } : undefined}
+                    className={interactive ? "cursor-pointer transition-colors hover:fill-emerald-100 focus-visible:outline-none focus-visible:stroke-teal-700 focus-visible:[stroke-width:4]" : undefined}
+                />
+            ))}
+        </svg>
     );
 }

@@ -6,6 +6,8 @@ type MeasurementKey =
   | "length"
   | "width"
   | "side"
+  | "leg"
+  | "hypotenuse"
   | "base"
   | "height"
   | "topBase"
@@ -88,8 +90,8 @@ export default function FigureMeta({
   ) {
     return (
       <p className="figure-meta-text">
-        {tMeasurement("base")}: {figure.baseCm} cm, {tMeasurement("side")}:{" "}
-        {figure.sideBcm} cm, {tMeasurement("side")}: {figure.sideCcm} cm
+        {tMeasurement("base")}: {figure.baseCm} cm, {tMeasurement("leg")}:{" "}
+        {figure.sideBcm} cm, {tMeasurement("hypotenuse")}: {figure.sideCcm} cm
         {figure.heightCm ? (
           <>
             , {tMeasurement("height")}: {figure.heightCm} cm

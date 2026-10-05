@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Opprett konto for å beholde alt du har lagret.",
-      "normal": "Logg inn med Feide, Google eller e-post.",
+      "normal": "Logg inn med Google eller e-post.",
       "signup": "Opprett konto først. Etterpå velger du om du er elev, lærer eller forelder."
     },
     "tabs": {
@@ -56,8 +56,8 @@
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",
       "feideAvailability": "For kommuner og skoler med Feide-avtale.",
-      "methodSignin": "Bruk Feide eller Google hvis det var slik du registrerte deg tidligere. Ellers velger du e-post.",
-      "methodSignup": "Velg Feide hvis du bruker skolekonto, Google for rask start, eller e-post hvis du vil bruke passord."
+      "methodSignin": "Bruk Google eller Feide hvis det var slik du registrerte deg tidligere. Ellers velger du e-post.",
+      "methodSignup": "Velg Google for rask start, eller e-post hvis du vil bruke passord."
     },
     "footer": {
       "noAccount": "Har du ikke en konto?",

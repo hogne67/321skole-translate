@@ -27,6 +27,7 @@ type SchoolDetail = {
 };
 
 type SchoolMember = {
+  profileLinked?: boolean;
   id?: string;
   uid?: string | null;
   email?: string | null;
@@ -59,6 +60,9 @@ export default function AdminSchoolDetailPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [connectingAdmin, setConnectingAdmin] = useState(false);
+  const [reload, setReload] = useState(0);
   const [memberFilter, setMemberFilter] = useState("all");
   const [editName, setEditName] = useState("");
   const [editContactName, setEditContactName] = useState("");
@@ -137,7 +141,33 @@ export default function AdminSchoolDetailPage() {
     return () => {
       alive = false;
     };
-  }, [schoolId]);
+  }, [schoolId, reload]);
+
+  async function connectAdministrator(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setConnectingAdmin(true);
+    setError("");
+    setMessage("");
+    try {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Not signed in");
+      const token = await getIdToken(user, true);
+      const response = await fetch(`/api/admin/schools/${encodeURIComponent(schoolId)}/administrators`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ adminEmail }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "Could not connect administrator");
+      setAdminEmail("");
+      setMessage("School administrator connected. The school menu is now available to this user.");
+      setReload((value) => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not connect administrator");
+    } finally {
+      setConnectingAdmin(false);
+    }
+  }
 
   async function saveSchoolSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -417,6 +447,18 @@ export default function AdminSchoolDetailPage() {
           </AdminSection>
 
           <AdminSection title="School administrators">
+            <form onSubmit={connectAdministrator} className="form">
+              <label>
+                Administrator email (existing account)
+                <input type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} required disabled={connectingAdmin} />
+              </label>
+              <div className="formActions">
+                <button type="submit" disabled={connectingAdmin || !adminEmail.trim()}>
+                  {connectingAdmin ? "Connecting..." : "Connect administrator"}
+                </button>
+                <span>Only superadmins can connect administrators. This also repairs a missing profile link.</span>
+              </div>
+            </form>
             {schoolAdmins.length === 0 ? (
               <div className="muted">No school administrators found.</div>
             ) : (
@@ -737,6 +779,11 @@ function MemberRow({ member }: { member: SchoolMember }) {
       <div>
         <div className="strongText">{member.displayName || member.email || member.uid || "-"}</div>
         <div className="subText">{member.uid || member.id || "-"}</div>
+        {member.role === "school_admin" && member.status === "active" && member.profileLinked === false ? (
+          <div style={{ color: "#b45309", fontSize: 13 }}>
+            Profile access is missing. Connect this administrator again using their email.
+          </div>
+        ) : null}
       </div>
       <div>
         <div className="strongText">{member.status || "-"}</div>

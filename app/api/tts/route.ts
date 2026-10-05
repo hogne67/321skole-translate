@@ -1,19 +1,13 @@
 // app/api/tts/route.ts
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { normalizeAudioLanguage } from "@/lib/audio/language";
 
 export const runtime = "nodejs"; // audio binary -> node runtime (ikke edge)
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-function normalizeLang(lang: string): "no" | "en" | "pt-BR" {
-  const v = (lang || "").toLowerCase().trim();
-  if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt-BR";
-  if (v === "en") return "en";
-  return "no";
-}
 
 function hasStringMessage(x: unknown): x is { message: string } {
   return (
@@ -38,7 +32,7 @@ export async function POST(req: Request) {
     const b = (body ?? {}) as Record<string, unknown>;
     const lessonId = String(b.lessonId ?? "").trim();
     const text = String(b.text ?? "").trim();
-    const lang = normalizeLang(String(b.lang ?? "no"));
+    const lang = normalizeAudioLanguage(String(b.lang ?? "no"));
     const voice = String(b.voice ?? "marin").trim();
 
     if (!lessonId) return NextResponse.json({ error: "Missing lessonId" }, { status: 400 });

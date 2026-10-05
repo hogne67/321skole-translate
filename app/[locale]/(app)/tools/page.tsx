@@ -21,7 +21,7 @@ const premiumTools: Tool[] = [
   { id: "writingActivityGenerator", href: "/producer/text/new", badge: "NEW" },
   { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
-  { id: "geometryGenerator", href: "/producer/math/geometry?new=1", badge: "NEW" },
+  { id: "mathematics", href: "/producer/math", badge: "PREMIUM" },
   { id: "academyGenerator", href: "/teacher/courses/generate", badge: "PREMIUM" },
   { id: "podcastWorkshop", href: "/tools/podcast-workshop", badge: "BETA" },
 ];

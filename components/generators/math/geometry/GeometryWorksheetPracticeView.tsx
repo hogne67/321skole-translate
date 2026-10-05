@@ -1,8 +1,12 @@
 // components/generators/math/geometry/GeometryWorksheetPracticeView.tsx
 "use client";
 
+import MathText from "@/components/generators/math/MathTextSupport";
+
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
 import FigureMeta from "@/components/generators/math/geometry/FigureMeta";
+import GeometryFigureNote from "./GeometryFigureNote";
+import { getGeometryTaskPrompt } from "@/lib/math/geometry/measurements";
 import type { MathWorksheet, MathWorksheetTask } from "@/lib/math/geometry/types";
 
 type TFn = (key: string) => string;
@@ -11,6 +15,8 @@ type MeasurementKey =
   | "length"
   | "width"
   | "side"
+  | "leg"
+  | "hypotenuse"
   | "base"
   | "height"
   | "topBase"
@@ -448,7 +454,6 @@ function renderTaskInputs({
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm</span>
         </div>
-        <div className="mt-2 text-xs text-slate-500">{getNumberOnlyHelp(t)}</div>
         {showInlineFeedback ? (
           <FeedbackLine state={perimeterPart?.isCorrect} expected={perimeterPart?.expected} t={t} />
         ) : null}
@@ -483,7 +488,6 @@ function renderTaskInputs({
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm²</span>
         </div>
-        <div className="mt-2 text-xs text-slate-500">{getNumberOnlyHelp(t)}</div>
         {showInlineFeedback ? (
           <FeedbackLine state={areaPart?.isCorrect} expected={areaPart?.expected} t={t} />
         ) : null}
@@ -544,7 +548,6 @@ function renderTaskInputs({
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm</span>
         </div>
-        <div className="mt-2 text-xs text-slate-500">{getNumberOnlyHelp(t)}</div>
         {showInlineFeedback ? (
           <FeedbackLine state={perimeterPart?.isCorrect} expected={perimeterPart?.expected} t={t} />
         ) : null}
@@ -574,7 +577,6 @@ function renderTaskInputs({
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm²</span>
         </div>
-        <div className="mt-2 text-xs text-slate-500">{getNumberOnlyHelp(t)}</div>
         {showInlineFeedback ? (
           <FeedbackLine state={areaPart?.isCorrect} expected={areaPart?.expected} t={t} />
         ) : null}
@@ -643,7 +645,7 @@ export default function GeometryWorksheetPracticeView({
   onAnswerChange,
   readOnly = false,
   showIdentityFields = false,
-  showFigureMeta = true,
+  showFigureMeta = false,
   includeHints = true,
   showExpectedAnswers = false,
   showExplanations = false,
@@ -704,7 +706,7 @@ export default function GeometryWorksheetPracticeView({
 
           <div className="mt-5">
             <h2 className="text-2xl font-bold text-slate-900">{worksheet.title}</h2>
-            <p className="mt-2 text-sm text-slate-600">{worksheet.instructions}</p>
+            <p className="mt-2 text-sm text-slate-600"><MathText text={worksheet.instructions} /></p>
 
             {(producerName || levelLabel) && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -763,7 +765,7 @@ export default function GeometryWorksheetPracticeView({
                         </div>
                         <div className="min-w-0">
                           <h3 className="text-base font-semibold text-slate-900">
-                            {task.prompt}
+                            <MathText text={getGeometryTaskPrompt(task, worksheet.language)} />
                           </h3>
                         </div>
                       </div>
@@ -778,9 +780,12 @@ export default function GeometryWorksheetPracticeView({
                         <div className="flex min-h-[170px] items-center justify-center">
                           <GeometryFigure
                             figure={task.figure}
+                            language={worksheet.language}
                             className="h-36 w-full max-w-[260px]"
                           />
                         </div>
+
+                        <GeometryFigureNote figure={task.figure} language={worksheet.language} />
 
                         {showFigureMeta ? (
                           <div className="mt-3">
@@ -806,14 +811,14 @@ export default function GeometryWorksheetPracticeView({
                         {worksheet.showFormulas && task.formula ? (
                           <div className="rounded-2xl bg-blue-50 p-4 text-sm text-slate-800">
                             <span className="font-semibold">{getFormulaLabel(t)}:</span>
-                            <div className="whitespace-pre-line">{task.formula}</div>
+                            <div className="whitespace-pre-line"><MathText text={task.formula} /></div>
                           </div>
                         ) : null}
 
                         {includeHints && task.hint ? (
                           <div className="rounded-2xl bg-amber-50 p-4 text-sm text-slate-800">
                             <span className="font-semibold">{getHintLabel(t)}:</span>{" "}
-                            {task.hint}
+                            <MathText text={task.hint} />
                           </div>
                         ) : null}
 

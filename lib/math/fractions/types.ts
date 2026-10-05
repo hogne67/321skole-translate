@@ -4,6 +4,7 @@ import type {
     MathDifficulty,
     MathWorksheetLanguage,
 } from "@/lib/math/taxonomy";
+import type { FractionCalculationOperation } from "./calculationOperations";
 
 export type FractionLanguage = MathWorksheetLanguage;
 
@@ -28,7 +29,17 @@ export type FractionVisualKind =
 export type FractionTaskType =
     | "shade_fraction"
     | "write_fraction"
-    | "choose_fraction";
+    | "choose_fraction"
+    | "calculate_fraction";
+
+export type FractionCalculationSettings = {
+    operation: FractionCalculationOperation | "mixed";
+    denominatorMode: "fixed" | "varied";
+    denominatorRelation?: "same" | "different";
+    denominatorMin: number;
+    denominatorMax: number;
+    requireReduced: boolean;
+};
 
 export type FractionSpec = {
     numerator: number;
@@ -63,6 +74,11 @@ export type FractionTask = {
         denominator?: number;
         answerText?: string;
     };
+    calculation?: {
+        left: FractionSpec;
+        right: FractionSpec;
+        operation: FractionCalculationOperation;
+    };
 };
 
 export type FractionWorksheet = {
@@ -74,7 +90,8 @@ export type FractionWorksheet = {
 
     level: FractionLevel;
 
-    topic: FractionTopic;
+    topic: FractionTopic | "calculation";
+    calculation?: FractionCalculationSettings;
 
     difficulty: FractionDifficulty;
 
@@ -83,6 +100,7 @@ export type FractionWorksheet = {
     showAnswerKey: boolean;
 
     showHints?: boolean;
+    denominatorRange?: { min: number; max: number };
 
     tasks: FractionTask[];
 };

@@ -35,7 +35,8 @@ export default function GeometrySubmissionView({
                     }}
                     showExpectedAnswers={true}
                     showIdentityFields={false}
-                    showFigureMeta={true}
+                    showFigureMeta={false}
+                    readOnly
                     includeHints={true}
                     auto={auto}
                     showInlineFeedback={!!auto}

@@ -6,9 +6,11 @@ import { FieldValue } from "firebase-admin/firestore";
 import { sendEmail } from "@/lib/email/resend";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { isActiveSchoolAdminMember } from "@/lib/schools";
-import { createSchoolInvite, getSchoolMember } from "@/lib/schools/server";
+import { createSchoolInvites, getSchoolMember } from "@/lib/schools/server";
+import { validateInviteRecipients } from "@/lib/schools/inviteBatch";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -52,20 +54,23 @@ function buildInviteUrl(locale: string, token: string): string {
   return `${baseUrl}/${locale}/school/accept?token=${encodedToken}`;
 }
 
-function buildInviteEmailHtml(inviteUrl: string): string {
+function buildInviteEmailHtml(inviteUrl: string, locale: string, displayName?: string): string {
   const safeInviteUrl = escapeHtml(inviteUrl);
+  const title = locale === "en" ? "Invitation to 321school" : locale === "pt" ? "Convite para 321school" : "Invitasjon til 321school";
+  const hello = locale === "en" ? "Hello" : locale === "pt" ? "Olá" : "Hei";
+  const intro = locale === "en" ? "You are invited to join your school as a teacher. Sign in or create an account using this email address." : locale === "pt" ? "Você foi convidado para entrar na escola como professor. Entre ou crie uma conta usando este e-mail." : "Du er invitert til å bli med på skolen som lærer. Logg inn eller opprett konto med denne e-postadressen.";
+  const action = locale === "en" ? "Open invitation" : locale === "pt" ? "Abrir convite" : "Åpne invitasjonen";
 
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
-      <h2>Invitasjon til 321school</h2>
-      <p>Du er invitert til å bli lærer i en skolekonto i 321school.</p>
-      <p>Klikk på lenken for å godta invitasjonen.</p>
+      <h2>${title}</h2>
+      ${displayName ? `<p>${hello} ${escapeHtml(displayName)}!</p>` : ""}
+      <p>${intro}</p>
       <p>
         <a href="${safeInviteUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
-          Godta invitasjon
+          ${action}
         </a>
       </p>
-      <p>Hvis knappen ikke virker, kan du kopiere denne lenken:</p>
       <p>${safeInviteUrl}</p>
     </div>
   `;
@@ -108,8 +113,11 @@ export async function POST(req: Request) {
       return json({ ok: false, error: "Missing schoolId" }, 400);
     }
 
-    if (!email) {
-      return json({ ok: false, error: "Missing email" }, 400);
+    let recipients;
+    try {
+      recipients = validateInviteRecipients(body.recipients ?? [{ email, displayName: body.displayName }]);
+    } catch (error) {
+      return json({ ok: false, reason: error instanceof Error ? error.message : "invalid_batch" }, 400);
     }
 
     const { auth } = getAdmin();
@@ -126,24 +134,30 @@ export async function POST(req: Request) {
       return json({ ok: false, error: "Forbidden" }, 403);
     }
 
-    const result = await createSchoolInvite({
+    const result = await createSchoolInvites({
       schoolId,
-      email,
+      recipients,
       invitedBy: uid,
     });
 
-    if (!result.ok || !result.token) {
+    if (!result.ok || !result.invites) {
       return json(result, result.ok ? 200 : 400);
     }
 
-    const inviteEmail = email.trim().toLowerCase();
-    const inviteUrl = buildInviteUrl(locale, result.token);
+    const results = [];
+    for (const invite of result.invites) {
+    const inviteEmail = invite.email;
+    const inviteUrl = buildInviteUrl(locale, invite.token);
+    if (body.sendEmail === false) {
+      results.push({ ...invite, emailSent: false, emailSkipped: true });
+      continue;
+    }
 
     try {
       const emailResult = await sendEmail({
         to: inviteEmail,
         subject: "Invitasjon til 321school",
-        html: buildInviteEmailHtml(inviteUrl),
+        html: buildInviteEmailHtml(inviteUrl, locale, invite.displayName),
       });
 
       if (!emailResult.ok) {
@@ -154,11 +168,12 @@ export async function POST(req: Request) {
           error: emailResult.error ?? emailResult.reason,
         });
 
-        return json({
-          ...result,
+        results.push({
+          ...invite,
           emailSent: false,
           warning: emailResult.reason,
         });
+        continue;
       }
 
       await logSchoolInviteEmailAttempt({
@@ -167,8 +182,8 @@ export async function POST(req: Request) {
         status: "sent",
       });
 
-      return json({
-        ...result,
+      results.push({
+        ...invite,
         emailSent: true,
       });
     } catch (emailError: unknown) {
@@ -181,12 +196,14 @@ export async function POST(req: Request) {
         error: warning,
       });
 
-      return json({
-        ...result,
+      results.push({
+        ...invite,
         emailSent: false,
         warning,
       });
     }
+    }
+    return json(body.recipients ? { ok: true, invites: results } : { ok: true, ...results[0] });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 

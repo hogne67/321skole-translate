@@ -22,6 +22,15 @@ import ReadingTestPlayer, {
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import ArithmeticWorksheetStudentView from "@/components/generators/math/arithmetic/ArithmeticWorksheetStudentView";
+import LengthWorksheetView from "@/components/generators/math/length/LengthWorksheetView";
+import PercentageWorksheetView from "@/components/generators/math/percentage/PercentageWorksheetView";
+import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
+import { gradePercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { gradeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
+import { gradeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
+import { gradeLengthWorksheet } from "@/lib/math/length/worksheet";
+import { MathTextSupportProvider, sameMathLanguage } from "@/components/generators/math/MathTextSupport";
 
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import { gradeGeometryWorksheet } from "@/lib/math/geometry/autoCheck";
@@ -389,11 +398,12 @@ export default function StudentAssignmentPage() {
   const [liveReadingTimerResult, setLiveReadingTimerResult] =
     useState<ReadingTestTimerResult | null>(null);
 
-  const [targetLang, setTargetLang] = useState("no");
+  const [targetLang, setTargetLang] = useState("nb");
+  const translationEpoch = useRef(0);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
 
-  const [translatedTeacherText, setTranslatedTeacherText] = useState<string | null>(null);
-  const [teacherFeedbackTargetLang, setTeacherFeedbackTargetLang] = useState("no");
+  const [teacherTranslation, setTeacherTranslation] = useState<{ text: string; language: string; source: string } | null>(null);
+  const translatedTeacherText = teacherTranslation?.language === targetLang && teacherTranslation.source === liveTeacherText?.trim() ? teacherTranslation.text : null;
   const [teacherFeedbackTranslating, setTeacherFeedbackTranslating] = useState(false);
   const [teacherFeedbackTtsBusy, setTeacherFeedbackTtsBusy] = useState<
     null | "teacherFeedback" | "teacherFeedbackTranslation"
@@ -424,6 +434,14 @@ export default function StudentAssignmentPage() {
     geometryWorksheet,
     fractionWorksheet,
     arithmeticWorksheet,
+    lengthWorksheet,
+    isLengthAssignment,
+    equationWorksheet,
+    percentageWorksheet,
+    isEquationAssignment,
+    isPercentageAssignment,
+    comparisonWorksheet,
+    isComparisonAssignment,
     isGeometryAssignment,
     isFractionAssignment,
     isArithmeticAssignment,
@@ -705,7 +723,21 @@ export default function StudentAssignmentPage() {
     setReadingTestSecondsLeft(progress.secondsLeft);
   }
 
+  function changeTargetLanguage(language: string) {
+    translationEpoch.current += 1;
+    setTargetLang(language);
+    setTranslatedText(null);
+    setTranslatedTasks(null);
+    setTranslatedSections(null);
+    setTeacherTranslation(null);
+    setTranslateErr(null);
+    setTranslating(null);
+    setTeacherFeedbackTranslating(false);
+    stopAudio();
+  }
+
   async function onTranslateText() {
+    const epoch = translationEpoch.current;
     const base = String(lesson?.sourceText ?? lesson?.text ?? "");
     if (!base.trim()) return;
 
@@ -714,18 +746,21 @@ export default function StudentAssignmentPage() {
 
     try {
       const out = await translateOne(base, targetLang);
+      if (epoch !== translationEpoch.current) return;
       setTranslatedText(out);
       setShowTextTranslation(true);
     } catch (e: unknown) {
+      if (epoch !== translationEpoch.current) return;
       const m = (e as { message?: unknown })?.message;
       setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
       setTranslatedText(null);
     } finally {
-      setTranslating(null);
+      if (epoch === translationEpoch.current) setTranslating(null);
     }
   }
 
   async function onTranslateSection(key: string, text: string) {
+    const epoch = translationEpoch.current;
     const base = text.trim();
     if (!base) return;
 
@@ -734,19 +769,22 @@ export default function StudentAssignmentPage() {
 
     try {
       const out = await translateOne(base, targetLang);
+      if (epoch !== translationEpoch.current) return;
       setTranslatedSections((current) => {
         const rest = (current ?? []).filter((section) => section.key !== key);
         return [...rest, { key, translatedText: out }];
       });
     } catch (e: unknown) {
+      if (epoch !== translationEpoch.current) return;
       const m = (e as { message?: unknown })?.message;
       setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
     } finally {
-      setTranslating(null);
+      if (epoch === translationEpoch.current) setTranslating(null);
     }
   }
 
   async function onTranslateTeacherFeedback() {
+    const epoch = translationEpoch.current;
     const base = String(liveTeacherText ?? "").trim();
     if (!base) return;
 
@@ -754,14 +792,16 @@ export default function StudentAssignmentPage() {
     setTranslateErr(null);
 
     try {
-      const out = await translateOne(base, teacherFeedbackTargetLang);
-      setTranslatedTeacherText(out);
+      const out = await translateOne(base, targetLang);
+      if (epoch !== translationEpoch.current) return;
+      setTeacherTranslation({ text: out, language: targetLang, source: base });
     } catch (e: unknown) {
+      if (epoch !== translationEpoch.current) return;
       const m = (e as { message?: unknown })?.message;
       setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
-      setTranslatedTeacherText(null);
+      setTeacherTranslation(null);
     } finally {
-      setTeacherFeedbackTranslating(false);
+      if (epoch === translationEpoch.current) setTeacherFeedbackTranslating(false);
     }
   }
 
@@ -785,7 +825,7 @@ export default function StudentAssignmentPage() {
     setTeacherFeedbackTtsBusy("teacherFeedbackTranslation");
 
     try {
-      await playTTS(text, toTtsLang(teacherFeedbackTargetLang), "translation");
+      await playTTS(text, toTtsLang(targetLang), "translation");
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
@@ -797,6 +837,7 @@ export default function StudentAssignmentPage() {
   }
 
   async function onTranslateTask(tt: Task, idx: number) {
+    const epoch = translationEpoch.current;
     const stableId = getStableTaskId(tt, idx);
     const promptOrig = typeof tt?.prompt === "string" ? tt.prompt : "";
     const optionsOrig = Array.isArray(tt?.options) ? tt.options : [];
@@ -818,6 +859,7 @@ export default function StudentAssignmentPage() {
             try {
               return await translateOne(String(option), targetLang);
             } catch (e: unknown) {
+              if (epoch !== translationEpoch.current) return "";
               const m = (e as { message?: unknown })?.message;
               setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
               return "";
@@ -826,6 +868,7 @@ export default function StudentAssignmentPage() {
         );
       }
 
+      if (epoch !== translationEpoch.current) return;
       setTranslatedTasks((current) => {
         const rest = (current ?? []).filter((item) => item.stableId !== stableId);
         return [
@@ -840,10 +883,11 @@ export default function StudentAssignmentPage() {
       setShowTaskTranslations(true);
       setTaskTranslationOpen((current) => ({ ...current, [stableId]: true }));
     } catch (e: unknown) {
+      if (epoch !== translationEpoch.current) return;
       const m = (e as { message?: unknown })?.message;
       setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
     } finally {
-      setTranslating(null);
+      if (epoch === translationEpoch.current) setTranslating(null);
     }
   }
 
@@ -1008,6 +1052,9 @@ export default function StudentAssignmentPage() {
             textSize: normalizeTextSize(aDoc.textSize ?? d.textSize),
             mathWorksheet: aDoc.mathWorksheet ?? d.mathWorksheet ?? null,
             fractionWorksheet: aDoc.fractionWorksheet ?? d.fractionWorksheet ?? null,
+            arithmeticWorksheet: aDoc.arithmeticWorksheet ?? d.arithmeticWorksheet ?? null,
+            lengthWorksheet: aDoc.lengthWorksheet ?? d.lengthWorksheet ?? null,
+            measurementWorksheet: aDoc.measurementWorksheet ?? d.measurementWorksheet ?? null,
             mathType: aDoc.mathType ?? d.mathType,
             contentType: aDoc.contentType ?? d.contentType,
             audioReadingEnabled: aDoc.audioReadingEnabled ?? d.audioReadingEnabled,
@@ -1028,11 +1075,12 @@ export default function StudentAssignmentPage() {
           String(resolvedLesson?.taskType ?? "").trim().toLowerCase() === "math_geometry" ||
           isMathWorksheet(resolvedLesson?.mathWorksheet);
 
+        translationEpoch.current += 1;
         setTranslatedText(null);
+        setTranslatedSections(null);
         setTranslatedTasks(null);
         setTranslateErr(null);
-        setTranslatedTeacherText(null);
-        setTeacherFeedbackTargetLang("no");
+        setTeacherTranslation(null);
         setTeacherFeedbackTranslating(false);
         setTeacherFeedbackTtsBusy(null);
         setTaskTranslationOpen({});
@@ -1311,6 +1359,10 @@ export default function StudentAssignmentPage() {
 
         const isGeometryDraft = isGeometryAssignment && !!geometryWorksheet;
         const isArithmeticDraft = isArithmeticAssignment && !!arithmeticWorksheet;
+        const isLengthDraft = isLengthAssignment && !!lengthWorksheet;
+        const isEquationDraft = isEquationAssignment && !!equationWorksheet;
+        const isPercentageDraft = isPercentageAssignment && !!percentageWorksheet;
+        const isComparisonDraft = isComparisonAssignment && !!comparisonWorksheet;
         const normalizedGeometryAnswers = isGeometryDraft
           ? normalizeGeometryAnswersByTaskId(answers)
           : null;
@@ -1340,23 +1392,24 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: currentDraftStatus,
 
-          taskType: isGeometryDraft
+          taskType: isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : null,
-          lessonType: isGeometryDraft
+          lessonType: isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : lesson?.lessonType ?? null,
-          contentType: isGeometryDraft
+          contentType: isEquationDraft ? "equations_worksheet" : isPercentageDraft ? "percentage_worksheet" : isComparisonDraft ? "comparison_worksheet" : isLengthDraft ? "measurement_worksheet" : isGeometryDraft
             ? null
             : isArithmeticDraft
               ? "arithmetic_worksheet"
               : lesson?.contentType ?? null,
-          mathWorksheet: isGeometryDraft ? geometryWorksheet : null,
+          mathWorksheet: isEquationDraft ? equationWorksheet : isPercentageDraft ? percentageWorksheet : isComparisonDraft ? comparisonWorksheet : isGeometryDraft ? geometryWorksheet : null,
           arithmeticWorksheet: isArithmeticDraft ? arithmeticWorksheet : null,
+          measurementWorksheet: isLengthDraft ? lengthWorksheet : null,
           mathType: isArithmeticDraft ? "arithmetic" : lesson?.mathType ?? null,
 
           answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
@@ -1418,6 +1471,14 @@ export default function StudentAssignmentPage() {
       geometryWorksheet,
       isArithmeticAssignment,
       arithmeticWorksheet,
+      isLengthAssignment,
+      lengthWorksheet,
+      isEquationAssignment,
+      isPercentageAssignment,
+      equationWorksheet,
+      percentageWorksheet,
+      isComparisonAssignment,
+      comparisonWorksheet,
       answers,
       isPodcastWorkshop,
       podcastWorkshopSubmission,
@@ -1566,6 +1627,18 @@ export default function StudentAssignmentPage() {
         if (isArithmeticAssignment && arithmeticWorksheet) {
           auto = gradeArithmeticWorksheet(arithmeticWorksheet, finalAnswers);
         }
+        if (isEquationAssignment && equationWorksheet) {
+          auto = gradeEquationWorksheet(equationWorksheet, finalAnswers);
+        }
+        if (isPercentageAssignment && percentageWorksheet) {
+          auto = gradePercentageWorksheet(percentageWorksheet, finalAnswers);
+        }
+        if (isComparisonAssignment && comparisonWorksheet) {
+          auto = gradeComparisonWorksheet(comparisonWorksheet, finalAnswers);
+        }
+        if (isLengthAssignment && lengthWorksheet) {
+          auto = gradeLengthWorksheet(lengthWorksheet, finalAnswers);
+        }
 
         const readingTestSecondsLeftAtSubmit =
           isReadingTest
@@ -1609,7 +1682,7 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: "submitted",
 
-          taskType: isGeometryAssignment
+          taskType: isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1617,7 +1690,7 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : null,
 
-          lessonType: isGeometryAssignment
+          lessonType: isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1625,15 +1698,16 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : lesson?.lessonType ?? null,
 
-          mathWorksheet: isGeometryAssignment ? geometryWorksheet : null,
+          mathWorksheet: isEquationAssignment ? equationWorksheet : isPercentageAssignment ? percentageWorksheet : isComparisonAssignment ? comparisonWorksheet : isGeometryAssignment ? geometryWorksheet : null,
           fractionWorksheet: isFractionAssignment ? fractionWorksheet : null,
           arithmeticWorksheet: isArithmeticAssignment ? arithmeticWorksheet : null,
+          measurementWorksheet: isLengthAssignment ? lengthWorksheet : null,
           mathType: isFractionAssignment
             ? "fractions"
             : isArithmeticAssignment
               ? "arithmetic"
               : lesson?.mathType ?? null,
-          contentType: isFractionAssignment
+          contentType: isEquationAssignment ? "equations_worksheet" : isPercentageAssignment ? "percentage_worksheet" : isComparisonAssignment ? "comparison_worksheet" : isLengthAssignment ? "measurement_worksheet" : isFractionAssignment
             ? "fraction_worksheet"
             : isArithmeticAssignment
               ? "arithmetic_worksheet"
@@ -1731,6 +1805,14 @@ export default function StudentAssignmentPage() {
       fractionWorksheet,
       isArithmeticAssignment,
       arithmeticWorksheet,
+      isLengthAssignment,
+      lengthWorksheet,
+      isEquationAssignment,
+      isPercentageAssignment,
+      equationWorksheet,
+      percentageWorksheet,
+      isComparisonAssignment,
+      comparisonWorksheet,
       assignment,
       lesson,
       isAnon,
@@ -1764,7 +1846,10 @@ export default function StudentAssignmentPage() {
   const lock = isLockedByTeacher();
 
   const mainTitle = String(assignment?.title ?? lesson.title ?? t("fallback.title") ?? "Oppgave").trim();
-  const metaLine = [assignment?.level ?? lesson.level, assignment?.language ?? lesson.language]
+  const metaLine = [
+    isGeometryAssignment || isFractionAssignment || isLengthAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? null : assignment?.level ?? lesson.level,
+    assignment?.language ?? lesson.language,
+  ]
     .map((x) => String(x ?? "").trim())
     .filter(Boolean)
     .join(" · ");
@@ -1938,7 +2023,7 @@ export default function StudentAssignmentPage() {
         </section>
       ) : null}
 
-      {!isReadingTest && !isPodcastWorkshop ? (
+      {(!isReadingTest && !isPodcastWorkshop) || liveTeacherText ? (
         <div
           style={{
             marginTop: 12,
@@ -1961,7 +2046,7 @@ export default function StudentAssignmentPage() {
               label={tString("translate.languageLabel")}
               value={targetLang}
               options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
+              onChange={changeTargetLanguage}
               placeholder={tString("translate.searchPlaceholder")}
               buttonWidth={220}
             />
@@ -1985,10 +2070,9 @@ export default function StudentAssignmentPage() {
           t={tString}
           tGeometry={tGeometryAny}
           translatedTeacherText={translatedTeacherText}
-          teacherFeedbackTargetLang={teacherFeedbackTargetLang}
+          teacherFeedbackTargetLang={targetLang}
           teacherFeedbackTranslating={teacherFeedbackTranslating}
-          teacherFeedbackTtsBusy={teacherFeedbackTtsBusy}
-          onTeacherFeedbackTargetLangChange={setTeacherFeedbackTargetLang}
+          teacherFeedbackTtsBusy={teacherFeedbackTtsBusy ?? (ttsBusy ? "teacherFeedback" : null)}
           onTranslateTeacherFeedback={onTranslateTeacherFeedback}
           onPlayTeacherFeedback={onPlayTeacherFeedback}
           onPlayTeacherFeedbackTranslation={onPlayTeacherFeedbackTranslation}
@@ -1996,6 +2080,15 @@ export default function StudentAssignmentPage() {
       ) : null}
 
       <div style={{ marginTop: 18 }}>
+        <MathTextSupportProvider
+          key={assignmentId}
+          targetLang={targetLang}
+          sourceLang={equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no"}
+          audioBusy={ttsBusy !== null || teacherFeedbackTtsBusy !== null}
+          translateText={translateOne}
+          onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
+          t={tString}
+        >
         {isReadingTest ? (
           <ReadingTestPlayer
             title={mainTitle}
@@ -2040,6 +2133,7 @@ export default function StudentAssignmentPage() {
         {!isReadingTest && isFractionAssignment && fractionWorksheet ? (
           <FractionWorksheetView
             worksheet={fractionWorksheet}
+            showAnswerKey={false}
             answersByTaskId={answers as Record<string, string>}
             onAnswerChange={(taskId, value) => setAnswer(taskId, value)}
             readOnly={lock || submitted}
@@ -2063,6 +2157,30 @@ export default function StudentAssignmentPage() {
           />
         ) : null}
 
+        {!isReadingTest && isEquationAssignment && equationWorksheet ? (
+          <EquationWorksheetView worksheet={equationWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
+
+        {!isReadingTest && isPercentageAssignment && percentageWorksheet ? (
+          <PercentageWorksheetView worksheet={percentageWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
+
+        {!isReadingTest && isComparisonAssignment && comparisonWorksheet ? (
+          <ComparisonWorksheetView worksheet={comparisonWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
+
+        {!isReadingTest && isLengthAssignment && lengthWorksheet ? (
+          <LengthWorksheetView worksheet={lengthWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
+
         {!isReadingTest && isPodcastWorkshop && podcastWorkshopConfig ? (
           <PodcastWorkshopStudentSection
             spaceId={spaceId}
@@ -2082,6 +2200,10 @@ export default function StudentAssignmentPage() {
         !isGeometryAssignment &&
         !isFractionAssignment &&
         !isArithmeticAssignment &&
+        !isLengthAssignment &&
+        !isComparisonAssignment &&
+        !isEquationAssignment &&
+        !isPercentageAssignment &&
         !isPodcastWorkshop ? (
           <StandardAssignmentSection
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
@@ -2146,6 +2268,7 @@ export default function StudentAssignmentPage() {
             }
           />
         ) : null}
+        </MathTextSupportProvider>
       </div>
 
       <AssignmentFooterActions

@@ -21,6 +21,10 @@
     "premium": {
       "title": "Geradores premium",
       "items": {
+        "mathematics": {
+          "title": "Matemática",
+          "description": "Operações, geometria, frações, conversão de unidades e comparação de números."
+        },
         "quizGenerator": {
           "title": "Gerador de quiz",
           "description": "Crie quizzes editáveis a partir de um tema ou texto de lição com IA."
@@ -45,6 +49,10 @@
           "title": "Gerador de geometria",
           "description": "Crie atividades de geometria para impressão com figuras, perímetro e área."
         },
+        "arithmeticGenerator": {
+          "title": "Operações aritméticas",
+          "description": "Crie fichas com treino, contas armadas ou apoio visual. Imprima ou partilhe digitalmente nos Spaces."
+        },
         "academyGenerator": {
           "title": "Criar curso",
           "description": "Crie cursos com sessões, recursos e uma estrutura clara para participantes."
@@ -67,6 +75,10 @@
       "fractionGenerator": {
         "title": "Gerador de frações",
         "description": "Crie atividades de frações para uso digital, partilha e impressão."
+      },
+      "fractionCalculationGenerator": {
+        "title": "Cálculo com frações",
+        "description": "Prática das quatro operações com frações, denominadores iguais ou diferentes e simplificação opcional, online ou em papel."
       },
       "vocab": {
         "title": "Gerador de vocabulário",

@@ -81,6 +81,8 @@
         "percent": "Prosent",
         "equations": "Likninger",
         "measurement": "Måling",
+        "comparison": "Sammenlign tall",
+        "percentage": "Prosentregning",
         "math": "Matte"
       }
     },

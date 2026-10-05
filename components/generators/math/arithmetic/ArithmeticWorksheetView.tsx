@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { VISUAL_DOT_LIMIT, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
 import type {
   ArithmeticTask,
   ArithmeticWorksheet,
@@ -21,8 +22,65 @@ function operationSymbol(operation: ArithmeticTask["operation"]) {
   return "÷";
 }
 
+function taskDisplay(task: ArithmeticTask) {
+  return task.unknownPosition ? task.prompt : `${task.expression} =`;
+}
+
+function MissingPrintExpression({ task }: { task: ArithmeticTask }) {
+  const [before, after] = task.prompt.split("□");
+
+  return (
+    <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+      <span>{before}</span>
+      <span className="inline-block h-7 min-w-10 border-b-2 border-dashed border-slate-300 align-middle" />
+      <span>{after}</span>
+    </span>
+  );
+}
+
+function taskResult(task: ArithmeticTask) {
+  if (task.operation === "addition") return task.left + task.right;
+  if (task.operation === "subtraction") return task.left - task.right;
+  if (task.operation === "multiplication") return task.left * task.right;
+  return task.right === 0 ? 0 : task.left / task.right;
+}
+
+function MissingVerticalPrintStack({ task }: { task: ArithmeticTask }) {
+  const symbol = operationSymbol(task.operation);
+  const result = taskResult(task);
+
+  return (
+    <div
+      className="arithmetic-vertical-stack mx-auto grid w-fit gap-1 font-mono text-2xl font-bold leading-none text-slate-950"
+      style={{ minWidth: "5ch" }}
+    >
+      <div className="text-right">
+        {task.unknownPosition === "left" ? (
+          <span className="inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
+        ) : (
+          task.left
+        )}
+      </div>
+      <div className="arithmetic-vertical-line grid grid-cols-[1.5ch_1fr] gap-1 border-b-2 border-slate-900 pb-1">
+        <span>{symbol}</span>
+        <span className="text-right">
+          {task.unknownPosition === "right" ? (
+            <span className="inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
+          ) : (
+            task.right
+          )}
+        </span>
+      </div>
+      <div className="grid grid-cols-[1.5ch_1fr] gap-1">
+        <span>=</span>
+        <span className="text-right">{result}</span>
+      </div>
+    </div>
+  );
+}
+
 function renderDots(count: number, tone: "primary" | "secondary" = "primary") {
-  const safeCount = Math.max(0, Math.min(40, Math.round(count)));
+  const safeCount = Math.max(0, Math.min(VISUAL_DOT_LIMIT, Math.round(count)));
   const dotClass =
     tone === "primary"
       ? "border-sky-700 bg-sky-500"
@@ -36,6 +94,48 @@ function renderDots(count: number, tone: "primary" | "secondary" = "primary") {
           className={`arithmetic-dot h-3 w-3 rounded-full border ${dotClass}`}
         />
       ))}
+    </div>
+  );
+}
+
+function renderMultiplicationModel(task: ArithmeticTask) {
+  const groups = Math.max(0, Math.min(VISUAL_GROUP_LIMIT, Math.round(task.left)));
+  const dotsPerGroup = Math.max(0, Math.min(VISUAL_GROUP_LIMIT, Math.round(task.right)));
+
+  return (
+    <div className="grid gap-2">
+      {Array.from({ length: groups }).map((_, index) => (
+        <div
+          key={index}
+          className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3"
+        >
+          {renderDots(dotsPerGroup, index % 2 === 0 ? "primary" : "secondary")}
+        </div>
+      ))}
+      {groups === 0 ? (
+        <div className="arithmetic-visual-group min-h-10 rounded-xl border border-slate-200 bg-white p-3" />
+      ) : null}
+    </div>
+  );
+}
+
+function renderDivisionModel(task: ArithmeticTask) {
+  const divisor = Math.max(1, Math.round(task.right));
+  const quotient = Math.max(0, Math.min(VISUAL_GROUP_LIMIT, Math.round(task.answer)));
+
+  return (
+    <div className="grid gap-2">
+      {Array.from({ length: quotient }).map((_, index) => (
+        <div
+          key={index}
+          className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3"
+        >
+          {renderDots(divisor, index % 2 === 0 ? "primary" : "secondary")}
+        </div>
+      ))}
+      {quotient === 0 ? (
+        <div className="arithmetic-visual-group min-h-10 rounded-xl border border-slate-200 bg-white p-3" />
+      ) : null}
     </div>
   );
 }
@@ -58,17 +158,21 @@ function VerticalTask({ task, index }: { task: ArithmeticTask; index: number }) 
           {task.expression}
         </div>
       </div>
-      <div
-        className="arithmetic-vertical-stack mx-auto grid w-fit gap-1 font-mono text-2xl font-bold leading-none text-slate-950"
-        style={{ minWidth: `${Math.max(4, maxDigits + 2)}ch` }}
-      >
-        <div className="text-right">{task.left}</div>
-        <div className="arithmetic-vertical-line grid grid-cols-[1.5ch_1fr] gap-1 border-b-2 border-slate-900 pb-1">
-          <span>{symbol}</span>
-          <span className="text-right">{task.right}</span>
+      {task.unknownPosition ? (
+        <MissingVerticalPrintStack task={task} />
+      ) : (
+        <div
+          className="arithmetic-vertical-stack mx-auto grid w-fit gap-1 font-mono text-2xl font-bold leading-none text-slate-950"
+          style={{ minWidth: `${Math.max(4, maxDigits + 2)}ch` }}
+        >
+          <div className="text-right">{task.left}</div>
+          <div className="arithmetic-vertical-line grid grid-cols-[1.5ch_1fr] gap-1 border-b-2 border-slate-900 pb-1">
+            <span>{symbol}</span>
+            <span className="text-right">{task.right}</span>
+          </div>
+          <div className="arithmetic-vertical-answer h-10 border-b border-dashed border-slate-300" />
         </div>
-        <div className="arithmetic-vertical-answer h-10 border-b border-dashed border-slate-300" />
-      </div>
+      )}
     </article>
   );
 }
@@ -76,6 +180,8 @@ function VerticalTask({ task, index }: { task: ArithmeticTask; index: number }) 
 function VisualTask({ task, index }: { task: ArithmeticTask; index: number }) {
   const symbol = operationSymbol(task.operation);
   const showSecondGroup =
+    task.operation === "addition" || task.operation === "subtraction";
+  const showSingleGroup =
     task.operation === "addition" || task.operation === "subtraction";
 
   return (
@@ -86,26 +192,40 @@ function VisualTask({ task, index }: { task: ArithmeticTask; index: number }) {
         </div>
         <div>
           <h4 className="arithmetic-visual-expression text-base font-bold text-slate-950">
-            {task.prompt}
+            {task.unknownPosition ? (
+              <MissingPrintExpression task={task} />
+            ) : (
+              task.prompt
+            )}
           </h4>
         </div>
       </div>
 
-      <div className="arithmetic-visual-model grid gap-3 rounded-2xl bg-slate-50 p-3">
-        <div className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3">
-          {renderDots(task.left)}
+      {!task.unknownPosition ? (
+        <div className="arithmetic-visual-model grid gap-3 rounded-2xl bg-slate-50 p-3">
+          {showSingleGroup ? (
+            <>
+              <div className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3">
+                {renderDots(task.left)}
+              </div>
+              {showSecondGroup ? (
+                <>
+                  <div className="arithmetic-visual-symbol text-center text-xl font-black text-slate-700">
+                    {symbol}
+                  </div>
+                  <div className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3">
+                    {renderDots(task.right, "secondary")}
+                  </div>
+                </>
+              ) : null}
+            </>
+          ) : task.operation === "multiplication" ? (
+            renderMultiplicationModel(task)
+          ) : (
+            renderDivisionModel(task)
+          )}
         </div>
-        {showSecondGroup ? (
-          <>
-            <div className="arithmetic-visual-symbol text-center text-xl font-black text-slate-700">
-              {symbol}
-            </div>
-            <div className="arithmetic-visual-group rounded-xl border border-slate-200 bg-white p-3">
-              {renderDots(task.right, "secondary")}
-            </div>
-          </>
-        ) : null}
-      </div>
+      ) : null}
 
       <div className="arithmetic-visual-answer mt-3 min-h-12 rounded-xl border border-dashed border-slate-300 bg-white p-3">
         <span className="text-sm font-semibold text-slate-500">Svar:</span>
@@ -115,13 +235,26 @@ function VisualTask({ task, index }: { task: ArithmeticTask; index: number }) {
 }
 
 function GridTask({ task, index }: { task: ArithmeticTask; index: number }) {
+  if (task.unknownPosition) {
+    return (
+      <div className="arithmetic-grid-task grid min-h-10 grid-cols-[2.5rem_1fr] items-center border-b border-r border-slate-200 text-sm">
+        <div className="arithmetic-grid-index border-r border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
+          {index + 1}
+        </div>
+        <div className="arithmetic-grid-expression px-3 py-2 text-right font-semibold text-slate-950">
+          <MissingPrintExpression task={task} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="arithmetic-grid-task grid min-h-10 grid-cols-[2.5rem_6.25rem_2.75rem_1fr] items-center border-b border-r border-slate-200 text-sm">
       <div className="arithmetic-grid-index border-r border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
         {index + 1}
       </div>
       <div className="arithmetic-grid-expression py-2 pl-3 pr-1 text-right font-semibold text-slate-950">
-        {task.expression} =
+        {taskDisplay(task)}
       </div>
       <div className="arithmetic-grid-answer h-full border-l border-dashed border-slate-200" />
     </div>

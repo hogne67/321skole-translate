@@ -1,6 +1,7 @@
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
+export { isLengthWorksheet } from "@/lib/math/length/worksheet";
 
 export function isMathWorksheet(value: unknown): value is MathWorksheet {
     if (!value || typeof value !== "object") return false;
@@ -28,11 +29,17 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
         selectedShapes?: unknown;
         operation?: unknown;
         layout?: unknown;
+        kind?: unknown;
     };
 
     return (
         Array.isArray(v.tasks) &&
         typeof v.title === "string" &&
+        v.kind !== "length" &&
+        v.kind !== "measurement" &&
+        v.kind !== "comparison" &&
+        v.kind !== "percentage" &&
+        v.kind !== "equations" &&
         !Array.isArray(v.selectedShapes) &&
         typeof v.operation !== "string" &&
         typeof v.layout !== "string"

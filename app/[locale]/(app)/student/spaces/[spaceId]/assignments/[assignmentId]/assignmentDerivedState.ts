@@ -1,4 +1,8 @@
 import { safeTasksArray } from "./helpers";
+import { sanitizeLengthWorksheet } from "@/lib/math/length/worksheet";
+import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 
 import {
     isArithmeticWorksheet,
@@ -201,7 +205,23 @@ export function getAssignmentDerivedState(
         );
     })();
 
+    const lengthWorksheet = sanitizeLengthWorksheet(lesson?.measurementWorksheet) ?? sanitizeLengthWorksheet(lesson?.lengthWorksheet) ?? sanitizeLengthWorksheet(lesson?.mathWorksheet);
+    const equationWorksheet = sanitizeEquationWorksheet(lesson?.mathWorksheet);
+    const percentageWorksheet = sanitizePercentageWorksheet(lesson?.mathWorksheet);
+    const isEquationAssignment = !!equationWorksheet || [lesson?.contentType, assignment?.contentType].includes("equations_worksheet");
+    const isPercentageAssignment = !!percentageWorksheet || [lesson?.contentType, assignment?.contentType].includes("percentage_worksheet");
+    const comparisonWorksheet = sanitizeComparisonWorksheet(lesson?.mathWorksheet);
+    const isComparisonAssignment = !!comparisonWorksheet || [lesson?.contentType, assignment?.contentType].includes("comparison_worksheet");
+    const isLengthAssignment = !!lengthWorksheet || [lesson?.contentType, assignment?.contentType].some(type => type === "length_worksheet" || type === "measurement_worksheet");
     return {
+        equationWorksheet,
+        percentageWorksheet,
+        isEquationAssignment,
+        isPercentageAssignment,
+        comparisonWorksheet,
+        isComparisonAssignment,
+        lengthWorksheet,
+        isLengthAssignment,
         tasksOriginal,
         isReadingTest,
         geometryWorksheet,

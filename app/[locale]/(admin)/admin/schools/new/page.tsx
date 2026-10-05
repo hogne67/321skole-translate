@@ -38,8 +38,8 @@ export default function NewAdminSchoolPage() {
   const [error, setError] = useState("");
 
   const canSubmit = useMemo(() => {
-    return name.trim() && adminUid.trim() && Number(teacherSeatLimit) > 0;
-  }, [adminUid, name, teacherSeatLimit]);
+    return name.trim() && (adminEmail.trim() || adminUid.trim()) && Number(teacherSeatLimit) > 0;
+  }, [adminEmail, adminUid, name, teacherSeatLimit]);
 
   function changePlan(nextPlan: keyof typeof planDefaults) {
     setPlanKey(nextPlan);
@@ -163,23 +163,22 @@ export default function NewAdminSchoolPage() {
           <div className="subSection">
             <h3>First school administrator</h3>
             <p>
-              The UID must belong to an existing user. After creation, this user gets school admin
-              access to the school dashboard.
+              Enter an existing user's email or UID. We verify the account and connect school admin
+              access automatically. If you enter both, they must belong to the same user.
             </p>
           </div>
 
           <div className="grid">
             <label>
-              Admin UID
+              Admin UID (optional if email is entered)
               <input
                 value={adminUid}
                 onChange={(event) => setAdminUid(event.target.value)}
-                required
               />
             </label>
 
             <label>
-              Admin email
+              Admin email (existing account)
               <input
                 value={adminEmail}
                 onChange={(event) => setAdminEmail(event.target.value)}

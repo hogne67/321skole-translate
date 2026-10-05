@@ -15,7 +15,7 @@ type RouteContext = {
   }>;
 };
 
-type PublicSchoolInvite = Omit<SchoolInviteDoc, "inviteTokenHash">;
+type PublicSchoolInvite = Omit<SchoolInviteDoc, "inviteTokenHash" | "inviteCodeHash">;
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -48,6 +48,10 @@ function toMillis(value: unknown): number {
 function toPublicInvite(invite: SchoolInviteDoc): PublicSchoolInvite {
   const publicInvite: SchoolInviteDoc = { ...invite };
   delete publicInvite.inviteTokenHash;
+  delete publicInvite.inviteCodeHash;
+  if (publicInvite.status === "pending" && publicInvite.expiresAt && publicInvite.expiresAt.toMillis() <= Date.now()) {
+    publicInvite.status = "expired";
+  }
 
   return publicInvite;
 }

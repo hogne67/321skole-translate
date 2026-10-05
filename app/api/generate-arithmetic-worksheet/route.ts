@@ -15,15 +15,24 @@ import {
   isArithmeticLayout,
   isArithmeticLevel,
   isArithmeticOperation,
+  isArithmeticTaskType,
   normalizeArithmeticLanguage,
+  type ArithmeticConcreteOperation,
   type ArithmeticDifficulty,
+  type ArithmeticGeneratorConfig,
+  type ArithmeticGeneratorRules,
   type ArithmeticLanguage,
   type ArithmeticLayout,
   type ArithmeticLevel,
+  type ArithmeticNumberRange,
   type ArithmeticOperation,
   type ArithmeticTask,
+  type ArithmeticTaskType,
   type ArithmeticWorksheet,
 } from "@/lib/math/arithmetic/types";
+import { constrainVisualConfig, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
+import { alignDividendRange } from "@/lib/math/arithmetic/ranges";
+import { createWholeDivisionSampler, wholeDivisionChoices } from "@/lib/math/arithmetic/division";
 
 export const runtime = "nodejs";
 
@@ -36,6 +45,12 @@ type GenerateArithmeticWorksheetRequest = {
   taskCount?: number;
   minNumber?: number;
   maxNumber?: number;
+  operandA?: Partial<ArithmeticNumberRange>;
+  operandB?: Partial<ArithmeticNumberRange>;
+  taskType?: string;
+  rules?: ArithmeticGeneratorRules;
+  mixedOperations?: unknown;
+  presetId?: string;
   showAnswerKey?: boolean;
   countUsage?: boolean;
 };
@@ -48,7 +63,7 @@ type RequestUserContext = {
   devAuthFallback?: boolean;
 };
 
-const OPERATIONS: Array<Exclude<ArithmeticOperation, "mixed">> = [
+const OPERATIONS: ArithmeticConcreteOperation[] = [
   "addition",
   "subtraction",
   "multiplication",
@@ -68,10 +83,135 @@ function randomFrom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function normalizeMixedOperations(value: unknown): ArithmeticConcreteOperation[] {
+  if (!Array.isArray(value)) return OPERATIONS;
+
+  const operations = value.filter(
+    (operation): operation is ArithmeticConcreteOperation =>
+      operation === "addition" ||
+      operation === "subtraction" ||
+      operation === "multiplication" ||
+      operation === "division"
+  );
+
+  return operations.length > 0 ? Array.from(new Set(operations)) : OPERATIONS;
+}
+
 function normalizeTaskCount(value: unknown, layout: ArithmeticLayout) {
   const max = layout === "grid" ? 120 : layout === "vertical" ? 36 : 18;
   const fallback = layout === "grid" ? 60 : layout === "vertical" ? 18 : 8;
   return clamp(value, fallback, 4, max);
+}
+
+function normalizeNumberRange(
+  value: unknown,
+  fallback: ArithmeticNumberRange,
+  minAllowed = -10000,
+  maxAllowed = 10000
+): ArithmeticNumberRange {
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Partial<ArithmeticNumberRange>)
+      : {};
+
+  const min = clamp(record.min, fallback.min, minAllowed, maxAllowed);
+  const max = clamp(record.max, fallback.max, minAllowed, maxAllowed);
+
+  return {
+    min: Math.min(min, max),
+    max: Math.max(min, max),
+  };
+}
+
+function defaultGeneratorConfig(
+  operation: ArithmeticOperation,
+  layout: ArithmeticLayout
+): ArithmeticGeneratorConfig {
+  if (layout === "visual") {
+    return {
+      taskType: "standard",
+      operandA: { min: 0, max: 10 },
+      operandB: { min: 0, max: 10 },
+      rules: {
+        allowCarry: true,
+        allowBorrow: false,
+        allowNegative: false,
+        wholeNumberDivision: true,
+      },
+    };
+  }
+
+  if (operation === "multiplication") {
+    return {
+      taskType: "times_table",
+      operandA: { min: 0, max: 10 },
+      operandB: { min: 0, max: 10 },
+      rules: { wholeNumberDivision: true },
+      presetId: "times_table_0_10",
+    };
+  }
+
+  if (operation === "division") {
+    return {
+      taskType: "whole_division",
+      operandA: { min: 10, max: 100 },
+      operandB: { min: 1, max: 10 },
+      rules: { wholeNumberDivision: true },
+      presetId: "division_whole_0_10",
+    };
+  }
+
+  return {
+    taskType: "standard",
+    operandA: { min: 0, max: 50 },
+    operandB: { min: 0, max: 50 },
+    rules: {
+      allowCarry: true,
+      allowBorrow: true,
+      allowNegative: false,
+      wholeNumberDivision: true,
+    },
+  };
+}
+
+function normalizeRules(value: unknown): ArithmeticGeneratorRules {
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as ArithmeticGeneratorRules)
+      : {};
+
+  return {
+    allowCarry: record.allowCarry === true,
+    allowBorrow: record.allowBorrow === true,
+    allowNegative: record.allowNegative === true,
+    wholeNumberDivision: record.wholeNumberDivision !== false,
+  };
+}
+
+function hasAdditionCarry(left: number, right: number) {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+
+  while (a > 0 || b > 0) {
+    if ((a % 10) + (b % 10) >= 10) return true;
+    a = Math.floor(a / 10);
+    b = Math.floor(b / 10);
+  }
+
+  return false;
+}
+
+function hasSubtractionBorrow(left: number, right: number) {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+
+  while (a > 0 || b > 0) {
+    if ((a % 10) < (b % 10)) return true;
+    a = Math.floor(a / 10);
+    b = Math.floor(b / 10);
+  }
+
+  return false;
 }
 
 function defaultRange(
@@ -191,39 +331,231 @@ function symbol(operation: ArithmeticTask["operation"]) {
   return "÷";
 }
 
+function missingNumberPrompt(params: {
+  operation: ArithmeticTask["operation"];
+  left: number;
+  right: number;
+  result: number;
+  unknownPosition: "left" | "right";
+}) {
+  const left = params.unknownPosition === "left" ? "□" : String(params.left);
+  const right = params.unknownPosition === "right" ? "□" : String(params.right);
+
+  return `${left} ${symbol(params.operation)} ${right} = ${params.result}`;
+}
+
+function randomPositiveFromRange(range: ArithmeticNumberRange) {
+  return randomInt(Math.max(1, range.min), Math.max(1, range.max));
+}
+
+function randomNonZeroFromRange(range: ArithmeticNumberRange) {
+  if (range.min === 0 && range.max === 0) return 1;
+  if (range.min > 0 || range.max < 0) return randomInt(range.min, range.max);
+  if (range.min === 0) return randomInt(1, range.max);
+  if (range.max === 0) return randomInt(range.min, -1);
+
+  return Math.random() < 0.5
+    ? randomInt(range.min, -1)
+    : randomInt(1, range.max);
+}
+
+function buildMissingNumberParts(params: {
+  operation: ArithmeticTask["operation"];
+  unknownRange: ArithmeticNumberRange;
+  knownRange: ArithmeticNumberRange;
+  allowNegative?: boolean;
+}) {
+  const { operation, unknownRange, knownRange, allowNegative } = params;
+  let unknown = randomNonZeroFromRange(unknownRange);
+  let known = randomNonZeroFromRange(knownRange);
+  let unknownPosition: "left" | "right" =
+    operation === "division" ? "left" : Math.random() < 0.5 ? "left" : "right";
+
+  if (operation === "addition") {
+    return {
+      left: unknownPosition === "left" ? unknown : known,
+      right: unknownPosition === "right" ? unknown : known,
+      result: unknown + known,
+      answer: unknown,
+      unknownPosition,
+    };
+  }
+
+  if (operation === "subtraction") {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      unknown = randomNonZeroFromRange(unknownRange);
+      known = randomNonZeroFromRange(knownRange);
+      unknownPosition = Math.random() < 0.5 ? "left" : "right";
+
+      const result =
+        unknownPosition === "left" ? unknown - known : known - unknown;
+
+      if (allowNegative || result >= 0) {
+        return {
+          left: unknownPosition === "left" ? unknown : known,
+          right: unknownPosition === "right" ? unknown : known,
+          result,
+          answer: unknown,
+          unknownPosition,
+        };
+      }
+    }
+
+    unknownPosition = "left";
+    known = Math.min(known, unknown);
+
+    return {
+      left: unknown,
+      right: known,
+      result: unknown - known,
+      answer: unknown,
+      unknownPosition,
+    };
+  }
+
+  if (operation === "multiplication") {
+    return {
+      left: unknownPosition === "left" ? unknown : known,
+      right: unknownPosition === "right" ? unknown : known,
+      result: unknown * known,
+      answer: unknown,
+      unknownPosition,
+    };
+  }
+
+  known = randomPositiveFromRange(knownRange);
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    unknown = randomNonZeroFromRange(unknownRange);
+    if (unknown >= 0 && unknown % known === 0) {
+      return {
+        left: unknown,
+        right: known,
+        result: unknown / known,
+        answer: unknown,
+        unknownPosition,
+      };
+    }
+  }
+
+  const minQuotient = Math.max(0, Math.ceil(unknownRange.min / known));
+  const maxQuotient = Math.max(minQuotient, Math.floor(unknownRange.max / known));
+  const quotient = randomInt(minQuotient, maxQuotient);
+  unknown = known * quotient;
+
+  return {
+    left: unknown,
+    right: known,
+    result: quotient,
+    answer: unknown,
+    unknownPosition,
+  };
+}
+
 function buildTask(params: {
   index: number;
-  operation: Exclude<ArithmeticOperation, "mixed">;
-  minNumber: number;
-  maxNumber: number;
+  operation: ArithmeticConcreteOperation;
+  generatorConfig: ArithmeticGeneratorConfig;
   layout: ArithmeticLayout;
+  divisionParts?: { left: number; right: number };
 }): ArithmeticTask {
-  const { operation, minNumber, maxNumber, layout, index } = params;
-  let left = randomInt(minNumber, maxNumber);
-  let right = randomInt(minNumber, maxNumber);
+  const { operation, generatorConfig, layout, index, divisionParts } = params;
+  const operandA = generatorConfig.operandA;
+  const operandB = generatorConfig.operandB;
+  const rules = generatorConfig.rules ?? {};
+  const taskType = generatorConfig.taskType;
+
+  let left = randomInt(operandA.min, operandA.max);
+  let right = randomInt(operandB.min, operandB.max);
   let answer = 0;
 
   if (operation === "addition") {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const candidateLeft = randomInt(operandA.min, operandA.max);
+      const candidateRight = randomInt(operandB.min, operandB.max);
+      const hasCarry = hasAdditionCarry(candidateLeft, candidateRight);
+
+      if (
+        taskType === "with_transition" ? hasCarry :
+          taskType === "no_transition" ? !hasCarry :
+            true
+      ) {
+        left = candidateLeft;
+        right = candidateRight;
+        break;
+      }
+    }
+
     answer = left + right;
   } else if (operation === "subtraction") {
-    if (left < right) [left, right] = [right, left];
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      let candidateLeft = randomInt(operandA.min, operandA.max);
+      let candidateRight = randomInt(operandB.min, operandB.max);
+
+      if (!rules.allowNegative && candidateLeft < candidateRight) {
+        [candidateLeft, candidateRight] = [candidateRight, candidateLeft];
+      }
+
+      const hasBorrow = hasSubtractionBorrow(candidateLeft, candidateRight);
+
+      if (
+        taskType === "with_transition" ? hasBorrow :
+          taskType === "no_transition" ? !hasBorrow :
+            true
+      ) {
+        left = candidateLeft;
+        right = candidateRight;
+        break;
+      }
+    }
+
+    if (!rules.allowNegative && left < right) [left, right] = [right, left];
     answer = left - right;
   } else if (operation === "multiplication") {
-    const factorMax = Math.max(3, Math.min(12, maxNumber));
-    const factorMin = Math.max(0, Math.min(minNumber, factorMax));
-    left = randomInt(factorMin, factorMax);
-    right = randomInt(0, factorMax);
+    left = randomInt(operandA.min, operandA.max);
+    right = randomInt(operandB.min, operandB.max);
     answer = left * right;
+  } else if (divisionParts) {
+    ({ left, right } = divisionParts);
+    answer = left / right;
   } else {
-    const divisorMax = Math.max(2, Math.min(12, maxNumber));
-    const answerMin = Math.max(0, Math.min(minNumber, divisorMax));
-    right = randomInt(1, divisorMax);
-    answer = randomInt(answerMin, divisorMax);
-    left = right * answer;
+    left = randomNonZeroFromRange({
+      min: Math.max(0, operandA.min),
+      max: Math.max(0, operandA.max),
+    });
+    right = randomPositiveFromRange(operandB);
+    answer = right === 0 ? 0 : left / right;
   }
 
-  const expression = `${left} ${symbol(operation)} ${right}`;
-  const prompt = layout === "vertical" ? expression : `${expression} =`;
+  let expression = `${left} ${symbol(operation)} ${right}`;
+  let prompt = layout === "vertical" ? expression : `${expression} =`;
+  let unknownPosition: "left" | "right" | undefined;
+
+  if (taskType === "missing_number") {
+    const missing = operation === "division" && divisionParts ? {
+      ...divisionParts,
+      answer: divisionParts.left,
+      result: divisionParts.left / divisionParts.right,
+      unknownPosition: "left" as const,
+    } : buildMissingNumberParts({
+      operation,
+      unknownRange: operandA,
+      knownRange: operandB,
+      allowNegative: rules.allowNegative,
+    });
+    left = missing.left;
+    right = missing.right;
+    answer = missing.answer;
+    unknownPosition = missing.unknownPosition;
+    prompt = missingNumberPrompt({
+      operation,
+      left,
+      right,
+      result: missing.result,
+      unknownPosition,
+    });
+    expression = prompt;
+  }
 
   const task: ArithmeticTask = {
     id: String(index + 1),
@@ -235,7 +567,15 @@ function buildTask(params: {
     prompt,
   };
 
-  if (layout === "visual" && (operation === "addition" || operation === "subtraction")) {
+  if (unknownPosition) {
+    task.unknownPosition = unknownPosition;
+  }
+
+  if (
+    !unknownPosition &&
+    layout === "visual" &&
+    (operation === "addition" || operation === "subtraction")
+  ) {
     task.visualCount = Math.max(left, right);
   }
 
@@ -249,20 +589,26 @@ function generateWorksheet(params: {
   difficulty: ArithmeticDifficulty;
   layout: ArithmeticLayout;
   taskCount: number;
-  minNumber: number;
-  maxNumber: number;
+  generatorConfig: ArithmeticGeneratorConfig;
   showAnswerKey: boolean;
 }): ArithmeticWorksheet {
+  const mixedOperations =
+    params.generatorConfig.mixedOperations?.length
+      ? params.generatorConfig.mixedOperations
+      : OPERATIONS;
+  const divisionSampler = usesWholeDivision(params.generatorConfig, params.layout)
+    ? createWholeDivisionSampler(divisionChoices(params.generatorConfig, params.layout))
+    : null;
   const tasks = Array.from({ length: params.taskCount }, (_, index) => {
     const operation =
-      params.operation === "mixed" ? randomFrom(OPERATIONS) : params.operation;
+      params.operation === "mixed" ? randomFrom(mixedOperations) : params.operation;
 
     return buildTask({
       index,
       operation,
-      minNumber: params.minNumber,
-      maxNumber: params.maxNumber,
+      generatorConfig: params.generatorConfig,
       layout: params.layout,
+      divisionParts: operation === "division" ? divisionSampler?.() : undefined,
     });
   });
 
@@ -278,11 +624,23 @@ function generateWorksheet(params: {
     showAnswerKey: params.showAnswerKey,
     taskCount: tasks.length,
     numberRange: {
-      min: params.minNumber,
-      max: params.maxNumber,
+      min: Math.min(params.generatorConfig.operandA.min, params.generatorConfig.operandB.min),
+      max: Math.max(params.generatorConfig.operandA.max, params.generatorConfig.operandB.max),
     },
+    generatorConfig: params.generatorConfig,
     tasks,
   };
+}
+
+function usesWholeDivision(config: ArithmeticGeneratorConfig, layout: ArithmeticLayout) {
+  return layout === "visual" || config.taskType === "whole_division" || config.taskType === "missing_number";
+}
+
+function divisionChoices(config: ArithmeticGeneratorConfig, layout: ArithmeticLayout) {
+  return wholeDivisionChoices(config.operandA, config.operandB, {
+    allowZero: layout === "visual",
+    maxQuotient: layout === "visual" ? VISUAL_GROUP_LIMIT : undefined,
+  });
 }
 
 function normalizeRequest(body: GenerateArithmeticWorksheetRequest) {
@@ -301,13 +659,54 @@ function normalizeRequest(body: GenerateArithmeticWorksheetRequest) {
   const layout: ArithmeticLayout = isArithmeticLayout(body.layout)
     ? body.layout
     : "grid";
-  const defaults = defaultRange(level, difficulty, operation, layout);
-  const minNumber = clamp(body.minNumber, defaults.min, -500, 5000);
-  const maxNumber = Math.max(
-    minNumber,
-    clamp(body.maxNumber, defaults.max, minNumber, 10000)
+  const defaultConfig = defaultGeneratorConfig(operation, layout);
+  const legacyDefaults = defaultRange(level, difficulty, operation, layout);
+  const legacyRange = {
+    min: clamp(body.minNumber, legacyDefaults.min, -10000, 10000),
+    max: clamp(body.maxNumber, legacyDefaults.max, -10000, 10000),
+  };
+  const hasOperandA = body.operandA && typeof body.operandA === "object";
+  const hasOperandB = body.operandB && typeof body.operandB === "object";
+  const operandA = normalizeNumberRange(
+    body.operandA,
+    hasOperandA ? defaultConfig.operandA : legacyRange
   );
+  const operandB = normalizeNumberRange(
+    body.operandB,
+    hasOperandB ? defaultConfig.operandB : legacyRange
+  );
+  const taskType: ArithmeticTaskType = isArithmeticTaskType(body.taskType)
+    ? body.taskType
+    : defaultConfig.taskType;
+  const generatorConfig: ArithmeticGeneratorConfig = {
+    taskType,
+    operandA,
+    operandB,
+    rules: {
+      ...defaultConfig.rules,
+      ...normalizeRules(body.rules),
+    },
+  };
+
+  if (operation === "mixed") {
+    generatorConfig.mixedOperations = normalizeMixedOperations(body.mixedOperations);
+  }
+
+  const presetId =
+    typeof body.presetId === "string" && body.presetId.trim()
+      ? body.presetId.trim()
+      : defaultConfig.presetId;
+
+  if (presetId) {
+    generatorConfig.presetId = presetId;
+  }
   const taskCount = normalizeTaskCount(body.taskCount, layout);
+  const normalizedConfig = layout === "visual"
+    ? constrainVisualConfig(operation, generatorConfig)
+    : generatorConfig;
+  if (operation === "division") {
+    normalizedConfig.operandA = alignDividendRange(normalizedConfig.operandA, normalizedConfig.operandB);
+  }
 
   return {
     language,
@@ -316,8 +715,7 @@ function normalizeRequest(body: GenerateArithmeticWorksheetRequest) {
     difficulty,
     layout,
     taskCount,
-    minNumber,
-    maxNumber,
+    generatorConfig: normalizedConfig,
     showAnswerKey: body.showAnswerKey === true,
   };
 }
@@ -459,9 +857,10 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as GenerateArithmeticWorksheetRequest;
-    const shouldCountUsage = body.countUsage !== false;
+    // Temporarily disabled while the arithmetic generator model is being tuned.
+    const shouldCountUsage = false as boolean;
 
-    if (!user.devAuthFallback) {
+    if (shouldCountUsage && !user.devAuthFallback) {
       const status = await getFeatureStatusAdmin({
         uid: user.uid,
         role: user.role,
@@ -488,7 +887,18 @@ export async function POST(req: Request) {
       }
     }
 
-    const worksheet = generateWorksheet(normalizeRequest(body));
+    const params = normalizeRequest(body);
+    const includesDivision = params.operation === "division" ||
+      (params.operation === "mixed" && params.generatorConfig.mixedOperations?.includes("division"));
+    if (includesDivision && usesWholeDivision(params.generatorConfig, params.layout) && divisionChoices(params.generatorConfig, params.layout).length === 0) {
+      const errors = {
+        nb: "Tallområdene gir ingen delingsoppgaver uten rest. Juster tallene eller divisoren.",
+        en: "The ranges give no division problems without a remainder. Adjust the numbers or divisor.",
+        pt: "Os intervalos não permitem divisões sem resto. Ajusta os números ou o divisor.",
+      };
+      return NextResponse.json({ ok: false, error: errors[params.language] }, { status: 400 });
+    }
+    const worksheet = generateWorksheet(params);
 
     if (shouldCountUsage && !user.devAuthFallback) {
       await consumeFeatureAdmin({

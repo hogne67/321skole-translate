@@ -12,6 +12,14 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import ArithmeticWorksheetView from "@/components/generators/math/arithmetic/ArithmeticWorksheetView";
+import LengthWorksheetView from "@/components/generators/math/length/LengthWorksheetView";
+import PercentageWorksheetView from "@/components/generators/math/percentage/PercentageWorksheetView";
+import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
+import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
+import { sanitizeComparisonWorksheet, type ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
+import { sanitizeLengthWorksheet, type LengthWorksheet } from "@/lib/math/length/worksheet";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
 import { sanitizeArithmeticWorksheet } from "@/lib/math/arithmetic/sanitize";
 import type {
@@ -52,6 +60,10 @@ export default function MathWorksheetPrintPage() {
   const [err, setErr] = useState<string | null>(null);
   const [lesson, setLesson] = useState<LessonDoc | null>(null);
   const [worksheet, setWorksheet] = useState<MathWorksheet | null>(null);
+  const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
+  const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
+  const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [comparisonWorksheet, setComparisonWorksheet] = useState<ComparisonWorksheet | null>(null);
   const [fractionWorksheet, setFractionWorksheet] = useState<FractionWorksheet | null>(null);
   const [arithmeticWorksheet, setArithmeticWorksheet] =
     useState<ArithmeticWorksheet | null>(null);
@@ -70,6 +82,10 @@ export default function MathWorksheetPrintPage() {
     (async () => {
       setErr(null);
       setLoading(true);
+      setLengthWorksheet(null);
+      setComparisonWorksheet(null);
+      setEquationWorksheet(null);
+      setPercentageWorksheet(null);
 
       try {
         await ensureAnonymousUser();
@@ -125,7 +141,33 @@ export default function MathWorksheetPrintPage() {
           mathType?: unknown;
           fractionWorksheet?: unknown;
           arithmeticWorksheet?: unknown;
+          lengthWorksheet?: unknown;
+          measurementWorksheet?: unknown;
         };
+        const equations = sanitizeEquationWorksheet(loadedRecord.mathWorksheet);
+        if (equations) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setEquationWorksheet(equations); setLoading(false); return;
+        }
+        const percentage = sanitizePercentageWorksheet(loadedRecord.mathWorksheet);
+        if (percentage) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const comparison = sanitizeComparisonWorksheet(loadedRecord.mathWorksheet);
+        if (comparison) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setComparisonWorksheet(comparison); setLoading(false); return;
+        }
+        const length = sanitizeLengthWorksheet(loadedRecord.measurementWorksheet ?? loadedRecord.lengthWorksheet ?? loadedRecord.mathWorksheet);
+        if (length) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setLengthWorksheet(length); setLoading(false); return;
+        }
         const contentType = typeof loadedRecord.contentType === "string" ? loadedRecord.contentType : "";
         const mathType = typeof loadedRecord.mathType === "string" ? loadedRecord.mathType : "";
         const fractionCandidate =
@@ -191,7 +233,7 @@ export default function MathWorksheetPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet) return;
+    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
 
     let alive = true;
     const status =
@@ -212,6 +254,10 @@ export default function MathWorksheetPrintPage() {
         if (!alive) return;
         console.error("PDF quota check failed:", error);
         setErr(error instanceof Error ? error.message : t("errors.invalidWorksheet"));
+        setLengthWorksheet(null);
+      setComparisonWorksheet(null);
+      setEquationWorksheet(null);
+      setPercentageWorksheet(null);
         setLesson(null);
         setWorksheet(null);
         setFractionWorksheet(null);
@@ -222,10 +268,10 @@ export default function MathWorksheetPrintPage() {
     return () => {
       alive = false;
     };
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lesson, lessonId, t]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
 
   const handlePrint = useCallback(() => {
-    if (fractionWorksheet || arithmeticWorksheet) {
+    if (fractionWorksheet || arithmeticWorksheet || lengthWorksheet || comparisonWorksheet || equationWorksheet || percentageWorksheet) {
       window.print();
       return;
     }
@@ -558,7 +604,7 @@ export default function MathWorksheetPrintPage() {
         img.onerror = done;
       }
     });
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet]);
 
   const tView = useCallback(
     (key: string) => {
@@ -616,7 +662,7 @@ export default function MathWorksheetPrintPage() {
     return <main style={{ padding: 20 }}>{t("loading")}</main>;
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
@@ -647,7 +693,7 @@ export default function MathWorksheetPrintPage() {
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
           <Link
-            href={`/${locale}/producer/${lessonId}`}
+            href={equationWorksheet ? `/${locale}/producer/math/equations` : percentageWorksheet ? `/${locale}/producer/math/percentage` : comparisonWorksheet ? `/${locale}/producer/math/comparison` : `/${locale}/producer/${lessonId}`}
             className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
           >
             {t("backToEditor")}
@@ -656,7 +702,15 @@ export default function MathWorksheetPrintPage() {
 
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none">
           <div className="px-6 py-6 print:px-0 print:py-0">
-            {fractionWorksheet ? (
+            {equationWorksheet ? (
+              <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={printRef} />
+            ) : percentageWorksheet ? (
+              <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={printRef} />
+            ) : comparisonWorksheet ? (
+              <ComparisonWorksheetView worksheet={comparisonWorksheet} printMode printRef={printRef} />
+            ) : lengthWorksheet ? (
+              <LengthWorksheetView worksheet={lengthWorksheet} printMode printRef={printRef} />
+            ) : fractionWorksheet ? (
               <FractionWorksheetView
                 worksheet={fractionWorksheet}
                 tBrand={tBrand}
@@ -682,9 +736,8 @@ export default function MathWorksheetPrintPage() {
                 tBrand={tBrand}
                 printRef={printRef}
                 producerName={lesson.producerName?.trim() || undefined}
-                levelLabel={(worksheet.level || lesson.level)?.trim() || undefined}
                 showIdentityFields={true}
-                showFigureMeta={true}
+                showFigureMeta={false}
                 emptyStateKey="worksheet"
               />
             ) : null}
@@ -715,101 +768,6 @@ export default function MathWorksheetPrintPage() {
         .print-root * {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-        }
-
-        .print-root .fraction-print-task {
-          padding: 10px;
-          border-radius: 16px;
-          box-shadow: none;
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .print-root .fraction-print-task-layout {
-          gap: 10px;
-        }
-
-        .print-root .fraction-print-prompt h3 {
-          font-size: 14px;
-          line-height: 1.2;
-        }
-
-        .print-root .fraction-print-prompt > div:first-child {
-          width: 24px;
-          height: 24px;
-          font-size: 12px;
-        }
-
-        .print-root .fraction-print-figure {
-          padding: 6px;
-        }
-
-        .print-root .fraction-print-figure > div,
-        .print-root .fraction-print-answer > div {
-          min-height: 0;
-        }
-
-        .print-root .fraction-print-answer {
-          padding: 8px;
-        }
-
-        .print-root .fraction-print-task-write_fraction .fraction-print-task-layout {
-          grid-template-columns: minmax(150px, 1fr) 160px 96px;
-        }
-
-        .print-root .fraction-print-task-shade_fraction .fraction-print-task-layout {
-          grid-template-columns: minmax(130px, 1fr) 70px 170px;
-        }
-
-        .print-root .fraction-print-task-choose_fraction .fraction-print-task-layout {
-          grid-template-columns: minmax(150px, 0.9fr) 150px minmax(230px, 1.2fr);
-        }
-
-        .print-root .fraction-print-task-choose_fraction .fraction-print-options {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .print-root .fraction-print-options button {
-          padding: 6px 8px;
-          min-height: 58px;
-        }
-
-        .print-root .fraction-print-task svg {
-          max-width: 120px;
-          max-height: 120px;
-        }
-
-        .print-root .fraction-print-task-choose_fraction svg {
-          max-width: 104px;
-          max-height: 104px;
-        }
-
-        .print-root .fraction-print-task [style*="height: 68px"] {
-          height: 48px !important;
-        }
-
-        .print-root .fraction-print-task [style*="width: 34px"],
-        .print-root .fraction-print-task [style*="width: 42px"] {
-          width: 24px !important;
-        }
-
-        .print-root .fraction-print-task [style*="height: 34px"],
-        .print-root .fraction-print-task [style*="height: 42px"] {
-          height: 24px !important;
-        }
-
-        .print-root .fraction-print-task .mt-4.rounded-2xl.bg-amber-50 {
-          margin-top: 8px;
-          padding: 8px;
-          font-size: 12px;
-        }
-
-        .print-root .fraction-print-task + .fraction-print-task {
-          margin-top: 10px;
-        }
-
-        .print-root .grid.gap-5 {
-          gap: 10px;
         }
 
         @media print {
@@ -843,13 +801,6 @@ export default function MathWorksheetPrintPage() {
             max-width: none !important;
           }
 
-          .print-root .fraction-print-task {
-            padding: 8px;
-          }
-
-          .print-root .fraction-print-task-layout {
-            display: grid !important;
-          }
         }
 
         .print-root {

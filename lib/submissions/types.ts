@@ -2,6 +2,10 @@ import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
+import type { LengthWorksheet } from "@/lib/math/length/worksheet";
+import type { PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import type { EquationWorksheet } from "@/lib/math/equations/worksheet";
+import type { ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import type { ReadingTestConfig } from "@/components/student/ReadingTestPlayer";
 
 export type Role = "student" | "teacher" | "admin" | "parent" | "creator";
@@ -46,15 +50,18 @@ export type AiFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse";
+    type: "mcq" | "truefalse" | "fraction" | "length" | "measurement" | "comparison" | "percentage" | "equations";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;
+    isPartial?: boolean;
+    points?: number;
 };
 
 export type AutoGrade = {
     totalAuto: number;
     correctAuto: number;
+    partialAuto?: number;
     wrongAuto: number;
     unansweredAuto: number;
     percentAuto: number | null;
@@ -91,7 +98,9 @@ export type SubmissionDoc = {
     taskType?: string | null;
     lessonType?: string | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    lengthWorksheet?: LengthWorksheet | null;
+    measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     arithmeticWorksheet?: ArithmeticWorksheet | null;
     mathType?: string | null;
@@ -138,7 +147,9 @@ export type AssignmentDoc = {
     tasks?: unknown;
     coverImageUrl?: string;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    lengthWorksheet?: LengthWorksheet | null;
+    measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     arithmeticWorksheet?: ArithmeticWorksheet | null;
 
@@ -165,7 +176,9 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    lengthWorksheet?: LengthWorksheet | null;
+    measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     arithmeticWorksheet?: ArithmeticWorksheet | null;
 

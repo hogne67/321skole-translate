@@ -1,0 +1,20 @@
+.fraction-generator { letter-spacing: 0; }
+.fraction-generator *, .fraction-generator *::before, .fraction-generator *::after { box-sizing: border-box; }
+.fraction-generator-controls fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.fraction-generator-controls input[type="checkbox"] { appearance: auto; display: inline-block; width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; flex-shrink: 0; box-shadow: none; accent-color: #059669; }
+.fraction-generator-controls input[type="radio"] { appearance: auto; display: inline-block; width: 14px; height: 14px; min-height: 0; margin: 0; padding: 0; flex-shrink: 0; accent-color: #059669; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html:has(.fraction-generator), body:has(.fraction-generator) { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
+  body:has(.fraction-generator) * { visibility: hidden; }
+  body:has(.fraction-generator) header:not(.fraction-worksheet header),
+  body:has(.fraction-generator) nav,
+  body:has(.fraction-generator) .sectionHeader,
+  body:has(.fraction-generator) .libraryWrap,
+  body:has(.fraction-generator) footer { display: none !important; }
+  .fraction-generator-preview, .fraction-generator-preview * { visibility: visible !important; }
+  .fraction-generator-controls { display: none !important; }
+  .fraction-generator { min-height: 0 !important; padding: 0 !important; background: white !important; }
+  .fraction-generator-layout { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .fraction-generator-preview { position: absolute; inset: 0 auto auto 0; height: auto !important; padding: 0 !important; width: 100%; }
+}

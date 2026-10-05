@@ -3,11 +3,16 @@ import {
   isArithmeticLayout,
   isArithmeticLevel,
   isArithmeticOperation,
+  isArithmeticTaskType,
   isStoredArithmeticLanguage,
   normalizeArithmeticLanguage,
+  type ArithmeticConcreteOperation,
+  type ArithmeticGeneratorConfig,
+  type ArithmeticNumberRange,
   type ArithmeticTask,
   type ArithmeticWorksheet,
 } from "./types";
+import { normalizeArithmeticTask } from "./normalizeTask";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -19,6 +24,63 @@ function safeString(value: unknown, fallback = ""): string {
 
 function safeNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function sanitizeRange(value: unknown, fallback: ArithmeticNumberRange): ArithmeticNumberRange {
+  if (!isRecord(value)) return fallback;
+
+  const min = safeNumber(value.min) ?? fallback.min;
+  const max = safeNumber(value.max) ?? fallback.max;
+
+  return {
+    min: Math.min(min, max),
+    max: Math.max(min, max),
+  };
+}
+
+function sanitizeMixedOperations(value: unknown): ArithmeticConcreteOperation[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const operations = value.filter(
+    (operation): operation is ArithmeticConcreteOperation =>
+      operation === "addition" ||
+      operation === "subtraction" ||
+      operation === "multiplication" ||
+      operation === "division"
+  );
+
+  return operations.length > 0 ? Array.from(new Set(operations)) : undefined;
+}
+
+function sanitizeGeneratorConfig(value: unknown): ArithmeticGeneratorConfig | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const taskType = isArithmeticTaskType(value.taskType) ? value.taskType : "standard";
+  const rules = isRecord(value.rules) ? value.rules : {};
+  const presetId = safeString(value.presetId);
+
+  const config: ArithmeticGeneratorConfig = {
+    taskType,
+    operandA: sanitizeRange(value.operandA, { min: 0, max: 50 }),
+    operandB: sanitizeRange(value.operandB, { min: 0, max: 50 }),
+    rules: {
+      allowCarry: rules.allowCarry === true,
+      allowBorrow: rules.allowBorrow === true,
+      allowNegative: rules.allowNegative === true,
+      wholeNumberDivision: rules.wholeNumberDivision !== false,
+    },
+  };
+
+  if (presetId) {
+    config.presetId = presetId;
+  }
+
+  const mixedOperations = sanitizeMixedOperations(value.mixedOperations);
+  if (mixedOperations) {
+    config.mixedOperations = mixedOperations;
+  }
+
+  return config;
 }
 
 function sanitizeTask(value: unknown, index: number): ArithmeticTask | null {
@@ -45,6 +107,10 @@ function sanitizeTask(value: unknown, index: number): ArithmeticTask | null {
   }
 
   const visualCount = safeNumber(value.visualCount);
+  const unknownPosition =
+    value.unknownPosition === "left" || value.unknownPosition === "right"
+      ? value.unknownPosition
+      : null;
   const task: ArithmeticTask = {
     id: safeString(value.id, String(index + 1)),
     operation,
@@ -59,7 +125,11 @@ function sanitizeTask(value: unknown, index: number): ArithmeticTask | null {
     task.visualCount = visualCount;
   }
 
-  return task;
+  if (unknownPosition) {
+    task.unknownPosition = unknownPosition;
+  }
+
+  return normalizeArithmeticTask(task);
 }
 
 export function sanitizeArithmeticWorksheet(
@@ -88,7 +158,7 @@ export function sanitizeArithmeticWorksheet(
   const min = safeNumber(range.min) ?? 0;
   const max = safeNumber(range.max) ?? 20;
 
-  return {
+  const worksheet: ArithmeticWorksheet = {
     version: typeof value.version === "number" ? value.version : 1,
     title,
     language: normalizeArithmeticLanguage(value.language),
@@ -105,4 +175,11 @@ export function sanitizeArithmeticWorksheet(
     },
     tasks,
   };
+
+  const generatorConfig = sanitizeGeneratorConfig(value.generatorConfig);
+  if (generatorConfig) {
+    worksheet.generatorConfig = generatorConfig;
+  }
+
+  return worksheet;
 }

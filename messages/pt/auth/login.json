@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Crie uma conta para manter tudo que você salvou.",
-      "normal": "Entre com Feide, Google ou e-mail.",
+      "normal": "Entre com Google ou e-mail.",
       "signup": "Crie sua conta primeiro. Depois escolha se você é aluno, professor ou responsável."
     },
     "tabs": {
@@ -56,8 +56,8 @@
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
       "feideAvailability": "Para municípios e escolas com acordo Feide.",
-      "methodSignin": "Use Feide ou Google se foi assim que você se cadastrou antes. Caso contrário, use e-mail.",
-      "methodSignup": "Escolha Feide se usa uma conta escolar, Google para começar rápido ou e-mail se preferir usar senha."
+      "methodSignin": "Use Google ou Feide se foi assim que você se cadastrou antes. Caso contrário, use e-mail.",
+      "methodSignup": "Escolha Google para começar rápido ou e-mail se preferir usar senha."
     },
     "footer": {
       "noAccount": "Não tem uma conta?",

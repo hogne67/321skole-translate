@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { SchoolAdministratorError } from "@/lib/schools/administrator";
 import { getTeacherSeatLimit, isValidSchoolPlanKey } from "@/lib/schools/constants";
 import { createSchool } from "@/lib/schools/server";
 import type { BillingType, SchoolPlanKey } from "@/lib/schools/types";
@@ -191,7 +192,7 @@ export async function POST(req: Request) {
     const teacherSeatLimit = customLimit ?? presetLimit ?? 1;
 
     if (!name) return json({ ok: false, error: "Missing school name" }, 400);
-    if (!adminUid) return json({ ok: false, error: "Missing first school admin UID" }, 400);
+    if (!adminUid && !adminEmail) return json({ ok: false, error: "Missing first school administrator email or UID" }, 400);
     if (teacherSeatLimit <= 0) {
       return json({ ok: false, error: "Teacher seat limit must be greater than 0" }, 400);
     }
@@ -204,31 +205,23 @@ export async function POST(req: Request) {
       planKey,
       teacherSeatLimit,
       adminUid,
+      createdByUid: uid,
       adminEmail,
       adminDisplayName,
     });
 
     const { db } = getAdmin();
-    await db.collection("users").doc(adminUid).set(
-      {
-        schoolId: result.schoolId,
-        schoolRole: "school_admin",
-        schoolStatus: "active",
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
     await db.collection("adminAuditEvents").add({
       type: "school_created",
       actorUid: uid,
       schoolId: result.schoolId,
-      targetUid: adminUid,
+      targetUid: result.administratorUid,
       createdAt: FieldValue.serverTimestamp(),
     });
 
     return json({ ok: true, ...result }, 201);
   } catch (error: unknown) {
+    if (error instanceof SchoolAdministratorError) return json({ ok: false, error: error.message }, error.status);
     const message = error instanceof Error ? error.message : String(error);
     const status = message.includes("Authorization") || message === "Unauthorized" ? 401 : 500;
 

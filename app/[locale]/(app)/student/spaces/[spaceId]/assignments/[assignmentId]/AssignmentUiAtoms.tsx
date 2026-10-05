@@ -87,6 +87,7 @@ export function AutoGradeBadge({
 
     const detailsRaw =
         `Riktig: ${auto.correctAuto} · ` +
+        (auto.partialAuto != null ? `Delvis riktig: ${auto.partialAuto} · ` : "") +
         `Feil: ${auto.wrongAuto} · ` +
         `Ikke besvart: ${auto.unansweredAuto}`;
 

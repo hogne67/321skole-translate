@@ -1,13 +1,6 @@
 "use client";
 
-import { SearchableSelect } from "@/components/SearchableSelect";
-import { LANGUAGES } from "@/lib/languages";
 import { playButtonStyle, softBlueButtonStyle } from "./assignmentStyles";
-
-const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
-    value: l.code,
-    label: l.label,
-}));
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 
@@ -19,7 +12,6 @@ type Props = {
     translating: boolean;
     ttsBusy: null | "teacherFeedback" | "teacherFeedbackTranslation";
     t: TFn;
-    onTargetLangChange: (value: string) => void;
     onTranslate: () => void;
     onPlayOriginal: () => void;
     onPlayTranslation: () => void;
@@ -33,7 +25,6 @@ export default function TeacherFeedbackBox({
     translating,
     ttsBusy,
     t,
-    onTargetLangChange,
     onTranslate,
     onPlayOriginal,
     onPlayTranslation,
@@ -95,16 +86,6 @@ export default function TeacherFeedbackBox({
                     alignItems: "center",
                 }}
             >
-                <div style={{ minWidth: 190 }}>
-                    <SearchableSelect
-                        label=""
-                        value={targetLang}
-                        options={LANGUAGE_OPTIONS}
-                        onChange={onTargetLangChange}
-                        placeholder={t("translate.targetLang")}
-                    />
-                </div>
-
                 <button
                     type="button"
                     onClick={onTranslate}
@@ -137,6 +118,8 @@ export default function TeacherFeedbackBox({
 
             {cleanTranslated ? (
                 <div
+                    lang={targetLang}
+                    dir="auto"
                     style={{
                         marginTop: 10,
                         padding: 10,

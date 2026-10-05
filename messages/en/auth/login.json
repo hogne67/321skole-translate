@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Create an account to keep everything you have saved.",
-      "normal": "Log in with Feide, Google or email.",
+      "normal": "Log in with Google or email.",
       "signup": "Create your account first. Then choose whether you are a student, teacher or parent."
     },
     "tabs": {
@@ -56,8 +56,8 @@
     "hints": {
       "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",
       "feideAvailability": "For municipalities and schools with a Feide agreement.",
-      "methodSignin": "Use Feide or Google if that is how you signed up before. Otherwise choose email.",
-      "methodSignup": "Choose Feide if you use a school account, Google for a fast start, or email if you prefer password login."
+      "methodSignin": "Use Google or Feide if that is how you signed up before. Otherwise choose email.",
+      "methodSignup": "Choose Google for a fast start, or email if you prefer password login."
     },
     "footer": {
       "noAccount": "Don’t have an account?",

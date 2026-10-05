@@ -164,6 +164,7 @@ export function readAutoGrade(sd: SubmissionDoc | null): AutoGrade | null {
     return {
         totalAuto,
         correctAuto,
+        ...(typeof r.partialAuto === "number" ? { partialAuto: r.partialAuto } : {}),
         wrongAuto,
         unansweredAuto,
         percentAuto,

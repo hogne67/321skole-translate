@@ -21,6 +21,10 @@
     "premium": {
       "title": "Premium generators",
       "items": {
+        "mathematics": {
+          "title": "Mathematics",
+          "description": "Arithmetic, geometry, fractions, unit conversion and number comparisons."
+        },
         "quizGenerator": {
           "title": "Quiz generator",
           "description": "Create editable quizzes from a topic or lesson text with AI."
@@ -45,6 +49,10 @@
           "title": "Geometry generator",
           "description": "Create printable geometry worksheets with shapes, perimeter and area."
         },
+        "arithmeticGenerator": {
+          "title": "Arithmetic",
+          "description": "Create worksheets with fluency practice, vertical calculations or visual support. Print or share digitally in Spaces."
+        },
         "academyGenerator": {
           "title": "Create course",
           "description": "Build courses with sessions, resources and a clear structure for participants."
@@ -67,6 +75,10 @@
       "fractionGenerator": {
         "title": "Fraction generator",
         "description": "Create fraction worksheets for digital use, sharing and print."
+      },
+      "fractionCalculationGenerator": {
+        "title": "Fraction arithmetic",
+        "description": "Fraction practice with all four operations, like or unlike denominators and optional simplification, online or on paper."
       },
       "vocab": {
         "title": "Glossary generator",

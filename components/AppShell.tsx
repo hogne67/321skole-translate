@@ -11,6 +11,7 @@ import SectionShell from "@/components/SectionShell";
 import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
 import SupportHelpButton from "@/components/SupportHelpButton";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { canAccessSchoolAdmin } from "@/lib/schools/access";
 import { readGuestRole, roleFromPathname, saveGuestRole, type GuestRole } from "@/lib/guestRole";
 import { navItemsForRole } from "@/lib/navItems";
 import { getStudentAccessMode, isSpaceOnlyStudent } from "@/lib/studentAccessMode";
@@ -122,14 +123,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }));
 
     const withSchoolItems =
-      profile?.schoolId &&
-      profile.schoolRole === "school_admin" &&
-      profile.schoolStatus === "active"
+      canAccessSchoolAdmin(profile)
         ? [
           ...baseItems,
           {
             href: "/school",
-            label: "Skoleadministrasjon",
+            label: tNav("schoolAdmin"),
           },
         ]
         : baseItems;
@@ -146,9 +145,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     return withSchoolItems;
   }, [
-    profile?.schoolId,
-    profile?.schoolRole,
-    profile?.schoolStatus,
+    profile,
     role,
     studentAccessMode,
     hasPartnerAccess,

@@ -281,7 +281,7 @@ async function countPendingTeacherInvites(schoolId: string): Promise<number> {
     .where("status", "==", "pending")
     .get();
 
-  return snapshot.size;
+  return snapshot.docs.filter((doc) => !doc.get("expiresAt") || doc.get("expiresAt").toMillis() > Date.now()).length;
 }
 
 export async function GET(req: Request, context: RouteContext) {

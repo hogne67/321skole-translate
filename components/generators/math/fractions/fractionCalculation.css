@@ -1,0 +1,27 @@
+.fraction-calculation-tasks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+.fraction-calculation-task { min-width: 0; border-bottom: 1px solid #e2e8f0; padding: 8px 0 16px; }
+.fraction-calculation-expression { display: flex; align-items: center; gap: 7px; min-height: 58px; }
+.fraction-calculation-number { width: 20px; flex-shrink: 0; font-size: 11px; color: #64748b; }
+.fraction-calculation-answer { width: 60px; min-width: 60px; flex-shrink: 0; }
+.fraction-calculation-answer-line { width: 60px; height: 2px; margin: 4px 0; background: #0f172a; }
+.fraction-calculation-input { width: 54px; min-width: 0; height: 32px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; font-size: 16px; font-weight: 700; text-align: center; background: white; color: #0f172a; }
+.fraction-calculation-input:focus { outline: 2px solid #0d9488; outline-offset: 2px; }
+.fraction-calculation-input:disabled { opacity: 1; background: #f8fafc; }
+.fraction-calculation-blank { width: 48px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.fraction-calculation-blank div { width: 38px; height: 22px; border: 1px dashed #94a3b8; }
+.fraction-calculation-blank span { width: 46px; height: 1px; margin: 3px 0; background: #0f172a; }
+.fraction-calculation-feedback { margin: 8px 0 0 27px; font-size: 12px; line-height: 1.5; }
+@media (max-width: 720px) {
+  .fraction-calculation-tasks { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .fraction-calculation .fraction-calculation-tasks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm 5mm; }
+  .fraction-calculation .fraction-calculation-task { padding: 1mm 0 2mm; break-inside: avoid; page-break-inside: avoid; }
+  .fraction-calculation .fraction-calculation-expression { min-height: 12mm; gap: 1.5mm; }
+  .fraction-calculation .fraction-calculation-expression > span[aria-label] { font-size: 11pt; min-width: 6mm; }
+  .fraction-calculation .fraction-calculation-number { width: 4mm; font-size: 7pt; }
+  .fraction-calculation .fraction-calculation-blank { width: 10mm; }
+  .fraction-calculation .fraction-calculation-blank div { width: 8mm; height: 5mm; }
+  .fraction-calculation .fraction-calculation-blank span { width: 10mm; margin: 0.7mm 0; }
+  .fraction-calculation .fraction-answer-key > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; }
+}
