@@ -150,6 +150,18 @@
     },
     "due": {
       "label": "Frist"
+    },
+    "administration": {
+      "title": "Administrer space",
+      "accessTitle": "Tilgang til rommet",
+      "acceptNewStudents": "Tillat nye elever å bli med",
+      "ownerOnly": "Bare eieren eller en administrator kan endre navn og tilgang.",
+      "saved": "Endringene er lagret.",
+      "saveFailed": "Kunne ikke lagre endringen. Prøv igjen.",
+      "copyFailed": "Kunne ikke kopiere. Prøv igjen.",
+      "qrFailed": "Kunne ikke lage QR-koden. Prøv igjen.",
+      "personalAccess": "Du oppretter elevene og navnene under Administrer medlemmer. Elevene bruker personlig elev-QR eller romkode + elevkode. Samme kode gir samme elev og historikk på nye nettlesere og kontoer.",
+      "sharedEntrance": "Felles rominngang: Romlenken og rom-QR identifiserer bare rommet. Eleven må også oppgi personlig elevkode."
     }
   }
 }

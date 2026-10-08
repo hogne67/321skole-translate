@@ -481,25 +481,21 @@ service cloud.firestore {
         && (resource.data.spaceId is string)
         && (isSpaceOwner(resource.data.spaceId) || isSpaceCoTeacher(resource.data.spaceId) || isSchoolAdminForSpace(resource.data.spaceId)));
 
+  // Pupil identities, personal codes and access links are created by validated server endpoints.
   allow create: if signedIn()
-  && (request.resource.data.spaceId is string)
-  && (request.resource.data.uid is string)
-  && request.resource.data.uid == myUid()
-  && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid);
-
-allow update: if signedIn()
-  && resource != null
-  && (
-    (("uid" in resource.data) && resource.data.uid == myUid())
-    || (("spaceId" in resource.data) && isSpaceOwner(resource.data.spaceId))
-    || isAdmin()
-  );
-
+    && request.resource.data.spaceId is string
+    && request.resource.data.uid == myUid()
+    && docId == request.resource.data.spaceId + "_" + myUid()
+    && request.resource.data.role == "parent"
+    && isSpaceOwner(request.resource.data.spaceId)
+    && spaceData(request.resource.data.spaceId).kind == "family";
   allow update: if signedIn()
     && resource != null
     && (resource.data.spaceId is string)
+    && request.resource.data.spaceId == resource.data.spaceId
+    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherStudentId'])
     && displayNameOk()
-    && (isSelfMemberDoc() || isSpaceOwner(resource.data.spaceId) || isAdmin());
+    && (isSpaceOwner(resource.data.spaceId) || isAdmin());
 
   allow delete: if false;
 }

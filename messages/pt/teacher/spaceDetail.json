@@ -150,6 +150,18 @@
     },
     "due": {
       "label": "Prazo"
+    },
+    "administration": {
+      "title": "Administrar Space",
+      "accessTitle": "Acesso à sala",
+      "acceptNewStudents": "Permitir a entrada de novos alunos",
+      "ownerOnly": "Somente o proprietário ou um administrador pode alterar o nome e as configurações de acesso.",
+      "saved": "Alterações salvas.",
+      "saveFailed": "Não foi possível salvar a alteração. Tente novamente.",
+      "copyFailed": "Não foi possível copiar. Tente novamente.",
+      "qrFailed": "Não foi possível gerar o código QR. Tente novamente.",
+      "personalAccess": "Crie os alunos e os nomes em Gerir membros. Os alunos usam um QR pessoal ou código da sala + código de aluno. O mesmo código mantém o aluno e o histórico em diferentes navegadores e contas.",
+      "sharedEntrance": "Entrada comum da sala: A ligação e o QR da sala identificam apenas a sala. O aluno também deve introduzir o seu código pessoal."
     }
   }
 }

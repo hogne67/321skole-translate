@@ -73,7 +73,8 @@
       "hideTranslation": "Skjul oversettelse",
       "showTranslation": "Vis oversettelse",
       "noText": "Ingen tekst",
-      "clickToSeek": "Klikk for å hoppe i lyden"
+      "clickToSeek": "Klikk for å hoppe i lyden",
+      "audioPosition": "Posisjon i lyden"
     },
     "tasks": {
       "title": "Oppgaver",

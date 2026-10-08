@@ -31,11 +31,11 @@
       },
       "filters": {
         "label": "Filtre",
-        "openOnly": "Kun åpne",
+        "openOnly": "Åpne for nye elever",
         "showClosed": "Vis lukkede",
         "show": "Vis filtre",
         "hide": "Skjul filtre",
-        "showClosedTitle": "Skru på for å vise både åpne og lukkede spaces",
+        "showClosedTitle": "Vis rom som er lukket for nye elever",
         "showing": "Viser: {n}"
       }
     },
@@ -84,7 +84,7 @@
       "allowRoomCodeOnlyOff": "Av: nye elever må bruke personlig elevkode eller elevlenke. Anbefalt for vanlig skolebruk.",
       "copyJoinLink": "Kopier romlenke",
       "copyJoinLinkTitle": "Kopier lenke med romkode",
-      "joinWithQr": "Romkode QR",
+      "joinWithQr": "Vis felles rom-QR",
       "joinWithQrTitle": "Vis QR-kode for romkode",
       "seeMembers": "Administrer medlemmer",
       "seeMembersTitle": "Administrer medlemmer",
@@ -104,7 +104,8 @@
       "cancelEditTitle": "Avbryt",
       "cancelEditTitleTitle": "Avbryt navneredigering",
       "editTitleRequired": "Rommet må ha et navn.",
-      "editTitleError": "Kunne ikke lagre navnet. Prøv igjen."
+      "editTitleError": "Kunne ikke lagre navnet. Prøv igjen.",
+      "overviewHint": "Åpne rommet for oppgaver, besvarelser og administrasjon."
     },
     "empty": {
       "title": "Ingen spaces funnet.",

@@ -1,9 +1,25 @@
 import { LANGUAGES } from "../languages";
-import { normalizeLessonTasks } from "./tasks";
+import { lessonTasksJsonSchema, normalizeLessonTasks } from "./tasks";
 import { LessonError, onlyKeys, record, requiredString, stringField } from "./validation";
 
 const INPUT_KEYS = ["title", "level", "language", "prompt", "topic", "textType", "sourceText",
   "highFrequencyWord", "highFrequencyReadingSentences", "highFrequencyExplanation", "tasks", "aiQuality"];
+
+/** Discovery schema; normalizeCreateLessonInput remains the authoritative validator. */
+export const createLessonInputJsonSchema = {
+  type: "object" as const, additionalProperties: false, required: ["title", "sourceText"], properties: {
+    title: { type: "string", minLength: 1, maxLength: 500 }, sourceText: { type: "string", minLength: 1, maxLength: 200000 },
+    level: { type: "string", enum: ["A1_START", "A1", "A2", "B1", "B2", "C1", "C2"], default: "A2" },
+    language: { type: "string", enum: [...LANGUAGES.map(item => item.code), "no", "pt"], default: "nb" },
+    prompt: { type: "string", maxLength: 8000 }, topic: { type: "string", maxLength: 8000 }, textType: { type: "string", maxLength: 500 },
+    highFrequencyWord: { type: "string", maxLength: 500 }, highFrequencyReadingSentences: { type: "string", maxLength: 20000 },
+    highFrequencyExplanation: { type: "string", maxLength: 20000 }, tasks: lessonTasksJsonSchema,
+    aiQuality: { type: "object", additionalProperties: false, properties: {
+      factCheckRequired: { type: "boolean" }, factChecked: { type: "boolean" },
+      factCheckReason: { type: "string", maxLength: 2000 }, generatedWith: { type: "string", maxLength: 100 },
+    } },
+  },
+};
 
 export function normalizeCreateLessonInput(input: unknown) {
   const body = record(input, "lesson");

@@ -222,8 +222,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-scope tw-scope appShellRoot">
-      {!hideAppChrome ? <TopNav /> : null}
-      {!hideAppChrome && !hideStudentLibraryEntry ? <LibraryBar /> : null}
+      {!hideAppChrome ? <TopNav readingNavItems={isLessonViewPage ? items : undefined}
+        readingLibraryAvailable={!hideStudentLibraryEntry} /> : null}
+      {!hideAppChrome && !hideStudentLibraryEntry ? (
+        <div className={isLessonViewPage ? "readingLibraryBar" : undefined}><LibraryBar /></div>
+      ) : null}
 
       {isLibraryContentPage ? (
         <div className={`libraryWrap ${showLibraryClosePanel ? "libraryWrapWithClose" : ""}`}>
@@ -248,6 +251,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           fullWidth={isProducer}
           hideHeader={hideAppChrome}
           hideTitle={useCompactSectionHeader}
+          hideNavOnMobile={isLessonViewPage}
           containedHeader={useCompactSectionHeader}
           blockedToolsMessage={
             user?.isAnonymous ? tModes("anonymousCreateLessonRequired") : undefined
@@ -275,6 +279,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           width: 100%;
           min-width: 0;
           overflow-x: clip;
+        }
+
+        @media (max-width: 640px) {
+          .readingLibraryBar { display: none; }
         }
 
         .libraryWrapWithClose {

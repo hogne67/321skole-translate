@@ -40,7 +40,6 @@ function NewSpaceInner() {
   const canCreateSpace = Boolean(user?.uid);
 
   const [title, setTitle] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -56,7 +55,7 @@ function NewSpaceInner() {
       const res = await createSpaceForTeacher({
         ownerId: user.uid,
         title: title.trim(),
-        isOpen,
+        isOpen: true,
         schoolId:
           profile?.schoolStatus === "active" && typeof profile.schoolId === "string"
             ? profile.schoolId
@@ -97,15 +96,6 @@ function NewSpaceInner() {
           border: "1px solid rgba(0,0,0,0.2)",
         }}
       />
-
-      <label style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
-        <input
-          type="checkbox"
-          checked={isOpen}
-          onChange={(e) => setIsOpen(e.target.checked)}
-        />
-        {t("fields.isOpen.label")}
-      </label>
 
       {err && <div style={{ color: "crimson", marginTop: 10 }}>{err}</div>}
 

@@ -1,0 +1,377 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "accept": "application/json, text/event-stream",
+      "contentType": "application/json",
+      "protocolVersion": null,
+      "sessionId": null,
+      "body": {
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "321school-standard-sdk-discovery",
+            "version": "1.0.0"
+          }
+        },
+        "jsonrpc": "2.0",
+        "id": 0
+      }
+    },
+    "response": {
+      "status": 200,
+      "contentType": "application/json",
+      "sessionId": null,
+      "body": {
+        "result": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "tools": {}
+          },
+          "serverInfo": {
+            "name": "321school",
+            "version": "0.2.0"
+          },
+          "instructions": "Develop and revise lesson content in the conversation. Call createLesson only after the user explicitly asks to save/create it in 321school. This creates a new private draft in their own My Content. Reuse the idempotencyKey and unchanged content when retrying a save."
+        },
+        "jsonrpc": "2.0",
+        "id": 0
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "accept": "application/json, text/event-stream",
+      "contentType": "application/json",
+      "protocolVersion": "2025-11-25",
+      "sessionId": null,
+      "body": {
+        "method": "notifications/initialized",
+        "jsonrpc": "2.0"
+      }
+    },
+    "response": {
+      "status": 202,
+      "contentType": null,
+      "sessionId": null,
+      "body": null
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "accept": "text/event-stream",
+      "contentType": null,
+      "protocolVersion": "2025-11-25",
+      "sessionId": null,
+      "body": null
+    },
+    "response": {
+      "status": 405,
+      "contentType": null,
+      "sessionId": null,
+      "body": null
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "accept": "application/json, text/event-stream",
+      "contentType": "application/json",
+      "protocolVersion": "2025-11-25",
+      "sessionId": null,
+      "body": {
+        "method": "tools/list",
+        "jsonrpc": "2.0",
+        "id": 1
+      }
+    },
+    "response": {
+      "status": 200,
+      "contentType": "application/json",
+      "sessionId": null,
+      "body": {
+        "result": {
+          "tools": [
+            {
+              "name": "createLesson",
+              "title": "Save a draft lesson in 321school",
+              "description": "Create a NEW draft lesson in the authenticated user's own 321school My Content. Call ONLY after the user explicitly asks to create/save this content in 321school. Develop and revise content in the conversation before calling. Never publish, share, read, edit, delete, create Live activities or upload images. Generate an idempotencyKey (UUID) for each intentional new save and reuse that same key and unchanged lesson on retries. Do not claim success until this tool succeeds.",
+              "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "idempotencyKey",
+                  "lesson"
+                ],
+                "properties": {
+                  "idempotencyKey": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,128}$",
+                    "description": "Unique save identifier. Reuse verbatim on retries; new key for an explicitly requested new lesson."
+                  },
+                  "lesson": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "title",
+                      "sourceText"
+                    ],
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500
+                      },
+                      "sourceText": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200000
+                      },
+                      "level": {
+                        "type": "string",
+                        "enum": [
+                          "A1_START",
+                          "A1",
+                          "A2",
+                          "B1",
+                          "B2",
+                          "C1",
+                          "C2"
+                        ],
+                        "default": "A2"
+                      },
+                      "language": {
+                        "type": "string",
+                        "enum": [
+                          "nb",
+                          "nn",
+                          "se",
+                          "en",
+                          "pt-BR",
+                          "pt-PT",
+                          "sv",
+                          "da",
+                          "fi",
+                          "de",
+                          "fr",
+                          "es",
+                          "it",
+                          "nl",
+                          "pl",
+                          "cs",
+                          "sk",
+                          "hu",
+                          "ro",
+                          "bg",
+                          "el",
+                          "ru",
+                          "uk",
+                          "sr",
+                          "tr",
+                          "lv",
+                          "lt",
+                          "ar",
+                          "so",
+                          "ti",
+                          "am",
+                          "kmr",
+                          "ckb",
+                          "sq",
+                          "ta",
+                          "om",
+                          "fa-AF",
+                          "ps",
+                          "fa",
+                          "ur",
+                          "hi",
+                          "bn",
+                          "rw",
+                          "ln",
+                          "sw",
+                          "din",
+                          "nus",
+                          "vi",
+                          "th",
+                          "zh-CN",
+                          "zh-TW",
+                          "ja",
+                          "ko",
+                          "tl",
+                          "ceb",
+                          "no",
+                          "pt"
+                        ],
+                        "default": "nb"
+                      },
+                      "prompt": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "topic": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "textType": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "highFrequencyWord": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "highFrequencyReadingSentences": {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      "highFrequencyExplanation": {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      "tasks": {
+                        "type": "array",
+                        "maxItems": 200,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "prompt"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "order": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "truefalse",
+                                "mcq",
+                                "open"
+                              ]
+                            },
+                            "prompt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 8000
+                            },
+                            "options": {
+                              "type": "array",
+                              "minItems": 2,
+                              "maxItems": 10,
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 2000
+                              }
+                            },
+                            "correctAnswer": {
+                              "type": [
+                                "string",
+                                "boolean"
+                              ],
+                              "description": "mcq: exact option; truefalse: true/false; open: optional model answer."
+                            },
+                            "answerSpace": {
+                              "type": "string",
+                              "enum": [
+                                "short",
+                                "medium",
+                                "long"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "aiQuality": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "factCheckRequired": {
+                            "type": "boolean"
+                          },
+                          "factChecked": {
+                            "type": "boolean"
+                          },
+                          "factCheckReason": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "generatedWith": {
+                            "type": "string",
+                            "maxLength": 100
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "outputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "lessonId",
+                  "title",
+                  "editorUrl",
+                  "status"
+                ],
+                "properties": {
+                  "lessonId": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "editorUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "status": {
+                    "type": "string",
+                    "const": "draft"
+                  }
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": true,
+                "openWorldHint": false
+              },
+              "securitySchemes": [
+                {
+                  "type": "oauth2",
+                  "scopes": [
+                    "lessons:create"
+                  ]
+                }
+              ],
+              "_meta": {
+                "securitySchemes": [
+                  {
+                    "type": "oauth2",
+                    "scopes": [
+                      "lessons:create"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "jsonrpc": "2.0",
+        "id": 1
+      }
+    }
+  }
+]

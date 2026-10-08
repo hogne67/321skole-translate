@@ -1,33 +1,28 @@
 {
   "join": {
     "title": "Entrar",
-    "subtitle": "Digite o código da sala e o código de aluno do professor. Algumas salas também permitem código da sala e nome.",
+    "subtitle": "Use o QR pessoal do aluno ou introduza o código da sala e o código de aluno fornecidos pelo professor. O nome vem do registo do aluno nesta sala.",
     "fields": {
       "spaceCode": {
         "label": "Código da sala",
         "placeholder": "ex.: MUR583"
       },
-      "name": {
-        "label": "Seu nome",
-        "placeholder": "ex.: Sara Ali",
-        "tip": "Dica: Pode ser nome + sobrenome ou apenas o primeiro nome.",
-        "fromStudentCode": "Seu nome vem do código de aluno fornecido pelo professor."
-      },
       "studentCode": {
         "label": "Código do aluno",
         "placeholder": "ex.: S7K4P",
-        "tip": "Use o código de aluno do professor para abrir o aluno correto e continuar em outro dispositivo."
+        "tip": "Use o código de aluno do professor para abrir o aluno correto e continuar em outro dispositivo. Não se lembra do código de aluno? Peça ao professor."
       }
     },
     "actions": {
       "join": "Entrar",
-      "joining": "Entrando…"
+      "joining": "Entrando…",
+      "check": "Verificar código de aluno",
+      "checking": "A verificar código de aluno…"
     },
     "status": {
       "checkingExisting": "Verificando se este dispositivo já entrou…"
     },
     "errors": {
-      "nameRequired": "Digite seu nome antes de entrar.",
       "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",
       "studentCodeRequired": "Esta sala exige código pessoal de aluno. Use o link ou o código de aluno enviado pelo professor.",
@@ -35,7 +30,28 @@
       "teacherLimitReached": "O professor atingiu o limite de alunos para o plano atual.",
       "teacherLimitReachedWithCount": "Limite atingido ({used}/{limit} alunos).",
       "joinFailed": "Não foi possível entrar no espaço.",
-      "missingSpaceId": "Entrada realizada, mas nenhum spaceId foi retornado."
+      "missingSpaceId": "Entrada realizada, mas nenhum spaceId foi retornado.",
+      "identityConflict": "Este código de aluno tem registos em conflito. Peça ajuda ao professor.",
+      "missingPupilName": "O professor deve registar um nome antes de usar este código.",
+      "accessRevoked": "Este acesso foi revogado. Contacte o professor.",
+      "roomUnavailable": "Esta sala está arquivada e não pode ser aberta com um código de aluno."
+    },
+    "confirmation": {
+      "identity": "Vai entrar como {name} em {room}.",
+      "switch": "Este navegador está a usar {name}. Continue para mudar de aluno.",
+      "signOut": "A sessão desta conta será terminada neste navegador e continuará como convidado com o código pessoal do aluno.",
+      "continue": "Continuar como {name}",
+      "cancel": "Cancelar"
+    },
+    "session": {
+      "identity": "Está a usar {name}",
+      "change": "Mudar de aluno",
+      "confirm": "O próximo aluno deve usar o seu próprio código. Não se lembra do código de aluno? Peça ao professor. As respostas e o acesso à sala são mantidos.",
+      "continue": "Ir para a entrada de alunos",
+      "logout": "Sair do computador partilhado",
+      "logoutConfirm": "Vai sair desta sessão no navegador. As suas respostas são mantidas. O próximo aluno deve usar o seu próprio código ou link de aluno.",
+      "loggingOut": "A sair…",
+      "signedOut": "Saiu da sessão. O próximo aluno pode usar o seu próprio código ou link de aluno. Não se lembra do código de aluno? Peça ao professor."
     }
   }
 }

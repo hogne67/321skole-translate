@@ -5,6 +5,14 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["oidc-provider"],
+  async rewrites() {
+    return [
+      { source: "/.well-known/oauth-authorization-server/api/oauth", destination: "/api/oauth/.well-known/oauth-authorization-server" },
+      { source: "/.well-known/oauth-authorization-server", destination: "/api/oauth/.well-known/oauth-authorization-server" },
+      { source: "/.well-known/oauth-protected-resource/api/mcp", destination: "/.well-known/oauth-protected-resource" },
+    ];
+  },
   images: {
     remotePatterns: [
       {

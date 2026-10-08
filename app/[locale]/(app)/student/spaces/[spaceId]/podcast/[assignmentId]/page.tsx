@@ -1,4 +1,5 @@
 "use client";
+import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -350,6 +351,7 @@ export default function StudentPodcastWorkshopPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 p-3 pb-28">
+      <SpacePupilIdentity spaceId={spaceId} />
       <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
         {t("actions.backToSpace")}
       </Link>

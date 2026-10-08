@@ -1,5 +1,24 @@
 {
   "teacherMembers": {
+    "roster": {
+      "title": "Hent eksisterende elever",
+      "newTitle": "Opprett nye elever",
+      "newDescription": "Skriv navn på nye elever. Hver ny elev bruker én elevplass. Har du elevene i et annet rom, bruk Hent eksisterende elever i stedet.",
+      "description": "Velg elever du allerede har i andre rom. De får egne elevkoder her, men bruker fortsatt bare én elevplass hos deg.",
+      "linkTitle": "Koble til eksisterende elev",
+      "linkDescription": "Velg bare hvis {name} er samme person som eleven i et annet rom. Koblingen endrer lisensens elevtelling. Navn, elevkoder og besvarelser i rommene beholdes.",
+      "search": "Søk elev eller rom",
+      "room": "Velg rom",
+      "allRooms": "Alle rom",
+      "selectAll": "Velg alle viste elever",
+      "empty": "Ingen andre elever å velge.",
+      "working": "Jobber…",
+      "add": "Legg valgte elever til rommet",
+      "confirmLink": "Bekreft at dette er samme elev",
+      "added": "{count} elever er lagt til.",
+      "linked": "Registreringene er koblet og telles som én elev hos læreren.",
+      "failed": "Kunne ikke oppdatere elevlisten."
+    },
     "title": "Medlemmer",
     "subtitle": "{spaceTitle}",
     "showing": "Viser:",
@@ -37,10 +56,10 @@
     },
     "studentCode": {
       "actions": {
-        "copy": "Kopier",
-        "copyLink": "Kopier lenke",
+        "copy": "Kopier elevkode",
+        "copyLink": "Kopier elevlenke",
         "create": "Lag kode",
-        "regenerate": "Ny kode",
+        "regenerate": "Lag ny elevkode",
         "working": "Jobber…"
       },
       "messages": {
@@ -79,7 +98,8 @@
       "signedIn": "Innlogget"
     },
     "devices": {
-      "count": "{count} enheter"
+      "count": "{count} registrerte tilganger",
+      "description": "Inkluderer tidligere gjestetilganger. Ikke antall aktive økter eller enheter."
     },
     "empty": "Ingen medlemmer funnet.",
     "tip": {

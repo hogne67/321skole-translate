@@ -1,5 +1,24 @@
 {
-"teacherMembers": {
+  "teacherMembers": {
+    "roster": {
+      "title": "Add existing pupils",
+      "newTitle": "Create new pupils",
+      "newDescription": "Enter names of new pupils. Each new pupil uses one place. If pupils are already in another room, use Add existing pupils instead.",
+      "description": "Choose pupils already in your other rooms. They get separate pupil codes here and still use just one pupil place with you.",
+      "linkTitle": "Link to existing pupil",
+      "linkDescription": "Select only if {name} is the same person as the pupil in another room. Linking changes the licence count. Room names, pupil codes and answers are kept.",
+      "search": "Search pupil or room",
+      "room": "Choose room",
+      "allRooms": "All rooms",
+      "selectAll": "Select all displayed pupils",
+      "empty": "No other pupils to choose.",
+      "working": "Working…",
+      "add": "Add selected pupils to room",
+      "confirmLink": "Confirm this is the same pupil",
+      "added": "{count} pupils added.",
+      "linked": "The records are linked and count as one pupil with this teacher.",
+      "failed": "Could not update pupil list."
+    },
     "title": "Members",
     "subtitle": "{spaceTitle}",
     "showing": "Showing:",
@@ -37,10 +56,10 @@
     },
     "studentCode": {
       "actions": {
-        "copy": "Copy",
-        "copyLink": "Copy link",
+        "copy": "Copy student code",
+        "copyLink": "Copy student link",
         "create": "Create code",
-        "regenerate": "New code",
+        "regenerate": "Create new student code",
         "working": "Working…"
       },
       "messages": {
@@ -79,7 +98,8 @@
       "signedIn": "Signed-in"
     },
     "devices": {
-      "count": "{count} devices"
+      "count": "{count} registered accesses",
+      "description": "Includes previous guest accesses. Not the number of active sessions or devices."
     },
     "empty": "No members found.",
     "tip": {

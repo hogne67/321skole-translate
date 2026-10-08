@@ -1,6 +1,18 @@
 import { LessonError, onlyKeys, record, requiredString, stringField } from "./validation";
 
 export type LessonTaskType = "truefalse" | "mcq" | "open";
+export const lessonTasksJsonSchema = {
+  type: "array", maxItems: 200, items: {
+    type: "object", additionalProperties: false, required: ["type", "prompt"], properties: {
+      id: { type: "string", minLength: 1, maxLength: 128 }, order: { type: "integer", minimum: 1 },
+      type: { type: "string", enum: ["truefalse", "mcq", "open"] },
+      prompt: { type: "string", minLength: 1, maxLength: 8000 },
+      options: { type: "array", minItems: 2, maxItems: 10, items: { type: "string", minLength: 1, maxLength: 2000 } },
+      correctAnswer: { type: ["string", "boolean"], description: "mcq: exact option; truefalse: true/false; open: optional model answer." },
+      answerSpace: { type: "string", enum: ["short", "medium", "long"] },
+    },
+  },
+};
 export type LessonTask = {
   id: string;
   order?: number;

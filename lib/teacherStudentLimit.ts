@@ -14,8 +14,10 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { teacherStudentIdentity } from "@/lib/teacherStudentIdentity";
 
 type SpaceOwnerFields = {
+  ownerUid?: unknown;
   ownerId?: unknown;
   teacherId?: unknown;
   createdBy?: unknown;
@@ -28,6 +30,7 @@ type SpaceTitleFields = {
 };
 
 type SpaceMemberFields = {
+  teacherStudentId?: unknown;
   uid?: unknown;
   participantId?: unknown;
   spaceId?: unknown;
@@ -41,6 +44,7 @@ type SpaceMemberFields = {
 export type TeacherStudentSpaceInfo = {
   spaceId: string;
   title: string;
+  displayName?: string;
 };
 
 export type TeacherStudentOverviewItem = {
@@ -65,6 +69,7 @@ export function getTeacherUidFromSpaceData(data: DocumentData | undefined): stri
 
   return (
     asNonEmptyString(d.ownerId) ||
+    asNonEmptyString(d.ownerUid) ||
     asNonEmptyString(d.teacherId) ||
     asNonEmptyString(d.createdByUid) ||
     asNonEmptyString(d.createdBy) ||
@@ -81,7 +86,7 @@ async function getSpaceIdsByOwnerField(
   try {
     const qy = query(collection(db, "spaces"), where(field, "==", teacherUid));
     const snap = await getDocs(qy);
-    return snap.docs.map((item) => item.id);
+    return snap.docs.filter(item => getTeacherUidFromSpaceData(item.data()) === teacherUid).map((item) => item.id);
   } catch {
     return [];
   }
@@ -90,6 +95,7 @@ async function getSpaceIdsByOwnerField(
 export async function getTeacherSpaceIds(db: Firestore, teacherUid: string): Promise<string[]> {
   const all = await Promise.all([
     getSpaceIdsByOwnerField(db, "ownerId", teacherUid),
+    getSpaceIdsByOwnerField(db, "ownerUid", teacherUid),
     getSpaceIdsByOwnerField(db, "teacherId", teacherUid),
     getSpaceIdsByOwnerField(db, "createdByUid", teacherUid),
     getSpaceIdsByOwnerField(db, "createdBy", teacherUid),
@@ -107,7 +113,7 @@ async function querySpacesByOwnerField(
   try {
     const qy = query(collection(db, "spaces"), where(field, "==", teacherUid));
     const snap = await getDocs(qy);
-    return snap.docs;
+    return snap.docs.filter(item => getTeacherUidFromSpaceData(item.data()) === teacherUid);
   } catch {
     return [];
   }
@@ -121,6 +127,7 @@ async function getTeacherSpacesMap(
 
   const all = await Promise.all([
     querySpacesByOwnerField(db, "ownerId", teacherUid),
+    querySpacesByOwnerField(db, "ownerUid", teacherUid),
     querySpacesByOwnerField(db, "teacherId", teacherUid),
     querySpacesByOwnerField(db, "createdByUid", teacherUid),
     querySpacesByOwnerField(db, "createdBy", teacherUid),
@@ -150,7 +157,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 
 function getMemberUid(docSnap: QueryDocumentSnapshot<DocumentData>): string | null {
   const data = docSnap.data() as SpaceMemberFields;
-  return asNonEmptyString(data.participantId) || asNonEmptyString(data.uid);
+  return teacherStudentIdentity(data) || null;
 }
 
 function getMemberDisplayName(docSnap: QueryDocumentSnapshot<DocumentData>): string {
@@ -248,8 +255,9 @@ export async function getTeacherStudentsOverview(
 
       if (!uid || !spaceId) continue;
 
-      const spaceInfo = spacesMap.get(spaceId);
-      if (!spaceInfo) continue;
+      const roomInfo = spacesMap.get(spaceId);
+      if (!roomInfo) continue;
+      const spaceInfo = { ...roomInfo, displayName: getMemberDisplayName(snapDoc) };
 
       const current = studentMap.get(uid);
 
@@ -300,24 +308,10 @@ async function getTeacherStudentMembershipDocs(params: {
   const docsById = new Map<string, QueryDocumentSnapshot<DocumentData>>();
 
   for (const batch of batches) {
-    const queries = [
-      query(
-        collection(db, "spaceMembers"),
-        where("spaceId", "in", batch),
-        where("uid", "==", studentUid),
-        where("role", "==", "student")
-      ),
-      query(
-        collection(db, "spaceMembers"),
-        where("spaceId", "in", batch),
-        where("participantId", "==", studentUid),
-        where("role", "==", "student")
-      ),
-    ];
-
-    const snaps = await Promise.all(queries.map((qy) => getDocs(qy).catch(() => null)));
-    for (const snap of snaps) {
-      snap?.docs.forEach((docSnap) => docsById.set(docSnap.id, docSnap));
+    const snap = await getDocs(query(collection(db, "spaceMembers"), where("spaceId", "in", batch)));
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      if (data.role === "student" && (teacherStudentIdentity(data) === studentUid || data.uid === studentUid)) docsById.set(docSnap.id, docSnap);
     }
   }
 

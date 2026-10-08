@@ -12,6 +12,7 @@ import { listMySpaceIds } from "@/lib/spaceMembership";
 import { readGuestRole, saveGuestRole } from "@/lib/guestRole";
 import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { isSchoolInvitationPath } from "@/lib/schools/invitePaths";
+import { isPartnerInvitationPath } from "@/lib/partnerInvitationPaths";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -48,6 +49,7 @@ function homeForRole(role: AppRole, locale: string): string {
 
 function isOpenAppPath(path: string, locale: string): boolean {
   return (
+    isPartnerInvitationPath(path, locale) ||
     isSchoolInvitationPath(path, locale) ||
     path === `/${locale}/321lessons` ||
     path.startsWith(`/${locale}/lesson/`) ||

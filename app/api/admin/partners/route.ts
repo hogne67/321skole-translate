@@ -2,6 +2,8 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { randomBytes } from "node:crypto";
+import { invitationId, readPartnerContact } from "@/lib/partnerInvitation";
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -255,5 +257,32 @@ export async function GET(req: Request) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     return json({ error: msg || "Could not load partners" }, 500);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const token = getBearerToken(req);
+    if (!token) return json({ error: "Unauthorized" }, 401);
+    const { auth, db } = getAdmin();
+    const decoded = await auth.verifyIdToken(token);
+    if (!(await isAdminUser(db, decoded.uid))) return json({ error: "Admin required" }, 403);
+    let contact;
+    try { contact = readPartnerContact(await req.json()); }
+    catch (e) { return json({ error: e instanceof Error ? e.message : "Invalid contact" }, 400); }
+    const inviteToken = randomBytes(32).toString("hex");
+    const ref = db.collection("partnerApplications").doc(invitationId(inviteToken));
+    await db.runTransaction(async (tx) => {
+      const existing = await tx.get(db.collection("partnerApplications").where("email", "==", contact.email));
+      const users = await tx.get(db.collection("users").where("email", "==", contact.email));
+      if (existing.docs.some((doc) => ["invited", "pending", "approved"].includes(doc.data().status)) || users.docs.some((doc) => doc.data().partnerStatus === "active" || isAdminProfile(doc.data()))) {
+        throw new Error("This email already belongs to a partner, candidate or admin.");
+      }
+      tx.set(ref, { ...contact, status: "invited", inviteToken, createdBy: decoded.uid, createdAt: new Date().toISOString() });
+    });
+    return json({ ok: true, id: ref.id, inviteToken }, 201);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Could not add partner";
+    return json({ error }, error.startsWith("This email") ? 409 : 500);
   }
 }

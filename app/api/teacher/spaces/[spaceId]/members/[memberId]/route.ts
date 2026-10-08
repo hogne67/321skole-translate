@@ -148,7 +148,10 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     if (!displayName) return json({ error: "Display name is required" }, 400);
 
     await db.runTransaction(async (tx) => {
-      for (const targetDoc of targetDocs) {
+      const pupilRecord = await tx.get(db.collection("spaceMembers").doc(`${spaceId}_${participantId}`));
+      const nameTargets = pupilRecord.exists && pupilRecord.data()?.teacherManaged === true &&
+        !targetDocs.some(doc => doc.id === pupilRecord.id) ? [...targetDocs, pupilRecord] : targetDocs;
+      for (const targetDoc of nameTargets) {
         tx.set(
           targetDoc.ref,
           {

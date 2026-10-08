@@ -21,7 +21,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
-import { setSpaceOpen } from "@/lib/spacesClient";
+import SpaceAdministration from "@/components/SpaceAdministration";
 import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -176,49 +176,6 @@ function withLocale(locale: string, href: string): string {
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
-}
-
-function SpaceOpenSwitch({
-  checked,
-  disabled,
-  onChange,
-  label,
-  description,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (next: boolean) => void;
-  label: string;
-  description?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-3 py-3 sm:px-4">
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-900">{label}</div>
-        {description ? <div className="mt-0.5 text-xs text-slate-600">{description}</div> : null}
-      </div>
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className={[
-          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition",
-          checked ? "border-green-600 bg-green-600" : "border-slate-300 bg-slate-300",
-          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
-        ].join(" ")}
-      >
-        <span
-          className={[
-            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-6" : "translate-x-1",
-          ].join(" ")}
-        />
-      </button>
-    </div>
-  );
 }
 
 export default function TeacherSpaceDetailPage() {
@@ -644,45 +601,7 @@ function Inner() {
         </div>
       )}
 
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr]">
-            <Link
-              href={withLocale(locale, `/teacher/spaces/${spaceId}/print`)}
-              className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-sky-700 bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sky-500"
-            >
-              {t("actions.printRoom")}
-            </Link>
-            <Link
-              href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
-              className="inline-flex min-h-[62px] items-center justify-center rounded-2xl border border-emerald-700 bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
-            >
-              Skriv ut elevkoder
-            </Link>
-            <SpaceOpenSwitch
-              checked={space?.isOpen === true}
-              disabled={saving || !canControlSpace}
-              label={space?.isOpen ? t("spaceToggle.openLabel") : t("spaceToggle.closedLabel")}
-              description={space?.isOpen ? t("spaceToggle.openDescription") : t("spaceToggle.closedDescription")}
-              onChange={async (next) => {
-                setSaveErr(null);
-                if (!canControlSpace) {
-                  setSaveErr(t("errors.noManageAccess"));
-                  return;
-                }
-                setSaving(true);
-                try {
-                  await setSpaceOpen(spaceId, next);
-                } catch (e: unknown) {
-                  setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
-                } finally {
-                  setSaving(false);
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space} canControl={canControlSpace} />
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

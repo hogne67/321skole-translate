@@ -1,5 +1,24 @@
 {
   "teacherMembers": {
+    "roster": {
+      "title": "Adicionar alunos existentes",
+      "newTitle": "Criar novos alunos",
+      "newDescription": "Introduza os nomes dos novos alunos. Cada novo aluno ocupa uma vaga. Se os alunos já estiverem noutra sala, use Adicionar alunos existentes.",
+      "description": "Escolha alunos que já estão nas suas outras salas. Recebem códigos próprios nesta sala e continuam a ocupar apenas uma vaga consigo.",
+      "linkTitle": "Ligar a aluno existente",
+      "linkDescription": "Selecione apenas se {name} for a mesma pessoa que o aluno noutra sala. A ligação altera a contagem da licença. Os nomes, códigos e respostas nas salas são mantidos.",
+      "search": "Pesquisar aluno ou sala",
+      "room": "Escolher sala",
+      "allRooms": "Todas as salas",
+      "selectAll": "Selecionar todos os alunos apresentados",
+      "empty": "Não há outros alunos para escolher.",
+      "working": "A processar…",
+      "add": "Adicionar alunos selecionados à sala",
+      "confirmLink": "Confirmar que é o mesmo aluno",
+      "added": "{count} alunos adicionados.",
+      "linked": "Os registos estão ligados e contam como um aluno com este professor.",
+      "failed": "Não foi possível atualizar a lista de alunos."
+    },
     "title": "Membros",
     "subtitle": "{spaceTitle}",
     "showing": "Mostrando:",
@@ -37,10 +56,10 @@
     },
     "studentCode": {
       "actions": {
-        "copy": "Copiar",
-        "copyLink": "Copiar link",
+        "copy": "Copiar código do aluno",
+        "copyLink": "Copiar link do aluno",
         "create": "Criar código",
-        "regenerate": "Novo código",
+        "regenerate": "Criar novo código do aluno",
         "working": "Aguarde…"
       },
       "messages": {
@@ -79,7 +98,8 @@
       "signedIn": "Conectado"
     },
     "devices": {
-      "count": "{count} dispositivos"
+      "count": "{count} acessos registados",
+      "description": "Inclui acessos de convidado anteriores. Não corresponde ao número de sessões ativas ou dispositivos."
     },
     "empty": "Nenhum membro encontrado.",
     "tip": {

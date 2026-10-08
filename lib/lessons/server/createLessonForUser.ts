@@ -14,7 +14,8 @@ export async function createLessonForUser(
   authContext: LessonAuthContext,
   input: unknown,
   db: Firestore = getAdmin().db,
-) {
+  options: { idempotencyKey?: string } = {},
+): Promise<{ id: string; title?: string }> {
   const uid = authContext?.uid;
   if (!uid || authContext.firebase?.sign_in_provider === "anonymous") {
     throw new LessonError("A signed-in account is required.", 401);
@@ -35,7 +36,7 @@ export async function createLessonForUser(
   const lesson = normalizeCreateLessonInput(input);
   const factChecked = lesson.aiQuality.factChecked;
   const ref = db.collection("lessons").doc();
-  await ref.create({
+  const document = {
     ...lesson,
     ownerId: uid, status: "draft",
     estimatedMinutes: 20, releaseMode: "ALL_AT_ONCE",
@@ -48,6 +49,27 @@ export async function createLessonForUser(
     },
     createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     source: "producer-texts-new", deletedAt: null, activePublishedId: null,
-  });
+  };
+  if (options.idempotencyKey !== undefined) {
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(options.idempotencyKey)) throw new LessonError("Invalid idempotencyKey.", 400);
+    // Task IDs generated during normalization must not change retry fingerprints.
+    const rawTasks = (input as { tasks?: { id?: string }[] }).tasks ?? [];
+    const fingerprintInput = { ...lesson, tasks: lesson.tasks.map((task, i) => ({ ...task, id: rawTasks[i]?.id ?? null })) };
+    const fingerprint = createHash("sha256").update(JSON.stringify(fingerprintInput)).digest("hex");
+    const key = createHash("sha256").update(JSON.stringify([uid, options.idempotencyKey])).digest("hex");
+    const receipt = db.collection("lessonCreationRequests").doc(key);
+    return db.runTransaction(async transaction => {
+      const existing = await transaction.get(receipt);
+      if (existing.exists) {
+        const data = existing.data()!;
+        if (data.uid !== uid || data.fingerprint !== fingerprint) throw new LessonError("Idempotency key already used with different lesson content.", 400);
+        return { id: data.lessonId as string, title: data.title as string };
+      }
+      transaction.create(ref, document);
+      transaction.create(receipt, { uid, fingerprint, lessonId: ref.id, title: lesson.title, createdAt: FieldValue.serverTimestamp() });
+      return { id: ref.id, title: lesson.title };
+    });
+  }
+  await ref.create(document);
   return { id: ref.id };
 }

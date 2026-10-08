@@ -1,124 +1,125 @@
 {
-    "spaces": {
-      "title": "Spaces",
-      "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
-      "newSpace": "+ Create new space",
-      "newSpaceShort": "+ New",
-      "newSpaceLocked": "+ New space (locked)",
-      "newSpaceLockedShort": "+ Locked",
-      "newSpaceTitle": "Create a new space",
-      "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
-      "trainingVideo": {
-        "button": "Instruction video",
-        "buttonTitle": "Watch the spaces guide",
-        "description": "See how to create and share spaces",
-        "close": "Close",
-        "title": "Guide: spaces"
+  "spaces": {
+    "title": "Spaces",
+    "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
+    "newSpace": "+ Create new space",
+    "newSpaceShort": "+ New",
+    "newSpaceLocked": "+ New space (locked)",
+    "newSpaceLockedShort": "+ Locked",
+    "newSpaceTitle": "Create a new space",
+    "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
+    "trainingVideo": {
+      "button": "Instruction video",
+      "buttonTitle": "Watch the spaces guide",
+      "description": "See how to create and share spaces",
+      "close": "Close",
+      "title": "Guide: spaces"
+    },
+    "controls": {
+      "search": {
+        "label": "Search",
+        "placeholder": "Title or code…"
       },
-      "controls": {
-        "search": {
-          "label": "Search",
-          "placeholder": "Title or code…"
-        },
-        "sort": {
-          "label": "Sort",
-          "options": {
-            "newest": "Newest",
-            "oldest": "Oldest",
-            "title_az": "Title (A–Z)",
-            "title_za": "Title (Z–A)"
-          }
-        },
-        "filters": {
-          "label": "Filters",
-          "openOnly": "Open only",
-          "showClosed": "Show closed",
-          "show": "Show filters",
-          "hide": "Hide filters",
-          "showClosedTitle": "Turn on to show both open and closed spaces",
-          "showing": "Showing: {n}"
+      "sort": {
+        "label": "Sort",
+        "options": {
+          "newest": "Newest",
+          "oldest": "Oldest",
+          "title_az": "Title (A–Z)",
+          "title_za": "Title (Z–A)"
         }
       },
-      "access": {
-        "title": "Spaces are for teachers",
-        "subtitle": "Sign in with a teacher account to create and manage your own rooms. Students join by code or link."
-      },
-      "guestPreview": {
-        "title": "Want to create a Space?",
-        "subtitle": "As a guest, you can see how Spaces work. Sign in when you want to create rooms, invite students and save your work.",
-        "body": "Spaces bring your class, assignments, board activities and submissions together in one place. Creating a Space is free. Students can join with a code or QR, also anonymously.",
-        "loginCreate": "Sign in to create a Space",
-        "lockedTitle": "Creation is locked for guests.",
-        "lockedText": "You can explore the flow here, but you need to be signed in as a teacher to create rooms and invite students.",
-        "loginLink": "Sign in / create account",
-        "cards": {
-          "organize": {
-            "title": "Organize the class",
-            "text": "Create rooms for a class, group or course, and keep tasks and activity together."
-          },
-          "share": {
-            "title": "Share with code",
-            "text": "Students can join with a class code, link or QR code on their own device."
-          },
-          "follow": {
-            "title": "Follow the work",
-            "text": "See who has started, submitted and needs follow-up from the teacher."
-          }
-        }
-      },
-      "list": {
-        "untitled": "Untitled space",
-        "open": "Open",
-        "closed": "Closed",
-        "openTitle": "Space is open",
-        "closedTitle": "Space is closed",
-        "code": "Room code:",
-        "copyCodeTitle": "Copy room code",
-        "copied": "Copied ✅",
-        "members": "Members:",
-        "studentCodes": "Print student codes",
-        "studentCodesTitle": "Print personal student codes and QR codes",
-        "openAccess": "Room code only",
-        "allowRoomCodeOnly": "Allow students to join with room code only",
-        "allowRoomCodeOnlyOn": "On: new students can enter room code and name without a personal student code.",
-        "allowRoomCodeOnlyOff": "Off: new students must use a personal student code or student link. Recommended for regular school use.",
-        "copyJoinLink": "Copy room link",
-        "copyJoinLinkTitle": "Copy link with room code",
-        "joinWithQr": "Room code QR",
-        "joinWithQrTitle": "Show QR code for room code",
-        "seeMembers": "Manage members",
-        "seeMembersTitle": "Manage members",
-        "openSpace": "Open space",
-        "openSpaceTitle": "Open space",
-        "board": "Live",
-        "boardTitle": "Open Live for this space",
-        "printRoom": "Print room code",
-        "printRoomTitle": "Print room code and QR code",
-        "moreActions": "More",
-        "editTitle": "Edit name",
-        "editTitleTitle": "Edit room name",
-        "editTitleLabel": "Room name",
-        "saveTitle": "Save",
-        "savingTitle": "Saving...",
-        "saveTitleTitle": "Save new name",
-        "cancelEditTitle": "Cancel",
-        "cancelEditTitleTitle": "Cancel name editing",
-        "editTitleRequired": "The room needs a name.",
-        "editTitleError": "Could not save the name. Try again."
-      },
-      "empty": {
-        "title": "No spaces found.",
-        "hint": "Create one with New space, then share it by code or link."
-      },
-      "qr": {
-        "title": "Join QR",
-        "subtitle": "{title} · Code: {code}",
-        "close": "Close",
-        "generating": "Generating…",
-        "error": "Could not generate QR. Install dependency: npm i qrcode",
-        "pointsTo": "This QR points to",
-        "note": "Note: install the QR dependency once: npm i qrcode",
-        "imageAlt": "QR code"
+      "filters": {
+        "label": "Filters",
+        "openOnly": "Open to new students",
+        "showClosed": "Show closed",
+        "show": "Show filters",
+        "hide": "Hide filters",
+        "showClosedTitle": "Show rooms closed to new students",
+        "showing": "Showing: {n}"
       }
+    },
+    "access": {
+      "title": "Spaces are for teachers",
+      "subtitle": "Sign in with a teacher account to create and manage your own rooms. Students join by code or link."
+    },
+    "guestPreview": {
+      "title": "Want to create a Space?",
+      "subtitle": "As a guest, you can see how Spaces work. Sign in when you want to create rooms, invite students and save your work.",
+      "body": "Spaces bring your class, assignments, board activities and submissions together in one place. Creating a Space is free. Students can join with a code or QR, also anonymously.",
+      "loginCreate": "Sign in to create a Space",
+      "lockedTitle": "Creation is locked for guests.",
+      "lockedText": "You can explore the flow here, but you need to be signed in as a teacher to create rooms and invite students.",
+      "loginLink": "Sign in / create account",
+      "cards": {
+        "organize": {
+          "title": "Organize the class",
+          "text": "Create rooms for a class, group or course, and keep tasks and activity together."
+        },
+        "share": {
+          "title": "Share with code",
+          "text": "Students can join with a class code, link or QR code on their own device."
+        },
+        "follow": {
+          "title": "Follow the work",
+          "text": "See who has started, submitted and needs follow-up from the teacher."
+        }
+      }
+    },
+    "list": {
+      "untitled": "Untitled space",
+      "open": "Open",
+      "closed": "Closed",
+      "openTitle": "Space is open",
+      "closedTitle": "Space is closed",
+      "code": "Room code:",
+      "copyCodeTitle": "Copy room code",
+      "copied": "Copied ✅",
+      "members": "Members:",
+      "studentCodes": "Print student codes",
+      "studentCodesTitle": "Print personal student codes and QR codes",
+      "openAccess": "Room code only",
+      "allowRoomCodeOnly": "Allow students to join with room code only",
+      "allowRoomCodeOnlyOn": "On: new students can enter room code and name without a personal student code.",
+      "allowRoomCodeOnlyOff": "Off: new students must use a personal student code or student link. Recommended for regular school use.",
+      "copyJoinLink": "Copy room link",
+      "copyJoinLinkTitle": "Copy link with room code",
+      "joinWithQr": "Show shared room QR",
+      "joinWithQrTitle": "Show QR code for room code",
+      "seeMembers": "Manage members",
+      "seeMembersTitle": "Manage members",
+      "openSpace": "Open space",
+      "openSpaceTitle": "Open space",
+      "board": "Live",
+      "boardTitle": "Open Live for this space",
+      "printRoom": "Print room code",
+      "printRoomTitle": "Print room code and QR code",
+      "moreActions": "More",
+      "editTitle": "Edit name",
+      "editTitleTitle": "Edit room name",
+      "editTitleLabel": "Room name",
+      "saveTitle": "Save",
+      "savingTitle": "Saving...",
+      "saveTitleTitle": "Save new name",
+      "cancelEditTitle": "Cancel",
+      "cancelEditTitleTitle": "Cancel name editing",
+      "editTitleRequired": "The room needs a name.",
+      "editTitleError": "Could not save the name. Try again.",
+      "overviewHint": "Open a room for assignments, submissions and administration."
+    },
+    "empty": {
+      "title": "No spaces found.",
+      "hint": "Create one with New space, then share it by code or link."
+    },
+    "qr": {
+      "title": "Join QR",
+      "subtitle": "{title} · Code: {code}",
+      "close": "Close",
+      "generating": "Generating…",
+      "error": "Could not generate QR. Install dependency: npm i qrcode",
+      "pointsTo": "This QR points to",
+      "note": "Note: install the QR dependency once: npm i qrcode",
+      "imageAlt": "QR code"
     }
   }
+}

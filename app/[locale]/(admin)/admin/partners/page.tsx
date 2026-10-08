@@ -13,6 +13,9 @@ type PartnerApplication = {
   uid?: string;
   email?: string;
   name?: string;
+  address?: string;
+  phone?: string;
+  inviteToken?: string;
   city?: string;
   country?: string;
   languages?: string[];
@@ -33,6 +36,7 @@ type ActivePartner = {
   uid: string;
   email?: string;
   phone?: string;
+  partnerAddress?: string;
   displayName?: string;
   partnerStatus?: string;
   partnerLevel?: string;
@@ -87,7 +91,7 @@ type PartnerFocusResponse = {
   focus?: PartnerFocus | null;
 };
 
-type PartnerFollowUpStatus = "needs_follow_up" | "waiting" | "done";
+
 type PartnerAdminTab = "overview" | "members" | "applications" | "program";
 
 const ROLE_OPTIONS = [
@@ -192,12 +196,6 @@ function statusTone(status?: string): AdminTone {
   return "slate";
 }
 
-function followUpTone(status?: string): AdminTone {
-  if (status === "done") return "green";
-  if (status === "waiting") return "blue";
-  if (status === "needs_follow_up") return "amber";
-  return "slate";
-}
 
 export default function AdminPartnersPage() {
   const locale = useLocale();
@@ -208,7 +206,7 @@ export default function AdminPartnersPage() {
   const [focusLoading, setFocusLoading] = useState(true);
   const [focusSaving, setFocusSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [busyFollowUpId, setBusyFollowUpId] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [focusForm, setFocusForm] = useState({
@@ -228,6 +226,28 @@ export default function AdminPartnersPage() {
   const [contributionFilter, setContributionFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<PartnerAdminTab>("members");
+  const nb = locale === "nb";
+  const [showAdd, setShowAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [contact, setContact] = useState({ name: "", address: "", phone: "", email: "" });
+  const [createdLink, setCreatedLink] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const invitedPartners = applications.filter((item) => item.status === "invited");
+  const invitationUrl = (token: string) => typeof window === "undefined" ? "" : `${window.location.origin}/${locale}/partner-invitation/${token}`;
+  async function addPartner(event: React.FormEvent) {
+    event.preventDefault(); setAdding(true); setError(null); setCreatedLink(""); setLinkCopied(false);
+    try {
+      const data = await authedFetch<{ inviteToken: string }>("/api/admin/partners", { method: "POST", body: JSON.stringify(contact) });
+      setCreatedLink(invitationUrl(data.inviteToken));
+      setContact({ name: "", address: "", phone: "", email: "" });
+      await load();
+    } catch (e) { setError(errorMessage(e)); }
+    finally { setAdding(false); }
+  }
+  async function copyRegistrationLink(link: string) {
+    try { await navigator.clipboard.writeText(link); setLinkCopied(true); }
+    catch { setError(nb ? "Kunne ikke kopiere. Marker og kopier lenken manuelt." : "Could not copy. Select and copy the link manually."); }
+  }
   const [copied, setCopied] = useState(false);
   const [copiedInviteText, setCopiedInviteText] = useState(false);
 
@@ -310,7 +330,7 @@ export default function AdminPartnersPage() {
   );
 
   const reviewedApplications = useMemo(
-    () => applications.filter((item) => (item.status || "pending") !== "pending"),
+    () => applications.filter((item) => item.status === "approved" || item.status === "rejected"),
     [applications]
   );
 
@@ -574,36 +594,6 @@ export default function AdminPartnersPage() {
     }
   }
 
-  async function updatePartnerFollowUp(partner: ActivePartner, status: PartnerFollowUpStatus) {
-    setBusyFollowUpId(partner.uid);
-    setError(null);
-    setMessage(null);
-
-    try {
-      await authedFetch(`/api/admin/partners/${encodeURIComponent(partner.uid)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ partnerFollowUpStatus: status }),
-      });
-
-      setActivePartners((current) =>
-        current.map((item) =>
-          item.uid === partner.uid
-            ? {
-                ...item,
-                partnerFollowUpStatus: status,
-                partnerFollowUpStatusUpdatedAt: new Date().toISOString(),
-              }
-            : item
-        )
-      );
-      setMessage(`${partner.displayName || partner.email || partner.uid} follow-up status updated.`);
-    } catch (e: unknown) {
-      setError(errorMessage(e));
-    } finally {
-      setBusyFollowUpId(null);
-    }
-  }
-
   async function copyInviteLink() {
     try {
       await navigator.clipboard.writeText(partnerApplyUrl);
@@ -629,19 +619,16 @@ export default function AdminPartnersPage() {
       <section style={styles.header}>
         <div>
           <div style={styles.kicker}>ADMIN</div>
-          <h1 style={styles.h1}>321school Partners</h1>
+          <h1 style={styles.h1}>{nb ? "Partnere" : "Partners"}</h1>
           <p style={styles.lead}>
-            Review applications, see active partners, and share the partner invitation page.
+            {nb ? "Kontaktinformasjon og invitasjoner." : "Contact details and invitations."}
           </p>
         </div>
 
         <div style={styles.actions}>
-          <Link href={`/${locale}/admin/partners/inbox`} style={styles.primaryLink}>
-            Partner inbox
-          </Link>
-          <Link href={`/${locale}/admin/partners/broadcast`} style={styles.linkButton}>
-            Broadcast
-          </Link>
+          <button type="button" onClick={() => setShowAdd((value) => !value)} aria-expanded={showAdd} style={styles.primaryButton}>
+            {nb ? "Legg til partner" : "Add partner"}
+          </button>
           <button onClick={load} disabled={loading || Boolean(busyId)} style={styles.secondaryButton}>
             {loading ? "Loading..." : "Refresh"}
           </button>
@@ -651,6 +638,26 @@ export default function AdminPartnersPage() {
         </div>
       </section>
 
+      {showAdd ? <section style={styles.card}>
+        <h2 style={styles.sectionTitle}>{nb ? "Legg til partner" : "Add partner"}</h2>
+        <p style={styles.muted}>{nb ? "Navn og e-post er nok til å invitere. Adresse og telefon kan fylles inn hvis du har dem." : "Name and email are enough to invite. Add address and phone if available."}</p>
+        <form onSubmit={addPartner}>
+          <div style={styles.focusGrid}>
+            {(["name", "address", "phone", "email"] as const).map((key) => <label key={key} style={styles.label}>
+              {{ name: nb ? "Navn" : "Name", address: nb ? "Adresse" : "Address", phone: nb ? "Telefon" : "Phone", email: nb ? "E-post" : "Email" }[key]}
+              <input required={key === "name" || key === "email"} type={key === "email" ? "email" : key === "phone" ? "tel" : "text"} value={contact[key]} maxLength={key === "address" ? 300 : key === "phone" ? 60 : key === "name" ? 120 : 160} onChange={(e) => setContact((current) => ({ ...current, [key]: e.target.value }))} style={styles.input} />
+            </label>)}
+          </div>
+          <button disabled={adding} style={styles.primaryButton}>{adding ? "…" : nb ? "Lagre og lag registreringslenke" : "Save and create registration link"}</button>
+        </form>
+        {createdLink ? <div style={styles.inviteMessageBox} role="status">
+          <p>{nb ? "Partneren er lagt til. Send denne lenken for informasjon og registrering:" : "Partner added. Send this link for information and registration:"}</p>
+          <div style={styles.inviteRow}><input aria-label="Registration link" readOnly value={createdLink} style={styles.input} /><button onClick={() => copyRegistrationLink(createdLink)} style={styles.primaryButton}>{linkCopied ? (nb ? "Kopiert" : "Copied") : (nb ? "Kopier lenke" : "Copy link")}</button></div>
+        </div> : null}
+      </section> : null}
+
+      <details style={styles.card}>
+        <summary>{nb ? "Statistikk og oppfølging" : "Statistics and follow-up"}</summary>
       <section style={styles.statsGrid}>
         <AdminStatCard
           title="Active partners"
@@ -708,6 +715,11 @@ export default function AdminPartnersPage() {
         />
       </section>
 
+      </details>
+
+      <details style={styles.card}>
+      <summary>{nb ? "Søknader, program og flere verktøy" : "Applications, program and more tools"}</summary>
+      <div style={styles.actions}><Link href={`/${locale}/admin/partners/inbox`} style={styles.linkButton}>Partner inbox</Link><Link href={`/${locale}/admin/partners/broadcast`} style={styles.linkButton}>Broadcast</Link></div>
       <nav style={styles.tabs} aria-label="Partner admin sections">
         {tabs.map((tab) => (
           <button
@@ -724,6 +736,8 @@ export default function AdminPartnersPage() {
           </button>
         ))}
       </nav>
+
+      </details>
 
       {activeTab === "overview" ? (
         <section style={styles.overviewGrid}>
@@ -917,9 +931,11 @@ export default function AdminPartnersPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name, email, country, language, status..."
+          aria-label={nb ? "Søk etter partner" : "Search partners"}
+          placeholder={nb ? "Søk etter navn eller e-post" : "Search name or email"}
           style={styles.input}
         />
+        <details><summary>{nb ? "Flere filtre" : "More filters"}</summary><div style={styles.actions}>
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
@@ -998,11 +1014,7 @@ export default function AdminPartnersPage() {
         <button type="button" onClick={resetFilters} style={styles.secondaryButton}>
           Reset
         </button>
-        <div style={styles.count}>
-          Showing <b>{filteredPendingApplications.length}</b> pending,{" "}
-          <b>{filteredActivePartners.length}</b> active partners and{" "}
-          <b>{filteredApplications.length}</b> reviewed applications
-        </div>
+        </div></details>
       </section>
       ) : null}
 
@@ -1056,116 +1068,39 @@ export default function AdminPartnersPage() {
       {activeTab === "members" ? (
       <section style={styles.sectionStack}>
         <div>
-          <h2 style={styles.sectionTitle}>Active partners</h2>
-          <p style={styles.muted}>Users who currently have active partner access.</p>
+          <h2 style={styles.sectionTitle}>{nb ? "Aktive partnere" : "Active partners"} ({activePartners.length})</h2>
         </div>
 
         {!loading && filteredActivePartners.length === 0 ? (
           <div style={styles.empty}>
-            No active partners found. Try resetting the filters, or approve a pending application
-            when a partner is ready.
+            {activePartners.length === 0
+              ? (nb ? "Ingen aktive partnere ennå. Bruk «Legg til partner» for å invitere." : "No active partners yet. Use Add partner to invite someone.")
+              : (nb ? "Ingen treff. Prøv et annet søk eller nullstill filtrene." : "No matches. Try another search or reset the filters.")}
           </div>
         ) : null}
 
+        {loading ? <p role="status">{nb ? "Laster partnere…" : "Loading partners…"}</p> : null}
         {filteredActivePartners.map((partner) => (
           <article key={partner.uid} style={styles.card}>
             <div style={styles.cardMain}>
-              <div>
-                <h3 style={styles.name}>{partner.displayName || partner.email || partner.uid}</h3>
-                <div style={styles.email}>{partner.email || partner.uid}</div>
-                <div style={styles.lastContact}>
-                  Last contact: {formatDate(partner.latestContactAt ?? undefined)}
-                </div>
-              </div>
-
-              <div style={styles.partnerWorkArea}>
-                <div style={styles.cardActions}>
-                  {(partner.unreviewedPartnerReplyCount ?? 0) > 0 ? (
-                    <span style={styles.reviewBadge}>
-                      {partner.unreviewedPartnerReplyCount} needs review
-                    </span>
-                  ) : null}
-                  {(partner.partnerReplyCount ?? 0) > 0 ? (
-                    <span style={styles.replyBadge}>{partner.partnerReplyCount} replies</span>
-                  ) : null}
-                  <AdminStatusBadge tone={statusTone(partner.partnerStatus)}>
-                    {cleanValue(partner.partnerStatus || "active")}
-                  </AdminStatusBadge>
-                  <AdminStatusBadge tone={followUpTone(partner.partnerFollowUpStatus)}>
-                    {cleanValue(partner.partnerFollowUpStatus || "not set")}
-                  </AdminStatusBadge>
-                </div>
-
-                <div style={styles.partnerControls}>
-                  <select
-                    value={partner.partnerFollowUpStatus || "needs_follow_up"}
-                    onChange={(event) =>
-                      updatePartnerFollowUp(
-                        partner,
-                        event.target.value as PartnerFollowUpStatus
-                      )
-                    }
-                    disabled={busyFollowUpId === partner.uid}
-                    style={styles.compactSelect}
-                    aria-label="Update follow-up status"
-                  >
-                    <option value="needs_follow_up">Needs follow-up</option>
-                    <option value="waiting">Waiting</option>
-                    <option value="done">Done</option>
-                  </select>
-                  <Link href={`/${locale}/admin/partners/${partner.uid}`} style={styles.smallLink}>
-                    View details
-                  </Link>
-                  {partner.email ? (
-                    <a href={`mailto:${partner.email}`} style={styles.smallLink}>
-                      Email
-                    </a>
-                  ) : null}
-                </div>
-              </div>
+              <h3 style={styles.name}>{partner.displayName || partner.email || partner.uid}</h3>
+              <Link href={`/${locale}/admin/partners/${partner.uid}`} style={styles.smallLink}>{nb ? "Vis detaljer" : "View details"}</Link>
             </div>
-
-            <dl style={styles.details}>
-              <DetailItem label="Region" value={partner.partnerRegion || "-"} />
-              <DetailItem
-                label="Languages"
-                value={partner.partnerLanguages?.length ? partner.partnerLanguages.join(", ") : "-"}
-              />
-              <DetailItem label="Phone" value={partner.phone || "-"} />
-              <DetailItem label="Level" value={cleanValue(partner.partnerLevel)} />
-              <DetailItem label="Roles" value={labelsFor(partner.partnerRoles, ROLE_OPTIONS)} />
-              <DetailItem
-                label="Competence"
-                value={labelsFor(partner.partnerCompetenceAreas, COMPETENCE_OPTIONS)}
-              />
-              <DetailItem
-                label="Contribution"
-                value={labelsFor(partner.partnerContributionTypes, CONTRIBUTION_OPTIONS)}
-              />
-              <DetailItem
-                label="Availability"
-                value={cleanValue(partner.partnerAvailability || "-")}
-              />
-              <DetailItem label="Approved" value={formatDate(partner.partnerApprovedAt)} />
-              <DetailItem
-                label="Follow-up"
-                value={cleanValue(partner.partnerFollowUpStatus || "not set")}
-              />
-              <DetailItem
-                label="Latest reply"
-                value={formatDate(partner.latestPartnerReplyAt ?? undefined)}
-              />
-              <DetailItem
-                label="Latest admin contact"
-                value={formatDate(partner.latestAdminContactAt ?? undefined)}
-              />
-              <DetailItem
-                label="Latest unreviewed"
-                value={formatDate(partner.latestUnreviewedPartnerReplyAt ?? undefined)}
-              />
+            <dl style={{ ...styles.details, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <DetailItem label={nb ? "Adresse" : "Address"} value={partner.partnerAddress || partner.partnerRegion || "-"} />
+              <DetailItem label={nb ? "Telefon" : "Phone"} value={partner.phone || "-"} />
+              <DetailItem label={nb ? "E-post" : "Email"} value={partner.email || "-"} />
             </dl>
           </article>
         ))}
+        {invitedPartners.length > 0 ? <details style={styles.card}>
+          <summary>{nb ? "Inviterte partnere – venter på registrering" : "Invited partners – awaiting registration"} ({invitedPartners.length})</summary>
+          {invitedPartners.map((partner) => <article key={partner.id} style={styles.card}>
+            <div style={styles.cardMain}><h3 style={styles.name}>{partner.name}</h3><Link href={`/${locale}/admin/partners/${partner.id}`} style={styles.smallLink}>{nb ? "Vis detaljer" : "View details"}</Link></div>
+            <dl style={styles.details}><DetailItem label={nb ? "Adresse" : "Address"} value={partner.address || "-"} /><DetailItem label={nb ? "Telefon" : "Phone"} value={partner.phone || "-"} /><DetailItem label={nb ? "E-post" : "Email"} value={partner.email || "-"} /></dl>
+            {partner.inviteToken ? <div style={styles.inviteRow}><input aria-label="Registration link" readOnly value={invitationUrl(partner.inviteToken)} style={styles.input} /><button style={styles.secondaryButton} onClick={() => copyRegistrationLink(invitationUrl(partner.inviteToken!))}>{nb ? "Kopier lenke" : "Copy link"}</button></div> : null}
+          </article>)}
+        </details> : null}
       </section>
       ) : null}
 
@@ -1558,6 +1493,7 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
   },
   smallLink: {
+    alignSelf: "start",
     border: "1px solid #cbd5e1",
     borderRadius: 8,
     padding: "6px 9px",

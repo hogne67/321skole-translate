@@ -73,3 +73,12 @@ test("owner can edit while ownership transfers, removal, replacement and foreign
   await assertFails(setDoc(doc(db, "lessons", "client-created"), { ownerId: "alice", status: "draft" }));
   assert.equal((await getDoc(ref)).data()?.ownerId, "alice");
 });
+
+test("OAuth protocol state and delegations are inaccessible to browser clients", async () => {
+  for (const name of ["openaiOAuthState", "openaiOAuthDelegations", "openaiOAuthRateLimits", "lessonCreationRequests"]) {
+    const db = env.authenticatedContext("alice").firestore();
+    const ref = doc(db, name, "private-record");
+    await assertFails(getDoc(ref));
+    await assertFails(setDoc(ref, { uid: "alice", revoked: false }));
+  }
+});

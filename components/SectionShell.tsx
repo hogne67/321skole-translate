@@ -15,6 +15,7 @@ export default function SectionShell({
   hideHeader = false,
   hideTitle = false,
   hideNav = false,
+  hideNavOnMobile = false,
   containedHeader = false,
   blockedToolsMessage,
   blockedToolsLoginLabel,
@@ -27,6 +28,7 @@ export default function SectionShell({
   hideHeader?: boolean;
   hideTitle?: boolean;
   hideNav?: boolean;
+  hideNavOnMobile?: boolean;
   containedHeader?: boolean;
   blockedToolsMessage?: string;
   blockedToolsLoginLabel?: string;
@@ -88,7 +90,7 @@ export default function SectionShell({
   return (
     <div className="shellRoot">
       {!hideHeader && (
-        <div className={`sectionHeader ${containedHeader ? "contained" : ""}`}>
+        <div className={`sectionHeader ${containedHeader ? "contained" : ""} ${hideNavOnMobile ? "readingHeader" : ""}`}>
           <div className="sectionHeaderInner">
             {!hideTitle ? (
               <div className="sectionTitleRow">
@@ -180,6 +182,9 @@ export default function SectionShell({
       <div className={`sectionContent ${fullWidth ? "full" : ""}`}>{children}</div>
 
       <style jsx>{`
+        @media (max-width: 640px) {
+          .readingHeader { display: none; }
+        }
         .shellRoot {
           width: 100%;
           min-width: 0;

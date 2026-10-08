@@ -6,6 +6,7 @@
     "loginOrCreate": "Log in / Create account",
     "completeProfile": "Complete profile",
     "logout": "Log out",
-    "login": "Log in"
+    "login": "Log in",
+    "menu": "Menu"
   }
 }

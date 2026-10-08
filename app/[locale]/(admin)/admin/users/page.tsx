@@ -341,6 +341,9 @@ export default function AdminUsersPage() {
           >
             {loading ? "Loading..." : "Refresh"}
           </button>
+          <Link href={`/${locale}/admin/users/anonymous`} style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid #d1d5db", background: "#ecfdf5", fontWeight: 800 }}>
+            {locale === "pt" ? "UIDs anônimos" : locale === "en" ? "Anonymous UIDs" : "Anonyme UID-er"}
+          </Link>
         </div>
       </section>
 

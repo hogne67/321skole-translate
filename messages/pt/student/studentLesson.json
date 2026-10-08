@@ -73,7 +73,8 @@
       "hideTranslation": "Ocultar tradução",
       "showTranslation": "Mostrar tradução",
       "noText": "Sem texto",
-      "clickToSeek": "Clique para pular no áudio"
+      "clickToSeek": "Clique para pular no áudio",
+      "audioPosition": "Posição do áudio"
     },
     "tasks": {
       "title": "Tarefas",

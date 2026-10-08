@@ -1,33 +1,28 @@
 {
   "join": {
     "title": "Bli med",
-    "subtitle": "Skriv inn romkode og elevkode fra læreren. Noen rom tillater også romkode og navn.",
+    "subtitle": "Bruk personlig elev-QR, eller skriv inn romkode og elevkode fra læreren. Navnet ditt hentes fra elevregistreringen i rommet.",
     "fields": {
       "spaceCode": {
         "label": "Romkode",
         "placeholder": "f.eks. MUR583"
       },
-      "name": {
-        "label": "Navnet ditt",
-        "placeholder": "f.eks. Sara Ali",
-        "tip": "Tips: Dette kan være fornavn + etternavn, eller bare fornavn.",
-        "fromStudentCode": "Navnet hentes fra elevkoden læreren har gitt deg."
-      },
       "studentCode": {
         "label": "Elevkode",
         "placeholder": "f.eks. S7K4P",
-        "tip": "Bruk elevkoden fra læreren for å åpne riktig elev og fortsette på ny enhet."
+        "tip": "Bruk elevkoden fra læreren for å åpne riktig elev og fortsette på ny enhet. Husker du ikke elevkoden? Spør læreren."
       }
     },
     "actions": {
       "join": "Bli med",
-      "joining": "Blir med…"
+      "joining": "Blir med…",
+      "check": "Sjekk elevkode",
+      "checking": "Sjekker elevkode…"
     },
     "status": {
       "checkingExisting": "Sjekker om denne enheten allerede er med…"
     },
     "errors": {
-      "nameRequired": "Skriv inn navnet ditt før du blir med.",
       "spaceNotFound": "Fant ikke rom med denne koden. Sjekk at koden er riktig.",
       "authTimeout": "Tidsavbrudd ved innlogging.",
       "studentCodeRequired": "Dette rommet krever personlig elevkode. Bruk elevlenken eller elevkoden du fikk av læreren.",
@@ -35,7 +30,28 @@
       "teacherLimitReached": "Læreren har nådd elevgrensen for gjeldende plan.",
       "teacherLimitReachedWithCount": "Grensen er nådd ({used}/{limit} elever).",
       "joinFailed": "Kunne ikke bli med i rommet.",
-      "missingSpaceId": "Du ble med, men ingen spaceId ble returnert."
+      "missingSpaceId": "Du ble med, men ingen spaceId ble returnert.",
+      "identityConflict": "Denne elevkoden har motstridende registreringer. Be læreren om hjelp.",
+      "missingPupilName": "Læreren må registrere et navn på eleven før koden kan brukes.",
+      "accessRevoked": "Denne tilgangen er trukket tilbake. Kontakt læreren.",
+      "roomUnavailable": "Rommet er arkivert og kan ikke åpnes med elevkode."
+    },
+    "confirmation": {
+      "identity": "Du går inn som {name} i {room}.",
+      "switch": "Denne nettleseren er nå inne som {name}. Fortsett for å bytte elev.",
+      "signOut": "Du blir logget ut av kontoen på denne nettleseren og fortsetter med personlig elevkode som gjest.",
+      "continue": "Fortsett som {name}",
+      "cancel": "Avbryt"
+    },
+    "session": {
+      "identity": "Du er inne som {name}",
+      "change": "Bytt elev",
+      "confirm": "Neste elev må bruke sin egen elevkode. Husker du ikke elevkoden? Spør læreren. Besvarelser og romtilgang blir bevart.",
+      "continue": "Gå til elevinngang",
+      "logout": "Logg ut av delt PC",
+      "logoutConfirm": "Du blir logget ut av denne nettleseren. Besvarelsene dine blir bevart. Neste elev må bruke sin egen elevkode eller elevlenke.",
+      "loggingOut": "Logger ut…",
+      "signedOut": "Du er logget ut. Neste elev kan bruke sin egen elevkode eller elevlenke. Husker du ikke elevkoden? Spør læreren."
     }
   }
 }

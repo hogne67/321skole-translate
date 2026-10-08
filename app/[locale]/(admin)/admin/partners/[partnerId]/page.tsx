@@ -15,6 +15,8 @@ type PartnerApplication = {
   uid?: string;
   email?: string;
   name?: string;
+  address?: string;
+  phone?: string;
   city?: string;
   country?: string;
   languages?: string[];
@@ -35,6 +37,8 @@ type PartnerUserProfile = {
   id?: string;
   uid?: string;
   email?: string;
+  partnerAddress?: string;
+  phone?: string;
   displayName?: string;
   role?: string;
   partnerAccess?: boolean;
@@ -610,7 +614,9 @@ export default function AdminPartnerDetailPage() {
                 <dl style={styles.details}>
                   <DetailItem label="UID" value={detail.uid || userProfile?.uid || "-"} />
                   <DetailItem label="Name" value={userProfile?.displayName || "-"} />
-                  <DetailItem label="Email" value={userProfile?.email || "-"} />
+                  <DetailItem label="Email" value={userProfile?.email || application?.email || "-"} />
+                  <DetailItem label="Address" value={userProfile?.partnerAddress || application?.address || "-"} />
+                  <DetailItem label="Phone" value={userProfile?.phone || application?.phone || "-"} />
                   <DetailItem label="App role" value={cleanValue(userProfile?.role)} />
                   <DetailItem label="Partner level" value={cleanValue(userProfile?.partnerLevel)} />
                   <DetailItem label="Approved" value={formatDate(userProfile?.partnerApprovedAt)} />

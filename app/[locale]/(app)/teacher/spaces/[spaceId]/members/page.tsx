@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
+import TeacherPupilPicker from "@/components/TeacherPupilPicker";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "firebase/firestore";
@@ -113,7 +114,7 @@ function mergeMemberRows(rows: MemberRow[]): MemberRow[] {
 
     return {
       ...primary,
-      deviceCount: group.length,
+      deviceCount: new Set(group.map(row => row.data.uid).filter(Boolean)).size,
       data: {
         ...primary.data,
         createdAt: earliestCreated ?? primary.data.createdAt,
@@ -647,12 +648,13 @@ function Inner() {
       <div className="mt-4 rounded-2xl border bg-white p-4 shadow-sm">
         {canManageStaff ? (
           <div className="mb-4 grid gap-3">
+            <TeacherPupilPicker spaceId={spaceId} />
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-bold text-slate-950">Legg til elever</div>
+                  <div className="text-sm font-bold text-slate-950">{t("roster.newTitle")}</div>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Lim inn eller skriv elevnavn. Alle utfylte rader får elevkode og kan skrives ut etterpå.
+                    {t("roster.newDescription")}
                   </p>
                 </div>
                 <button
@@ -827,7 +829,7 @@ function Inner() {
                               {isAnon ? t("types.anon") : t("types.signedIn")}
                             </span>
                             {deviceCount > 1 ? (
-                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                              <span title={t("devices.description")} className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
                                 {t("devices.count", { count: deviceCount })}
                               </span>
                             ) : null}
@@ -859,6 +861,8 @@ function Inner() {
 
                   {isOpen ? (
                     <div className="mt-3 border-t border-slate-100 pt-3">
+                      {isStudent && canManageStaff ? <div className="mb-3"><TeacherPupilPicker spaceId={spaceId} targetMemberId={r.id} targetName={name} /></div> : null}
+                      {deviceCount > 1 ? <p className="mb-3 text-xs text-slate-600">{t("devices.description")}</p> : null}
                       <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <div className="text-xs font-semibold text-slate-500">{t("table.joined")}</div>

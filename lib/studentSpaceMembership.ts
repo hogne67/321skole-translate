@@ -5,8 +5,6 @@ import {
   getDocs,
   limit,
   query,
-  serverTimestamp,
-  setDoc,
   where,
   type Firestore,
 } from "firebase/firestore";
@@ -95,9 +93,6 @@ export async function getStudentSpaceMembership(
   if (canonicalSnap.exists()) {
     const data = canonicalSnap.data() as SpaceMemberData;
     const info = readMembershipInfo(data, uid);
-    if (info.isMember && !data.participantId) {
-      await setDoc(canonicalRef, { participantId: info.participantId, updatedAt: serverTimestamp() }, { merge: true });
-    }
     return info;
   }
 
@@ -120,31 +115,6 @@ export async function getStudentSpaceMembership(
   const legacyData = snap.docs[0].data() as SpaceMemberData;
   const info = readMembershipInfo(legacyData, uid);
   if (!info.isMember) return info;
-
-  const payload: Record<string, unknown> = {
-    spaceId,
-    uid,
-    participantId: info.participantId,
-    role: "student",
-    archived: false,
-    active: true,
-    status: "active",
-    repairedFromMemberId: snap.docs[0].id,
-    updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-  };
-
-  if (typeof legacyData.displayName === "string" && legacyData.displayName.trim()) {
-    payload.displayName = legacyData.displayName.trim();
-  }
-  if (typeof legacyData.isAnon === "boolean") {
-    payload.isAnon = legacyData.isAnon;
-  }
-  if (info.studentCode) {
-    payload.studentCode = info.studentCode;
-  }
-
-  await setDoc(canonicalRef, payload, { merge: true });
 
   return info;
 }

@@ -73,7 +73,8 @@
       "hideTranslation": "Hide translation",
       "showTranslation": "Show translation",
       "noText": "No text",
-      "clickToSeek": "Click to jump in audio"
+      "clickToSeek": "Click to jump in audio",
+      "audioPosition": "Audio position"
     },
     "tasks": {
       "title": "Tasks",

@@ -1,33 +1,28 @@
 {
   "join": {
     "title": "Join",
-    "subtitle": "Enter the room code and student code from your teacher. Some rooms also allow room code and name.",
+    "subtitle": "Use your personal pupil QR, or enter the room code and pupil code from your teacher. Your name comes from your pupil record in this room.",
     "fields": {
       "spaceCode": {
         "label": "Space code",
         "placeholder": "e.g. MUR583"
       },
-      "name": {
-        "label": "Your name",
-        "placeholder": "e.g. Sara Ali",
-        "tip": "Tip: this can be first name + last name, or just first name.",
-        "fromStudentCode": "Your name is taken from the student code your teacher gave you."
-      },
       "studentCode": {
         "label": "Student code",
         "placeholder": "e.g. S7K4P",
-        "tip": "Use the student code from your teacher to open the right student and continue on a new device."
+        "tip": "Use the student code from your teacher to open the right student and continue on a new device. Forgotten your student code? Ask your teacher."
       }
     },
     "actions": {
       "join": "Join",
-      "joining": "Joining…"
+      "joining": "Joining…",
+      "check": "Check pupil code",
+      "checking": "Checking pupil code…"
     },
     "status": {
       "checkingExisting": "Checking whether this device is already joined…"
     },
     "errors": {
-      "nameRequired": "Please enter your name before joining.",
       "spaceNotFound": "No space found with this code. Check that the code is correct.",
       "authTimeout": "Timed out while waiting for auth user.",
       "studentCodeRequired": "This room requires a personal student code. Use the student link or student code from your teacher.",
@@ -35,7 +30,28 @@
       "teacherLimitReached": "This teacher has reached the student limit for the current plan.",
       "teacherLimitReachedWithCount": "Teacher limit reached ({used}/{limit} students).",
       "joinFailed": "Could not join space.",
-      "missingSpaceId": "Join succeeded, but no spaceId was returned."
+      "missingSpaceId": "Join succeeded, but no spaceId was returned.",
+      "identityConflict": "This pupil code has conflicting records. Ask your teacher for help.",
+      "missingPupilName": "Your teacher must register a name before this code can be used.",
+      "accessRevoked": "This access has been revoked. Contact your teacher.",
+      "roomUnavailable": "This room is archived and cannot be opened with a pupil code."
+    },
+    "confirmation": {
+      "identity": "You are entering as {name} in {room}.",
+      "switch": "This browser is currently using {name}. Continue to change pupil.",
+      "signOut": "You will be signed out of this account in this browser and continue as a guest with the personal pupil code.",
+      "continue": "Continue as {name}",
+      "cancel": "Cancel"
+    },
+    "session": {
+      "identity": "You are using {name}",
+      "change": "Change pupil",
+      "confirm": "The next pupil must use their own code. Forgotten your student code? Ask your teacher. Answers and room access are kept.",
+      "continue": "Go to pupil entrance",
+      "logout": "Sign out of shared computer",
+      "logoutConfirm": "You will be signed out of this browser. Your answers are kept. The next pupil must use their own pupil code or link.",
+      "loggingOut": "Signing out…",
+      "signedOut": "You are signed out. The next pupil can use their own pupil code or link. Forgotten your pupil code? Ask your teacher."
     }
   }
 }

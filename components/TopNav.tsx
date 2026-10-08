@@ -118,12 +118,18 @@ function defaultHomeForRole(role: AppRole | null): string {
   return "/student";
 }
 
-export default function TopNav() {
+export default function TopNav({ readingNavItems, readingLibraryAvailable = true }: {
+  readingNavItems?: { href: string; label: string }[];
+  readingLibraryAvailable?: boolean;
+}) {
   const tTop = useTranslations("topNav");
+  const tLibrary = useTranslations("library");
   const tBrand = useTranslations("brandLogo");
 
   const router = useRouter();
   const pathname = usePathname();
+  const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
+  const menuOpen = pathname !== null && openMenuPath === pathname;
   const searchParams = useSearchParams();
 
   const locale = getLocaleFromPathname(pathname);
@@ -179,6 +185,7 @@ export default function TopNav() {
 
   return (
     <header
+      className={readingNavItems ? "readingNav" : undefined}
       style={{
         background: "rgba(69, 57, 97, 0.15)",
         backdropFilter: "saturate(150%) blur(6px)",
@@ -210,7 +217,27 @@ export default function TopNav() {
         </Link>
       </div>
 
-      <div className="topNavActions" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      {readingNavItems ? (
+        <div className="readingShortcuts">
+          {readingLibraryAvailable ? <Link href={withLocale(locale, "/321lessons")}>{tLibrary("open")}</Link> : null}
+          <button type="button" aria-expanded={menuOpen} aria-controls="reading-menu"
+            onClick={() => setOpenMenuPath(menuOpen ? null : pathname)}>
+            <span aria-hidden="true">☰</span> {tTop("menu")}
+          </button>
+        </div>
+      ) : null}
+      <div id={readingNavItems ? "reading-menu" : undefined}
+        className={`topNavActions ${menuOpen ? "menuOpen" : ""}`}
+        style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        {readingNavItems ? (
+          <nav className="readingMenuLinks" aria-label={tTop("menu")}>
+            {readingNavItems.map(item => (
+              <Link key={item.href} href={withLocale(locale, item.href)} onClick={() => setOpenMenuPath(null)}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
         <label className="langWrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="langIcon" aria-hidden="true" style={{ fontSize: 18, opacity: 0.85 }}>
             🌐
@@ -270,6 +297,32 @@ export default function TopNav() {
       </div>
 
       <style jsx>{`
+        .readingShortcuts, .readingMenuLinks { display: none; }
+        @media (max-width: 640px) {
+          .readingNav {
+            padding: 6px 12px !important;
+            gap: 8px !important;
+            background: #fff !important;
+          }
+          .readingNav .brandText { display: none; }
+          .readingShortcuts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+          .readingShortcuts :global(a), .readingShortcuts button {
+            min-height: 40px; padding: 8px 10px; border: 1px solid #dce5e5;
+            border-radius: 10px; background: #f7faf9; color: #153e3b;
+            font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer;
+          }
+          .readingNav .topNavActions { display: none !important; }
+          .readingNav .topNavActions.menuOpen {
+            display: flex !important; width: 100%; flex-wrap: wrap !important;
+            padding: 10px 0 4px; border-top: 1px solid #e2e8f0;
+          }
+          .readingMenuLinks { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+          .readingMenuLinks :global(a) {
+            min-height: 44px; display: inline-flex; align-items: center;
+            padding: 8px 12px; border-radius: 10px; background: #f1f5f9;
+            text-decoration: none; color: #0f172a; font-size: 14px;
+          }
+        }
         @media (max-width: 520px) {
           .brandText {
             display: none;

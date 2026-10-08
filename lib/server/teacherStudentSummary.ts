@@ -1,7 +1,9 @@
 // lib/server/teacherStudentSummary.ts
 import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { teacherStudentIdentity } from "@/lib/teacherStudentIdentity";
 
 type SpaceMemberFields = {
+  teacherStudentId?: unknown;
   uid?: unknown;
   participantId?: unknown;
   archived?: unknown;
@@ -48,7 +50,7 @@ async function getSpaceIdsByOwnerField(
 ): Promise<string[]> {
   try {
     const snap = await db.collection("spaces").where(field, "==", teacherUid).get();
-    return snap.docs.map((doc) => doc.id);
+    return snap.docs.filter(doc => ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"].map(key => asNonEmptyString(doc.data()[key])).find(Boolean) === teacherUid).map((doc) => doc.id);
   } catch {
     return [];
   }
@@ -60,6 +62,7 @@ export async function getTeacherSpaceIdsAdmin(
 ): Promise<string[]> {
   const all = await Promise.all([
     getSpaceIdsByOwnerField(db, "ownerId", teacherUid),
+    getSpaceIdsByOwnerField(db, "ownerUid", teacherUid),
     getSpaceIdsByOwnerField(db, "teacherId", teacherUid),
     getSpaceIdsByOwnerField(db, "createdByUid", teacherUid),
     getSpaceIdsByOwnerField(db, "createdBy", teacherUid),
@@ -89,13 +92,12 @@ export async function getTeacherActiveStudentUidsAdmin(
 
     for (const docSnap of snap.docs) {
       const data = docSnap.data() as SpaceMemberFields;
-      const uid = asNonEmptyString(data.uid);
-      const participantId = asNonEmptyString(data.participantId) || uid;
+      const participantId = teacherStudentIdentity(data);
       const archived = asBoolean(data.archived);
       const status = asNonEmptyString(data.status)?.toLowerCase();
 
       if (!participantId || archived || data.active === false || status === "removed") continue;
-      uidSet.add(participantId);
+      uidSet.add(`${teacherUid}:${participantId}`);
     }
   }
 

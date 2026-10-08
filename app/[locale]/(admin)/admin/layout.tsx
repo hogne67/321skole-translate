@@ -17,6 +17,7 @@ const adminNavItems: AdminNavItem[] = [
   { href: "/admin", label: "Dashboard", section: "Core" },
   { href: "/admin/review", label: "Moderation", section: "Core" },
   { href: "/admin/users", label: "Users", section: "Core" },
+  { href: "/admin/users/anonymous", label: "Anonymous UIDs", section: "Core" },
   { href: "/admin/schools", label: "Schools", section: "Core" },
   { href: "/admin/partners", label: "Partners", section: "Core" },
   { href: "/admin/partners/inbox", label: "Partner Inbox", section: "Core" },

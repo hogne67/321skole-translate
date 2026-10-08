@@ -1,325 +1,94 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { clearLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { useLocale, useTranslations } from "next-intl";
 
-type JoinApiSuccess = {
-  ok: true;
-  spaceId: string;
-  title?: string;
-  alreadyMember?: boolean;
-  participantId?: string;
-};
-
-type JoinApiError = {
-  error?: string;
-  used?: number;
-  limit?: number;
-  remaining?: number;
-};
-
-function errToText(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === "string") return e;
-
-  if (e && typeof e === "object") {
-    const maybe = e as { message?: unknown };
-    if (typeof maybe.message === "string" && maybe.message.trim()) {
-      return maybe.message;
-    }
-    return JSON.stringify(e);
-  }
-
-  return String(e);
-}
-
-function cleanName(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim();
-}
-
+type Preview = { spaceId: string; title: string; displayName: string; switchRequired: boolean; currentDisplayName: string | null; signedInAccount: boolean; preview: boolean };
 export default function JoinClient() {
+  const params = useSearchParams();
+  const initialCode = params.get("code") ?? "";
+  const initialStudentCode = params.get("studentCode") ?? "";
+  const signedOut = params.get("signedOut") === "1";
+  return <JoinForm key={JSON.stringify([initialCode, initialStudentCode, signedOut])} initialCode={initialCode} initialStudentCode={initialStudentCode} signedOut={signedOut} />;
+}
+
+function JoinForm({ initialCode, initialStudentCode, signedOut }: { initialCode: string; initialStudentCode: string; signedOut: boolean }) {
   const t = useTranslations("join");
   const locale = useLocale();
-  const sp = useSearchParams();
   const router = useRouter();
-
-  const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
-  const initialStudentCode = useMemo(() => (sp.get("studentCode") ?? "").trim().toUpperCase(), [sp]);
-  const hasPrefilledCode = initialCode.length > 0;
-  const hasPrefilledStudentCode = initialStudentCode.length > 0;
-
   const [code, setCode] = useState(initialCode);
-  const [displayName, setDisplayName] = useState("");
   const [studentCode, setStudentCode] = useState(initialStudentCode);
-  const [busy, setBusy] = useState(false);
-  const [checkingExisting, setCheckingExisting] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [busy, setBusy] = useState(Boolean(initialCode.trim() && initialStudentCode.trim()));
+  const [error, setError] = useState<string | null>(null);
+  const automaticCheckStarted = useRef(false);
 
-  async function waitForInitialAuthUser(): Promise<User | null> {
-    const current = auth.currentUser;
-    if (current) return current;
-
-    return await new Promise<User | null>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        unsub();
-        resolve(auth.currentUser ?? null);
-      }, 10000);
-
-      const unsub = onAuthStateChanged(
-        auth,
-        (u) => {
-          clearTimeout(timeout);
-          unsub();
-          resolve(u);
-        },
-        (authErr) => {
-          clearTimeout(timeout);
-          unsub();
-          reject(authErr);
-        }
-      );
-    });
-  }
-
-  async function getJoinUser(): Promise<User> {
-    const existingUser = await waitForInitialAuthUser();
-    if (existingUser) return existingUser;
-
-    return ensureAnonymousUser();
-  }
-
-  function mapApiError(data: JoinApiError, fallback: string): string {
-    if (data.error === "student_limit_reached") {
-      const used = typeof data.used === "number" ? data.used : null;
-      const limit = typeof data.limit === "number" ? data.limit : null;
-
-      if (used !== null && limit !== null) {
-        return t("errors.teacherLimitReachedWithCount", { used, limit });
-      }
-
-      return t("errors.teacherLimitReached");
-    }
-
-    if (data.error === "student_code_required") {
-      return t("errors.studentCodeRequired");
-    }
-
-    if (data.error === "invalid_student_code") {
-      return t("errors.invalidStudentCode");
-    }
-
-    if (typeof data.error === "string" && data.error.trim()) {
-      return data.error;
-    }
-
-    return fallback;
-  }
-
-  useEffect(() => {
-    const c = initialCode.trim().toUpperCase();
-    if (!c) return;
-
-    let cancelled = false;
-
-    async function checkExistingMembership() {
-      setCheckingExisting(true);
-
-      try {
-        const u = await getJoinUser();
-        const token = await u.getIdToken();
-
-        const res = await fetch("/api/spaces/join", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ code: c }),
-        });
-
-        const data = (await res.json().catch(() => ({}))) as JoinApiSuccess | JoinApiError;
-        if (cancelled || !res.ok) return;
-
-        const okData = data as JoinApiSuccess;
-        if (okData.alreadyMember && okData.spaceId) {
-          saveLastStudentSpaceId(okData.spaceId);
-          router.replace(`/${locale}/student/spaces/${okData.spaceId}`);
-        }
-      } catch {
-        // Hvis autosjekken feiler, lar vi vanlig bli-med-skjema stå.
-      } finally {
-        if (!cancelled) setCheckingExisting(false);
-      }
-    }
-
-    void checkExistingMembership();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCode, locale, router]);
-
-  useEffect(() => {
-    if (!hasPrefilledCode || hasPrefilledStudentCode || checkingExisting) return;
-    nameInputRef.current?.focus();
-  }, [checkingExisting, hasPrefilledCode, hasPrefilledStudentCode]);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const c = code.trim().toUpperCase();
-    const name = cleanName(displayName);
-
-    if (!c) return;
-
-    if (!name && !studentCode.trim()) {
-      setErr(t("errors.nameRequired"));
-      return;
-    }
-
-    setBusy(true);
-    setErr(null);
-
+  const request = useCallback(async (confirm: boolean, switchPupil = false) => {
+    setBusy(true); setError(null);
     try {
-      const u = await getJoinUser();
-      const token = await u.getIdToken();
-
-      const res = await fetch("/api/spaces/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          code: c,
-          displayName: name,
-          studentCode: studentCode.trim(),
-        }),
+      if (confirm && switchPupil) {
+        await signOut(auth);
+        clearLastStudentSpaceId();
+      }
+      await auth.authStateReady();
+      const user = auth.currentUser ?? await ensureAnonymousUser();
+      const response = await fetch("/api/spaces/join", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ code: code.trim(), studentCode: studentCode.trim(), confirm }),
       });
-
-      const data = (await res.json().catch(() => ({}))) as JoinApiSuccess | JoinApiError;
-
-      if (!res.ok) {
-        throw new Error(mapApiError(data as JoinApiError, t("errors.joinFailed")));
+      const data = await response.json();
+      if (!response.ok) {
+        const key: Record<string, string> = {
+          space_not_found: "spaceNotFound", student_code_required: "studentCodeRequired", invalid_student_code: "invalidStudentCode",
+          identity_conflict: "identityConflict", missing_pupil_name: "missingPupilName", access_revoked: "accessRevoked", room_unavailable: "roomUnavailable",
+        };
+        throw new Error(t(`errors.${key[data.error] ?? "joinFailed"}`));
       }
+      if (!data.preview) {
+        saveLastStudentSpaceId(data.spaceId);
+        router.replace(`/${locale}/student/spaces/${data.spaceId}`);
+      } else setPreview(data);
+    } catch (e) { setError(e instanceof Error ? e.message : t("errors.joinFailed")); }
+    finally { setBusy(false); }
+  }, [code, studentCode, locale, router, t]);
 
-      const okData = data as JoinApiSuccess;
+  useEffect(() => {
+    if (automaticCheckStarted.current || !initialCode.trim() || !initialStudentCode.trim()) return;
+    automaticCheckStarted.current = true;
+    void request(false);
+  }, [initialCode, initialStudentCode, request]);
 
-      if (!okData.spaceId) {
-        throw new Error(t("errors.missingSpaceId"));
-      }
-
-      saveLastStudentSpaceId(okData.spaceId);
-      router.push(`/${locale}/student/spaces/${okData.spaceId}`);
-    } catch (e2: unknown) {
-      setErr(errToText(e2));
-    } finally {
-      setBusy(false);
-    }
+  function codeInput(id: string, field: string, value: string, setValue: (value: string) => void) {
+    return <div>
+      <label htmlFor={id} className="text-sm font-medium">{t(`fields.${field}.label`)}</label>
+      <input id={id} value={value} onChange={e => { setValue(e.target.value.toUpperCase()); setPreview(null); }}
+        required disabled={busy || Boolean(preview)} maxLength={12} autoComplete="off" autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-50" />
+    </div>;
   }
-
-  return (
-    <div className="mx-auto max-w-md p-4">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
-
-      <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
-
-      <form onSubmit={onSubmit} className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm">
-        {checkingExisting ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            {t("status.checkingExisting")}
-          </div>
-        ) : null}
-
-        <div>
-          <label htmlFor="space-code" className="text-sm font-medium">
-            {t("fields.spaceCode.label")}
-          </label>
-          <input
-            id="space-code"
-            name="spaceCode"
-            value={code}
-            onChange={(e) => {
-              if (!hasPrefilledCode) setCode(e.target.value);
-            }}
-            placeholder={t("fields.spaceCode.placeholder")}
-            className={[
-              "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
-              hasPrefilledCode
-                ? "cursor-not-allowed border-slate-200 bg-slate-100 font-black text-slate-700"
-                : "bg-white",
-            ].join(" ")}
-            disabled={busy}
-            readOnly={hasPrefilledCode}
-            aria-readonly={hasPrefilledCode}
-            autoCapitalize="characters"
-            autoCorrect="off"
-          />
-        </div>
-
-        {hasPrefilledStudentCode ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-            {t("fields.name.fromStudentCode")}
-          </div>
-        ) : (
-          <div>
-            <label htmlFor="displayName" className="text-sm font-medium">
-              {t("fields.name.label")}
-            </label>
-            <input
-              ref={nameInputRef}
-              id="displayName"
-              name="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t("fields.name.placeholder")}
-              className={[
-                "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
-                hasPrefilledCode
-                  ? "border-emerald-200 bg-emerald-50 focus:border-emerald-500 focus:bg-white"
-                  : "bg-white",
-              ].join(" ")}
-              disabled={busy}
-            />
-            <div className="mt-1 text-xs text-muted-foreground">{t("fields.name.tip")}</div>
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="studentCode" className="text-sm font-medium">
-            {t("fields.studentCode.label")}
-          </label>
-          <input
-            id="studentCode"
-            name="studentCode"
-            value={studentCode}
-            onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-            placeholder={t("fields.studentCode.placeholder")}
-            className="mt-2 w-full rounded-xl border bg-white px-3 py-2 text-sm outline-none"
-            disabled={busy}
-            autoCapitalize="characters"
-            autoCorrect="off"
-          />
-          <div className="mt-1 text-xs text-muted-foreground">{t("fields.studentCode.tip")}</div>
-        </div>
-
-        <button
-          type="submit"
-          className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-          disabled={busy}
-        >
-          {busy ? t("actions.joining") : t("actions.join")}
+  return <div className="mx-auto max-w-md p-4">
+    <h1 className="text-2xl font-semibold">{t("title")}</h1>
+    <p className="mt-2 text-sm text-slate-600">{t("subtitle")}</p>
+    {signedOut ? <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-800">{t("session.signedOut")}</p> : null}
+    <form autoComplete="off" onSubmit={e => { e.preventDefault(); void request(false); }} className="mt-4 grid gap-4 rounded-2xl border bg-white p-4 shadow-sm">
+      {codeInput("space-code", "spaceCode", code, setCode)}
+      {codeInput("student-code", "studentCode", studentCode, setStudentCode)}
+      <p className="m-0 text-xs text-slate-600">{t("fields.studentCode.tip")}</p>
+      {preview ? <div aria-live="polite" className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <p className="m-0 text-sm font-semibold">{t("confirmation.identity", { name: preview.displayName, room: preview.title })}</p>
+        {preview.switchRequired ? <p className="m-0 text-sm">{t("confirmation.switch", { name: preview.currentDisplayName ?? "" })}</p> : null}
+        {preview.switchRequired && preview.signedInAccount ? <p className="m-0 text-sm">{t("confirmation.signOut")}</p> : null}
+        <button type="button" disabled={busy} onClick={() => void request(true, preview.switchRequired)} className="w-full rounded-xl bg-emerald-700 px-3 py-3 font-semibold text-white disabled:opacity-50">
+          {busy ? t("actions.joining") : t("confirmation.continue", { name: preview.displayName })}
         </button>
-
-        {err && <div className="whitespace-pre-wrap text-sm text-red-600">{err}</div>}
-      </form>
-    </div>
-  );
+        <button type="button" disabled={busy} onClick={() => setPreview(null)} className="w-full rounded-xl border bg-white px-3 py-2 text-sm">{t("confirmation.cancel")}</button>
+      </div> : <button type="submit" disabled={busy} className="rounded-xl bg-slate-950 px-3 py-3 font-semibold text-white disabled:opacity-50">{busy ? t("actions.checking") : t("actions.check")}</button>}
+      {error ? <p role="alert" className="m-0 text-sm text-red-700">{error}</p> : null}
+    </form>
+  </div>;
 }

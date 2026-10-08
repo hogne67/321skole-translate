@@ -1022,7 +1022,7 @@ export default function TeacherPage() {
 
     return studentItems.filter((item) => {
       const name = item.displayName.toLowerCase();
-      const spaces = item.spaces.map((space) => space.title.toLowerCase()).join(" ");
+      const spaces = item.spaces.map((space) => `${space.title} ${space.displayName ?? ""}`.toLowerCase()).join(" ");
       return name.includes(q) || spaces.includes(q);
     });
   }, [studentItems, studentSearch]);
@@ -1732,7 +1732,7 @@ export default function TeacherPage() {
                                       wordBreak: "break-word",
                                     }}
                                   >
-                                    {space.title}
+                                    {space.title}{space.displayName && space.displayName !== student.displayName ? ` — ${space.displayName}` : ""}
                                   </Link>
                                 ))}
                               </div>

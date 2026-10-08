@@ -1,404 +1,88 @@
-// app/api/spaces/join/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { getAdminApp } from "@/lib/firebaseAdmin";
-import {
-  getTeacherActiveStudentUidsAdmin,
-  getTeacherMemberLimit,
-} from "@/lib/server/teacherStudentSummary";
-import { getEffectivePlan } from "@/lib/featureAccess";
+import { FieldValue } from "firebase-admin/firestore";
+import { getAdmin } from "@/lib/firebaseAdmin";
+import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
 
-type JoinBody = {
-  code?: string;
-  displayName?: string;
-  studentCode?: string;
-};
-
-type SpaceOwnerFields = {
-  ownerId?: unknown;
-  teacherId?: unknown;
-  createdBy?: unknown;
-  createdByUid?: unknown;
-  uid?: unknown;
-  title?: unknown;
-  allowRoomCodeOnly?: unknown;
-  join?: unknown;
-};
-
-type TeacherProfileFields = {
-  role?: unknown;
-  plan?: unknown;
-  billing?: unknown;
-  partnerAccess?: unknown;
-  partnerStatus?: unknown;
-  schoolId?: unknown;
-  schoolRole?: unknown;
-  schoolStatus?: unknown;
-};
-
-type SpaceMemberFields = {
-  role?: unknown;
-  archived?: unknown;
-  active?: unknown;
-  status?: unknown;
-  uid?: unknown;
-  displayName?: unknown;
-  participantId?: unknown;
-  studentCode?: unknown;
-};
-
-function readBearerToken(req: NextRequest): string | null {
-  const authHeader = req.headers.get("authorization") || "";
-  if (!authHeader.startsWith("Bearer ")) return null;
-  const token = authHeader.slice("Bearer ".length).trim();
-  return token || null;
-}
-
-function safeString(v: unknown): string {
-  return typeof v === "string" ? v.trim() : "";
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function asBoolean(value: unknown): boolean {
-  return value === true;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function cleanName(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim();
-}
-
-function cleanStudentCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
-}
-
-function allowRoomCodeOnlyJoin(data: Record<string, unknown>): boolean {
-  if (data.allowRoomCodeOnly === true) return true;
-  if (isRecord(data.join) && data.join.allowRoomCodeOnly === true) return true;
-  return false;
-}
-
-function studentCodeKey(spaceId: string, studentCode: string): string {
-  return `${spaceId}:${studentCode}`;
-}
-
-function generateStudentCode(length = 5): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < length; i += 1) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return out;
-}
-
-function getTeacherUidFromSpaceData(data: Record<string, unknown> | null): string | null {
-  if (!data) return null;
-
-  const d = data as SpaceOwnerFields;
-
-  return (
-    asNonEmptyString(d.ownerId) ||
-    asNonEmptyString(d.teacherId) ||
-    asNonEmptyString(d.createdByUid) ||
-    asNonEmptyString(d.createdBy) ||
-    asNonEmptyString(d.uid) ||
-    null
-  );
-}
-
-async function findSpaceByCode(
-  db: FirebaseFirestore.Firestore,
-  codeRaw: string
-): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
-  const code = safeString(codeRaw).toUpperCase();
-  if (!code) return null;
-
-  const tries = [
-    db.collection("spaces").where("code", "==", code).limit(1),
-    db.collection("spaces").where("joinCode", "==", code).limit(1),
-    db.collection("spaces").where("join.code", "==", code).limit(1),
-  ];
-
-  for (const qy of tries) {
-    const snap = await qy.get();
-    if (!snap.empty) return snap.docs[0];
-  }
-
-  return null;
-}
-
-function isActiveStudentMemberData(data: SpaceMemberFields | null | undefined): boolean {
-  if (!data) return false;
-  const role = safeString(data.role);
-  const archived = asBoolean(data.archived);
-  const status = safeString(data.status).toLowerCase();
-
-  return role === "student" && !archived && data.active !== false && status !== "removed";
-}
-
-async function getActiveStudentMembership(
-  db: FirebaseFirestore.Firestore,
-  spaceId: string,
-  uid: string
-): Promise<FirebaseFirestore.DocumentSnapshot | null> {
-  const docId = `${spaceId}_${uid}`;
-  const snap = await db.collection("spaceMembers").doc(docId).get();
-
-  if (!snap.exists) return null;
-
-  const data = (snap.data() ?? {}) as SpaceMemberFields;
-  return isActiveStudentMemberData(data) ? snap : null;
-}
-
-async function findStudentMembershipByCode(
-  db: FirebaseFirestore.Firestore,
-  spaceId: string,
-  studentCode: string
-): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
-  if (!studentCode) return null;
-
-  const snap = await db
-    .collection("spaceMembers")
-    .where("studentCodeKey", "==", studentCodeKey(spaceId, studentCode))
-    .limit(10)
-    .get();
-
-  if (snap.empty) return null;
-  return snap.docs.find((docSnap) => {
-    const data = (docSnap.data() ?? {}) as SpaceMemberFields;
-    return isActiveStudentMemberData(data);
-  }) ?? null;
-}
-
-async function generateUniqueStudentCode(
-  db: FirebaseFirestore.Firestore,
-  spaceId: string
-): Promise<string> {
-  for (let i = 0; i < 10; i += 1) {
-    const code = generateStudentCode();
-    const existing = await findStudentMembershipByCode(db, spaceId, code);
-    if (!existing) return code;
-  }
-
-  return `${generateStudentCode(5)}${Math.floor(Math.random() * 10)}`;
-}
+const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
 
 export async function POST(req: NextRequest) {
+  const token = req.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
+  if (!token) return json({ error: "unauthorized" }, 401);
+  const { auth, db } = getAdmin();
+  let decoded;
+  try { decoded = await auth.verifyIdToken(token, true); }
+  catch { return json({ error: "unauthorized" }, 401); }
   try {
-    const token = readBearerToken(req);
-    if (!token) {
-      return NextResponse.json({ error: "Missing bearer token." }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
+    const code = joinText(body.code).toUpperCase();
+    const studentCode = joinText(body.studentCode).toUpperCase();
+    if (!/^[A-Z0-9]{4,12}$/.test(code)) return json({ error: "space_not_found" }, 404);
+    if (!/^[A-Z0-9]{4,12}$/.test(studentCode)) return json({ error: "student_code_required" }, 400);
+    let spaceRef: FirebaseFirestore.DocumentReference | undefined;
+    for (const field of ["code", "joinCode", "join.code"]) {
+      const spaces = await db.collection("spaces").where(field, "==", code).limit(1).get();
+      if (!spaces.empty) { spaceRef = spaces.docs[0].ref; break; }
     }
-
-    const body = (await req.json().catch(() => ({}))) as JoinBody;
-    const code = safeString(body.code).toUpperCase();
-    const displayName = cleanName(safeString(body.displayName));
-    const studentCode = cleanStudentCode(safeString(body.studentCode));
-
-    if (!code) {
-      return NextResponse.json({ error: "Missing code." }, { status: 400 });
-    }
-
-    const app = getAdminApp();
-    const adminAuth = getAuth(app);
-    const adminDb = getFirestore(app);
-
-    const decoded = await adminAuth.verifyIdToken(token);
+    if (!spaceRef) return json({ error: "space_not_found" }, 404);
     const uid = decoded.uid;
-    const isAnonymous = decoded.firebase?.sign_in_provider === "anonymous";
-
-    const spaceDoc = await findSpaceByCode(adminDb, code);
-    if (!spaceDoc) {
-      return NextResponse.json({ error: "Space not found." }, { status: 404 });
-    }
-
-    const spaceId = spaceDoc.id;
-    const spaceData = (spaceDoc.data() ?? {}) as Record<string, unknown>;
-    const teacherUid = getTeacherUidFromSpaceData(spaceData);
-
-    if (!teacherUid) {
-      return NextResponse.json({ error: "Could not resolve space owner." }, { status: 400 });
-    }
-
-    const existingMembership = await getActiveStudentMembership(adminDb, spaceId, uid);
-    const codeMatchedMembership =
-      !existingMembership && studentCode
-        ? await findStudentMembershipByCode(adminDb, spaceId, studentCode)
-        : null;
-    const codeMatchedData = codeMatchedMembership
-      ? ((codeMatchedMembership.data() ?? {}) as SpaceMemberFields)
-      : null;
-    const alreadyMemberInThisSpace = Boolean(existingMembership);
-    const linkedExistingParticipant = Boolean(codeMatchedMembership);
-    const allowRoomCodeOnly = allowRoomCodeOnlyJoin(spaceData);
-
-    if (alreadyMemberInThisSpace && !displayName) {
-      return NextResponse.json({
-        ok: true,
-        spaceId,
-        title: safeString((spaceData as SpaceOwnerFields).title) || "Untitled space",
-        alreadyMember: true,
-        participantId:
-          safeString((existingMembership?.data() as SpaceMemberFields | undefined)?.participantId) || uid,
-      });
-    }
-
-    if (!displayName && !codeMatchedData?.displayName) {
-      return NextResponse.json({ error: "Missing displayName." }, { status: 400 });
-    }
-
-    if (displayName.length > 80) {
-      return NextResponse.json({ error: "Display name is too long." }, { status: 400 });
-    }
-
-    if (!alreadyMemberInThisSpace && !linkedExistingParticipant) {
-      if (studentCode) {
-        return NextResponse.json({ error: "invalid_student_code" }, { status: 404 });
-      }
-
-      if (!allowRoomCodeOnly) {
-        return NextResponse.json({ error: "student_code_required" }, { status: 403 });
-      }
-    }
-
-    if (!alreadyMemberInThisSpace && !linkedExistingParticipant) {
-      const teacherSnap = await adminDb.collection("users").doc(teacherUid).get();
-      const teacherData = teacherSnap.exists
-        ? ((teacherSnap.data() ?? {}) as TeacherProfileFields)
-        : null;
-      const teacherEffectivePlan = getEffectivePlan({
-        plan: safeString(teacherData?.plan) || "free",
-        billing:
-          teacherData?.billing && typeof teacherData.billing === "object"
-            ? (teacherData.billing as { plan?: string | null; status?: string | null })
-            : null,
-        partnerAccess: teacherData?.partnerAccess === true,
-        partnerStatus:
-          typeof teacherData?.partnerStatus === "string" ? teacherData.partnerStatus : null,
-        schoolId: typeof teacherData?.schoolId === "string" ? teacherData.schoolId : null,
-        schoolRole: typeof teacherData?.schoolRole === "string" ? teacherData.schoolRole : null,
-        schoolStatus:
-          typeof teacherData?.schoolStatus === "string" ? teacherData.schoolStatus : null,
-      });
-
-      const memberLimit = getTeacherMemberLimit(
-        safeString(teacherData?.role),
-        teacherEffectivePlan
-      );
-
-      const activeStudentUids = await getTeacherActiveStudentUidsAdmin(adminDb, teacherUid);
-      const alreadyCountedForTeacher = activeStudentUids.has(uid);
-      const activeStudentCount = activeStudentUids.size;
-
-      if (!alreadyCountedForTeacher && activeStudentCount >= memberLimit) {
-        return NextResponse.json(
-          {
-            error: "student_limit_reached",
-            used: activeStudentCount,
-            limit: memberLimit,
-            remaining: Math.max(0, memberLimit - activeStudentCount),
-          },
-          { status: 409 }
-        );
-      }
-    }
-
-    const membershipRef = adminDb.collection("spaceMembers").doc(`${spaceId}_${uid}`);
-    const resolvedParticipantId =
-      safeString(codeMatchedData?.participantId) ||
-      safeString(codeMatchedData?.uid) ||
-      uid;
-    const resolvedDisplayName = safeString(codeMatchedData?.displayName) || displayName;
-    const resolvedStudentCode =
-      safeString(codeMatchedData?.studentCode) ||
-      (existingMembership
-        ? safeString((existingMembership.data() as SpaceMemberFields | undefined)?.studentCode)
-        : "") ||
-      (await generateUniqueStudentCode(adminDb, spaceId));
-
-    await membershipRef.set(
-      {
-        spaceId,
-        uid,
-        participantId: resolvedParticipantId,
-        role: "student",
-        archived: false,
-        active: true,
-        status: "active",
-        code,
-        displayName: resolvedDisplayName,
-        studentCode: resolvedStudentCode,
-        studentCodeKey: studentCodeKey(spaceId, resolvedStudentCode),
-        isAnon: isAnonymous,
-        ...(codeMatchedMembership && codeMatchedMembership.id !== `${spaceId}_${uid}`
-          ? {
-              linkedFromMemberId: codeMatchedMembership.id,
-              linkedByStudentCode: true,
-              linkedAt: FieldValue.serverTimestamp(),
-            }
-          : {}),
+    const room = spaceRef;
+    const result = await db.runTransaction(async tx => {
+      const space = await tx.get(room);
+      const data = space.data();
+      if (!data || data.archived === true || data.status === "archived") return { error: "room_unavailable" } as const;
+      // isOpen was a legacy admission toggle. Valid personal codes admit existing pupils on new devices.
+      const membershipRef = db.collection("spaceMembers").doc(`${room.id}_${uid}`);
+      const existing = await tx.get(membershipRef);
+      const matching = await tx.get(db.collection("spaceMembers").where("studentCodeKey", "==", `${room.id}:${studentCode}`));
+      const existingData = existing.exists ? existing.data() as JoinMember : null;
+      const decision = evaluatePupilJoin(existingData, matching.docs.map(doc => doc.data() as JoinMember));
+      if ("error" in decision) return decision;
+      const pupilRecord = await tx.get(db.collection("spaceMembers").doc(`${room.id}_${decision.participantId}`));
+      const pupilData = pupilRecord.data();
+      // Teacher-created pupil records remain authoritative after their first access is linked.
+      const displayName = pupilData?.teacherManaged === true && pupilData.participantId === decision.participantId
+        ? joinText(pupilData.displayName) : decision.displayName;
+      if (!displayName) return { error: "missing_pupil_name" } as const;
+      if (existingData?.status === "revoked") return { error: "access_revoked" } as const;
+      const response = {
+        ok: true, spaceId: room.id, title: joinText(data.title), participantId: decision.participantId,
+        displayName, currentDisplayName: decision.currentDisplayName,
+        switchRequired: decision.switchRequired, signedInAccount: decoded.firebase?.sign_in_provider !== "anonymous",
+      };
+      // Preview is read-only. Switching requires a fresh guest UID after explicit confirmation.
+      if (body.confirm !== true || decision.switchRequired) return { ...response, preview: true };
+      const origin = matching.docs.find(doc => isActivePupil(doc.data() as JoinMember));
+      tx.set(membershipRef, {
+        spaceId: room.id, uid, participantId: decision.participantId, role: "student",
+        ...(joinText(pupilRecord.data()?.teacherStudentId) ? { teacherStudentId: joinText(pupilRecord.data()?.teacherStudentId) } : {}),
+        displayName, studentName: displayName,
+        studentCode, studentCodeKey: `${room.id}:${studentCode}`, code,
+        archived: false, active: true, status: "active", isAnon: decoded.firebase?.sign_in_provider === "anonymous",
+        ...(origin && origin.id !== membershipRef.id ? { linkedFromMemberId: origin.id, linkedByStudentCode: true } : {}),
         updatedAt: FieldValue.serverTimestamp(),
-        ...(alreadyMemberInThisSpace ? {} : { createdAt: FieldValue.serverTimestamp() }),
-      },
-      { merge: true }
-    );
-
-    if (
-      codeMatchedMembership &&
-      codeMatchedMembership.id !== `${spaceId}_${uid}` &&
-      !safeString(codeMatchedData?.uid)
-    ) {
-      await codeMatchedMembership.ref.set(
-        {
-          archived: true,
-          active: false,
-          status: "linked",
-          linkedToMemberId: `${spaceId}_${uid}`,
-          linkedAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    if (!isAnonymous) {
-      const userRef = adminDb.collection("users").doc(uid);
-      const userSnap = await userRef.get();
-      const userData = userSnap.exists ? userSnap.data() : null;
-      const existingRole = safeString(userData?.role);
-      const existingMode = safeString(userData?.studentAccessMode);
-
-      if (!existingRole || existingRole === "student") {
-        await userRef.set(
-          {
-            role: "student",
-            roles: {
-              student: true,
-            },
-            studentAccessMode: existingMode === "self_study" ? "self_study" : "space_only",
-            updatedAt: FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
+        ...(!existing.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
+      }, { merge: true });
+      for (const access of matching.docs) {
+        if (access.id !== membershipRef.id && isActivePupil(access.data() as JoinMember) && joinText(access.data().uid)) {
+          tx.update(access.ref, { displayName, studentName: displayName });
+        }
       }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      spaceId,
-      title: safeString((spaceData as SpaceOwnerFields).title) || "Untitled space",
-      alreadyMember: alreadyMemberInThisSpace,
-      participantId: resolvedParticipantId,
+      if (origin && !joinText(origin.data().uid)) tx.set(origin.ref, {
+        archived: true, active: false, status: "linked", linkedToMemberId: membershipRef.id,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return { ...response, preview: false };
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Could not join space.";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+    if ("error" in result) return json(result, result.error === "identity_conflict" ? 409 : 403);
+    if (!result.preview && decoded.firebase?.sign_in_provider !== "anonymous") {
+      const profileRef = db.collection("users").doc(uid);
+      const profile = await profileRef.get();
+      if (!profile.data()?.role || profile.data()?.role === "student") await profileRef.set({
+        role: "student", roles: { student: true },
+        studentAccessMode: profile.data()?.studentAccessMode === "self_study" ? "self_study" : "space_only",
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+    return json(result);
+  } catch { return json({ error: "join_failed" }, 500); }
 }

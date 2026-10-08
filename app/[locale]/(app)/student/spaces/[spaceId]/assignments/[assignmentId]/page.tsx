@@ -1,5 +1,6 @@
 // app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
+import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -1907,6 +1908,7 @@ export default function StudentAssignmentPage() {
 
   return (
     <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 6px 170px", boxSizing: "border-box" }}>
+      {!isTeacherPreview ? <SpacePupilIdentity spaceId={spaceId} /> : null}
       <AssignmentPageHeader
         mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}

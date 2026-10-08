@@ -32,7 +32,7 @@
         "anonymous": "Anonymous",
         "registered": "Registered",
         "spacesCount": "{count, plural, one {# space} other {# spaces}}",
-        "uid": "UID: {uid}"
+        "uid": "Pupil ID: {uid}"
       },
       "actions": {
         "show": "Show students",

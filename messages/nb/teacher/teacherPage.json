@@ -32,7 +32,7 @@
         "anonymous": "Anonym",
         "registered": "Registrert",
         "spacesCount": "{count, plural, one {# gruppe} other {# grupper}}",
-        "uid": "UID: {uid}"
+        "uid": "Elev-ID: {uid}"
       },
       "actions": {
         "show": "Vis elever",

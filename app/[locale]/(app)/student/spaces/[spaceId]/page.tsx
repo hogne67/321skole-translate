@@ -24,6 +24,7 @@ import type { SpaceDoc } from "@/lib/spacesClient";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -941,6 +942,7 @@ export default function StudentSpaceDetailPage() {
 
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <SpacePupilIdentity spaceId={spaceId} />
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">

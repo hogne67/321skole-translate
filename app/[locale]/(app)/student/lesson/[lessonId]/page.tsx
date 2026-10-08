@@ -3438,7 +3438,7 @@ export default function StudentLessonPage() {
             right: 0,
             bottom: 0,
             zIndex: 60,
-            padding: isMobileView ? "10px 12px calc(10px + env(safe-area-inset-bottom))" : "10px 12px",
+            padding: isMobileView ? "6px 10px calc(6px + env(safe-area-inset-bottom))" : "10px 12px",
             borderTop: "1px solid rgba(0,0,0,0.10)",
             background: "rgba(255,255,255,0.96)",
             boxShadow: "0 -10px 30px rgba(15,23,42,0.10)",
@@ -3453,8 +3453,10 @@ export default function StudentLessonPage() {
               alignItems: "center",
               gap: isMobileView ? 5 : 8,
               flexWrap: "wrap",
+              justifyContent: "flex-end",
             }}
           >
+            {!isMobileView || audioRef.current ? <>
             <button
               type="button"
               disabled={!audioRef.current}
@@ -3464,6 +3466,7 @@ export default function StudentLessonPage() {
               }}
               onClick={prevSentence}
               title={t("text.prev")}
+              aria-label={t("text.prev")}
             >
               ⏮
             </button>
@@ -3477,6 +3480,7 @@ export default function StudentLessonPage() {
               }}
               onClick={isPlaying ? pauseAudio : resumeAudio}
               title={isPlaying ? t("text.pause") : t("text.continue")}
+              aria-label={isPlaying ? t("text.pause") : t("text.continue")}
             >
               {isPlaying ? "⏸" : "▶"}
             </button>
@@ -3490,6 +3494,7 @@ export default function StudentLessonPage() {
               }}
               onClick={stopAudio}
               title={t("text.stop")}
+              aria-label={t("text.stop")}
             >
               ⏹
             </button>
@@ -3503,17 +3508,19 @@ export default function StudentLessonPage() {
               }}
               onClick={nextSentence}
               title={t("text.next")}
+              aria-label={t("text.next")}
             >
               ⏭
             </button>
 
             <div
+              className="lessonAudioTimeline"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: isMobileView ? 5 : 8,
                 flex: isMobileView ? "1 1 100%" : "1 1 280px",
-                minWidth: isMobileView ? "100%" : 220,
+                minWidth: isMobileView ? 0 : 220,
                 marginLeft: isMobileView ? 0 : 4,
                 order: isMobileView ? 2 : 0,
               }}
@@ -3522,6 +3529,7 @@ export default function StudentLessonPage() {
 
               <input
                 type="range"
+                aria-label={t("text.audioPosition")}
                 min={0}
                 max={Math.max(0.01, duration || 0)}
                 step={0.05}
@@ -3540,7 +3548,13 @@ export default function StudentLessonPage() {
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
             </div>
 
-            <div
+            {isMobileView ? (
+              <select className="lessonAudioSpeed" aria-label={t("text.speed")} value={playbackRate}
+                onChange={event => setPlaybackRate(Number(event.target.value))}
+                style={{ ...mobileSpeedGroupStyle, minHeight: 44, maxWidth: 76, marginLeft: "auto", fontSize: 13, color: "#1d4ed8" }}>
+                {AUDIO_PLAYBACK_RATES.map(rate => <option key={rate} value={rate}>{rate}x</option>)}
+              </select>
+            ) : <div
               style={{
                 ...(isMobileView ? mobileSpeedGroupStyle : speedGroupStyle),
                 order: isMobileView ? 1 : 0,
@@ -3561,7 +3575,8 @@ export default function StudentLessonPage() {
                   {rate}x
                 </button>
               ))}
-            </div>
+            </div>}
+            </> : null}
 
             <button
               type="button"
@@ -3573,17 +3588,21 @@ export default function StudentLessonPage() {
                 ...(isMobileView ? mobileStickySaveBtnStyle : stickySaveBtnStyle),
                 opacity: saving || !uid ? 0.6 : 1,
                 cursor: saving || !uid ? "not-allowed" : "pointer",
-                flex: isMobileView ? "1 1 100%" : "0 0 auto",
-                width: isMobileView ? "100%" : undefined,
-                order: isMobileView ? 4 : 0,
-                marginTop: isMobileView ? 2 : 0,
+                flex: "0 0 auto",
+                order: isMobileView ? 1 : 0,
               }}
             >
-              {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveToMyContent")}
+              {saving ? t("actions.saving") : isCourseMode ? "Save draft" : isMobileView ? t("actions.saveShort") : t("actions.saveToMyContent")}
             </button>
           </div>
         </div>
       ) : null}
+      <style jsx>{`
+        @media (max-width: 360px) {
+          .lessonAudioSpeed { order: 2; margin-left: 0 !important; }
+          .lessonAudioTimeline { flex: 1 1 160px !important; }
+        }
+      `}</style>
     </main>
   );
 }
@@ -3849,8 +3868,8 @@ const audioPlayerBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerBtnStyle: React.CSSProperties = {
   ...audioPlayerBtnStyle,
-  minWidth: 32,
-  minHeight: 32,
+  minWidth: 44,
+  minHeight: 44,
   padding: "5px 7px",
   borderRadius: 10,
 };
@@ -3864,8 +3883,8 @@ const audioPlayerPrimaryBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerPrimaryBtnStyle: React.CSSProperties = {
   ...audioPlayerPrimaryBtnStyle,
-  minWidth: 34,
-  minHeight: 32,
+  minWidth: 44,
+  minHeight: 44,
   padding: "5px 7px",
   borderRadius: 10,
 };
@@ -3879,8 +3898,8 @@ const audioPlayerStopBtnStyle: React.CSSProperties = {
 
 const mobileAudioPlayerStopBtnStyle: React.CSSProperties = {
   ...audioPlayerStopBtnStyle,
-  minWidth: 32,
-  minHeight: 32,
+  minWidth: 44,
+  minHeight: 44,
   padding: "5px 7px",
   borderRadius: 10,
 };
@@ -3901,8 +3920,8 @@ const stickySaveBtnStyle: React.CSSProperties = {
 
 const mobileStickySaveBtnStyle: React.CSSProperties = {
   ...stickySaveBtnStyle,
-  minWidth: 94,
-  minHeight: 34,
+  minWidth: 60,
+  minHeight: 44,
   padding: "6px 10px",
   fontSize: 14,
 };

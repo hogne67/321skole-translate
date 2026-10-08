@@ -28,3 +28,12 @@ export function saveLastStudentSpaceId(spaceId: string) {
   }
 }
 
+export function clearLastStudentSpaceId() {
+  if (!isBrowser()) return;
+
+  try {
+    window.localStorage.removeItem(LAST_STUDENT_SPACE_KEY);
+  } catch {
+    // A storage restriction must not prevent navigation after signing out.
+  }
+}

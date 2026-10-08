@@ -1,4 +1,5 @@
 "use client";
+import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
@@ -983,6 +984,7 @@ export default function StudentWritingActivityPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 pb-28">
+      <SpacePupilIdentity spaceId={spaceId} />
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
         <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
           {t("actions.back")}

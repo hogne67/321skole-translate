@@ -150,6 +150,18 @@
     },
     "due": {
       "label": "Due date"
+    },
+    "administration": {
+      "title": "Manage space",
+      "accessTitle": "Room access",
+      "acceptNewStudents": "Allow new students to join",
+      "ownerOnly": "Only the owner or an administrator can change the name and access settings.",
+      "saved": "Changes saved.",
+      "saveFailed": "Could not save the change. Please try again.",
+      "copyFailed": "Could not copy. Please try again.",
+      "qrFailed": "Could not generate the QR code. Please try again.",
+      "personalAccess": "Create pupils and their names under Manage members. Pupils use a personal QR or room code + pupil code. The same code connects to the same pupil and history across browsers and accounts.",
+      "sharedEntrance": "Shared room entrance: The room link and room QR identify only the room. Pupils must also enter their personal pupil code."
     }
   }
 }

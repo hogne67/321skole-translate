@@ -137,17 +137,6 @@ function safeString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function allowRoomCodeOnlyJoin(space: SpacePrintData | null): boolean {
-  if (!space) return false;
-  if (space.allowRoomCodeOnly === true) return true;
-  if (isRecord(space.join) && space.join.allowRoomCodeOnly === true) return true;
-  return false;
-}
-
 function safeFilenamePart(value: string) {
   return value
     .toLowerCase()
@@ -172,7 +161,6 @@ function SpacePrintInner() {
 
   const title = safeString(space?.title, "Space");
   const code = safeString(space?.code, safeString(space?.joinCode));
-  const allowRoomCodeOnly = allowRoomCodeOnlyJoin(space);
 
   const joinUrl = useMemo(() => {
     if (!code) return "";
@@ -277,7 +265,7 @@ function SpacePrintInner() {
             <div className="mt-4 rounded-xl border-2 border-slate-300 bg-white px-4 py-3">
               <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.accessMode}</div>
               <div className="mt-1 text-lg font-black text-slate-950">
-                {allowRoomCodeOnly ? text.accessOpen : text.accessStudentCode}
+                {text.accessStudentCode}
               </div>
             </div>
           </div>
@@ -291,7 +279,7 @@ function SpacePrintInner() {
             )}
             </div>
             <div className="mt-3 text-sm font-bold text-slate-800">
-              {allowRoomCodeOnly ? text.scanOpen : text.scanStudentCode}
+              {text.scanStudentCode}
             </div>
           </div>
         </section>
@@ -300,13 +288,13 @@ function SpacePrintInner() {
           <article className="rounded-2xl border-2 border-slate-300 p-4">
             <h2 className="text-base font-black text-slate-950">{text.joinTitle}</h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-800">
-              {allowRoomCodeOnly ? text.joinTextOpen : text.joinTextStudentCode}
+              {text.joinTextStudentCode}
             </p>
           </article>
           <article className="rounded-2xl border-2 border-slate-300 p-4">
             <h2 className="text-base font-black text-slate-950">{text.studentCodeTitle}</h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-800">
-              {allowRoomCodeOnly ? text.studentCodeTextOpen : text.studentCodeTextRequired}
+              {text.studentCodeTextRequired}
             </p>
           </article>
         </section>
