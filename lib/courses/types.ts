@@ -109,6 +109,8 @@ export type CourseSalesSettings = {
 export type Course = {
   id: string;
   ownerUid: string;
+  courseType?: "course" | "webinar";
+  pricingMode?: "free" | "paid";
   title: string;
   description: string;
   learningGoals: string;
@@ -257,6 +259,8 @@ export function syncCoursePlanSessionCount(
 export function normalizeCourse(id: string, data: Record<string, unknown>): Course {
   return {
     id,
+    courseType: data.courseType === "webinar" ? "webinar" : "course",
+    pricingMode: data.pricingMode === "free" ? "free" : "paid",
     ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
     title: typeof data.title === "string" ? data.title : "",
     description: typeof data.description === "string" ? data.description : "",

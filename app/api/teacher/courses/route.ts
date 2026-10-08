@@ -19,6 +19,8 @@ type CourseBody = {
   language?: unknown;
   level?: unknown;
   priceText?: unknown;
+  courseType?: unknown;
+  pricingMode?: unknown;
   maxParticipants?: unknown;
   numberOfSessions?: unknown;
   numberOfWeeks?: unknown;
@@ -100,6 +102,8 @@ function serializeCourse(id: string, data: FirebaseFirestore.DocumentData) {
     language: safeString(data.language),
     level: safeString(data.level),
     priceText: safeString(data.priceText),
+    courseType: data.courseType === "webinar" ? "webinar" : "course",
+    pricingMode: data.pricingMode === "free" ? "free" : "paid",
     maxParticipants: safeNumber(data.maxParticipants),
     numberOfSessions: safeNumber(data.numberOfSessions),
     numberOfWeeks: safeNumber(data.numberOfWeeks),
@@ -163,7 +167,9 @@ export async function POST(req: Request) {
       targetAudience: safeString(body.targetAudience),
       language: safeString(body.language),
       level: safeString(body.level),
-      priceText: safeString(body.priceText),
+      priceText: body.pricingMode === "free" ? "Gratis" : safeString(body.priceText),
+      courseType: body.courseType === "webinar" ? "webinar" : "course",
+      pricingMode: body.pricingMode === "free" ? "free" : "paid",
       maxParticipants: safeNumber(body.maxParticipants),
       numberOfSessions: safeNumber(body.numberOfSessions),
       numberOfWeeks: safeNumber(body.numberOfWeeks),

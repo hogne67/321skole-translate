@@ -80,12 +80,6 @@ export function buildCoursePublishChecklist(course: ChecklistCourse): CoursePubl
       severity: "critical",
     },
     {
-      id: "level",
-      label: "Level exists",
-      passed: hasText(course.level),
-      severity: "critical",
-    },
-    {
       id: "priceText",
       label: "Price text exists",
       passed: hasText(course.priceText),

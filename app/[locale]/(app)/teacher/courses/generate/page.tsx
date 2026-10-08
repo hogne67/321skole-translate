@@ -12,6 +12,8 @@ import { DEFAULT_COURSE_FORM, normalizeCoursePlan, type CourseFormValues, type C
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type PracticalInfo = {
+  courseType: "course" | "webinar";
+  pricingMode: "free" | "paid";
   subject: string;
   subtopic: string;
   additionalDescription: string;
@@ -78,10 +80,12 @@ const AUDIENCES = ["Barn", "Ungdom", "Studenter", "Voksne"];
 const LANGUAGES = ["Norsk", "Engelsk", "Portugisisk", "Spansk", "Arabisk", "Somali", "Ukrainsk"];
 
 const DEFAULT_PRACTICAL_INFO: PracticalInfo = {
+  courseType: "course",
+  pricingMode: "free",
   subject: "norsk",
   subtopic: "grammatikk",
   additionalDescription: "",
-  level: "A2",
+  level: "",
   audience: "Voksne",
   language: "Norsk",
   numberOfSessions: 6,
@@ -96,7 +100,7 @@ function proposalFromDefaults(info: PracticalInfo): Proposal {
     targetAudience: "",
     language: info.language,
     level: info.level,
-    priceText: "",
+    priceText: info.pricingMode === "free" ? "Gratis" : "",
   };
 }
 
@@ -119,23 +123,28 @@ function GenerateCourseContent() {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const busy = generating || generatingPlan || saving;
 
   function updateInfo<K extends keyof PracticalInfo>(key: K, value: PracticalInfo[K]) {
+    setNotice("");
+    if (key === "pricingMode") setProposal((current) => ({ ...current, priceText: value === "free" ? "Gratis" : "" }));
+    if (key === "courseType") setCoursePlan([]);
     setInfo((prev) => {
       const next = { ...prev, [key]: value };
+      if (key === "courseType") {
+        next.numberOfSessions = value === "webinar" ? 1 : 6;
+        next.durationMinutes = value === "webinar" ? 60 : 120;
+      }
       if (key === "subject") {
         const subject = String(value);
         next.subtopic = SUBTOPICS[subject]?.[0]?.value ?? "annet";
       }
-      if (key === "language" || key === "level") {
-        setProposal((current) => ({
-          ...current,
-          ...(key === "language" ? { language: String(value) } : {}),
-          ...(key === "level" ? { level: String(value) } : {}),
-        }));
-      }
       return next;
     });
+    if (key === "language" || key === "level") {
+      setProposal((current) => ({ ...current, [key]: String(value) }));
+    }
   }
 
   function updateProposal<K extends keyof Proposal>(key: K, value: Proposal[K]) {
@@ -176,14 +185,16 @@ function GenerateCourseContent() {
 
       if (!res.ok || !data.proposal) throw new Error(data.error || "Could not generate course");
 
+      setCoursePlan([]);
+      setNotice("Forslaget er klart. Les gjennom og rediger før du lagrer.");
       setProposal({
         title: data.proposal.title ?? "",
         description: data.proposal.description ?? "",
         learningGoals: data.proposal.learningGoals ?? "",
         targetAudience: data.proposal.targetAudience ?? "",
         language: data.proposal.language ?? info.language,
-        level: data.proposal.level ?? info.level,
-        priceText: data.proposal.priceText ?? "",
+        level: info.level,
+        priceText: info.pricingMode === "free" ? "Gratis" : proposal.priceText,
       });
     } catch (err) {
       console.error("Failed to generate course proposal", err);
@@ -216,6 +227,9 @@ function GenerateCourseContent() {
         body: JSON.stringify({
           ...DEFAULT_COURSE_FORM,
           ...proposal,
+          courseType: info.courseType,
+          pricingMode: info.pricingMode,
+          priceText: info.pricingMode === "free" ? "Gratis" : proposal.priceText,
           maxParticipants: DEFAULT_COURSE_FORM.maxParticipants,
           numberOfSessions: info.numberOfSessions,
           numberOfWeeks: info.numberOfSessions,
@@ -256,6 +270,8 @@ function GenerateCourseContent() {
         body: JSON.stringify({
           ...info,
           kind: "coursePlan",
+          level: proposal.level,
+          language: proposal.language,
           title: proposal.title,
           description: proposal.description,
           learningGoals: proposal.learningGoals,
@@ -269,6 +285,7 @@ function GenerateCourseContent() {
       if (!res.ok || !data.coursePlan) throw new Error(data.error || "Could not generate course plan");
 
       setCoursePlan(normalizeCoursePlan(data.coursePlan));
+      setNotice("Forslaget til samlinger er klart. Du kan redigere hver samling før lagring.");
     } catch (err) {
       console.error("Failed to generate course plan", err);
       setError(err instanceof Error ? err.message : "Kunne ikke generere kursplan akkurat nå.");
@@ -287,19 +304,25 @@ function GenerateCourseContent() {
                 321Academy Beta
               </div>
               <h1 className="m-0 mt-3 text-2xl font-black text-slate-950">
-                Generate course
+                Lag kurs eller webinar
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Første steg lager den administrative kursrammen. Innhold per kursdag bygger vi
-                videre på etter at denne flyten sitter godt.
+                Velg rammer og få et forslag fra KI, eller opprett manuelt. Du kan redigere alt før du lagrer som utkast. Ingen ting publiseres automatisk.
               </p>
             </div>
             <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/courses`)}>
-              Back to courses
+              Tilbake til kurs
             </Button>
           </div>
         </section>
 
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
+          <div><h2 className="font-bold text-slate-950">Hvordan vil du opprette?</h2><p className="text-sm text-slate-600">Denne siden hjelper deg med KI. Velg manuell oppretting hvis du vil skrive selv.</p></div>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push(`/${locale}/teacher/courses/new`)}>Opprett manuelt</Button>
+        </section>
+        <p role="status" aria-live="polite" className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          {saving ? "Lagrer utkast…" : generating ? "KI lager navn, beskrivelse og læringsmål…" : generatingPlan ? "KI lager forslag til samlinger…" : notice || "Ikke lagret. Velg rammer og lag et forslag, så lagrer du utkastet nederst."}
+        </p>
         {error ? (
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             {error}
@@ -315,6 +338,14 @@ function GenerateCourseContent() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Hva vil du lage?">
+              <Select value={info.courseType} disabled={busy} onChange={(e) => updateInfo("courseType", e.target.value === "webinar" ? "webinar" : "course")}><option value="course">Kurs</option><option value="webinar">Webinar</option></Select>
+              <span className="text-xs font-normal text-slate-600">Webinar starter med én samling. Du kan endre antallet.</span>
+            </Field>
+            <Field label="Deltakerpris">
+              <Select value={info.pricingMode} disabled={busy} onChange={(e) => updateInfo("pricingMode", e.target.value === "paid" ? "paid" : "free")}><option value="free">Gratis</option><option value="paid">Betalt</option></Select>
+              <span className="text-xs font-normal text-slate-600">Ved betalt deltakelse fyller du inn pristeksten i forslaget.</span>
+            </Field>
             <Field label="Fag / tema">
               <Select value={info.subject} onChange={(event) => updateInfo("subject", event.target.value)}>
                 {SUBJECTS.map((subject) => (
@@ -335,8 +366,9 @@ function GenerateCourseContent() {
               </Select>
             </Field>
 
-            <Field label="Nivå">
+            <Field label="Nivå (valgfritt)">
               <Select value={info.level} onChange={(event) => updateInfo("level", event.target.value)}>
+                <option value="">Ikke nivåbestemt</option>
                 {LEVELS.map((level) => (
                   <option key={level} value={level}>
                     {level}
@@ -400,8 +432,8 @@ function GenerateCourseContent() {
           </Field>
 
           <div className="flex justify-end">
-            <Button type="button" variant="primary" disabled={generating} onClick={() => void generateProposal()}>
-              {generating ? "Generating..." : "Generate administrative plan"}
+            <Button type="button" variant="primary" disabled={busy} onClick={() => void generateProposal()}>
+              {generating ? "Genererer…" : "Lag forslag med KI"}
             </Button>
           </div>
         </section>
@@ -410,15 +442,15 @@ function GenerateCourseContent() {
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">2. Administrativt forslag</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Rediger forslaget før du lagrer. Kurset lagres som draft.
+              Rediger navn, beskrivelse og mål før du lagrer. Utkastet blir bare synlig for deg.
             </p>
           </div>
 
-          <Field label="Kursnavn">
+          <Field label={info.courseType === "webinar" ? "Navn på webinar" : "Kursnavn"}>
             <Input value={proposal.title} onChange={(event) => updateProposal("title", event.target.value)} />
           </Field>
 
-          <Field label="Kursbeskrivelse">
+          <Field label={info.courseType === "webinar" ? "Beskrivelse av webinar" : "Kursbeskrivelse"}>
             <Textarea
               value={proposal.description}
               onChange={(event) => updateProposal("description", event.target.value)}
@@ -446,12 +478,13 @@ function GenerateCourseContent() {
             <Field label="Språk">
               <Input value={proposal.language} onChange={(event) => updateProposal("language", event.target.value)} />
             </Field>
-            <Field label="Nivå">
-              <Input value={proposal.level} onChange={(event) => updateProposal("level", event.target.value)} />
+            <Field label="Nivå (valgfritt)">
+              <Input placeholder="Ikke nivåbestemt" value={proposal.level} onChange={(event) => updateProposal("level", event.target.value)} />
             </Field>
             <Field label="Pris/kort tekst">
               <Input
-                value={proposal.priceText}
+                disabled={info.pricingMode === "free"}
+                value={info.pricingMode === "free" ? "Gratis" : proposal.priceText}
                 onChange={(event) => updateProposal("priceText", event.target.value)}
                 placeholder="F.eks. Gratis pilot"
               />
@@ -461,7 +494,7 @@ function GenerateCourseContent() {
 
         <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">3. Forslag til kursdager</h2>
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">3. Forslag til samlinger (valgfritt)</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
               Lag en enkel retning for hver samling. Dette er bare forslag, ikke ferdige oppgaver
               eller genererte lessons.
@@ -472,16 +505,16 @@ function GenerateCourseContent() {
             <Button
               type="button"
               variant="primary"
-              disabled={generatingPlan}
+              disabled={busy}
               onClick={() => void generateCoursePlan()}
             >
-              {generatingPlan ? "Generating..." : "Generate session suggestions"}
+              {generatingPlan ? "Generating..." : "Lag forslag til samlinger med KI"}
             </Button>
           </div>
 
           {coursePlan.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-              Ingen kursdager er foreslått ennå.
+              Ingen samlinger er foreslått ennå. Du kan lagre utkastet uten en samlingsplan.
             </div>
           ) : (
             <div className="grid gap-4">
@@ -522,11 +555,8 @@ function GenerateCourseContent() {
         </section>
 
         <div className="flex flex-wrap justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/courses/new`)}>
-            Manual create
-          </Button>
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? "Saving..." : "Save draft course"}
+          <Button type="submit" variant="primary" disabled={busy}>
+            {saving ? "Lagrer…" : "Lagre utkast"}
           </Button>
         </div>
       </form>

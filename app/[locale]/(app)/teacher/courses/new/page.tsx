@@ -23,12 +23,15 @@ function NewCourseContent() {
   const locale = useLocale();
   const router = useRouter();
   const { user } = useUserProfile();
-  const [values, setValues] = useState<CourseFormValues>(DEFAULT_COURSE_FORM);
+  const [values, setValues] = useState<CourseFormValues>({ ...DEFAULT_COURSE_FORM, level: "", courseType: "course", pricingMode: "free", priceText: "Gratis" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   function updateField<K extends keyof CourseFormValues>(key: K, value: CourseFormValues[K]) {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    setValues((prev) => ({ ...prev, [key]: value,
+      ...(key === "pricingMode" ? { priceText: value === "free" ? "Gratis" : "" } : {}),
+      ...(key === "courseType" ? { numberOfSessions: value === "webinar" ? 1 : 6, numberOfWeeks: value === "webinar" ? 1 : 6 } : {}),
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -54,12 +57,14 @@ function NewCourseContent() {
         },
         body: JSON.stringify({
         title,
+        courseType: values.courseType,
+        pricingMode: values.pricingMode,
         description: values.description.trim(),
         learningGoals: values.learningGoals.trim(),
         targetAudience: values.targetAudience.trim(),
         language: values.language.trim(),
         level: values.level.trim(),
-        priceText: values.priceText.trim(),
+        priceText: values.pricingMode === "free" ? "Gratis" : values.priceText.trim(),
         maxParticipants: values.maxParticipants,
         numberOfSessions: values.numberOfSessions,
         numberOfWeeks: values.numberOfWeeks,
@@ -88,7 +93,7 @@ function NewCourseContent() {
     <main className="mx-auto max-w-4xl">
       <form onSubmit={handleSubmit} className="grid gap-5">
         <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
-          <h1 className="m-0 text-2xl font-black text-slate-950">Create course</h1>
+          <h1 className="m-0 text-2xl font-black text-slate-950">Opprett kurs eller webinar manuelt</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Opprett et kursutkast for 321Academy. Du kan bygge plan, innhold og innstillinger i
             neste steg.
@@ -102,6 +107,10 @@ function NewCourseContent() {
         ) : null}
 
         <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Hva vil du lage?"><Select value={values.courseType} onChange={(e) => updateField("courseType", e.target.value === "webinar" ? "webinar" : "course")}><option value="course">Kurs</option><option value="webinar">Webinar</option></Select></Field>
+            <Field label="Deltakerpris"><Select value={values.pricingMode} onChange={(e) => updateField("pricingMode", e.target.value === "paid" ? "paid" : "free")}><option value="free">Gratis</option><option value="paid">Betalt</option></Select></Field>
+          </div>
           <Field label="Title">
             <Input
               value={values.title}
@@ -142,11 +151,12 @@ function NewCourseContent() {
               />
             </Field>
 
-            <Field label="Level">
+            <Field label="Nivå (valgfritt)">
               <Select
                 value={values.level}
                 onChange={(event) => updateField("level", event.target.value)}
               >
+                <option value="">Ikke nivåbestemt</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced">Advanced</option>
@@ -155,6 +165,7 @@ function NewCourseContent() {
 
             <Field label="Price text">
               <Input
+                disabled={values.pricingMode === "free"}
                 value={values.priceText}
                 onChange={(event) => updateField("priceText", event.target.value)}
                 placeholder="F.eks. Gratis pilot"

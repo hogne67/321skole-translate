@@ -12,6 +12,8 @@ export const runtime = "nodejs";
 
 type GenerateCourseBody = {
   kind?: unknown;
+  courseType?: unknown;
+  pricingMode?: unknown;
   subject?: unknown;
   subtopic?: unknown;
   additionalDescription?: unknown;
@@ -155,7 +157,9 @@ export async function POST(req: Request) {
     const subject = safeString(body.subject) || "norsk";
     const subtopic = safeString(body.subtopic) || "grammatikk";
     const additionalDescription = safeString(body.additionalDescription).slice(0, 1200);
-    const level = safeString(body.level) || "A2";
+    const level = safeString(body.level);
+    const courseType = body.courseType === "webinar" ? "webinar" : "course";
+    const pricingMode = body.pricingMode === "free" ? "free" : "paid";
     const audience = safeString(body.audience) || "voksne";
     const language = safeString(body.language) || "Norsk";
     const numberOfSessions = safeNumber(body.numberOfSessions, 6);
@@ -191,7 +195,8 @@ Course frame:
 - Subject: ${subject}
 - Subtopic: ${subtopic}
 - Teacher's additional description: ${additionalDescription || "No extra description provided."}
-- CEFR/level: ${level}
+- CEFR/level: ${level || "Not level-specific. Do not assign a CEFR level."}
+- Format: ${courseType}
 - Learner group: ${audience}
 - Course language: ${language}
 - Duration per session: ${durationMinutes} minutes
@@ -255,13 +260,14 @@ Return exact JSON:
         {
           role: "user",
           content: `
-Create an administrative course proposal.
+Create an administrative proposal for a ${courseType}. A webinar should be a focused live presentation with discussion or questions, not a multi-day course.
 
 Practical choices:
 - Subject: ${subject}
 - Subtopic: ${subtopic}
 - Teacher's additional description: ${additionalDescription || "No extra description provided."}
-- CEFR/level: ${level}
+- CEFR/level: ${level || "Not level-specific. Do not assign a CEFR level."}
+- Format: ${courseType}
 - Learner group: ${audience}
 - Course language: ${language}
 - Number of sessions: ${numberOfSessions}
@@ -287,7 +293,7 @@ Return exact JSON:
     });
 
     const output = response.output_text?.trim() || "{}";
-    const proposal = parseProposal(JSON.parse(output));
+    const proposal = { ...parseProposal(JSON.parse(output)), level, ...(pricingMode === "free" ? { priceText: "Gratis" } : {}) };
 
     if (!proposal.title || !proposal.description) {
       return json({ error: "Could not generate a complete course proposal" }, 500);
