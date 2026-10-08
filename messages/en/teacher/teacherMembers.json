@@ -105,6 +105,12 @@
     "tip": {
       "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",
       "suffix": "on members."
+    },
+    "sections": {
+      "addTitle": "Add pupils",
+      "addDescription": "Create new pupils or add pupils you already have in other rooms.",
+      "manageTitle": "Manage pupils",
+      "manageDescription": "View the pupil list, edit names and manage pupil codes and room access."
     }
   }
 }

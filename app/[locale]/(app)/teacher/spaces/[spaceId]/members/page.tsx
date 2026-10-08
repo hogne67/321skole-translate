@@ -645,9 +645,11 @@ function Inner() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border bg-white p-4 shadow-sm">
-        {canManageStaff ? (
-          <div className="mb-4 grid gap-3">
+      {canManageStaff ? (
+        <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 id="add-students-heading" className="mb-1 text-lg font-semibold">{t("sections.addTitle")}</h2>
+          <p className="mb-4 text-sm text-slate-600">{t("sections.addDescription")}</p>
+          <div className="grid gap-3">
             <TeacherPupilPicker spaceId={spaceId} />
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -657,14 +659,6 @@ function Inner() {
                     {t("roster.newDescription")}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void createBulkStudents()}
-                  disabled={bulkBusy || !bulkStudentNames.some((name) => name.trim())}
-                  className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {bulkBusy ? "Legger til..." : "Legg til elever"}
-                </button>
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -680,14 +674,24 @@ function Inner() {
                 ))}
               </div>
 
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={addBulkStudentRows}
                 disabled={bulkBusy}
-                className="mt-3 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
               >
                 Legg til flere rader
               </button>
+              <button
+                type="button"
+                onClick={() => void createBulkStudents()}
+                disabled={bulkBusy || !bulkStudentNames.some((name) => name.trim())}
+                className="ml-auto rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {bulkBusy ? "Legger til..." : "Legg til elever"}
+              </button>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
@@ -749,8 +753,14 @@ function Inner() {
               {inviteError ? <div className="mt-2 text-sm font-medium text-red-600">{inviteError}</div> : null}
             </div>
           </div>
-        ) : null}
+        </section>
+      ) : null}
 
+      <section id="manage-students" aria-labelledby="manage-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 id="manage-students-heading" className="mb-1 text-lg font-semibold">{t("sections.manageTitle")}</h2>
+        <p className="mb-4 text-sm text-slate-600">{t("sections.manageDescription")}</p>
+        {inviteMessage ? <p role="status" className="mb-3 text-sm font-medium text-emerald-700">{inviteMessage}</p> : null}
+        {inviteError ? <p role="alert" className="mb-3 text-sm font-medium text-red-600">{inviteError}</p> : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
             {t("showing")} <b>{filtered.length}</b>
@@ -942,7 +952,7 @@ function Inner() {
             })
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

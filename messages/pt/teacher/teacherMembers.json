@@ -105,6 +105,12 @@
     "tip": {
       "prefix": "Dica: Se você ainda não vê nomes, isso significa que o fluxo de entrada não salvou",
       "suffix": "nos membros."
+    },
+    "sections": {
+      "addTitle": "Adicionar alunos",
+      "addDescription": "Crie novos alunos ou adicione alunos que já tem noutras salas.",
+      "manageTitle": "Gerir alunos",
+      "manageDescription": "Consulte a lista de alunos, edite nomes e gira códigos de aluno e acesso à sala."
     }
   }
 }

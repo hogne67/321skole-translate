@@ -86,8 +86,8 @@
       "copyJoinLinkTitle": "Copiar link com código da sala",
       "joinWithQr": "Mostrar QR comum da sala",
       "joinWithQrTitle": "Mostrar QR code do código da sala",
-      "seeMembers": "Administrar membros",
-      "seeMembersTitle": "Administrar membros",
+      "seeMembers": "Gerir alunos",
+      "seeMembersTitle": "Gerir alunos",
       "openSpace": "Abrir space",
       "openSpaceTitle": "Abrir space",
       "board": "Live",
@@ -105,7 +105,8 @@
       "cancelEditTitleTitle": "Cancelar edição do nome",
       "editTitleRequired": "A sala precisa de um nome.",
       "editTitleError": "Não foi possível salvar o nome. Tente novamente.",
-      "overviewHint": "Abra uma sala para acessar atividades, respostas e administração."
+      "overviewHint": "Abra uma sala para acessar atividades, respostas e administração.",
+      "addStudents": "Adicionar alunos"
     },
     "empty": {
       "title": "Nenhum space encontrado.",

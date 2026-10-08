@@ -160,7 +160,7 @@
       "saveFailed": "Não foi possível salvar a alteração. Tente novamente.",
       "copyFailed": "Não foi possível copiar. Tente novamente.",
       "qrFailed": "Não foi possível gerar o código QR. Tente novamente.",
-      "personalAccess": "Crie os alunos e os nomes em Gerir membros. Os alunos usam um QR pessoal ou código da sala + código de aluno. O mesmo código mantém o aluno e o histórico em diferentes navegadores e contas.",
+      "personalAccess": "Crie os alunos e os nomes em Adicionar alunos. Os alunos usam um QR pessoal ou o código da sala + código de aluno. O mesmo código liga ao mesmo aluno e histórico noutros navegadores e contas.",
       "sharedEntrance": "Entrada comum da sala: A ligação e o QR da sala identificam apenas a sala. O aluno também deve introduzir o seu código pessoal."
     }
   }

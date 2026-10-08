@@ -63,7 +63,7 @@ const copy: Record<string, Copy> = {
     studentCodeTextOpen: "Hvis eleven har elevkode, bør den brukes. Da åpnes riktig elev, og arbeid kan fortsette på ny enhet.",
     studentCodeTextRequired: "Elevkode er nødvendig for nye elever i dette rommet. Bruk elevlenken eller elevkoden som læreren har delt.",
     teacherTitle: "Til lærer",
-    teacherText: 'Personlige elevkoder skrives ut fra "Administrer medlemmer" > "Skriv ut elevkoder". Romkode alene kan åpnes fra lærerens space-liste ved behov.',
+    teacherText: 'Personlige elevkoder skrives ut fra "Administrer elever" > "Skriv ut elevkoder". Romkode alene kan åpnes fra lærerens space-liste ved behov.',
     qrAlt: "QR-kode for å bli med i rommet",
     footer: "321school.com",
   },

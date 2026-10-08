@@ -89,8 +89,9 @@ export default function SpaceAdministration({ spaceId, space, canControl }: {
         <ChevronDown className="ml-auto h-4 w-4 transition group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div className="space-y-5 border-t border-emerald-100 p-4 sm:p-5">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Link href={`${basePath}/members`} className={actionClass}>{t("list.seeMembers")}</Link>
+        <div className={`grid gap-2 ${canControl ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {canControl ? <Link href={`${basePath}/members#add-students`} className={actionClass}>{t("list.addStudents")}</Link> : null}
+          <Link href={`${basePath}/members#manage-students`} className={actionClass}>{t("list.seeMembers")}</Link>
           <Link href={`${basePath}/members/print`} className={actionClass}>{t("list.studentCodes")}</Link>
         </div>
 

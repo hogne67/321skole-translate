@@ -86,8 +86,8 @@
       "copyJoinLinkTitle": "Copy link with room code",
       "joinWithQr": "Show shared room QR",
       "joinWithQrTitle": "Show QR code for room code",
-      "seeMembers": "Manage members",
-      "seeMembersTitle": "Manage members",
+      "seeMembers": "Manage pupils",
+      "seeMembersTitle": "Manage pupils",
       "openSpace": "Open space",
       "openSpaceTitle": "Open space",
       "board": "Live",
@@ -105,7 +105,8 @@
       "cancelEditTitleTitle": "Cancel name editing",
       "editTitleRequired": "The room needs a name.",
       "editTitleError": "Could not save the name. Try again.",
-      "overviewHint": "Open a room for assignments, submissions and administration."
+      "overviewHint": "Open a room for assignments, submissions and administration.",
+      "addStudents": "Add pupils"
     },
     "empty": {
       "title": "No spaces found.",

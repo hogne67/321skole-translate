@@ -105,6 +105,12 @@
     "tip": {
       "prefix": "Tips: Hvis du ikke ser navn ennå, betyr det at join-flyten ikke har lagret",
       "suffix": "på medlemmer."
+    },
+    "sections": {
+      "addTitle": "Legg til elever",
+      "addDescription": "Opprett nye elever eller hent elever du allerede har i andre rom.",
+      "manageTitle": "Administrer elever",
+      "manageDescription": "Se elevlisten, rediger navn og administrer elevkoder og tilgang til rommet."
     }
   }
 }

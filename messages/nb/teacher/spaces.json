@@ -86,8 +86,8 @@
       "copyJoinLinkTitle": "Kopier lenke med romkode",
       "joinWithQr": "Vis felles rom-QR",
       "joinWithQrTitle": "Vis QR-kode for romkode",
-      "seeMembers": "Administrer medlemmer",
-      "seeMembersTitle": "Administrer medlemmer",
+      "seeMembers": "Administrer elever",
+      "seeMembersTitle": "Administrer elever",
       "openSpace": "Åpne space",
       "openSpaceTitle": "Åpne space",
       "board": "Live",
@@ -105,7 +105,8 @@
       "cancelEditTitleTitle": "Avbryt navneredigering",
       "editTitleRequired": "Rommet må ha et navn.",
       "editTitleError": "Kunne ikke lagre navnet. Prøv igjen.",
-      "overviewHint": "Åpne rommet for oppgaver, besvarelser og administrasjon."
+      "overviewHint": "Åpne rommet for oppgaver, besvarelser og administrasjon.",
+      "addStudents": "Legg til elever"
     },
     "empty": {
       "title": "Ingen spaces funnet.",
