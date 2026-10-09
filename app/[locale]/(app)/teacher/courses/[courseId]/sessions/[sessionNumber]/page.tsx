@@ -8,6 +8,7 @@ import { type Course } from "@/lib/courses/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { CourseWorkspaceNav } from "../../CourseWorkspaceNav";
 import { fetchTeacherCourse } from "../../courseClient";
+import { SessionInvitation } from "./SessionInvitation";
 
 type DailyCallFrame = {
   join: (args: { url: string; token?: string }) => Promise<unknown>;
@@ -45,6 +46,9 @@ export default function TeacherCourseSessionPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dailyError, setDailyError] = useState("");
   const [error, setError] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [sendingInvitation, setSendingInvitation] = useState(false);
+  const inviteT = useTranslations("academy.sessionInvitation");
 
   useEffect(() => {
     let cancelled = false;
@@ -200,12 +204,18 @@ export default function TeacherCourseSessionPage() {
               {session.title || t("fallbackTitle", { number: session.sessionNumber })}
             </h2> : null}
           </div>
+          <div className="flex flex-wrap gap-2">
+          <button type="button" aria-expanded={inviting} aria-controls="session-invitation" disabled={!user || sendingInvitation || session.status === "cancelled"}
+            onClick={() => setInviting((value) => !value)} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">
+            {inviting ? inviteT("close") : inviteT("title")}
+          </button>
           <Link
             href={`/${locale}/teacher/courses/${course.id}/sessions`}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
           >
             {t("editSessions")}
           </Link>
+          </div>
         </div>
         <dl className="mb-0 mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm">
           <InfoItem label={t("cards.starts")} value={formatSessionDate(session.startsAt, locale, t("dateNotSet"))} />
@@ -214,6 +224,10 @@ export default function TeacherCourseSessionPage() {
           <InfoItem label={t("cards.meetingLink")} value={session.meetingUrl ? t("cards.ready") : t("cards.createdOnJoin")} />
         </dl>
       </section>
+
+      <div id="session-invitation" hidden={!inviting}>
+        {inviting && user ? <SessionInvitation course={course} session={session} user={user} onSendingChange={setSendingInvitation} /> : null}
+      </div>
 
       <section aria-label={t("videoTitle")}>
         <div

@@ -988,7 +988,8 @@
           "sending": "Sender...",
           "send": "Send e-post"
         },
-        "meta": "{count} mottakere · {date}"
+        "meta": "{count} mottakere · {date}",
+        "emailNotConfigured": "E-postsending er ikke satt opp riktig i dette miljøet. Påmeldinger og deltakere er lagret, men e-post kan ikke sendes før avsenderoppsettet er på plass."
       },
       "content": {
         "fallbackTitle": "Kursinnhold",
@@ -1048,6 +1049,43 @@
           "none": "Ingen status"
         }
       }
+    },
+    "sessionInvitation": {
+      "title": "Inviter deltakere",
+      "close": "Lukk invitasjon",
+      "intro": "Del lenken eller QR-koden med påmeldte deltakere, eller send invitasjonen på e-post.",
+      "link": "Deltakerlenke",
+      "copy": "Kopier lenke",
+      "copied": "Lenken er kopiert.",
+      "copyFailed": "Kunne ikke kopiere. Marker og kopier lenken i feltet.",
+      "showQr": "Vis QR-kode",
+      "hideQr": "Skjul QR-kode",
+      "qrAlt": "QR-kode til deltakersiden for samlingen",
+      "downloadQr": "Last ned QR-kode",
+      "qrFailed": "Kunne ikke lage QR-koden. Prøv igjen.",
+      "emailTitle": "Send e-post til påmeldte",
+      "loading": "Henter mottakere …",
+      "recipients": "{count} mottakere med e-postadresse. Bare påmeldte og aktive deltakere inkluderes.",
+      "showRecipients": "Vis mottakere",
+      "notConfigured": "E-postsending er ikke konfigurert i dette miljøet.",
+      "subject": "Emne",
+      "body": "Invitasjonstekst",
+      "preview": "Forhåndsvisning",
+      "goToSession": "Gå til samlingen",
+      "loginHelp": "Knappen åpner deltakersiden via innlogging. Bruk samme e-postadresse som ved påmelding. Lenken gir ikke tilgang til andre.",
+      "history": "Se meldingshistorikk",
+      "send": "Send til {count} deltakere",
+      "sending": "Sender …",
+      "done": "Utsendelse registrert",
+      "sent": "Invitasjonen er sendt til {count} mottakere og lagret i meldingshistorikken.",
+      "sendFailed": "Kunne ikke fullføre sendingen. Se meldingshistorikken før du prøver igjen.",
+      "partialFailed": "En eller flere e-poster feilet. Se meldingshistorikken før du sender på nytt, slik at de som fikk e-post ikke får den dobbelt.",
+      "loadFailed": "Kunne ikke hente mottakere. Lukk og åpne invitasjonen for å prøve igjen.",
+      "recipientsChanged": "Mottakerlisten er endret. Lukk og åpne invitasjonen for å kontrollere mottakerne på nytt.",
+      "limit": "Maksimalt 100 mottakere per utsendelse.",
+      "dateNotSet": "Tidspunkt kommer",
+      "defaultSubject": "Invitasjon: {title}",
+      "defaultBody": "Hei!\n\nVelkommen til {title}!\nKurs: {course}\nTid: {when} (norsk tid)\nVarighet: {minutes} minutter\n\nBruk knappen nedenfor for å gå til samlingen. Logg inn med samme e-postadresse som ved påmelding.\n\nVi gleder oss til å se deg!"
     }
   }
 }

@@ -988,7 +988,8 @@
           "sending": "Sending...",
           "send": "Send email"
         },
-        "meta": "{count} recipients · {date}"
+        "meta": "{count} recipients · {date}",
+        "emailNotConfigured": "Email sending is not configured correctly in this environment. Registrations and participants are saved, but email cannot be sent until the sender setup is complete."
       },
       "content": {
         "fallbackTitle": "Course content",
@@ -1048,6 +1049,43 @@
           "none": "No status"
         }
       }
+    },
+    "sessionInvitation": {
+      "title": "Invite participants",
+      "close": "Close invitation",
+      "intro": "Share the link or QR code with enrolled participants, or send the invitation by email.",
+      "link": "Participant link",
+      "copy": "Copy link",
+      "copied": "Link copied.",
+      "copyFailed": "Could not copy. Select and copy the link from the field.",
+      "showQr": "Show QR code",
+      "hideQr": "Hide QR code",
+      "qrAlt": "QR code to the participant session page",
+      "downloadQr": "Download QR code",
+      "qrFailed": "Could not create the QR code. Please try again.",
+      "emailTitle": "Email enrolled participants",
+      "loading": "Loading recipients …",
+      "recipients": "{count} recipients with an email address. Only enrolled and active participants are included.",
+      "showRecipients": "Show recipients",
+      "notConfigured": "Email sending is not configured in this environment.",
+      "subject": "Subject",
+      "body": "Invitation text",
+      "preview": "Preview",
+      "goToSession": "Go to session",
+      "loginHelp": "The button opens the participant page through sign-in. Use the email address used to enroll. Sharing the link does not grant others access.",
+      "history": "View message history",
+      "send": "Send to {count} participants",
+      "sending": "Sending …",
+      "done": "Sending recorded",
+      "sent": "The invitation was sent to {count} recipients and saved in message history.",
+      "sendFailed": "Could not complete sending. Check message history before trying again.",
+      "partialFailed": "One or more emails failed. Check message history before sending again to avoid duplicates for successful recipients.",
+      "loadFailed": "Could not load recipients. Close and reopen the invitation to try again.",
+      "recipientsChanged": "The recipient list changed. Close and reopen the invitation to review it again.",
+      "limit": "Maximum 100 recipients per send.",
+      "dateNotSet": "Time to be announced",
+      "defaultSubject": "Invitation: {title}",
+      "defaultBody": "Hello!\n\nWelcome to {title}!\nCourse: {course}\nTime: {when} (Norway time)\nDuration: {minutes} minutes\n\nUse the button below to go to the session. Sign in with the email address used to enroll.\n\nWe look forward to seeing you!"
     }
   }
 }

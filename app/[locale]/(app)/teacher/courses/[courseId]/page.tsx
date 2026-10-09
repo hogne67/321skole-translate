@@ -1655,6 +1655,7 @@ function MessagesPanel({ course }: { course: Course }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
 
   async function loadMessages() {
     if (!user) return;
@@ -1668,10 +1669,12 @@ function MessagesPanel({ course }: { course: Course }) {
       });
       const data = (await res.json().catch(() => ({}))) as {
         messages?: Array<Record<string, unknown> & { id?: string }>;
+        emailConfigured?: boolean;
         error?: string;
       };
       if (!res.ok) throw new Error(data.error || "Could not load messages");
 
+      setEmailConfigured(data.emailConfigured ?? null);
       setMessages(
         (data.messages ?? []).map((message) =>
           normalizeCourseMessage(typeof message.id === "string" ? message.id : "", message)
@@ -1706,8 +1709,14 @@ function MessagesPanel({ course }: { course: Course }) {
         },
         body: JSON.stringify(form),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Could not send message");
+      const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+      if (!res.ok) {
+        if (data.code === "email_not_configured") {
+          setEmailConfigured(false);
+          throw new Error(t("emailNotConfigured"));
+        }
+        throw new Error(data.error || "Could not send message");
+      }
 
       setForm(EMPTY_MESSAGE_FORM);
       setShowForm(false);
@@ -1726,6 +1735,9 @@ function MessagesPanel({ course }: { course: Course }) {
 
   return (
     <div className="grid gap-4">
+      {emailConfigured === false ? (
+        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-950">{t("emailNotConfigured")}</div>
+      ) : null}
       <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1800,7 +1812,7 @@ function MessagesPanel({ course }: { course: Course }) {
             <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold">
               {t("actions.cancel")}
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
+            <button type="submit" disabled={saving || emailConfigured === false} className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
               {saving ? t("actions.sending") : t("actions.send")}
             </button>
           </div>
@@ -1831,7 +1843,7 @@ function MessagesPanel({ course }: { course: Course }) {
                   </p>
                   {message.errorMessage ? (
                     <p className="m-0 mt-2 text-xs font-semibold text-rose-700">
-                      {message.errorMessage}
+                      {message.errorMessage.includes("email_not_configured") ? t("emailNotConfigured") : message.errorMessage}
                     </p>
                   ) : null}
                 </div>

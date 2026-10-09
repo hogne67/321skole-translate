@@ -1,4 +1,5 @@
 import "server-only";
+import { getEmailConfiguration } from "./configuration";
 
 export type SendEmailInput = {
   to: string;
@@ -11,10 +12,10 @@ export type SendEmailResult =
   | { ok: false; reason: "email_not_configured" | "send_failed"; error?: string };
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const mailFrom = process.env.MAIL_FROM;
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const mailFrom = process.env.MAIL_FROM?.trim();
 
-  if (!resendApiKey || !mailFrom) {
+  if (!getEmailConfiguration().configured) {
     return { ok: false, reason: "email_not_configured" };
   }
 

@@ -5,11 +5,19 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import { normalizeMessageStatus, normalizeParticipantStatus, normalizeSignupRequestStatus } from "@/lib/courses/types";
 import { sendEmail } from "@/lib/email/resend";
+import { getEmailConfiguration } from "@/lib/email/configuration";
+import { invitationRecipients, sessionInvitationUrl } from "@/lib/courses/sessionInvitation";
+import { normalizeCoursePlan } from "@/lib/courses/types";
+
+export const maxDuration = 120;
 
 type MessageBody = {
   subject?: unknown;
   body?: unknown;
   recipients?: unknown;
+  sessionNumber?: unknown;
+  locale?: unknown;
+  expectedRecipients?: unknown;
 };
 
 type RecipientMode = "all" | "active_enrolled" | "signup_new" | "signup_contacted";
@@ -135,7 +143,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ courseId: strin
       return bTime - aTime;
     });
 
-    return json({ messages }, 200);
+    let invitationEmails: string[] | undefined;
+    if (new URL(req.url).searchParams.get("invitation") === "1") {
+      const participants = await access.db.collection("courses").doc(courseId).collection("participants").get();
+      invitationEmails = invitationRecipients(participants.docs.map((doc) => doc.data()));
+    }
+    return json({ messages, invitationEmails, emailConfigured: getEmailConfiguration().configured }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load messages";
     return json({ error: message }, 500);
@@ -151,16 +164,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
     if ("error" in access) return access.error;
 
     const body = (await req.json().catch(() => ({}))) as MessageBody;
+    if (!getEmailConfiguration().configured) {
+      return json({ code: "email_not_configured", error: "Email sending is not configured correctly" }, 503);
+    }
     const subject = safeString(body.subject).slice(0, 180);
     const messageBody = safeString(body.body).slice(0, 5000);
     const recipientsMode = normalizeRecipientMode(body.recipients);
+    const isInvitation = body.sessionNumber !== undefined;
+    const session = isInvitation ? normalizeCoursePlan(access.course.coursePlan)
+      .find((item) => item.sessionNumber === body.sessionNumber) : undefined;
+    if (isInvitation && (!session || session.status === "cancelled")) {
+      return json({ error: "Session unavailable" }, 400);
+    }
 
     if (!subject) return json({ error: "Missing subject" }, 400);
     if (!messageBody) return json({ error: "Missing body" }, 400);
 
     let recipientEmails: string[] = [];
 
-    if (recipientsMode === "signup_new" || recipientsMode === "signup_contacted") {
+    if (!isInvitation && (recipientsMode === "signup_new" || recipientsMode === "signup_contacted")) {
       const targetStatus = recipientsMode === "signup_new" ? "new" : "contacted";
       const requestsSnap = await access.db
         .collection("courses")
@@ -180,7 +202,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
         .collection("participants")
         .get();
 
-      recipientEmails = participantsSnap.docs
+      recipientEmails = isInvitation ? invitationRecipients(participantsSnap.docs.map((doc) => doc.data())) : participantsSnap.docs
         .map((doc) => doc.data())
         .filter((participant) => {
           if (recipientsMode === "all") return true;
@@ -191,12 +213,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
         .filter(Boolean);
     }
 
+    if (isInvitation && (recipientEmails.length > 100 || !Array.isArray(body.expectedRecipients) ||
+      JSON.stringify(recipientEmails) !== JSON.stringify(body.expectedRecipients))) {
+      return json({ code: "recipients_changed", error: "Refresh recipient preview before sending (maximum 100 recipients)" }, 409);
+    }
     const uniqueEmails = Array.from(new Set(recipientEmails)).slice(0, 100);
     if (uniqueEmails.length === 0) {
       return json({ error: "No recipients found" }, 400);
     }
 
     const courseTitle = safeString(access.course.title) || "321Academy";
+    const locale = body.locale === "en" || body.locale === "pt" ? body.locale : "nb";
+    const invitationUrl = session ? sessionInvitationUrl(
+      process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(req.url).origin,
+      locale, courseId, session.sessionNumber
+    ) : "";
+    const invitationLabel = locale === "en" ? "Go to session" : locale === "pt" ? "Ir para a sessão" : "Gå til samlingen";
     const footer = [
       `Denne e-posten gjelder kurset: ${courseTitle}`,
       "Du mottar denne fordi du er deltaker eller har meldt interesse.",
@@ -204,6 +236,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
         <div>${bodyToHtml(messageBody)}</div>
+        ${invitationUrl ? `<p><a href="${escapeHtml(invitationUrl)}" style="display:inline-block;padding:12px 20px;background:#047857;color:white;border-radius:8px">${invitationLabel}</a></p><p><a href="${escapeHtml(invitationUrl)}">${escapeHtml(invitationUrl)}</a></p>` : ""}
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0" />
         <p style="font-size:13px;color:#475569;margin:0">${escapeHtml(footer[0])}</p>
         <p style="font-size:13px;color:#475569;margin:6px 0 0">${escapeHtml(footer[1])}</p>
@@ -212,7 +245,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
 
     const errors: string[] = [];
     for (const email of uniqueEmails) {
-      const result = await sendEmail({ to: email, subject, html });
+      // Space out bulk sends so a recipient list does not burst against the provider limit.
+      if (email !== uniqueEmails[0]) await new Promise((resolve) => setTimeout(resolve, 600));
+      const result = await sendEmail({ to: email, subject, html }).catch(() => ({ ok: false as const, reason: "send_failed", error: "Email provider unavailable" }));
       if (!result.ok) {
         const detail = result.error ? `: ${result.error}` : "";
         errors.push(`${email}: ${result.reason}${detail}`);
@@ -238,6 +273,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
         sentByUid: access.uid,
         status,
         errorMessage,
+        ...(session ? { sessionNumber: session.sessionNumber, type: "session_invitation" } : {}),
       });
 
     return json({ messageId: docRef.id, recipientsCount: uniqueEmails.length, status }, 200);
