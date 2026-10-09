@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { DEFAULT_COURSE_FORM, type CourseFormValues, type CourseStatus } from "@/lib/courses/types";
+import { DEFAULT_COURSE_FORM, type CourseFormValues } from "@/lib/courses/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 export default function NewCoursePage() {
@@ -172,17 +172,9 @@ function NewCourseContent() {
               />
             </Field>
 
-            <Field label="Status">
-              <Select
-                value={values.status}
-                onChange={(event) => updateField("status", event.target.value as CourseStatus)}
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </Select>
-            </Field>
+            <p className="m-0 text-sm leading-6 text-slate-600">
+              Kurset lagres som utkast. Legg til samlinger og publiser fra kursoversikten når det er klart.
+            </p>
 
             <Field label="Max participants">
               <Input

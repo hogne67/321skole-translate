@@ -205,7 +205,7 @@ function EditCourseContent() {
 
             <Field label={t("fields.level")}>
               <LockedValue
-                value={formatCourseLevel(values.level)}
+                value={formatCourseLevel(values.level) || t("noLevel")}
                 note={t("notes.level")}
               />
             </Field>
@@ -255,7 +255,7 @@ function EditCourseContent() {
 
 function normalizeCourseLevel(value: string): string {
   const normalized = value.trim();
-  if (!normalized) return "a1start";
+  if (!normalized) return "";
   if (normalized === "A1_START") return "a1start";
   if (normalized === "Beginner") return "a1start";
   if (normalized === "Intermediate") return "B1";

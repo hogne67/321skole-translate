@@ -148,7 +148,8 @@ export async function POST(req: Request) {
     if (!title) return json({ error: "Missing title" }, 400);
 
     const now = new Date();
-    const status = isCourseStatus(body.status) ? body.status : "draft";
+    // Publication must go through PATCH, which validates content and creates the public link.
+    const status = "draft";
     const sessionDurationMinutes = safeNumber(body.sessionDurationMinutes) || 120;
     const generatedPlan =
       Array.isArray(body.coursePlan) && body.coursePlan.length > 0

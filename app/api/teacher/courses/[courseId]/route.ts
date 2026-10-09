@@ -230,7 +230,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ courseId: strin
         maxParticipants: safeNumber(body.maxParticipants),
         numberOfSessions,
         numberOfWeeks: safeNumber(body.numberOfWeeks),
-        status: isCourseStatus(body.status) ? body.status : "draft",
+        // Saving content must not bypass publication or accidentally unpublish a course.
+        status: isCourseStatus(current.status) ? current.status : "draft",
         coursePlan: serializePlanForFirestore(coursePlan),
         slug: safeString(current.slug),
         publicUrl: safeString(current.publicUrl),

@@ -49,7 +49,9 @@
         "loadFailed": "Could not load courses right now.",
         "publishFailed": "Publishing could not be updated right now.",
         "emptyText": "Start with a simple course draft. You can add details now and continue building later.",
-        "participatingEmptyText": "When you attend a course, it appears here without leaving the teacher area."
+        "participatingEmptyText": "When you attend a course, it appears here without leaving the teacher area.",
+        "incompletePublication": "Publication is incomplete. Finish publishing to create the share link. Add missing session content under Edit sessions.",
+        "missingInformation": "Before publishing, complete: {items}. Open the course to edit course information and sessions."
       },
       "actions": {
         "openCourse": "Open course",
@@ -61,7 +63,9 @@
         "shareLink": "Share link",
         "copied": "Copied",
         "copyFailed": "Could not copy",
-        "preview": "Preview"
+        "preview": "Preview",
+        "finishPublishing": "Finish publishing",
+        "openSession": "Open session"
       },
       "publishConfirm": {
         "title": "Publish course",
@@ -83,6 +87,15 @@
         "resources": "{count} resources",
         "next": "Next: {date}",
         "notScheduled": "not scheduled"
+      },
+      "publishRequirements": {
+        "title": "course title",
+        "description": "course description",
+        "learningGoals": "learning goals",
+        "targetAudience": "target audience",
+        "language": "language",
+        "sessions": "at least one session",
+        "sessionReady": "title and description for at least one session"
       }
     },
     "marketplace": {
@@ -453,7 +466,8 @@
         "cancel": "Cancel",
         "saving": "Saving...",
         "save": "Save course"
-      }
+      },
+      "noLevel": "No specified level"
     },
     "sessions": {
       "title": "Sessions",

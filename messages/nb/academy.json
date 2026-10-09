@@ -49,7 +49,9 @@
         "loadFailed": "Kunne ikke hente kurs akkurat nå.",
         "publishFailed": "Publisering kunne ikke oppdateres akkurat nå.",
         "emptyText": "Start med et enkelt kursutkast. Du kan fylle inn detaljer nå og bygge videre senere.",
-        "participatingEmptyText": "Når du er deltaker på et kurs, vises det her uten at du må forlate lærerområdet."
+        "participatingEmptyText": "Når du er deltaker på et kurs, vises det her uten at du må forlate lærerområdet.",
+        "incompletePublication": "Publiseringen er ufullstendig. Fullfør publisering for å opprette delingslenken. Manglende innhold kan fylles ut under Rediger samlinger.",
+        "missingInformation": "Før du kan publisere, må du fylle ut: {items}. Åpne kurset for å redigere kursinformasjon og samlinger."
       },
       "actions": {
         "openCourse": "Åpne kurs",
@@ -61,7 +63,9 @@
         "shareLink": "Del lenke",
         "copied": "Kopiert",
         "copyFailed": "Kunne ikke kopiere",
-        "preview": "Forhåndsvis"
+        "preview": "Forhåndsvis",
+        "finishPublishing": "Fullfør publisering",
+        "openSession": "Åpne samling"
       },
       "publishConfirm": {
         "title": "Publiser kurs",
@@ -83,6 +87,15 @@
         "resources": "{count} ressurser",
         "next": "Neste: {date}",
         "notScheduled": "ikke planlagt"
+      },
+      "publishRequirements": {
+        "title": "kurstittel",
+        "description": "kursbeskrivelse",
+        "learningGoals": "læringsmål",
+        "targetAudience": "målgruppe",
+        "language": "språk",
+        "sessions": "minst én samling",
+        "sessionReady": "tittel og beskrivelse på minst én samling"
       }
     },
     "marketplace": {
@@ -453,7 +466,8 @@
         "cancel": "Avbryt",
         "saving": "Lagrer...",
         "save": "Lagre kurs"
-      }
+      },
+      "noLevel": "Ikke nivåbestemt"
     },
     "sessions": {
       "title": "Samlinger",

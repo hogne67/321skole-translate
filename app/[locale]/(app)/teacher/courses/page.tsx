@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { coursePublicLink, isPublicCourse } from "@/lib/courses/publicLink";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
@@ -216,8 +217,15 @@ function TeacherCoursesContent() {
         },
         body: JSON.stringify({ action, locale }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Could not update course");
+      const data = (await res.json().catch(() => ({}))) as { error?: string; checklist?: { items: Array<{ id: string; severity: string; passed: boolean }> } };
+      if (!res.ok) {
+        const missing = data.checklist?.items.filter((item) => item.severity === "critical" && !item.passed);
+        if (missing?.length) {
+          setError(t("teacherCourses.states.missingInformation", { items: missing.map((item) => t(`teacherCourses.publishRequirements.${item.id}`)).join(", ") }));
+          return;
+        }
+        throw new Error(data.error || "Could not update course");
+      }
 
       const refreshed = await fetch("/api/teacher/courses", {
         headers: { Authorization: `Bearer ${token}` },
@@ -366,13 +374,15 @@ function TeacherCoursesContent() {
           </select>
         </div>
 
+        {error ? (
+          <div role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
             {t("teacherCourses.states.loading")}
-          </div>
-        ) : error ? (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            {error}
           </div>
         ) : isParticipatingFilter ? (
           sortedParticipatingCourses.length === 0 ? (
@@ -408,103 +418,120 @@ function TeacherCoursesContent() {
           </div>
         ) : (
           <div className="grid gap-3 rounded-lg bg-sky-50 p-3">
-            {sortedCourses.map((course) => (
-              <article
-                key={course.id}
-                className="rounded-lg border border-sky-100 bg-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    {course.marketing.coverImageUrl ? (
-                      <div className="hidden w-32 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 sm:block">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={course.marketing.coverImageUrl}
-                          alt=""
-                          className="aspect-video w-full object-cover"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="m-0 break-words text-base font-extrabold text-slate-950">
-                          {course.title || t("common.untitled")}
-                        </h3>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
-                          {course.status}
-                        </span>
-                        <CourseSaleBadge course={course} t={t} />
-                      </div>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {course.publicUrl && (course.status === "published" || course.status === "active") ? (
+            {sortedCourses.map((course) => {
+              const planned = course.coursePlan
+                .filter((session) => session.status === "planned")
+                .sort((a, b) => (a.startsAt ? new Date(a.startsAt).getTime() : Infinity) - (b.startsAt ? new Date(b.startsAt).getTime() : Infinity));
+              const nextSession = planned.find((session) => !session.startsAt || new Date(session.startsAt).getTime() >= Date.now()) ?? planned[0];
+              return (
+                <article
+                  key={course.id}
+                  className="rounded-lg border border-sky-100 bg-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      {course.marketing.coverImageUrl ? (
+                        <div className="hidden w-32 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 sm:block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={course.marketing.coverImageUrl}
+                            alt=""
+                            className="aspect-video w-full object-cover"
+                          />
+                        </div>
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="m-0 break-words text-base font-extrabold text-slate-950">
+                            {course.title || t("common.untitled")}
+                          </h3>
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
+                            {course.status}
+                          </span>
+                          <CourseSaleBadge course={course} t={t} />
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {isPublicCourse(course) && course.slug ? (
+                            <Link
+                              href={withLocale(locale, `/academy/courses/marketplace/${course.slug}`)}
+                              className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"
+                            >
+                              {t("teacherCourses.actions.publicPage")}
+                            </Link>
+                          ) : null}
+                          <button
+                            type="button"
+                            disabled={!isPublicCourse(course) || !course.slug}
+                            onClick={() => setShareCourseId((current) => (current === course.id ? "" : course.id))}
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {copyMessageById[course.id] || t("teacherCourses.actions.shareLink")}
+                          </button>
                           <Link
-                            href={withLocale(locale, `/academy/courses/marketplace/${course.slug}`)}
+                            href={withLocale(locale, `/teacher/courses/${course.id}/preview`)}
                             className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"
                           >
-                            {t("teacherCourses.actions.publicPage")}
+                            {t("teacherCourses.actions.preview")}
                           </Link>
-                        ) : null}
-                        <button
-                          type="button"
-                          disabled={!course.publicUrl}
-                          onClick={() => setShareCourseId((current) => (current === course.id ? "" : course.id))}
-                          className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {copyMessageById[course.id] || t("teacherCourses.actions.shareLink")}
-                        </button>
-                        <Link
-                          href={withLocale(locale, `/teacher/courses/${course.id}/preview`)}
-                          className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"
-                        >
-                          {t("teacherCourses.actions.preview")}
-                        </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-start justify-end gap-2">
-                    <Link
-                      href={withLocale(locale, `/teacher/courses/${course.id}`)}
-                      className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-xs font-bold text-white no-underline hover:bg-slate-800"
-                    >
-                      {t("teacherCourses.actions.openCourse")}
-                    </Link>
-                    {course.status === "draft" ? (
-                      <button
-                        type="button"
-                        disabled={busyCourseId === course.id}
-                        onClick={() => requestPublishCourse(course)}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-60"
+                    <div className="flex flex-wrap items-start justify-end gap-2">
+                      <Link
+                        href={withLocale(locale, `/teacher/courses/${course.id}`)}
+                        className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-xs font-bold text-white no-underline hover:bg-slate-800"
                       >
-                        {busyCourseId === course.id
-                          ? t("teacherCourses.actions.working")
-                          : t("teacherCourses.actions.publish")}
-                      </button>
-                    ) : null}
-                    {course.publicUrl && (course.status === "published" || course.status === "active") ? (
-                      <button
-                        type="button"
-                        disabled={busyCourseId === course.id}
-                        onClick={() => void updatePublishStatus(course, "unpublish")}
-                        className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-bold text-amber-900 disabled:opacity-60"
-                      >
-                        {busyCourseId === course.id
-                          ? t("teacherCourses.actions.working")
-                          : t("teacherCourses.actions.unpublish")}
-                      </button>
-                    ) : null}
+                        {t("teacherCourses.actions.openCourse")}
+                      </Link>
+                      {nextSession ? (
+                        <Link
+                          href={withLocale(locale, `/teacher/courses/${course.id}/sessions/${nextSession.sessionNumber}`)}
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"
+                        >
+                          {t("teacherCourses.actions.openSession")}
+                        </Link>
+                      ) : null}
+                      {course.status === "draft" || (isPublicCourse(course) && !course.slug) ? (
+                        <button
+                          type="button"
+                          disabled={busyCourseId === course.id}
+                          onClick={() => requestPublishCourse(course)}
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {busyCourseId === course.id
+                            ? t("teacherCourses.actions.working")
+                            : t(course.status === "draft" ? "teacherCourses.actions.publish" : "teacherCourses.actions.finishPublishing")}
+                        </button>
+                      ) : null}
+                      {isPublicCourse(course) ? (
+                        <button
+                          type="button"
+                          disabled={busyCourseId === course.id}
+                          onClick={() => void updatePublishStatus(course, "unpublish")}
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-bold text-amber-900 disabled:opacity-60"
+                        >
+                          {busyCourseId === course.id
+                            ? t("teacherCourses.actions.working")
+                            : t("teacherCourses.actions.unpublish")}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                {shareCourseId === course.id ? (
-                  <CourseShareBox
-                    course={course}
-                    locale={locale}
-                    t={t}
-                    message={copyMessageById[course.id] || ""}
-                    onMessage={(message) => setCourseCopyMessage(course.id, message)}
-                  />
-                ) : null}
-              </article>
-            ))}
+                  {isPublicCourse(course) && !course.slug ? (
+                    <p className="mt-3 text-sm text-amber-800">{t("teacherCourses.states.incompletePublication")}</p>
+                  ) : null}
+                  {shareCourseId === course.id && isPublicCourse(course) && course.slug ? (
+                    <CourseShareBox
+                      course={course}
+                      locale={locale}
+                      t={t}
+                      message={copyMessageById[course.id] || ""}
+                      onMessage={(message) => setCourseCopyMessage(course.id, message)}
+                    />
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -589,7 +616,7 @@ function CourseShareBox({
   onMessage: (message: string) => void;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const publicShareUrl = course.publicUrl || (course.slug ? `/${locale}/courses/${course.slug}` : "");
+  const publicShareUrl = coursePublicLink(course, locale, typeof window === "undefined" ? "" : window.location.origin);
   const shareText = [course.title, course.marketing.summary || course.description, publicShareUrl]
     .filter(Boolean)
     .join("\n\n");

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { coursePublicLink } from "@/lib/courses/publicLink";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
@@ -74,9 +75,7 @@ function CourseMarketingContent() {
   }, [course, marketing.summary, marketing.salesText]);
   const publicShareUrl = useMemo(() => {
     if (!course) return "";
-    if (course.publicUrl) return course.publicUrl;
-    if (typeof window === "undefined" || !course.slug) return "";
-    return `${window.location.origin}/${locale}/courses/${course.slug}`;
+    return coursePublicLink(course, locale, typeof window === "undefined" ? "" : window.location.origin);
   }, [course, locale]);
   const shareText = useMemo(() => {
     if (!course) return "";

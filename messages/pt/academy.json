@@ -49,7 +49,9 @@
         "loadFailed": "Não foi possível carregar os cursos agora.",
         "publishFailed": "Não foi possível atualizar a publicação agora.",
         "emptyText": "Comece com um rascunho simples. Você pode adicionar detalhes agora e continuar depois.",
-        "participatingEmptyText": "Quando você participar de um curso, ele aparecerá aqui sem sair da área de professor."
+        "participatingEmptyText": "Quando você participar de um curso, ele aparecerá aqui sem sair da área de professor.",
+        "incompletePublication": "A publicação está incompleta. Conclua a publicação para criar o link. Adicione o conteúdo em falta em Editar sessões.",
+        "missingInformation": "Antes de publicar, preencha: {items}. Abra o curso para editar as informações e as sessões."
       },
       "actions": {
         "openCourse": "Abrir curso",
@@ -61,7 +63,9 @@
         "shareLink": "Compartilhar link",
         "copied": "Copiado",
         "copyFailed": "Não foi possível copiar",
-        "preview": "Pré-visualizar"
+        "preview": "Pré-visualizar",
+        "finishPublishing": "Concluir publicação",
+        "openSession": "Abrir sessão"
       },
       "publishConfirm": {
         "title": "Publicar curso",
@@ -83,6 +87,15 @@
         "resources": "{count} recursos",
         "next": "Próxima: {date}",
         "notScheduled": "não agendada"
+      },
+      "publishRequirements": {
+        "title": "título do curso",
+        "description": "descrição do curso",
+        "learningGoals": "objetivos de aprendizagem",
+        "targetAudience": "público-alvo",
+        "language": "idioma",
+        "sessions": "pelo menos uma sessão",
+        "sessionReady": "título e descrição de pelo menos uma sessão"
       }
     },
     "marketplace": {
@@ -453,7 +466,8 @@
         "cancel": "Cancelar",
         "saving": "Salvando...",
         "save": "Salvar curso"
-      }
+      },
+      "noLevel": "Sem nível definido"
     },
     "sessions": {
       "title": "Sessões",
