@@ -210,9 +210,11 @@ export default async function PublicCoursePage({ params }: PageProps) {
                   <h3 className="m-0 mt-2 text-base font-extrabold">
                     {session.title || t("untitled")}
                   </h3>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                    {session.description || t("noSessionDescription")}
-                  </p>
+                  {!(course.coursePlan.length === 1 && repeatsCourseDescription(session.description, course)) ? (
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {session.description || t("noSessionDescription")}
+                    </p>
+                  ) : null}
                   {session.contentSuggestions ? (
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                       <strong>{t("contentSuggestions")}</strong> {session.contentSuggestions}
@@ -291,6 +293,13 @@ function Badge({ label, value }: { label: string; value: string }) {
       <strong>{label}:</strong> {value}
     </span>
   );
+}
+
+function repeatsCourseDescription(description: string, course: PublicCourse): boolean {
+  const normalize = (value: string) => value.trim().replace(/\s+/g, " ");
+  const text = normalize(description);
+  return Boolean(text) && [course.description, course.marketing.summary, course.marketing.salesText]
+    .some((value) => normalize(value) === text);
 }
 
 function TextBlock({ title, value }: { title: string; value: string }) {

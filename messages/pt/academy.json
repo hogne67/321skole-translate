@@ -18,7 +18,8 @@
         "payments": "Pagamentos",
         "submissions": "Entregas",
         "messages": "Mensagens"
-      }
+      },
+      "tools": "Ferramentas do curso"
     },
     "teacherCourses": {
       "title": "321Academy",
@@ -384,7 +385,7 @@
         "email": "E-mail",
         "phone": "Telefone",
         "message": "Mensagem",
-        "success": "Obrigado. Sua solicitação foi enviada.",
+        "success": "O seu pedido foi enviado. Receberá um email com um link para a sala do curso quando o instrutor aprovar a inscrição.",
         "error": "Não foi possível enviar a solicitação agora.",
         "sending": "Enviando...",
         "sendRequest": "Enviar solicitação",
@@ -412,13 +413,13 @@
       "editSessions": "Editar sessões",
       "hostRoom": "Sala do anfitrião",
       "videoTitle": "Sessão de vídeo",
-      "videoIntro": "Entre por esta página como instrutor. Isto cria um token de anfitrião para a sala privada do Daily.",
+      "videoIntro": "Inicie a sessão aqui como instrutor. Os participantes entram pela sua sala do curso.",
       "fullscreen": "Tela cheia",
       "exitFullscreen": "Sair da tela cheia",
-      "embedLabel": "Visualização Daily do instrutor",
+      "embedLabel": "Pronto para iniciar a sessão?",
       "starting": "Iniciando...",
       "reconnect": "Reconectar vídeo",
-      "startJoin": "Iniciar / entrar",
+      "startJoin": "Iniciar sessão",
       "cards": {
         "starts": "Início",
         "duration": "Duração",
@@ -429,7 +430,8 @@
       },
       "sessionPlan": "Plano da sessão",
       "noAgenda": "Nenhuma agenda foi adicionada ainda.",
-      "dateNotSet": "Data não definida"
+      "dateNotSet": "Data não definida",
+      "descriptionTitle": "Descrição da sessão"
     },
     "editCourse": {
       "title": "Editar curso",
@@ -846,7 +848,10 @@
           "delete": "Excluir",
           "contacted": "Contactado",
           "accept": "Aceitar",
-          "reject": "Rejeitar"
+          "reject": "Rejeitar",
+          "acceptAndEmail": "Aprovar e enviar email",
+          "sendConfirmation": "Enviar confirmação",
+          "resendConfirmation": "Reenviar confirmação"
         },
         "group": {
           "title": "Adicionar grupo / escola",
@@ -861,6 +866,12 @@
             "accepted": "aceita",
             "rejected": "rejeitada",
             "contacted": "contactada"
+          },
+          "email": {
+            "notSent": "A confirmação ainda não foi enviada.",
+            "sent": "Confirmação enviada ao fornecedor de email.",
+            "failed": "O participante foi aprovado, mas não foi possível enviar o email.",
+            "sending": "A enviar confirmação…"
           }
         },
         "progress": {

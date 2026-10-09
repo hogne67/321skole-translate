@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { createHash } from "node:crypto";
 
 type SignupBody = {
   name?: unknown;
@@ -9,6 +10,7 @@ type SignupBody = {
   phone?: unknown;
   message?: unknown;
   website?: unknown;
+  locale?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -52,14 +54,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
     }
 
     const now = new Date();
-    await courseDoc.ref.collection("signupRequests").add({
-      name,
-      email,
-      phone,
-      message,
-      status: "new",
-      createdAt: now,
-      updatedAt: now,
+    await db.runTransaction(async (tx) => {
+      const requests = courseDoc.ref.collection("signupRequests");
+      const existing = await tx.get(requests.where("email", "==", email));
+      // Repeated form submissions must not create a new request or reset an approval.
+      if (!existing.empty) return;
+      const requestRef = requests.doc(`email-${createHash("sha256").update(email).digest("hex")}`);
+      tx.set(requestRef, {
+        name, email, phone, message,
+        locale: ["nb", "en", "pt"].includes(safeString(body.locale)) ? safeString(body.locale) : "nb",
+        status: "new", createdAt: now, updatedAt: now,
+      });
     });
 
     return json({ ok: true }, 200);

@@ -18,7 +18,8 @@
         "payments": "Payments",
         "submissions": "Submissions",
         "messages": "Messages"
-      }
+      },
+      "tools": "Course tools"
     },
     "teacherCourses": {
       "title": "321Academy",
@@ -384,7 +385,7 @@
         "email": "Email",
         "phone": "Phone",
         "message": "Message",
-        "success": "Thank you. Your request has been sent.",
+        "success": "Your request has been sent. You will receive an email with a link to the course room when the instructor approves your registration.",
         "error": "The request could not be sent right now.",
         "sending": "Sending...",
         "sendRequest": "Send request",
@@ -412,13 +413,13 @@
       "editSessions": "Edit sessions",
       "hostRoom": "Host room",
       "videoTitle": "Video session",
-      "videoIntro": "Join through this page as instructor. This creates a host token for the private Daily room.",
+      "videoIntro": "Start the session here as the instructor. Participants join from their course room.",
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Exit fullscreen",
-      "embedLabel": "Daily instructor embed",
+      "embedLabel": "Ready to start the session?",
       "starting": "Starting...",
       "reconnect": "Reconnect video",
-      "startJoin": "Start / join session",
+      "startJoin": "Start session",
       "cards": {
         "starts": "Starts",
         "duration": "Duration",
@@ -429,7 +430,8 @@
       },
       "sessionPlan": "Session plan",
       "noAgenda": "No agenda has been added yet.",
-      "dateNotSet": "Date not set"
+      "dateNotSet": "Date not set",
+      "descriptionTitle": "Session description"
     },
     "editCourse": {
       "title": "Edit course",
@@ -846,7 +848,10 @@
           "delete": "Delete",
           "contacted": "Contacted",
           "accept": "Accept",
-          "reject": "Reject"
+          "reject": "Reject",
+          "acceptAndEmail": "Approve and email",
+          "sendConfirmation": "Send confirmation",
+          "resendConfirmation": "Resend confirmation"
         },
         "group": {
           "title": "Add group / school",
@@ -861,6 +866,12 @@
             "accepted": "accepted",
             "rejected": "rejected",
             "contacted": "contacted"
+          },
+          "email": {
+            "notSent": "Confirmation has not been sent.",
+            "sent": "Confirmation sent to the email provider.",
+            "failed": "The participant is approved, but the email could not be sent.",
+            "sending": "Sending confirmation…"
           }
         },
         "progress": {

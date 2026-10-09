@@ -187,6 +187,7 @@ export default function TeacherCourseSessionPage() {
         title={course.title}
         status={course.status}
         active="sessions"
+        compact
       />
 
       <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
@@ -195,12 +196,9 @@ export default function TeacherCourseSessionPage() {
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
               {t("eyebrow", { number: session.sessionNumber })}
             </div>
-            <h1 className="m-0 mt-2 text-2xl font-black text-slate-950">
+            {session.title && session.title !== course.title ? <h2 className="m-0 mt-2 text-xl font-black text-slate-950">
               {session.title || t("fallbackTitle", { number: session.sessionNumber })}
-            </h1>
-            <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">
-              {session.description || t("noDescription")}
-            </p>
+            </h2> : null}
           </div>
           <Link
             href={`/${locale}/teacher/courses/${course.id}/sessions`}
@@ -209,9 +207,15 @@ export default function TeacherCourseSessionPage() {
             {t("editSessions")}
           </Link>
         </div>
+        <dl className="mb-0 mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm">
+          <InfoItem label={t("cards.starts")} value={formatSessionDate(session.startsAt, locale, t("dateNotSet"))} />
+          <InfoItem label={t("cards.duration")} value={`${session.durationMinutes || 120} min`} />
+          <InfoItem label={t("cards.resources")} value={`${session.resources.length}`} />
+          <InfoItem label={t("cards.meetingLink")} value={session.meetingUrl ? t("cards.ready") : t("cards.createdOnJoin")} />
+        </dl>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
+      <section aria-label={t("videoTitle")}>
         <div
           ref={videoShellRef}
           className={`relative grid gap-4 rounded-lg border border-slate-900 bg-slate-950 p-5 text-white shadow-sm ${
@@ -219,17 +223,14 @@ export default function TeacherCourseSessionPage() {
               ? "min-h-screen grid-rows-[1fr] rounded-none border-0 p-0"
               : dailyLoaded
                 ? "grid-rows-[auto_minmax(0,auto)]"
-                : "min-h-[480px] grid-rows-[auto_auto_minmax(360px,1fr)]"
+                : "grid-rows-[auto_auto]"
           }`}
         >
           <div className={`flex flex-wrap items-start justify-between gap-3 ${isFullscreen && dailyLoaded ? "hidden" : ""}`}>
             <div>
-              <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-                {t("hostRoom")}
-              </div>
-              <h2 className="m-0 mt-2 text-xl font-black">{t("videoTitle")}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                {t("videoIntro")}
+              <h2 className="m-0 text-xl font-black">{t("videoTitle")}</h2>
+              <p role="status" aria-live="polite" className="mb-0 mt-2 text-sm text-slate-300">
+                {joiningDaily ? t("starting") : t("videoIntro")}
               </p>
             </div>
             <button
@@ -250,7 +251,7 @@ export default function TeacherCourseSessionPage() {
             </button>
           ) : null}
 
-          <div className={`place-items-center rounded-lg border border-white/10 bg-white/5 p-6 text-center ${dailyLoaded ? "hidden" : "grid"}`}>
+          <div className={`min-h-[280px] place-items-center rounded-lg border border-white/10 bg-white/5 p-6 text-center ${dailyLoaded || joiningDaily ? "hidden" : "grid"}`}>
             <div>
               <div className="text-5xl font-black text-white/20">321</div>
               <p className="mt-3 text-sm font-semibold text-slate-300">
@@ -265,7 +266,7 @@ export default function TeacherCourseSessionPage() {
                 {joiningDaily ? t("starting") : dailyLoaded ? t("reconnect") : t("startJoin")}
               </button>
               {dailyError ? (
-                <div className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">
+                <div role="alert" className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">
                   {dailyError}
                 </div>
               ) : null}
@@ -274,38 +275,40 @@ export default function TeacherCourseSessionPage() {
           <div
             ref={dailyContainerRef}
             className={`overflow-hidden bg-black ${
-              isFullscreen
+              !dailyLoaded && !joiningDaily
+                ? "hidden"
+                : isFullscreen
                 ? "h-screen min-h-0 rounded-none"
-                : dailyLoaded
-                  ? "aspect-video min-h-0 rounded-xl"
-                  : "min-h-[360px] rounded-xl"
+                : "aspect-video min-h-[280px] rounded-xl"
             }`}
           />
         </div>
 
-        <aside className="grid gap-4">
-          <InfoCard label={t("cards.starts")} value={formatSessionDate(session.startsAt, locale, t("dateNotSet"))} />
-          <InfoCard label={t("cards.duration")} value={`${session.durationMinutes || 120} min`} />
-          <InfoCard label={t("cards.resources")} value={`${session.resources.length}`} />
-          <InfoCard label={t("cards.meetingLink")} value={session.meetingUrl ? t("cards.ready") : t("cards.createdOnJoin")} />
-        </aside>
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
-        <h2 className="m-0 text-xl font-black text-slate-950">{t("sessionPlan")}</h2>
-        <p className="m-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-          {session.contentSuggestions || session.description || t("noAgenda")}
-        </p>
+      <section className="grid gap-3">
+        <details className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
+          <summary className="cursor-pointer font-bold text-slate-950">{t("descriptionTitle")}</summary>
+          <p className="mb-0 mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {session.description || t("noDescription")}
+          </p>
+        </details>
+        <details className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
+          <summary className="cursor-pointer font-bold text-slate-950">{t("sessionPlan")}</summary>
+          <p className="mb-0 mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {session.contentSuggestions || t("noAgenda")}
+          </p>
+        </details>
       </section>
     </main>
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
-      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-2 text-lg font-black text-slate-950">{value || "-"}</div>
+    <div>
+      <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+      <dd className="m-0 mt-1 font-bold text-slate-950">{value || "-"}</dd>
     </div>
   );
 }
@@ -374,5 +377,5 @@ function formatSessionDate(value: string, locale: string, fallback: string): str
   if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale);
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }

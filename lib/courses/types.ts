@@ -78,6 +78,7 @@ export type CourseSignupRequest = {
   phone: string;
   message: string;
   status: SignupRequestStatus;
+  confirmationEmailStatus?: "sent" | "failed" | "sending" | "";
   createdAt?: CourseDate | null;
   updatedAt?: CourseDate | null;
 };
@@ -460,6 +461,7 @@ export function normalizeCourseSignupRequest(
     email: typeof data.email === "string" ? data.email : "",
     phone: typeof data.phone === "string" ? data.phone : "",
     message: typeof data.message === "string" ? data.message : "",
+    confirmationEmailStatus: data.confirmationEmailStatus === "sent" || data.confirmationEmailStatus === "failed" || data.confirmationEmailStatus === "sending" ? data.confirmationEmailStatus : "",
     status: normalizeSignupRequestStatus(data.status),
     createdAt: normalizeDate(data.createdAt),
     updatedAt: normalizeDate(data.updatedAt),

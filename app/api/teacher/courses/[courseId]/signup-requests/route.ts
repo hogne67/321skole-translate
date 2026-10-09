@@ -39,6 +39,7 @@ function serializeRequest(id: string, data: FirebaseFirestore.DocumentData) {
     phone: safeString(data.phone),
     message: safeString(data.message),
     status: normalizeSignupRequestStatus(data.status),
+    confirmationEmailStatus: safeString(data.confirmationEmailStatus),
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null,
   };

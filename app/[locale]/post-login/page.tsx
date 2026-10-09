@@ -13,6 +13,7 @@ import { readGuestRole, saveGuestRole } from "@/lib/guestRole";
 import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { isSchoolInvitationPath } from "@/lib/schools/invitePaths";
 import { isPartnerInvitationPath } from "@/lib/partnerInvitationPaths";
+import { isCourseParticipantPath } from "@/lib/courses/participantPaths";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -110,6 +111,8 @@ function normalizeNext(raw: string | null, locale: string): string | null {
 }
 
 function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
+  // Teachers and parents can also be participants; course APIs still check enrollment.
+  if (isCourseParticipantPath(next, locale)) return true;
   if (isOpenAppPath(next, locale)) return true;
   if (role === "teacher") return next.startsWith(`/${locale}/teacher`);
   if (role === "parent") return next.startsWith(`/${locale}/parent`);

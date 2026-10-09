@@ -18,7 +18,8 @@
         "payments": "Betalinger",
         "submissions": "Innleveringer",
         "messages": "Meldinger"
-      }
+      },
+      "tools": "Kursverktøy"
     },
     "teacherCourses": {
       "title": "321Academy",
@@ -384,7 +385,7 @@
         "email": "E-post",
         "phone": "Telefon",
         "message": "Melding",
-        "success": "Takk. Forespørselen er sendt.",
+        "success": "Forespørselen er sendt. Du får en e-post med lenke til kursrommet når instruktøren godkjenner påmeldingen.",
         "error": "Forespørselen kunne ikke sendes akkurat nå.",
         "sending": "Sender...",
         "sendRequest": "Send forespørsel",
@@ -412,13 +413,13 @@
       "editSessions": "Rediger samlinger",
       "hostRoom": "Vertrom",
       "videoTitle": "Videosamling",
-      "videoIntro": "Bli med via denne siden som instruktør. Dette lager en vertsnøkkel for det private Daily-rommet.",
+      "videoIntro": "Start samlingen her som instruktør. Deltakerne blir med fra sitt kursrom.",
       "fullscreen": "Fullskjerm",
       "exitFullscreen": "Avslutt fullskjerm",
-      "embedLabel": "Daily instruktørvisning",
+      "embedLabel": "Klar til å starte samlingen?",
       "starting": "Starter...",
       "reconnect": "Koble til video på nytt",
-      "startJoin": "Start / bli med",
+      "startJoin": "Start samlingen",
       "cards": {
         "starts": "Starter",
         "duration": "Varighet",
@@ -429,7 +430,8 @@
       },
       "sessionPlan": "Plan for samlingen",
       "noAgenda": "Ingen agenda er lagt til ennå.",
-      "dateNotSet": "Dato ikke satt"
+      "dateNotSet": "Dato ikke satt",
+      "descriptionTitle": "Beskrivelse av samlingen"
     },
     "editCourse": {
       "title": "Rediger kurs",
@@ -846,7 +848,10 @@
           "delete": "Slett",
           "contacted": "Kontaktet",
           "accept": "Godkjenn",
-          "reject": "Avvis"
+          "reject": "Avvis",
+          "acceptAndEmail": "Godkjenn og send e-post",
+          "sendConfirmation": "Send bekreftelse",
+          "resendConfirmation": "Send bekreftelse på nytt"
         },
         "group": {
           "title": "Legg til gruppe / skole",
@@ -861,6 +866,12 @@
             "accepted": "godkjent",
             "rejected": "avvist",
             "contacted": "kontaktet"
+          },
+          "email": {
+            "notSent": "Bekreftelse er ikke sendt.",
+            "sent": "Bekreftelse sendt til e-postleverandøren.",
+            "failed": "Deltakeren er godkjent, men e-posten kunne ikke sendes.",
+            "sending": "Sender bekreftelse…"
           }
         },
         "progress": {

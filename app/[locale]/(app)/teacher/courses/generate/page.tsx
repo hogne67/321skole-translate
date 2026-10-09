@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { DEFAULT_COURSE_FORM, normalizeCoursePlan, type CourseFormValues, type CoursePlanSession } from "@/lib/courses/types";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { webinarDraftSession } from "@/lib/courses/webinarDraft";
 
 type PracticalInfo = {
   courseType: "course" | "webinar";
@@ -124,12 +125,19 @@ function GenerateCourseContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [webinarStartsAt, setWebinarStartsAt] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState(DEFAULT_COURSE_FORM.maxParticipants);
+  const isWebinar = info.courseType === "webinar";
   const busy = generating || generatingPlan || saving;
 
   function updateInfo<K extends keyof PracticalInfo>(key: K, value: PracticalInfo[K]) {
     setNotice("");
     if (key === "pricingMode") setProposal((current) => ({ ...current, priceText: value === "free" ? "Gratis" : "" }));
-    if (key === "courseType") setCoursePlan([]);
+    if (key === "courseType") {
+      setCoursePlan([]);
+      setError("");
+      setMaxParticipants(value === "webinar" ? 0 : DEFAULT_COURSE_FORM.maxParticipants);
+    }
     setInfo((prev) => {
       const next = { ...prev, [key]: value };
       if (key === "courseType") {
@@ -164,7 +172,11 @@ function GenerateCourseContent() {
   }
 
   async function generateProposal() {
-    if (!user || generating) return;
+    if (!user || busy) return;
+    if (isWebinar && !proposal.title.trim()) {
+      setError("Skriv inn en tittel eller et tema før du ber KI om hjelp.");
+      return;
+    }
 
     try {
       setGenerating(true);
@@ -176,7 +188,15 @@ function GenerateCourseContent() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(info),
+        body: JSON.stringify(isWebinar ? {
+          ...info,
+          subject: proposal.title.trim(),
+          subtopic: "Én enkeltstående samling",
+          audience: proposal.targetAudience.trim() || "Ikke spesifisert",
+          language: proposal.language,
+          level: proposal.level,
+          additionalDescription: [proposal.title, proposal.description].filter(Boolean).join("\n\n"),
+        } : info),
       });
       const data = (await res.json().catch(() => ({}))) as {
         proposal?: Partial<Proposal>;
@@ -192,8 +212,8 @@ function GenerateCourseContent() {
         description: data.proposal.description ?? "",
         learningGoals: data.proposal.learningGoals ?? "",
         targetAudience: data.proposal.targetAudience ?? "",
-        language: data.proposal.language ?? info.language,
-        level: info.level,
+        language: data.proposal.language ?? (isWebinar ? proposal.language : info.language),
+        level: isWebinar ? proposal.level : info.level,
         priceText: info.pricingMode === "free" ? "Gratis" : proposal.priceText,
       });
     } catch (err) {
@@ -217,6 +237,9 @@ function GenerateCourseContent() {
     try {
       setSaving(true);
       setError("");
+      const plan = isWebinar
+        ? [webinarDraftSession({ title, description: proposal.description, localStartsAt: webinarStartsAt, durationMinutes: info.durationMinutes })]
+        : normalizeCoursePlan(coursePlan);
       const token = await user.getIdToken();
       const res = await fetch("/api/teacher/courses", {
         method: "POST",
@@ -230,11 +253,11 @@ function GenerateCourseContent() {
           courseType: info.courseType,
           pricingMode: info.pricingMode,
           priceText: info.pricingMode === "free" ? "Gratis" : proposal.priceText,
-          maxParticipants: DEFAULT_COURSE_FORM.maxParticipants,
-          numberOfSessions: info.numberOfSessions,
-          numberOfWeeks: info.numberOfSessions,
+          maxParticipants,
+          numberOfSessions: isWebinar ? 1 : info.numberOfSessions,
+          numberOfWeeks: isWebinar ? 1 : info.numberOfSessions,
           sessionDurationMinutes: info.durationMinutes,
-          coursePlan: normalizeCoursePlan(coursePlan),
+          coursePlan: plan,
           status: "draft",
         }),
       });
@@ -244,7 +267,7 @@ function GenerateCourseContent() {
       router.push(`/${locale}/teacher/courses/${data.courseId}`);
     } catch (err) {
       console.error("Failed to save generated course", err);
-      setError("Kurset kunne ikke lagres akkurat nå.");
+      setError(err instanceof Error ? err.message : "Utkastet kunne ikke lagres akkurat nå.");
       setSaving(false);
     }
   }
@@ -307,7 +330,7 @@ function GenerateCourseContent() {
                 Lag kurs eller webinar
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Velg rammer og få et forslag fra KI, eller opprett manuelt. Du kan redigere alt før du lagrer som utkast. Ingen ting publiseres automatisk.
+                Velg flere samlinger eller én enkelt samling. Lagre først et utkast, publiser invitasjonen når du er klar, og start samlingen når den skal gjennomføres.
               </p>
             </div>
             <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/courses`)}>
@@ -316,19 +339,105 @@ function GenerateCourseContent() {
           </div>
         </section>
 
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
-          <div><h2 className="font-bold text-slate-950">Hvordan vil du opprette?</h2><p className="text-sm text-slate-600">Denne siden hjelper deg med KI. Velg manuell oppretting hvis du vil skrive selv.</p></div>
-          <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push(`/${locale}/teacher/courses/new`)}>Opprett manuelt</Button>
+        <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="m-0 font-bold text-slate-950">Hva vil du lage?</h2>
+          <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Velg type oppretting">
+            {([
+              { value: "course", title: "Kurs med flere samlinger", description: "Planlegg et kurs og få forslag til tekst og samlinger fra KI." },
+              { value: "webinar", title: "Webinar / én samling", description: "En snarvei for webinarer og enkeltstående kurs. Skriv selv eller få hjelp med teksten." },
+            ] as const).map((option) => (
+              <button key={option.value} type="button" aria-pressed={info.courseType === option.value} disabled={busy}
+                onClick={() => { if (info.courseType !== option.value) updateInfo("courseType", option.value); }}
+                className={`rounded-lg border p-4 text-left disabled:opacity-60 ${info.courseType === option.value ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600" : "border-slate-200 hover:bg-slate-50"}`}>
+                <span className="block font-bold text-slate-950">{option.title}</span>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">{option.description}</span>
+              </button>
+            ))}
+          </div>
+          {!isWebinar ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="m-0 text-sm text-slate-600">Du kan også opprette et kurs uten KI.</p>
+              <Button type="button" variant="secondary" disabled={busy} onClick={() => router.push(`/${locale}/teacher/courses/new`)}>Opprett manuelt</Button>
+            </div>
+          ) : null}
         </section>
         <p role="status" aria-live="polite" className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          {saving ? "Lagrer utkast…" : generating ? "KI lager navn, beskrivelse og læringsmål…" : generatingPlan ? "KI lager forslag til samlinger…" : notice || "Ikke lagret. Velg rammer og lag et forslag, så lagrer du utkastet nederst."}
+          {saving ? "Lagrer utkast…" : generating ? "KI lager navn, beskrivelse og læringsmål…" : generatingPlan ? "KI lager forslag til samlinger…" : notice || (isWebinar ? "Skriv en enkel invitasjon og lagre utkastet. KI-hjelp er valgfritt." : "Ikke lagret. Velg rammer og lag et forslag, så lagrer du utkastet nederst.")}
         </p>
         {error ? (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             {error}
           </div>
         ) : null}
 
+        {isWebinar ? (
+          <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+            <div>
+              <h2 className="m-0 text-lg font-extrabold text-slate-950">En enkel invitasjon</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Én samling. Du kan bestemme tidspunktet senere og redigere alt før publisering.</p>
+            </div>
+            <Field label="Tittel eller tema">
+              <Input value={proposal.title} onChange={(event) => updateProposal("title", event.target.value)} placeholder="F.eks. Kom i gang med 321school" required />
+            </Field>
+            <Field label="Kort beskrivelse">
+              <Textarea value={proposal.description} onChange={(event) => updateProposal("description", event.target.value)} rows={3} placeholder="Hva skal samlingen handle om, og hva får deltakerne ut av den?" />
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Dato og klokkeslett (valgfritt)">
+                <Input type="datetime-local" value={webinarStartsAt} onChange={(event) => setWebinarStartsAt(event.target.value)} />
+                <span className="text-xs font-normal text-slate-600">La feltet stå tomt hvis du vil bestemme tidspunktet senere.</span>
+              </Field>
+              <Field label="Varighet">
+                <Select value={String(info.durationMinutes)} onChange={(event) => updateInfo("durationMinutes", Number(event.target.value))}>
+                  {[30, 45, 60, 90, 120, 180].map((duration) => <option key={duration} value={duration}>{duration} minutter</option>)}
+                </Select>
+              </Field>
+              <Field label="Deltakerpris">
+                <Select value={info.pricingMode} onChange={(event) => updateInfo("pricingMode", event.target.value === "paid" ? "paid" : "free")}>
+                  <option value="free">Gratis</option><option value="paid">Betalt</option>
+                </Select>
+              </Field>
+              {info.pricingMode === "paid" ? (
+                <Field label="Pris / kort tekst">
+                  <Input value={proposal.priceText} onChange={(event) => updateProposal("priceText", event.target.value)} placeholder="F.eks. 250 kr per deltaker" />
+                  <span className="text-xs font-normal text-slate-600">Betaling og salg settes opp etter at utkastet er lagret.</span>
+                </Field>
+              ) : null}
+            </div>
+            <div className="flex justify-end">
+              <Button type="button" variant="secondary" disabled={busy || !proposal.title.trim()} onClick={() => void generateProposal()}>
+                {generating ? "Lager tekstforslag…" : "Hjelp meg med teksten"}
+              </Button>
+            </div>
+            <details className="rounded-lg border border-slate-200 bg-white p-4">
+              <summary className="cursor-pointer font-bold text-slate-950">Flere innstillinger</summary>
+              <div className="mt-4 grid gap-4">
+                <p className="m-0 text-sm leading-6 text-slate-600">Her kan du legge til detaljer nå eller senere. Beskrivelse, målgruppe og læringsmål må være fylt ut før publisering.</p>
+                <Field label="Målgruppe">
+                  <Input value={proposal.targetAudience} onChange={(event) => updateProposal("targetAudience", event.target.value)} placeholder="Hvem passer samlingen for?" />
+                </Field>
+                <Field label="Læringsmål">
+                  <Textarea value={proposal.learningGoals} onChange={(event) => updateProposal("learningGoals", event.target.value)} rows={3} placeholder="Hva skal deltakerne sitte igjen med?" />
+                </Field>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Språk"><Input value={proposal.language} onChange={(event) => updateProposal("language", event.target.value)} /></Field>
+                  <Field label="Deltakergrense">
+                    <Input type="number" min={0} value={maxParticipants} onChange={(event) => setMaxParticipants(Number(event.target.value))} />
+                    <span className="text-xs font-normal text-slate-600">0 betyr ingen fast deltakergrense.</span>
+                  </Field>
+                  <Field label="Nivå (valgfritt)">
+                    <Select value={proposal.level} onChange={(event) => updateProposal("level", event.target.value)}>
+                      <option value="">Ikke nivåbestemt</option>
+                      {LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                    </Select>
+                  </Field>
+                </div>
+              </div>
+            </details>
+            <p className="m-0 text-sm leading-6 text-slate-600">Når du lagrer, opprettes én samling med denne tittelen, beskrivelsen og tidspunktet. Deretter kan du kontrollere informasjonen og publisere invitasjonen fra kursoversikten.</p>
+          </section>
+        ) : (
+          <>
         <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">1. Praktisk info</h2>
@@ -338,10 +447,6 @@ function GenerateCourseContent() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Hva vil du lage?">
-              <Select value={info.courseType} disabled={busy} onChange={(e) => updateInfo("courseType", e.target.value === "webinar" ? "webinar" : "course")}><option value="course">Kurs</option><option value="webinar">Webinar</option></Select>
-              <span className="text-xs font-normal text-slate-600">Webinar starter med én samling. Du kan endre antallet.</span>
-            </Field>
             <Field label="Deltakerpris">
               <Select value={info.pricingMode} disabled={busy} onChange={(e) => updateInfo("pricingMode", e.target.value === "paid" ? "paid" : "free")}><option value="free">Gratis</option><option value="paid">Betalt</option></Select>
               <span className="text-xs font-normal text-slate-600">Ved betalt deltakelse fyller du inn pristeksten i forslaget.</span>
@@ -553,6 +658,9 @@ function GenerateCourseContent() {
             </div>
           )}
         </section>
+
+          </>
+        )}
 
         <div className="flex flex-wrap justify-end gap-3">
           <Button type="submit" variant="primary" disabled={busy}>

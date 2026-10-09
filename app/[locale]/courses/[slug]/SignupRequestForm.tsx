@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export function SignupRequestForm({
   slug,
@@ -10,6 +10,7 @@ export function SignupRequestForm({
   slug: string;
   compact?: boolean;
 }) {
+  const locale = useLocale();
   const t = useTranslations("academy.publicCourse.signup");
   const [form, setForm] = useState({
     name: "",
@@ -36,7 +37,7 @@ export function SignupRequestForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, locale }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
 

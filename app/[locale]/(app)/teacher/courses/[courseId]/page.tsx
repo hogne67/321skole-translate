@@ -456,6 +456,7 @@ function formatDateTime(value: string | null) {
 }
 
 function ParticipantsPanel({ course }: { course: Course }) {
+  const locale = useLocale();
   const t = useTranslations("academy.dashboard.participants");
   const { user } = useUserProfile();
   const [participants, setParticipants] = useState<CourseParticipant[]>([]);
@@ -657,7 +658,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
     }
   }
 
-  async function updateRequest(requestId: string, action: "contacted" | "accept" | "reject") {
+  async function updateRequest(requestId: string, action: "contacted" | "accept" | "reject" | "sendConfirmation") {
     if (!user || saving) return;
 
     try {
@@ -670,7 +671,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, locale }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Could not update request");
@@ -998,6 +999,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
                       {formatSignupRequestStatus(request.status, t)}
                     </span>
+{request.status !== "accepted" ? (<>
                     <button
                       type="button"
                       disabled={saving}
@@ -1012,7 +1014,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                       onClick={() => void updateRequest(request.id, "accept")}
                       className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 disabled:opacity-60"
                     >
-                      {t("actions.accept")}
+                      {t("actions.acceptAndEmail")}
                     </button>
                     <button
                       type="button"
@@ -1022,6 +1024,14 @@ function ParticipantsPanel({ course }: { course: Course }) {
                     >
                       {t("actions.reject")}
                     </button>
+                    </>) : (
+                      <div className="grid gap-2 text-right">
+                        <span className="text-xs font-semibold text-slate-600" role="status">{t(`requests.email.${request.confirmationEmailStatus || "notSent"}`)}</span>
+                        <button type="button" disabled={saving} onClick={() => void updateRequest(request.id, "sendConfirmation")} className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold disabled:opacity-60">
+                          {t(request.confirmationEmailStatus === "sent" ? "actions.resendConfirmation" : "actions.sendConfirmation")}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

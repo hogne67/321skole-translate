@@ -4,7 +4,12 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 
+import { approveCourseSignup } from "@/lib/courses/signupApproval";
+import { sendCourseConfirmation } from "@/lib/courses/confirmationEmail";
+import { sendEmail } from "@/lib/email/resend";
+
 type ActionBody = {
+  locale?: unknown;
   action?: unknown;
 };
 
@@ -98,6 +103,7 @@ export async function PATCH(
 
     const body = (await req.json().catch(() => ({}))) as ActionBody;
     const action = safeString(body.action);
+    const emailOrigin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(req.url).origin;
     const requestRef = access.db
       .collection("courses")
       .doc(courseId)
@@ -108,16 +114,15 @@ export async function PATCH(
     if (!requestSnap.exists) return json({ error: "Request not found" }, 404);
 
     const request = requestSnap.data() ?? {};
-    const now = new Date();
-
-    if (action === "contacted") {
-      await requestRef.set({ status: "contacted", updatedAt: now }, { merge: true });
-      return json({ requestId }, 200);
-    }
-
-    if (action === "reject") {
-      await requestRef.set({ status: "rejected", updatedAt: now }, { merge: true });
-      return json({ requestId }, 200);
+    if (action === "contacted" || action === "reject") {
+      const changed = await access.db.runTransaction(async (tx) => {
+        const fresh = await tx.get(requestRef);
+        if (!fresh.exists) throw new Error("Request not found");
+        if (fresh.data()?.status === "accepted") return false;
+        tx.update(requestRef, { status: action === "contacted" ? "contacted" : "rejected", updatedAt: new Date() });
+        return true;
+      });
+      return changed ? json({ requestId }, 200) : json({ error: "Approved requests must be managed under Participants" }, 409);
     }
 
     if (action === "accept") {
@@ -125,39 +130,17 @@ export async function PATCH(
       const identity = requestEmail
         ? await resolveParticipantIdentity(access.auth, access.db, requestEmail)
         : { participantUid: "", roleSnapshot: "" };
+      const approval = await approveCourseSignup(access.db, courseId, requestId, identity);
+      const confirmationEmailStatus = approval.alreadyAccepted
+        ? safeString((await requestRef.get()).data()?.confirmationEmailStatus)
+        : await sendCourseConfirmation({ db: access.db, courseId, requestId, origin: emailOrigin, locale: safeString(body.locale), send: sendEmail });
+      return json({ requestId, ...approval, confirmationEmailStatus }, 200);
+    }
 
-      await access.db.runTransaction(async (tx) => {
-        const freshSnap = await tx.get(requestRef);
-        const fresh = freshSnap.data() ?? request;
-        const email = safeString(fresh.email).toLowerCase();
-
-        if (!email) {
-          throw new Error("Request is missing email");
-        }
-
-        const participantRef = access.db
-          .collection("courses")
-          .doc(courseId)
-          .collection("participants")
-          .doc();
-
-        tx.set(participantRef, {
-          name: safeString(fresh.name),
-          email,
-          participantUid: identity.participantUid,
-          roleSnapshot: identity.roleSnapshot,
-          phone: safeString(fresh.phone),
-          source: "signupRequest",
-          signupRequestId: requestId,
-          status: "enrolled",
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        tx.set(requestRef, { status: "accepted", updatedAt: now }, { merge: true });
-      });
-
-      return json({ requestId }, 200);
+    if (action === "sendConfirmation") {
+      if (request.status !== "accepted") return json({ error: "Request must be approved first" }, 409);
+      const confirmationEmailStatus = await sendCourseConfirmation({ db: access.db, courseId, requestId, origin: emailOrigin, locale: safeString(body.locale), send: sendEmail });
+      return json({ requestId, confirmationEmailStatus }, 200);
     }
 
     return json({ error: "Unknown action" }, 400);
