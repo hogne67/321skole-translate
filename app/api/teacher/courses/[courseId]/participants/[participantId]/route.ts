@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import { normalizeParticipantStatus, type ParticipantStatus } from "@/lib/courses/types";
+import { saveCourseParticipants } from "@/lib/courses/saveParticipants";
+import { CourseFullError } from "@/lib/courses/registration";
 
 type ParticipantBody = {
   name?: unknown;
@@ -114,13 +116,7 @@ export async function PUT(
     if (!email) return json({ error: "Missing email" }, 400);
 
     const identity = await resolveParticipantIdentity(access.auth, access.db, email);
-    await access.db
-      .collection("courses")
-      .doc(courseId)
-      .collection("participants")
-      .doc(participantId)
-      .set(
-        {
+    await saveCourseParticipants(access.db, courseId, [{
           name,
           email,
           participantUid: identity.participantUid,
@@ -130,12 +126,11 @@ export async function PUT(
           note,
           status,
           updatedAt: new Date(),
-        },
-        { merge: true }
-      );
+        }], participantId);
 
     return json({ participantId }, 200);
   } catch (error) {
+    if (error instanceof CourseFullError) return json({ code: "course_full", error: "Course is full" }, 409);
     const message = error instanceof Error ? error.message : "Could not update participant";
     return json({ error: message }, 500);
   }

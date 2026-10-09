@@ -354,7 +354,8 @@
         "weeks": "Semanas",
         "maxParticipants": "Máx. participantes",
         "available": "Disponível",
-        "price": "Preço"
+        "price": "Preço",
+        "enrolled": "Inscritos"
       },
       "places": "{count} vagas",
       "missing": "Não preenchido",
@@ -385,17 +386,24 @@
         "email": "E-mail",
         "phone": "Telefone",
         "message": "Mensagem",
-        "success": "O seu pedido foi enviado. Receberá um email com um link para a sala do curso quando o instrutor aprovar a inscrição.",
+        "success": "Recebemos o seu pedido e enviaremos uma confirmação de receção por e-mail. O instrutor deve aprovar a inscrição antes de confirmar a vaga e o link do participante.",
         "error": "Não foi possível enviar a solicitação agora.",
         "sending": "Enviando...",
         "sendRequest": "Enviar solicitação",
-        "requestPlace": "Solicitar vaga"
+        "requestPlace": "Solicitar vaga",
+        "automaticTitle": "Inscreva-se",
+        "register": "Inscrever-me",
+        "registered": "A sua vaga está confirmada! Enviaremos o link do participante por e-mail. Verifique também o spam.",
+        "duplicate": "Já recebemos um pedido ou inscrição com este e-mail. Contacte o instrutor se precisar de ajuda.",
+        "full": "O curso está lotado. Nenhuma vaga foi registada.",
+        "emailFailed": "A inscrição foi guardada, mas não foi possível enviar o e-mail. Contacte o instrutor."
       },
       "checkout": {
         "signin": "Entre antes de comprar este curso.",
         "failed": "Não foi possível iniciar o checkout",
         "opening": "Abrindo checkout..."
-      }
+      },
+      "unlimited": "Ilimitado"
     },
     "teacherSessionRoom": {
       "loading": "Carregando sessão...",
@@ -469,7 +477,14 @@
         "saving": "Salvando...",
         "save": "Salvar curso"
       },
-      "noLevel": "Sem nível definido"
+      "noLevel": "Sem nível definido",
+      "registration": {
+        "label": "Inscrição",
+        "approval": "Requer aprovação",
+        "automatic": "Inscrição automática (gratuito)",
+        "help": "Automática: O participante recebe uma vaga e confirmação imediatamente, enquanto houver vagas. Com aprovação, enviamos primeiro a confirmação de receção do pedido.",
+        "paidHelp": "A inscrição automática está disponível para cursos gratuitos. Cursos pagos utilizam pagamento ou aprovação."
+      }
     },
     "sessions": {
       "title": "Sessões",
@@ -851,7 +866,8 @@
           "reject": "Rejeitar",
           "acceptAndEmail": "Aprovar e enviar email",
           "sendConfirmation": "Enviar confirmação",
-          "resendConfirmation": "Reenviar confirmação"
+          "resendConfirmation": "Reenviar confirmação",
+          "sendReceipt": "Enviar confirmação de receção"
         },
         "group": {
           "title": "Adicionar grupo / escola",
@@ -872,7 +888,8 @@
             "sent": "Confirmação enviada ao fornecedor de email.",
             "failed": "O participante foi aprovado, mas não foi possível enviar o email.",
             "sending": "A enviar confirmação…"
-          }
+          },
+          "receipt": "Confirmação de receção"
         },
         "progress": {
           "title": "Progresso do curso",
@@ -908,7 +925,8 @@
           "paidHeld": "Pago / retido",
           "paid": "Pago",
           "checkoutStarted": "Checkout iniciado"
-        }
+        },
+        "courseFull": "O curso está lotado. Liberte uma vaga ou aumente o limite de participantes."
       },
       "submissions": {
         "title": "Entregas",

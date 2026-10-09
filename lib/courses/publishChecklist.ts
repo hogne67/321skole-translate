@@ -33,10 +33,6 @@ function hasText(value: string): boolean {
   return value.trim().length > 0;
 }
 
-function hasPositiveNumber(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
-}
-
 function firstSession(plan: CoursePlanSession[]): CoursePlanSession | null {
   return plan.length > 0 ? plan[0] : null;
 }
@@ -88,7 +84,7 @@ export function buildCoursePublishChecklist(course: ChecklistCourse): CoursePubl
     {
       id: "maxParticipants",
       label: "Max participants exists",
-      passed: hasPositiveNumber(course.maxParticipants),
+      passed: typeof course.maxParticipants === "number" && Number.isFinite(course.maxParticipants) && course.maxParticipants >= 0,
       severity: "warning",
     },
     {

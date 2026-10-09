@@ -12,6 +12,9 @@ import {
 } from "@/lib/courses/types";
 import { CourseCheckoutButton } from "./CourseCheckoutButton";
 import { SignupRequestForm } from "./SignupRequestForm";
+import { occupiedPlaces, registrationModeForCourse } from "@/lib/courses/registration";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{
@@ -39,6 +42,7 @@ type PublicCourse = {
   canCheckout: boolean;
   isFull: boolean;
   participantCount: number;
+  automaticRegistration: boolean;
 };
 
 function safeString(value: unknown): string {
@@ -78,10 +82,7 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
   }
   const sales = normalizeCourseSalesSettings(data.sales);
   const participantsSnap = await doc.ref.collection("participants").get();
-  const participantCount = participantsSnap.docs.filter((participantDoc) => {
-    const status = safeString(participantDoc.data().status);
-    return status === "invited" || status === "enrolled" || status === "active";
-  }).length;
+  const participantCount = occupiedPlaces(participantsSnap.docs.map((doc) => doc.data()));
   const isFull = safeNumber(data.maxParticipants) > 0 && participantCount >= safeNumber(data.maxParticipants);
 
   return {
@@ -102,6 +103,7 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
     teacherName,
     isFull,
     participantCount,
+    automaticRegistration: registrationModeForCourse(data) === "automatic",
     canCheckout:
       !isFull &&
       ownerCanReceivePayments === true &&
@@ -153,13 +155,14 @@ export default async function PublicCoursePage({ params }: PageProps) {
             <Badge label={t("badges.language")} value={course.language || t("missing")} />
             <Badge label={t("badges.sessions")} value={String(course.numberOfSessions)} />
             <Badge label={t("badges.weeks")} value={String(course.numberOfWeeks)} />
-            <Badge label={t("badges.maxParticipants")} value={String(course.maxParticipants)} />
+            <Badge label={t("badges.maxParticipants")} value={course.maxParticipants > 0 ? String(course.maxParticipants) : t("unlimited")} />
             {course.maxParticipants > 0 ? (
               <Badge
                 label={t("badges.available")}
                 value={t("places", { count: Math.max(0, course.maxParticipants - course.participantCount) })}
               />
             ) : null}
+            <Badge label={t("badges.enrolled")} value={String(course.participantCount)} />
             <Badge label={t("badges.price")} value={formatCoursePrice(course.sales, course.priceText, locale, t("missing"))} />
           </div>
 
@@ -171,15 +174,13 @@ export default async function PublicCoursePage({ params }: PageProps) {
               </div>
               <SignupRequestForm slug={course.slug} compact />
             </>
-          ) : course.isFull ? (
-            <>
-              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-                {t("full")}
-              </div>
-              <SignupRequestForm slug={course.slug} compact />
-            </>
           ) : (
-            <SignupRequestForm slug={course.slug} />
+            <>
+              {course.isFull ? <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                {t("full")}
+              </div> : null}
+              <SignupRequestForm slug={course.slug} compact={course.isFull && !course.automaticRegistration} automatic={course.automaticRegistration} full={course.isFull} />
+            </>
           )}
         </section>
 

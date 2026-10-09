@@ -354,7 +354,8 @@
         "weeks": "Uker",
         "maxParticipants": "Maks deltakere",
         "available": "Ledig",
-        "price": "Pris"
+        "price": "Pris",
+        "enrolled": "Påmeldte"
       },
       "places": "{count} plasser",
       "missing": "Ikke fylt ut",
@@ -385,17 +386,24 @@
         "email": "E-post",
         "phone": "Telefon",
         "message": "Melding",
-        "success": "Forespørselen er sendt. Du får en e-post med lenke til kursrommet når instruktøren godkjenner påmeldingen.",
+        "success": "Vi har mottatt forespørselen din og sender en mottaksbekreftelse på e-post. Instruktøren må godkjenne påmeldingen før du får plass og deltakerlenke.",
         "error": "Forespørselen kunne ikke sendes akkurat nå.",
         "sending": "Sender...",
         "sendRequest": "Send forespørsel",
-        "requestPlace": "Meld interesse"
+        "requestPlace": "Meld interesse",
+        "automaticTitle": "Meld deg på",
+        "register": "Meld meg på",
+        "registered": "Du har fått plass! Vi sender deg en e-post med deltakerlenke. Sjekk også søppelpost.",
+        "duplicate": "Vi har allerede mottatt en forespørsel eller påmelding med denne e-postadressen. Kontakt instruktøren hvis du trenger hjelp.",
+        "full": "Kurset er fullt. Ingen plass ble registrert.",
+        "emailFailed": "Påmeldingen er lagret, men e-posten kunne ikke sendes. Kontakt instruktøren for hjelp."
       },
       "checkout": {
         "signin": "Logg inn før du kjøper dette kurset.",
         "failed": "Kunne ikke starte betaling",
         "opening": "Åpner betaling..."
-      }
+      },
+      "unlimited": "Ubegrenset"
     },
     "teacherSessionRoom": {
       "loading": "Laster samling...",
@@ -469,7 +477,14 @@
         "saving": "Lagrer...",
         "save": "Lagre kurs"
       },
-      "noLevel": "Ikke nivåbestemt"
+      "noLevel": "Ikke nivåbestemt",
+      "registration": {
+        "label": "Påmelding",
+        "approval": "Krever godkjenning",
+        "automatic": "Automatisk påmelding (gratis)",
+        "help": "Automatisk: Deltakeren får plass og bekreftelse med én gang, så lenge det er ledige plasser. Ved godkjenning sendes først en mottaksbekreftelse.",
+        "paidHelp": "Automatisk påmelding er tilgjengelig for gratis kurs. Betalte kurs bruker betalingsløpet eller godkjenning."
+      }
     },
     "sessions": {
       "title": "Samlinger",
@@ -851,7 +866,8 @@
           "reject": "Avvis",
           "acceptAndEmail": "Godkjenn og send e-post",
           "sendConfirmation": "Send bekreftelse",
-          "resendConfirmation": "Send bekreftelse på nytt"
+          "resendConfirmation": "Send bekreftelse på nytt",
+          "sendReceipt": "Send mottaksbekreftelse"
         },
         "group": {
           "title": "Legg til gruppe / skole",
@@ -872,7 +888,8 @@
             "sent": "Bekreftelse sendt til e-postleverandøren.",
             "failed": "Deltakeren er godkjent, men e-posten kunne ikke sendes.",
             "sending": "Sender bekreftelse…"
-          }
+          },
+          "receipt": "Mottaksbekreftelse"
         },
         "progress": {
           "title": "Kursprogresjon",
@@ -908,7 +925,8 @@
           "paidHeld": "Betalt / holdes",
           "paid": "Betalt",
           "checkoutStarted": "Checkout startet"
-        }
+        },
+        "courseFull": "Kurset er fullt. Frigjør en plass eller øk maksimalt antall deltakere først."
       },
       "submissions": {
         "title": "Innleveringer",

@@ -581,13 +581,13 @@ function ParticipantsPanel({ course }: { course: Course }) {
         body: JSON.stringify(form),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Could not save participant");
+      if (!res.ok) throw new Error(data.error === "Course is full" ? t("courseFull") : data.error || "Could not save participant");
 
       resetForm();
       await loadParticipants();
     } catch (err) {
       console.error("Failed to save participant", err);
-      setError(t("saveFailed"));
+      setError(err instanceof Error && err.message === t("courseFull") ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -621,14 +621,14 @@ function ParticipantsPanel({ course }: { course: Course }) {
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Could not add group");
+      if (!res.ok) throw new Error(data.error === "Course is full" ? t("courseFull") : data.error || "Could not add group");
 
       setGroupForm(EMPTY_GROUP_FORM);
       setShowGroupForm(false);
       await loadParticipants();
     } catch (err) {
       console.error("Failed to add group participants", err);
-      setError(t("groupSaveFailed"));
+      setError(err instanceof Error && err.message === t("courseFull") ? err.message : t("groupSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -658,7 +658,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
     }
   }
 
-  async function updateRequest(requestId: string, action: "contacted" | "accept" | "reject" | "sendConfirmation") {
+  async function updateRequest(requestId: string, action: "contacted" | "accept" | "reject" | "sendConfirmation" | "sendReceipt") {
     if (!user || saving) return;
 
     try {
@@ -674,12 +674,12 @@ function ParticipantsPanel({ course }: { course: Course }) {
         body: JSON.stringify({ action, locale }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Could not update request");
+      if (!res.ok) throw new Error(data.error === "Course is full" ? t("courseFull") : data.error || "Could not update request");
 
       await loadParticipants();
     } catch (err) {
       console.error("Failed to update signup request", err);
-      setError(t("requestFailed"));
+      setError(err instanceof Error && err.message === t("courseFull") ? err.message : t("requestFailed"));
     } finally {
       setSaving(false);
     }
@@ -1000,6 +1000,10 @@ function ParticipantsPanel({ course }: { course: Course }) {
                       {formatSignupRequestStatus(request.status, t)}
                     </span>
 {request.status !== "accepted" ? (<>
+                    {request.status === "new" || request.status === "contacted" ? <div className="grid gap-1 text-right">
+                      <span className="text-xs text-slate-600">{t("requests.receipt")}: {t(`requests.email.${request.receiptEmailStatus || "notSent"}`)}</span>
+                      <button type="button" disabled={saving} onClick={() => void updateRequest(request.id, "sendReceipt")} className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold disabled:opacity-60">{t("actions.sendReceipt")}</button>
+                    </div> : null}
                     <button
                       type="button"
                       disabled={saving}

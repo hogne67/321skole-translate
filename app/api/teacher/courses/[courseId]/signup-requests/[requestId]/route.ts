@@ -5,6 +5,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 
 import { approveCourseSignup } from "@/lib/courses/signupApproval";
+import { CourseFullError } from "@/lib/courses/registration";
 import { sendCourseConfirmation } from "@/lib/courses/confirmationEmail";
 import { sendEmail } from "@/lib/email/resend";
 
@@ -143,8 +144,15 @@ export async function PATCH(
       return json({ requestId, confirmationEmailStatus }, 200);
     }
 
+    if (action === "sendReceipt") {
+      if (!["new", "contacted"].includes(request.status)) return json({ error: "Request is not awaiting approval" }, 409);
+      const receiptEmailStatus = await sendCourseConfirmation({ db: access.db, courseId, requestId, origin: emailOrigin, locale: safeString(body.locale), send: sendEmail, kind: "receipt" });
+      return json({ requestId, receiptEmailStatus }, 200);
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (error) {
+    if (error instanceof CourseFullError) return json({ code: "course_full", error: "Course is full" }, 409);
     const message = error instanceof Error ? error.message : "Could not update request";
     return json({ error: message }, 500);
   }

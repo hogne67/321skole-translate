@@ -79,6 +79,7 @@ export type CourseSignupRequest = {
   message: string;
   status: SignupRequestStatus;
   confirmationEmailStatus?: "sent" | "failed" | "sending" | "";
+  receiptEmailStatus?: "sent" | "failed" | "sending" | "";
   createdAt?: CourseDate | null;
   updatedAt?: CourseDate | null;
 };
@@ -112,6 +113,7 @@ export type Course = {
   ownerUid: string;
   courseType?: "course" | "webinar";
   pricingMode?: "free" | "paid";
+  registrationMode?: "approval" | "automatic";
   title: string;
   description: string;
   learningGoals: string;
@@ -155,6 +157,7 @@ export const DEFAULT_COURSE_FORM: CourseFormValues = {
   level: "a1start",
   priceText: "",
   maxParticipants: 12,
+  registrationMode: "approval",
   numberOfSessions: 6,
   numberOfWeeks: 6,
   status: "draft",
@@ -262,6 +265,7 @@ export function normalizeCourse(id: string, data: Record<string, unknown>): Cour
     id,
     courseType: data.courseType === "webinar" ? "webinar" : "course",
     pricingMode: data.pricingMode === "free" ? "free" : "paid",
+    registrationMode: data.registrationMode === "automatic" ? "automatic" : "approval",
     ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
     title: typeof data.title === "string" ? data.title : "",
     description: typeof data.description === "string" ? data.description : "",
@@ -462,6 +466,7 @@ export function normalizeCourseSignupRequest(
     phone: typeof data.phone === "string" ? data.phone : "",
     message: typeof data.message === "string" ? data.message : "",
     confirmationEmailStatus: data.confirmationEmailStatus === "sent" || data.confirmationEmailStatus === "failed" || data.confirmationEmailStatus === "sending" ? data.confirmationEmailStatus : "",
+    receiptEmailStatus: data.receiptEmailStatus === "sent" || data.receiptEmailStatus === "failed" || data.receiptEmailStatus === "sending" ? data.receiptEmailStatus : "",
     status: normalizeSignupRequestStatus(data.status),
     createdAt: normalizeDate(data.createdAt),
     updatedAt: normalizeDate(data.updatedAt),

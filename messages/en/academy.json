@@ -354,7 +354,8 @@
         "weeks": "Weeks",
         "maxParticipants": "Max participants",
         "available": "Available",
-        "price": "Price"
+        "price": "Price",
+        "enrolled": "Enrolled"
       },
       "places": "{count} places",
       "missing": "Not filled in",
@@ -385,17 +386,24 @@
         "email": "Email",
         "phone": "Phone",
         "message": "Message",
-        "success": "Your request has been sent. You will receive an email with a link to the course room when the instructor approves your registration.",
+        "success": "We received your request and will email a receipt. The instructor must approve your registration before your place and participant link are confirmed.",
         "error": "The request could not be sent right now.",
         "sending": "Sending...",
         "sendRequest": "Send request",
-        "requestPlace": "Request a place"
+        "requestPlace": "Request a place",
+        "automaticTitle": "Enroll",
+        "register": "Enroll me",
+        "registered": "Your place is confirmed! We will email your participant link. Please check your spam folder too.",
+        "duplicate": "We already received a request or registration with this email address. Contact the instructor if you need help.",
+        "full": "The course is full. No place was registered.",
+        "emailFailed": "Your registration is saved, but the email could not be sent. Contact the instructor for help."
       },
       "checkout": {
         "signin": "Sign in before buying this course.",
         "failed": "Could not start checkout",
         "opening": "Opening checkout..."
-      }
+      },
+      "unlimited": "Unlimited"
     },
     "teacherSessionRoom": {
       "loading": "Loading session...",
@@ -469,7 +477,14 @@
         "saving": "Saving...",
         "save": "Save course"
       },
-      "noLevel": "No specified level"
+      "noLevel": "No specified level",
+      "registration": {
+        "label": "Registration",
+        "approval": "Requires approval",
+        "automatic": "Automatic enrollment (free)",
+        "help": "Automatic: Participants receive a place and confirmation immediately while places are available. With approval, a request receipt is sent first.",
+        "paidHelp": "Automatic enrollment is available for free courses. Paid courses use checkout or approval."
+      }
     },
     "sessions": {
       "title": "Sessions",
@@ -851,7 +866,8 @@
           "reject": "Reject",
           "acceptAndEmail": "Approve and email",
           "sendConfirmation": "Send confirmation",
-          "resendConfirmation": "Resend confirmation"
+          "resendConfirmation": "Resend confirmation",
+          "sendReceipt": "Send request receipt"
         },
         "group": {
           "title": "Add group / school",
@@ -872,7 +888,8 @@
             "sent": "Confirmation sent to the email provider.",
             "failed": "The participant is approved, but the email could not be sent.",
             "sending": "Sending confirmation…"
-          }
+          },
+          "receipt": "Request receipt"
         },
         "progress": {
           "title": "Course progress",
@@ -908,7 +925,8 @@
           "paidHeld": "Paid / held",
           "paid": "Paid",
           "checkoutStarted": "Checkout started"
-        }
+        },
+        "courseFull": "The course is full. Free a place or increase the participant limit first."
       },
       "submissions": {
         "title": "Submissions",

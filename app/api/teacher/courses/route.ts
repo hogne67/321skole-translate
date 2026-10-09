@@ -21,6 +21,7 @@ type CourseBody = {
   priceText?: unknown;
   courseType?: unknown;
   pricingMode?: unknown;
+  registrationMode?: unknown;
   maxParticipants?: unknown;
   numberOfSessions?: unknown;
   numberOfWeeks?: unknown;
@@ -171,6 +172,7 @@ export async function POST(req: Request) {
       priceText: body.pricingMode === "free" ? "Gratis" : safeString(body.priceText),
       courseType: body.courseType === "webinar" ? "webinar" : "course",
       pricingMode: body.pricingMode === "free" ? "free" : "paid",
+      registrationMode: body.registrationMode === "automatic" ? "automatic" : "approval",
       maxParticipants: safeNumber(body.maxParticipants),
       numberOfSessions: safeNumber(body.numberOfSessions),
       numberOfWeeks: safeNumber(body.numberOfWeeks),

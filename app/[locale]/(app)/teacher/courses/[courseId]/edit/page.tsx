@@ -46,6 +46,7 @@ function EditCourseContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [canEnrollAutomatically, setCanEnrollAutomatically] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +69,7 @@ function EditCourseContent() {
         }
 
         if (!cancelled) {
+          setCanEnrollAutomatically(course.pricingMode === "free" && course.sales.priceAmountOre <= 0);
           setValues({
             title: course.title,
             description: course.description,
@@ -77,6 +79,7 @@ function EditCourseContent() {
             level: normalizeCourseLevel(course.level),
             priceText: course.priceText,
             maxParticipants: course.maxParticipants,
+            registrationMode: course.registrationMode || "approval",
             numberOfSessions: course.numberOfSessions,
             numberOfWeeks: course.numberOfWeeks,
             status: course.status,
@@ -222,6 +225,16 @@ function EditCourseContent() {
                 value={values.status}
                 note={t("notes.status")}
               />
+            </Field>
+
+            <Field label={t("registration.label")}>
+              <select value={canEnrollAutomatically ? values.registrationMode || "approval" : "approval"}
+                onChange={(event) => updateField("registrationMode", event.target.value === "automatic" ? "automatic" : "approval")}
+                className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">
+                <option value="approval">{t("registration.approval")}</option>
+                <option value="automatic" disabled={!canEnrollAutomatically}>{t("registration.automatic")}</option>
+              </select>
+              <p className="m-0 text-xs font-normal text-slate-600">{t(canEnrollAutomatically ? "registration.help" : "registration.paidHelp")}</p>
             </Field>
 
             <Field label={t("fields.numberOfSessions")}>

@@ -2,7 +2,10 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
-import { createHash } from "node:crypto";
+import { registerCourseSignup } from "@/lib/courses/registerSignup";
+import { sendCourseConfirmation } from "@/lib/courses/confirmationEmail";
+import { sendEmail } from "@/lib/email/resend";
+import { CourseFullError } from "@/lib/courses/registration";
 
 type SignupBody = {
   name?: unknown;
@@ -53,22 +56,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
       return json({ error: "Course is not open for requests" }, 403);
     }
 
-    const now = new Date();
-    await db.runTransaction(async (tx) => {
-      const requests = courseDoc.ref.collection("signupRequests");
-      const existing = await tx.get(requests.where("email", "==", email));
-      // Repeated form submissions must not create a new request or reset an approval.
-      if (!existing.empty) return;
-      const requestRef = requests.doc(`email-${createHash("sha256").update(email).digest("hex")}`);
-      tx.set(requestRef, {
-        name, email, phone, message,
-        locale: ["nb", "en", "pt"].includes(safeString(body.locale)) ? safeString(body.locale) : "nb",
-        status: "new", createdAt: now, updatedAt: now,
-      });
-    });
-
-    return json({ ok: true }, 200);
+    const locale = ["nb", "en", "pt"].includes(safeString(body.locale)) ? safeString(body.locale) : "nb";
+    const result = await registerCourseSignup(db, courseDoc.id, { name, email, phone, message, locale });
+    let emailStatus: string | undefined;
+    if (result.created) {
+      emailStatus = await sendCourseConfirmation({
+        db, courseId: courseDoc.id, requestId: result.requestId,
+        origin: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(req.url).origin,
+        locale, send: sendEmail, once: true, ...(result.accepted ? {} : { kind: "receipt" as const }),
+      }).catch(() => "failed");
+    }
+    return json({ ok: true, accepted: result.accepted, duplicate: !result.created, emailStatus }, 200);
   } catch (error) {
+    if (error instanceof CourseFullError) return json({ error: "Course is full", code: "course_full" }, 409);
     const message = error instanceof Error ? error.message : "Could not create request";
     return json({ error: message }, 500);
   }

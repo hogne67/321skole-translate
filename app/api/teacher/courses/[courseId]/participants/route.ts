@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import { normalizeParticipantStatus, type ParticipantStatus } from "@/lib/courses/types";
+import { saveCourseParticipants } from "@/lib/courses/saveParticipants";
+import { CourseFullError } from "@/lib/courses/registration";
 
 type ParticipantBody = {
   name?: unknown;
@@ -165,17 +167,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
       if (rows.length > 100) return json({ error: "Max 100 participants per import" }, 400);
 
       const now = new Date();
-      const batch = access.db.batch();
-      const participantsRef = access.db.collection("courses").doc(courseId).collection("participants");
       const seenEmails = new Set<string>();
-      let createdCount = 0;
+      const prepared: Record<string, unknown>[] = [];
 
       for (const row of rows) {
         if (seenEmails.has(row.email)) continue;
         seenEmails.add(row.email);
         const identity = await resolveParticipantIdentity(access.auth, access.db, row.email);
-        const participantRef = participantsRef.doc();
-        batch.set(participantRef, {
+        prepared.push({
           name: row.name,
           email: row.email,
           participantUid: identity.participantUid,
@@ -188,11 +187,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
           createdAt: now,
           updatedAt: now,
         });
-        createdCount += 1;
       }
 
-      await batch.commit();
-      return json({ createdCount }, 200);
+      const result = await saveCourseParticipants(access.db, courseId, prepared);
+      return json({ createdCount: result.createdCount }, 200);
     }
 
     const name = safeString(body.name);
@@ -204,11 +202,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
 
     const now = new Date();
     const identity = await resolveParticipantIdentity(access.auth, access.db, email);
-    const docRef = await access.db
-      .collection("courses")
-      .doc(courseId)
-      .collection("participants")
-      .add({
+    const result = await saveCourseParticipants(access.db, courseId, [{
         name,
         email,
         participantUid: identity.participantUid,
@@ -220,10 +214,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
         status,
         createdAt: now,
         updatedAt: now,
-      });
+      }]);
 
-    return json({ participantId: docRef.id }, 200);
+    return json({ participantId: result.participantId }, 200);
   } catch (error) {
+    if (error instanceof CourseFullError) return json({ code: "course_full", error: "Course is full" }, 409);
     const message = error instanceof Error ? error.message : "Could not create participant";
     return json({ error: message }, 500);
   }
