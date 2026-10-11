@@ -55,7 +55,7 @@
         "missingInformation": "Før du kan publisere, må du fylle ut: {items}. Åpne kurset for å redigere kursinformasjon og samlinger."
       },
       "actions": {
-        "openCourse": "Åpne kurs",
+        "openCourse": "Åpne/rediger kurs",
         "openCourseRoom": "Åpne kursrom",
         "publish": "Publiser",
         "unpublish": "Avpubliser",
@@ -279,7 +279,7 @@
         "intro": "Bli med i livesamlingen her når instruktøren har åpnet rommet.",
         "fullscreen": "Fullskjerm",
         "exitFullscreen": "Avslutt fullskjerm",
-        "placeholder": "Daily/møterom",
+        "placeholder": "Bli med når du er klar",
         "starting": "Starter...",
         "reconnect": "Koble til video på nytt",
         "join": "Bli med i videosamling",
@@ -304,7 +304,8 @@
         "empty": "Instruktøren har ikke lagt inn agenda ennå.",
         "homework": "Lekser"
       },
-      "dateNotSet": "Dato ikke satt"
+      "dateNotSet": "Dato ikke satt",
+      "descriptionTitle": "Om samlingen"
     },
     "teacherPreview": {
       "loading": "Laster forhåndsvisning...",
@@ -1104,6 +1105,13 @@
       "dateNotSet": "Tidspunkt kommer",
       "defaultSubject": "Invitasjon: {title}",
       "defaultBody": "Hei!\n\nVelkommen til {title}!\nKurs: {course}\nTid: {when} (norsk tid)\nVarighet: {minutes} minutter\n\nBruk knappen nedenfor for å gå til samlingen. Logg inn med samme e-postadresse som ved påmelding.\n\nVi gleder oss til å se deg!"
+    },
+    "dashboardEntry": {
+      "title": "Kurs og webinarer",
+      "intro": "Finn kurs og webinarer, og åpne kurs du er påmeldt.",
+      "manage": "Mine kurs",
+      "attending": "Kurs jeg deltar på",
+      "browse": "Finn kurs og webinarer"
     }
   }
 }

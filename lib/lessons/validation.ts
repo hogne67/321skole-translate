@@ -1,5 +1,5 @@
 export class LessonError extends Error {
-  constructor(message: string, public readonly status: 400 | 401 | 403) {
+  constructor(message: string, public readonly status: 400 | 401 | 403 | 404 | 409 | 429 | 502) {
     super(message);
     this.name = "LessonError";
   }

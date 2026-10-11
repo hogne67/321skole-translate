@@ -39,9 +39,6 @@ export function normalizeCreateLessonInput(input: unknown) {
       throw new LessonError(`aiQuality.${key} must be a boolean.`, 400);
     }
   }
-  if (quality.factCheckRequired === true && quality.factChecked !== true) {
-    throw new LessonError("Extra fact check is required before saving this text.", 400);
-  }
   // Text type may be a localized label or custom text from the existing editor.
   const textType = stringField(body.textType, "textType", 500, "").replace(/^"+|"+$/g, "").trim();
   const prompt = stringField(body.prompt, "prompt", 8000, "");

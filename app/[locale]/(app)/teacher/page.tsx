@@ -1,6 +1,7 @@
 // app/[locale]/(app)/teacher/page.tsx
 "use client";
 
+import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useId, useMemo, useState } from "react";
@@ -825,7 +826,6 @@ export default function TeacherPage() {
 
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
-  const showCoursesSection = false;
   const dashboardIntroGuide = getDashboardIntroGuide(locale);
   const teacherLoginHref = withLocale(locale, `/login?next=${encodeURIComponent(`/${locale}/teacher`)}`);
   const billingHref = isAnon ? teacherLoginHref : withLocale(locale, "/account/billing");
@@ -885,11 +885,6 @@ export default function TeacherPage() {
     background: "#ffffff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
     padding: isMobile ? 12 : 16,
-  };
-
-  const sectionCardGreenStyle: React.CSSProperties = {
-    ...sectionCardStyle,
-    border: "1px solid #bbf7d0",
   };
 
   const sectionCardPlannerStyle: React.CSSProperties = {
@@ -1781,183 +1776,7 @@ export default function TeacherPage() {
 
       <QuizDashboardSection locale={locale} isGuestPreview={isAnon} />
 
-      {showCoursesSection ? (
-        <section style={dashboardSectionStyle}>
-          <div style={sectionInsetStyle}>
-            <div style={sectionCardGreenStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 14,
-                  flexWrap: "wrap",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div style={{ minWidth: 0, flex: "1 1 420px" }}>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      border: "1px solid #86efac",
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {t("academy.badge")}
-                    <span
-                      style={{
-                        borderRadius: 999,
-                        background: "#dcfce7",
-                        color: "#14532d",
-                        padding: "2px 7px",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {t("academy.beta")}
-                    </span>
-                  </div>
 
-                  <h2
-                    style={{
-                      margin: "10px 0 0",
-                      fontSize: 24,
-                      fontWeight: 800,
-                      color: "#0f172a",
-                      lineHeight: 1.15,
-                    }}
-                  >
-                    {t("academy.title")}
-                  </h2>
-
-                  <p
-                    style={{
-                      margin: "8px 0 0",
-                      fontSize: 14,
-                      color: "#475569",
-                      maxWidth: 720,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {t("academy.description")}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                }}
-              >
-                <Link
-                  href={withLocale(locale, "/teacher/courses")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "#166534",
-                    color: "#ffffff",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                  }}
-                >
-                  {t("academy.actions.myCourses")}
-                </Link>
-
-                <Link
-                  href={withLocale(locale, "/academy/courses/marketplace")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                  }}
-                >
-                  {t("academy.actions.marketplace")}
-                </Link>
-
-                <Link
-                  href={withLocale(locale, "/teacher/courses/generate")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "#ecfdf5",
-                    color: "#166534",
-                    border: "1px solid #86efac",
-                  }}
-                >
-                  {t("academy.actions.generate")}
-                </Link>
-
-                <Link
-                  href={withLocale(locale, "/teacher/courses?filter=published")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                  }}
-                >
-                  {t("academy.actions.published")}
-                </Link>
-
-                <Link
-                  href={withLocale(locale, "/academy/courses")}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                    border: "1px solid #cbd5e1",
-                  }}
-                >
-                  {t("academy.actions.attending")}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       {locale === "nb" ? (
         <section
@@ -2089,6 +1908,7 @@ export default function TeacherPage() {
         </section>
       ) : null}
       <DashboardInfoLinks locale={locale} />
+      <DashboardCoursesSection manage />
     </main>
   );
 }

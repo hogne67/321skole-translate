@@ -165,10 +165,10 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Verifique o texto antes de gerar atividades.",
-      "factCheckRequiredBeforePublish": "Este texto deve passar por verificação extra antes da publicação.",
+      "factCheckRequiredBeforePublish": "Pode gerar tarefas e guardar um rascunho agora. Antes de publicar, execute a verificação de factos e confirme a revisão no editor.",
       "factCheckCompleted": "A verificação extra foi feita para este texto.",
       "factCheckReportTitle": "Relatório de verificação de fatos",
-      "factCheckReportHelp": "O relatório mostra se o texto ficou inalterado ou quais pequenas correções factuais e linguísticas foram feitas.",
+      "factCheckReportHelp": "A verificação apenas apresenta comentários. O texto, as tarefas e as respostas não são alterados. Faça as correções necessárias e execute e confirme a revisão final no editor antes de publicar.",
       "soonEmpty": "(quase acabando)"
     },
     "status": {

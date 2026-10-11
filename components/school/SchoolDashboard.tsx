@@ -1,5 +1,6 @@
 "use client";
 
+import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import SchoolWelcome from "./SchoolWelcome";
 import SchoolNav from "@/components/school/SchoolNav";
 import "./schoolAdmin.css";
@@ -312,6 +313,7 @@ export default function SchoolDashboard({ view = "overview" }: { view?: "overvie
           </section> : null}
         </>
       ) : null}
+      {view === "overview" ? <DashboardCoursesSection /> : null}
     </main>
   );
 }

@@ -38,8 +38,10 @@ test("types, limits, enumerations and unrecognized fields are rejected", () => {
     { ...input, aiQuality: { checkedAt: "now" } }, { ...input, aiQuality: { factChecked: "true" } }]) rejects(value);
 });
 
-test("fact-check requirement is enforced without changing the existing metadata contract", () => {
-  rejects({ ...input, aiQuality: { factCheckRequired: true, factChecked: false } });
+test("drafts retain pending fact checks without blocking saving", () => {
+  const pending = normalizeCreateLessonInput({ ...input, aiQuality: { factCheckRequired: true, factChecked: false } });
+  assert.equal(pending.aiQuality.factCheckRequired, true);
+  assert.equal(pending.aiQuality.factChecked, false);
   const result = normalizeCreateLessonInput({ ...input,
     aiQuality: { factCheckRequired: true, factChecked: true, generatedWith: "factcheck" } });
   assert.equal(result.aiQuality.generatedWith, "factcheck");

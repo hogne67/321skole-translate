@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
+import LessonFactCheck from "@/components/LessonFactCheck";
 import { useLocale } from "next-intl";
 import {
   getTextTypeLabel,
@@ -223,7 +224,7 @@ export default function ProducerTextDetailPage() {
   }
 
   async function save() {
-    if (!id || !draft) return;
+    if (!id || !draft) return false;
 
     setSaving(true);
     setError(null);
@@ -270,8 +271,10 @@ export default function ProducerTextDetailPage() {
         status: "draft",
       });
       setMsg("Saved ✅");
+      return true;
     } catch (e: unknown) {
       setError(getErrorMessage(e));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -593,6 +596,8 @@ export default function ProducerTextDetailPage() {
                 />
               </label>
             </section>
+
+            <div style={{ marginTop: 22 }}><LessonFactCheck lessonId={id} lesson={draft} save={save} disabled={saving || publishing || serverPublishing} /></div>
 
             <section style={{ marginTop: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

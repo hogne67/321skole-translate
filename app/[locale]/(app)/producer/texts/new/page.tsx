@@ -1,6 +1,8 @@
 // app\[locale]\(app)\producer\texts\new\page.tsx
 "use client";
 
+import { FactCheckReport, type FactCheckDisplay } from "@/components/LessonFactCheck";
+
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { getAuth } from "firebase/auth";
@@ -52,6 +54,7 @@ type GenerateTextResp = {
   highFrequencyReadingSentences?: unknown;
   highFrequencyExplanation?: unknown;
   factCheckReport?: unknown;
+  sources?: FactCheckDisplay["sources"];
   error?: string;
   raw?: string;
 };
@@ -862,6 +865,7 @@ export default function NewTextPage() {
   const [approvedSourceText, setApprovedSourceText] = useState("");
   const [lastFactCheckedText, setLastFactCheckedText] = useState("");
   const [factCheckReport, setFactCheckReport] = useState("");
+  const [factCheckSources, setFactCheckSources] = useState<FactCheckDisplay["sources"]>([]);
   const [lastGeneratedWith, setLastGeneratedWith] = useState<"standard" | "factcheck" | "manual">("manual");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
   const [pack, setPack] = useState<ContentPack | null>(null);
@@ -1238,6 +1242,7 @@ export default function NewTextPage() {
           textLength,
           extraFactCheck,
           sourceText: extraFactCheck ? sourceText : "",
+          tasks: extraFactCheck ? lessonTasks : [],
           reportLanguage: locale,
           a1Start: a1StartConfig,
         }),
@@ -1290,16 +1295,10 @@ export default function NewTextPage() {
       if (!nextText) throw new Error("Missing text in response.");
 
       if (extraFactCheck) {
-        const nextReport = stringifyGeneratedText(data.factCheckReport);
-        if (nextTitle) setTitle(nextTitle);
-        setSourceText(nextText);
-        setHighFrequencyReadingSentences("");
-        setHighFrequencyExplanation("");
-        setApprovedSourceText("");
+        const nextReport = typeof data.factCheckReport === "string" ? data.factCheckReport : stringifyGeneratedText(data.factCheckReport);
         setFactCheckReport(nextReport || t("warnings.factCheckCompleted"));
-        setLastGeneratedWith("factcheck");
-        setLastFactCheckedText(nextText.trim());
-        if (lessonTasks.length > 0) setTasksDirty(true);
+        setFactCheckSources(Array.isArray(data.sources) ? data.sources : []);
+        setLastFactCheckedText("");
         await refreshFeatureStatus(user.uid);
         return;
       }
@@ -1310,6 +1309,7 @@ export default function NewTextPage() {
       setHighFrequencyExplanation(isA1StartHighFrequency ? nextHighFrequencyExplanation : "");
       setApprovedSourceText("");
       setFactCheckReport("");
+      setFactCheckSources([]);
       setLastGeneratedWith(extraFactCheck ? "factcheck" : "standard");
       setLastFactCheckedText("");
       setLessonTasks([]);
@@ -1333,9 +1333,6 @@ export default function NewTextPage() {
 
     try {
       if (!sourceText.trim()) throw new Error("Generate or write text first.");
-      if (publishFactCheckRequired && !currentTextFactChecked) {
-        throw new Error(t("errors.factCheckRequiredBeforeTasks"));
-      }
       const approvedText = approvedTextOverride.trim() || approvedSourceText.trim();
       if (approvedText !== sourceText.trim()) {
         throw new Error(t("errors.approveTextFirst"));
@@ -1437,9 +1434,6 @@ export default function NewTextPage() {
 
   async function saveLesson(): Promise<string> {
     if (!sourceText.trim()) throw new Error("Source text is empty.");
-    if (publishFactCheckRequired && !currentTextFactChecked) {
-      throw new Error(t("errors.factCheckRequiredBeforeSave"));
-    }
 
     const user = getAuth().currentUser;
     if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
@@ -1568,9 +1562,8 @@ export default function NewTextPage() {
         getHighFrequencyExplanationFallback(visibleHighFrequencyWord, a1StartWordClass, language)
       : "";
   const hasTasks = lessonTasks.length > 0;
-  const factCheckReady = !publishFactCheckRequired || currentTextFactChecked;
   const textApproved = hasText && approvedSourceText.trim() === sourceText.trim();
-  const textReadyForTasks = textApproved && factCheckReady;
+  const textReadyForTasks = textApproved;
   const step1Done = textApproved;
   const step2Active = hasText;
   const step2Done = hasTasks;
@@ -2469,7 +2462,7 @@ export default function NewTextPage() {
                       {t("warnings.factCheckReportTitle")}
                     </div>
                     <div style={{ marginTop: 4, whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.55, color: "#14532d" }}>
-                      {factCheckReport}
+                      <FactCheckReport review={{ report: factCheckReport, sources: factCheckSources }} />
                     </div>
                     <div style={{ marginTop: 8, fontSize: 12, color: "#166534", lineHeight: 1.45 }}>
                       {t("warnings.factCheckReportHelp")}
@@ -2618,18 +2611,16 @@ export default function NewTextPage() {
                 <button
                   className="actionBtn"
                   onClick={textApproved ? () => generateTasksOnly() : approveTextAndGenerateTasks}
-                  disabled={busy || !sourceText.trim() || !factCheckReady}
+                  disabled={busy || !sourceText.trim()}
                   style={{
                     ...buttonPrimary,
-                    opacity: busy || !sourceText.trim() || !factCheckReady ? 0.55 : 1,
-                    cursor: busy || !sourceText.trim() || !factCheckReady ? "not-allowed" : "pointer",
+                    opacity: busy || !sourceText.trim() ? 0.55 : 1,
+                    cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
                   }}
                   title={
                     !sourceText.trim()
                       ? t("hints.generateTextFirst")
-                      : !factCheckReady
-                        ? t("hints.factCheckFirst")
-                        : !textApproved
+                      : !textApproved
                           ? t("hints.approveTextFirst")
                           : t("hints.generateTasks")
                   }

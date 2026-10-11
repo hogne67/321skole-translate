@@ -75,7 +75,7 @@ test("owner can edit while ownership transfers, removal, replacement and foreign
 });
 
 test("OAuth protocol state and delegations are inaccessible to browser clients", async () => {
-  for (const name of ["openaiOAuthState", "openaiOAuthDelegations", "openaiOAuthRateLimits", "lessonCreationRequests"]) {
+  for (const name of ["openaiOAuthState", "openaiOAuthDelegations", "openaiOAuthRateLimits", "lessonCreationRequests", "lessonFactChecks"]) {
     const db = env.authenticatedContext("alice").firestore();
     const ref = doc(db, name, "private-record");
     await assertFails(getDoc(ref));

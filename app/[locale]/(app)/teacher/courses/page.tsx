@@ -476,7 +476,8 @@ function TeacherCoursesContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-start justify-end gap-2">
+                    <div className="grid gap-3 justify-items-end">
+                      <div className="flex flex-wrap justify-end gap-2">
                       <Link
                         href={withLocale(locale, `/teacher/courses/${course.id}`)}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-xs font-bold text-white no-underline hover:bg-slate-800"
@@ -486,11 +487,13 @@ function TeacherCoursesContent() {
                       {nextSession ? (
                         <Link
                           href={withLocale(locale, `/teacher/courses/${course.id}/sessions/${nextSession.sessionNumber}`)}
-                          className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"
+                          className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-xs font-bold text-white no-underline hover:bg-emerald-800"
                         >
                           {t("teacherCourses.actions.openSession")}
                         </Link>
                       ) : null}
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-2">
                       {course.status === "draft" || (isPublicCourse(course) && !course.slug) ? (
                         <button
                           type="button"
@@ -515,6 +518,7 @@ function TeacherCoursesContent() {
                             : t("teacherCourses.actions.unpublish")}
                         </button>
                       ) : null}
+                      </div>
                     </div>
                   </div>
                   {isPublicCourse(course) && !course.slug ? (

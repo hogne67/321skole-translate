@@ -41,6 +41,20 @@ test("concurrent and later retries create one draft even with omitted task IDs",
   await executeCreateLesson({ uid: "bob", scope: identity.scope }, input, "https://staging.example", s.db);
   assert.equal(s.lessons().length, 2); assert.equal(s.lessons()[1][1].ownerId, "bob");
 });
+
+test("ChatGPT can save all tasks with a pending fact check without fabricating approval", async () => {
+  const s = store();
+  const tasks = Array.from({ length: 11 }, (_, index) => ({ type: "open", prompt: `Question ${index + 1}` }));
+  const result = await executeCreateLesson(identity, { ...input, lesson: { ...input.lesson, title: "Hva er radikalisering?", level: "B1", tasks,
+    aiQuality: { factCheckRequired: true, factChecked: false, factCheckReason: "Societal topic" } } }, "https://staging.example", s.db);
+  assert.equal(result.status, "draft");
+  const lesson = s.lessons()[0][1];
+  assert.equal((lesson.tasks as unknown[]).length, 11);
+  const quality = lesson.aiQuality as Record<string, unknown>;
+  assert.equal(quality.factCheckRequired, true);
+  assert.equal(quality.factChecked, false);
+  assert.equal(quality.checkedTextHash, null);
+});
 test("unauthenticated and wrong-scope calls never reach storage", async () => {
   for (const auth of [{ uid: "", scope: identity.scope }, { uid: "alice", scope: "lessons:read" }]) {
     await assert.rejects(executeCreateLesson(auth, input, "https://staging.example"), IntegrationError);

@@ -165,10 +165,10 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Sjekk teksten før du genererer oppgaver.",
-      "factCheckRequiredBeforePublish": "Denne teksten bør ekstrasjekkes før publisering.",
+      "factCheckRequiredBeforePublish": "Du kan lage oppgaver og lagre utkast nå. Før publisering må du kjøre faktasjekk og bekrefte gjennomgangen på redigeringssiden.",
       "factCheckCompleted": "Ekstra faktasjekk er kjørt for denne teksten.",
       "factCheckReportTitle": "Faktasjekkrapport",
-      "factCheckReportHelp": "Rapporten viser om teksten ble stående uendret, eller hvilke små fakta- og språkrettelser som ble gjort.",
+      "factCheckReportHelp": "Faktasjekken gir bare merknader. Tekst, oppgaver og fasit endres ikke. Korriger selv ved behov, og kjør og bekreft den endelige gjennomgangen på redigeringssiden før publisering.",
       "soonEmpty": "(begynner å bli tomt)"
     },
     "status": {

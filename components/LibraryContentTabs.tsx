@@ -35,9 +35,8 @@ const LABELS: Record<string, { aria: string } & Record<LibraryTabKey, string>> =
 
 const TABS: { key: LibraryTabKey; href: string; visible: boolean }[] = [
   { key: "lessons", href: "/321lessons", visible: true },
-  // Show these again when the library has more content.
-  { key: "quiz", href: "/321quiz", visible: false },
-  { key: "courses", href: "/academy/courses/marketplace", visible: false },
+  { key: "quiz", href: "/321quiz", visible: true },
+  { key: "courses", href: "/academy/courses/marketplace", visible: true },
 ];
 
 function pathWithoutLocale(pathname: string | null) {

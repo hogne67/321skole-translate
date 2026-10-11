@@ -165,10 +165,10 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Please check the text before you generate tasks.",
-      "factCheckRequiredBeforePublish": "This text should be extra fact-checked before publishing.",
+      "factCheckRequiredBeforePublish": "You can generate tasks and save a draft now. Before publishing, run the fact check and confirm your review in the editor.",
       "factCheckCompleted": "Extra fact check has been run for this text.",
       "factCheckReportTitle": "Fact-check report",
-      "factCheckReportHelp": "The report shows whether the text was left unchanged, or which small factual and language corrections were made.",
+      "factCheckReportHelp": "The check only provides comments. Text, tasks and answer keys stay unchanged. Make any necessary corrections yourself, then run and confirm the final review in the editor before publishing.",
       "soonEmpty": "(running low)"
     },
     "status": {

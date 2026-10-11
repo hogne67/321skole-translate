@@ -8,7 +8,7 @@ import { IntegrationError, LESSON_CREATE_SCOPE } from "./config";
 export const createLessonTool = {
   name: "createLesson",
   title: "Save a draft lesson in 321school",
-  description: "Create a NEW draft lesson in the authenticated user's own 321school My Content. Call ONLY after the user explicitly asks to create/save this content in 321school. Develop and revise content in the conversation before calling. Never publish, share, read, edit, delete, create Live activities or upload images. Generate an idempotencyKey (UUID) for each intentional new save and reuse that same key and unchanged lesson on retries. Do not claim success until this tool succeeds.",
+  description: "Create a NEW draft lesson in the authenticated user's own 321school My Content. Call ONLY after the user explicitly asks to create/save this content in 321school. Develop and revise content in the conversation before calling. Drafts may be saved with factCheckRequired=true and factChecked=false; the teacher reviews factual comments and corrects text, tasks and answer keys in the editor before publishing. Never mark content factChecked just to save. Never publish, share, read, edit, delete, create Live activities or upload images. Generate an idempotencyKey (UUID) for each intentional new save and reuse that same key and unchanged lesson on retries. Do not claim success until this tool succeeds.",
   inputSchema: { type: "object" as const, additionalProperties: false, required: ["idempotencyKey", "lesson"], properties: {
     idempotencyKey: { type: "string", pattern: "^[A-Za-z0-9_-]{16,128}$", description: "Unique save identifier. Reuse verbatim on retries; new key for an explicitly requested new lesson." },
     lesson: createLessonInputJsonSchema,

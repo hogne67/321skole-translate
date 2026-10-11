@@ -460,7 +460,7 @@ export default function ContentClient() {
     if (/FACT_CHECK_REQUIRED|Extra fact check is required|fact check/i.test(message)) {
       return safeMsg(
         "errors.factCheckRequired",
-        "Denne sakteksten må faktasjekkes før den kan publiseres. Åpne oppgaven, kjør ekstra faktasjekk og lagre den faktasjekkede versjonen før du publiserer."
+        "Åpne redigeringssiden, kjør faktasjekk og vurder merknadene. Korriger tekst, oppgaver og fasit ved behov, og bekreft gjennomgangen før publisering."
       );
     }
     return message || t("errors.publishFailed");

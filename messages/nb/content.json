@@ -136,7 +136,7 @@
       "cannotPublishDeleted": "Denne oppgaven er slettet eller arkivert og kan ikke publiseres.",
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
       "emailVerificationRequired": "E-posten er ikke bekreftet i innloggingen ennå. Oppdater siden og prøv igjen, eller logg ut og inn igjen.",
-      "factCheckRequired": "Denne sakteksten må faktasjekkes før den kan publiseres. Åpne oppgaven, kjør ekstra faktasjekk og lagre den faktasjekkede versjonen før du publiserer.",
+      "factCheckRequired": "Åpne redigeringssiden, kjør faktasjekk og vurder merknadene. Korriger tekst, oppgaver og fasit ved behov, og bekreft gjennomgangen før publisering.",
       "deleteFailed": "Kunne ikke slette (arkivere) oppgaven",
       "restoreFailed": "Kunne ikke gjenopprette.",
       "aiShareFailed": "Kunne ikke lage delingstekst med KI.",

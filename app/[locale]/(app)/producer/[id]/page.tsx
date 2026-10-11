@@ -19,6 +19,7 @@ import {
   type PlanKey,
 } from "@/lib/featureAccess";
 import { LANGUAGES } from "@/lib/languages";
+import LessonFactCheck from "@/components/LessonFactCheck";
 import { getTextTypeLabel, normalizeTextTypeKey, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type TaskType = "truefalse" | "mcq" | "open";
@@ -734,8 +735,10 @@ export default function ProducerLessonEditorPage() {
       } else if (destination === "preview") {
         router.push(`/${locale}/producer/${lessonId}/preview`);
       }
+      return true;
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.saveFailed")));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -1668,6 +1671,8 @@ export default function ProducerLessonEditorPage() {
                 })}
               </div>
             </label>
+
+            <LessonFactCheck lessonId={lessonId} lesson={{ title: title.trim(), sourceText, tasks: sortedTasks, highFrequencyWord: highFrequencyWord.trim(), highFrequencyReadingSentences: highFrequencyReadingSentences.trim(), highFrequencyExplanation: highFrequencyExplanation.trim() }} save={() => persistLesson("stay")} disabled={saving} />
 
             {showHighFrequencyFields ? (
               <>

@@ -55,7 +55,7 @@
         "missingInformation": "Before publishing, complete: {items}. Open the course to edit course information and sessions."
       },
       "actions": {
-        "openCourse": "Open course",
+        "openCourse": "Open/edit course",
         "openCourseRoom": "Open course room",
         "publish": "Publish",
         "unpublish": "Unpublish",
@@ -279,7 +279,7 @@
         "intro": "Join the live session here when the instructor has opened the room.",
         "fullscreen": "Fullscreen",
         "exitFullscreen": "Exit fullscreen",
-        "placeholder": "Daily/meeting room",
+        "placeholder": "Join when you are ready",
         "starting": "Starting...",
         "reconnect": "Reconnect video",
         "join": "Join video session",
@@ -304,7 +304,8 @@
         "empty": "The instructor has not added an agenda yet.",
         "homework": "Homework"
       },
-      "dateNotSet": "Date not set"
+      "dateNotSet": "Date not set",
+      "descriptionTitle": "About this session"
     },
     "teacherPreview": {
       "loading": "Loading preview...",
@@ -1104,6 +1105,13 @@
       "dateNotSet": "Time to be announced",
       "defaultSubject": "Invitation: {title}",
       "defaultBody": "Hello!\n\nWelcome to {title}!\nCourse: {course}\nTime: {when} (Norway time)\nDuration: {minutes} minutes\n\nUse the button below to go to the session. Sign in with the email address used to enroll.\n\nWe look forward to seeing you!"
+    },
+    "dashboardEntry": {
+      "title": "Courses and webinars",
+      "intro": "Find courses and webinars, and open the courses you have enrolled in.",
+      "manage": "My courses",
+      "attending": "Courses I attend",
+      "browse": "Find courses and webinars"
     }
   }
 }

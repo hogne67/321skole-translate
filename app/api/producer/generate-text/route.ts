@@ -1,5 +1,6 @@
 // app/api/producer/generate-text/route.ts
 import OpenAI from "openai";
+import { generateFactCheckReport } from "@/lib/lessons/server/generateFactCheckReport";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
@@ -37,6 +38,7 @@ type GenerateTextBody = {
   textType?: string;
   textLength?: number;
   extraFactCheck?: boolean;
+  tasks?: unknown;
   sourceText?: string;
   reportLanguage?: string;
   a1Start?: A1StartConfig;
@@ -289,80 +291,6 @@ Return valid JSON only:
 {
   "title": "...",
   "text": "..."
-}
-          `.trim();
-}
-
-function buildFactCheckReviewPrompt(args: {
-  languageName: string;
-  reportLanguageName: string;
-  level: string;
-  topic: string;
-  textType: string;
-  sourceText: string;
-}): string {
-  const { languageName, reportLanguageName, level, topic, textType, sourceText } = args;
-
-  return `
-Fact-check and lightly correct the teacher's current learner text.
-
-Language of the learner text: ${languageName}
-Language for the change report: ${reportLanguageName}
-CEFR level of the learner text: ${level}
-Topic: ${topic}
-Text type: ${textType}
-
-Current text to check:
-${sourceText}
-
-Hard rules:
-- Keep the learner text in ${languageName}.
-- Start by identifying risk facts: years, dates, ages, places, birthplaces, names, titles, jobs, work history, positions, current roles, quotes, statistics, historical claims, named organizations and current administrative geography.
-- Treat risk facts as claims that must be verified or marked as uncertain.
-- Treat current administrative geography as high risk: country, region, state, county, municipality, district and city/town relationships may change over time.
-- Do not assume an old region/county/state name is still the current administrative location. It may be historically meaningful, but current wording must be checked or made cautious.
-- For Norwegian places, be especially careful with county and municipality claims after municipal/county reforms. For example, old county names can be historically relevant but should not be presented as current county names without checking.
-- Apply the same principle globally rather than memorizing a country-specific list: administrative borders and names can change in any country.
-- If web search/source checking is available, use it for risk facts. Prefer official, encyclopedic or otherwise reliable sources.
-- Approximate wording such as "about", "around", "ca." or "approximately" can make a number safer, but the number is still a risk fact and must be mentioned in the report.
-- If there are no clear factual errors and no clear language errors, return the original learner text unchanged.
-- Do not improve, expand or enrich a text just because it could be better.
-- Do not add new examples, new explanations or new paragraphs unless a tiny wording change is necessary to remove a factual risk.
-- Preserve paragraph structure, level, length, voice and main wording.
-- You may correct only clear spelling, punctuation, verb tense, preposition, agreement, word choice or sentence errors.
-- Do not correct acceptable wording just because a different phrasing is more polished.
-- Do not change informal but valid learner-level phrasing.
-- For example, do not change Norwegian "trodde på at" to "trodde at" unless the sentence is actually unclear or ungrammatical.
-- When in doubt about a language change, leave the wording unchanged and mention no language error.
-- You may correct concrete factual errors only when you have strong evidence.
-- If a factual claim cannot be verified, do not invent a correction. Keep the text unchanged or make it slightly more cautious only if the original wording is clearly risky.
-- Do not make the language more advanced than ${level}.
-
-Report rules:
-- The report must be very short and concrete.
-- Do not assess content quality, pedagogy, structure or whether the text could be richer.
-- Always include a factual status and a language status.
-- For every obvious risk fact in the text, especially numbers, dates, years, places, administrative geography, named people, jobs, work history and roles, give one short status: verified, changed, or should be checked before publishing.
-- When the text contains risk facts and no factual errors are found, briefly name what was checked. Example: "Ingen tydelige faktafeil funnet. Sjekket fødselsår, dødsår, ekte navn, arbeid i Burma og kjente verk."
-- Keep this risk-fact trace short: one sentence or parenthesis is enough.
-- If no factual errors are found, write the ${reportLanguageName} equivalent of: "Ingen tydelige faktafeil funnet."
-- If no clear spelling, sentence or word errors are found, write that too.
-- Do not report style improvements as language errors.
-- List only actual changes, for example: "Endret fødested fra Os til Bergen" or "Endret 'Spise' til 'spiste'."
-- If you used sources for a correction, include a short source reference or URL when available.
-- If you made no changes, the report should normally be only 1-2 short sentences.
-- If you did make changes, the report should normally be 2-4 short sentences.
-- Preferred report shape:
-  "Fakta: ...
-  Språk: ...
-  Endringer: ...
-  Kilder/sjekkpunkter: ..."
-
-Return valid JSON only:
-{
-  "title": "same title or a short suitable title",
-  "text": "the minimally corrected learner text",
-  "factCheckReport": "short concrete change report in ${reportLanguageName}"
 }
           `.trim();
 }
@@ -5895,19 +5823,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Source text is empty." }, { status: 400 });
       }
 
-      const parsed = await createResponse(
-        buildFactCheckReviewPrompt({
-          languageName,
-          reportLanguageName,
-          level,
-          topic,
-          textType,
-          sourceText,
-        }),
-        0.1
-      );
-
-      return NextResponse.json(parsed);
+      const result = await generateFactCheckReport(JSON.stringify({ sourceText, tasks: body.tasks ?? [], topic, textType }), reportLanguageName);
+      return NextResponse.json({ title: "", text: sourceText, factCheckReport: result.report, sources: result.sources });
     }
 
     let parsed = await createResponse(userPrompt, isA1Start ? 0.15 : 0.45);

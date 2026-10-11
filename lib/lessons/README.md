@@ -17,6 +17,15 @@ The existing fact-check metadata contract is preserved. These fields remain
 self-reported; they are not server-issued proof of a fact check. An eventual
 external adapter must not treat them as such.
 
+Pending fact checks no longer prevent task generation or draft creation. The
+lesson editor runs a source-backed, report-only review of text, tasks and keys.
+Teachers make corrections themselves and explicitly acknowledge the report.
+Reviews and acknowledgements are stored server-side in `lessonFactChecks`
+(client access is denied by the default Firestore rule). Acknowledgement covers
+the current text, supplementary reading text, tasks and answer keys; subsequent
+content edits invalidate it at publication time. Older text-hash approvals are
+retained for compatibility until a teacher starts the new review flow.
+
 Eligibility uses the existing profile/feature policy. Saving neither reads nor
 consumes generation usage, so using the last generation allowance does not
 prevent saving the result. Account profile protections and external credentials
@@ -55,6 +64,7 @@ compiler, start Java with `-Duser.language=en -Duser.country=US`.
   private. Foreign lesson queries must prove that same access condition.
 - Client updates cannot change or remove `ownerId`. Legacy documents without a
   valid owner still require an administrative repair before owner editing works.
-- Publication, `published_lessons`, Spaces, images, AI generation and billing
-  logic are unchanged. In particular, these rule changes do not redefine privacy
+- Publication checks the server-side teacher acknowledgement when a new review
+  exists. `published_lessons`, Spaces, images and billing logic are unchanged.
+  In particular, these rule changes do not redefine privacy
   for published copies or their media assets.

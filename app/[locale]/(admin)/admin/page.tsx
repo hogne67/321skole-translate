@@ -1,5 +1,6 @@
 "use client";
 
+import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import { useEffect, useState } from "react";
 import { collection, getCountFromServer, query, Timestamp, where } from "firebase/firestore";
 import AdminCard from "@/components/admin/AdminCard";
@@ -406,6 +407,8 @@ export default function AdminPage() {
           <StatusItem label="Debug" value="Technical info moved off the dashboard" tone="green" />
         </div>
       </AdminSection>
+
+      <DashboardCoursesSection manage />
 
       <style jsx>{`
         .dashboard {

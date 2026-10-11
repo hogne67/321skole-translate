@@ -55,7 +55,7 @@
         "missingInformation": "Antes de publicar, preencha: {items}. Abra o curso para editar as informações e as sessões."
       },
       "actions": {
-        "openCourse": "Abrir curso",
+        "openCourse": "Abrir/editar curso",
         "openCourseRoom": "Abrir sala do curso",
         "publish": "Publicar",
         "unpublish": "Despublicar",
@@ -279,7 +279,7 @@
         "intro": "Entre na sessão ao vivo aqui quando o instrutor abrir a sala.",
         "fullscreen": "Tela cheia",
         "exitFullscreen": "Sair da tela cheia",
-        "placeholder": "Sala Daily/reunião",
+        "placeholder": "Entre quando estiver pronto",
         "starting": "Iniciando...",
         "reconnect": "Reconectar vídeo",
         "join": "Entrar na sessão de vídeo",
@@ -304,7 +304,8 @@
         "empty": "O instrutor ainda não adicionou uma agenda.",
         "homework": "Tarefa de casa"
       },
-      "dateNotSet": "Data não definida"
+      "dateNotSet": "Data não definida",
+      "descriptionTitle": "Sobre a sessão"
     },
     "teacherPreview": {
       "loading": "Carregando pré-visualização...",
@@ -1104,6 +1105,13 @@
       "dateNotSet": "Horário a anunciar",
       "defaultSubject": "Convite: {title}",
       "defaultBody": "Olá!\n\nBem-vindo a {title}!\nCurso: {course}\nHorário: {when} (hora da Noruega)\nDuração: {minutes} minutos\n\nUse o botão abaixo para ir para a sessão. Inicie sessão com o e-mail usado na inscrição.\n\nAté breve!"
+    },
+    "dashboardEntry": {
+      "title": "Cursos e webinars",
+      "intro": "Encontre cursos e webinars e abra os cursos em que está inscrito.",
+      "manage": "Os meus cursos",
+      "attending": "Cursos em que participo",
+      "browse": "Encontrar cursos e webinars"
     }
   }
 }

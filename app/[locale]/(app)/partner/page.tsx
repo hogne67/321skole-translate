@@ -1,5 +1,6 @@
 "use client";
 
+import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import { getIdToken } from "firebase/auth";
 import {
   CheckCircle2,
@@ -441,6 +442,7 @@ export default function PartnerPage() {
           ))}
         </div>
       </section>
+      <DashboardCoursesSection />
     </main>
   );
 }

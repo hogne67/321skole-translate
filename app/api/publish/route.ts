@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { createHash } from "crypto";
+import { hasTeacherReviewApproval } from "@/lib/lessons/server/factCheck";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
@@ -244,11 +245,14 @@ export async function POST(req: Request) {
   }
 
   const factCheckRequirement = inferFactCheckRequired(draft);
-  if (factCheckRequirement.required) {
+  const teacherReview = (await db.collection("lessonFactChecks").doc(draftId).get()).data();
+  if (teacherReview || factCheckRequirement.required) {
     const aiQuality = isRecord(draft.aiQuality) ? draft.aiQuality : {};
     const sourceText = String(draft.sourceText ?? draft.text ?? "").trim();
     const checkedTextHash = typeof aiQuality.checkedTextHash === "string" ? aiQuality.checkedTextHash : "";
-    const factChecked = aiQuality.factChecked === true && checkedTextHash === textHash(sourceText);
+    const factChecked = teacherReview
+      ? hasTeacherReviewApproval(draft, teacherReview)
+      : aiQuality.factChecked === true && checkedTextHash === textHash(sourceText);
 
     if (!factChecked) {
       await db.collection("auditEvents").add({
@@ -267,7 +271,7 @@ export async function POST(req: Request) {
         {
           error:
             "Extra fact check is required before publishing this text. " +
-            "Run Extra fact check and save the checked version before publishing.",
+            "Open the editor, run the fact check and confirm that you have reviewed the comments, text, tasks and answer keys.",
           code: "FACT_CHECK_REQUIRED",
           reason: factCheckRequirement.reason,
         },
