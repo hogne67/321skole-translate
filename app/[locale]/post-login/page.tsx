@@ -50,6 +50,7 @@ function homeForRole(role: AppRole, locale: string): string {
 
 function isOpenAppPath(path: string, locale: string): boolean {
   return (
+    path.split("?")[0] === `/${locale}/integrations/openai` ||
     isPartnerInvitationPath(path, locale) ||
     isSchoolInvitationPath(path, locale) ||
     path === `/${locale}/321lessons` ||

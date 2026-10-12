@@ -208,6 +208,28 @@
       "pendingInviteExists": "Det finnes allerede en ventende invitasjon for denne e-postadressen.",
       "createError": "Kunne ikke opprette invitasjon."
     },
+    "inviteEmail": {
+      "send": "Send e-post",
+      "resend": "Send på nytt",
+      "sending": "Sender e-post…",
+      "help": "Sender en hyggelig invitasjon med lenke og PDF med QR-kode.",
+      "sent": "Invitasjon med PDF er sendt til {email}.",
+      "lastSent": "Sist sendt på e-post: {date}",
+      "errors": {
+        "send_failed": "Kunne ikke sende e-posten. Prøv igjen om litt.",
+        "email_not_configured": "E-postsending er ikke tilgjengelig akkurat nå. Kontakt administratoren.",
+        "email_recently_sent": "En sending er nylig forsøkt. Vent ett minutt før du prøver igjen.",
+        "invite_expired": "Invitasjonen er utløpt. Opprett en ny invitasjon.",
+        "invite_not_found": "Invitasjonen finnes ikke.",
+        "invite_not_pending": "Invitasjonen er allerede brukt eller fjernet.",
+        "missing_invite_link": "Lag en invitasjonslenke med «Lag lenke» først.",
+        "invalid_email": "Invitasjonen mangler en gyldig e-postadresse.",
+        "school_not_active": "Skolen har ikke aktiv lisens.",
+        "school_not_found": "Skolen finnes ikke.",
+        "forbidden": "Du må være aktiv administrator ved skolen for å sende invitasjonen.",
+        "unauthorized": "Logg inn på nytt før du sender."
+      }
+    },
     "welcome": {
       "eyebrow": "Et godt sted å starte",
       "newTitle": "Velkommen til {school}",

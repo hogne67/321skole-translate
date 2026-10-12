@@ -5,6 +5,8 @@ export type SendEmailInput = {
   to: string;
   subject: string;
   html: string;
+  text?: string;
+  attachments?: { filename: string; content: string; contentType?: string }[];
 };
 
 export type SendEmailResult =
@@ -30,6 +32,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       to: [input.to],
       subject: input.subject,
       html: input.html,
+      ...(input.text ? { text: input.text } : {}),
+      ...(input.attachments ? { attachments: input.attachments.map(({ contentType, ...attachment }) => ({ ...attachment, ...(contentType ? { content_type: contentType } : {}) })) } : {}),
     }),
   });
 

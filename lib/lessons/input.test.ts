@@ -16,6 +16,32 @@ test("minimal draft retains defaults and trims text", () => {
   assert.equal(result.language, "nb");
   assert.deepEqual(result.tasks, []);
   assert.equal(result.aiQuality.factChecked, false);
+  assert.equal("tags" in result, false);
+  assert.equal("aiCoverPrompt" in result, false);
+  assert.equal("coverImageSource" in result, false);
+});
+
+test("complete draft metadata is normalized for the existing editor", () => {
+  const result = normalizeCreateLessonInput({ ...input, topic: " Demokrati ",
+    tags: [" demokrati ", "Samfunn", "DEMOKRATI"], aiCoverPrompt: " People discussing in a classroom ", aiCoverStyle: "realistic" });
+  assert.equal(result.topic, "Demokrati");
+  assert.deepEqual(result.tags, ["demokrati", "Samfunn"]);
+  assert.equal(result.aiCoverPrompt, "People discussing in a classroom");
+  assert.equal(result.aiCoverStyle, "realistic");
+  assert.equal(result.aiCoverPromptMode, "custom");
+  assert.equal(result.coverImageSource, "ai");
+  assert.equal(result.coverImageFormat, "16:9");
+  assert.equal(normalizeCreateLessonInput({ ...input, aiCoverPrompt: "A school" }).aiCoverStyle, "illustration");
+  assert.equal("coverImageSource" in normalizeCreateLessonInput({ ...input, aiCoverPrompt: " " }), false);
+});
+
+test("invalid tags, styles and image metadata are rejected", () => {
+  for (const fields of [
+    { tags: "demokrati" }, { tags: [42] }, { tags: [" "] }, { tags: ["a,b"] }, { tags: ["a\nb"] },
+    { tags: ["a".repeat(101)] }, { tags: Array(31).fill("tag") },
+    { aiCoverPrompt: {} }, { aiCoverPrompt: "x".repeat(8001) }, { aiCoverStyle: "unsupported" },
+    { coverImageUrl: "https://example.org/image.png" }, { coverImageSource: "upload" },
+  ]) rejects({ ...input, ...fields });
 });
 
 test("existing editor metadata, custom text types and beginner-reading fields survive", () => {

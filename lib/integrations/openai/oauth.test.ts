@@ -133,14 +133,25 @@ async function fixture() {
     const details = await detailsResponse.json() as { csrf: string };
     return { path, csrf: details.csrf };
   }
-  async function approve() {
+  async function approve(idToken = "verified-firebase-token") {
     const { path, csrf } = await consent();
     const result = await request(path, { method: "POST", headers: { "Content-Type": "application/json", Origin: origin }, body: JSON.stringify({
-      action: "approve", csrf, idToken: "verified-firebase-token",
+      action: "approve", csrf, idToken,
     }) });
     assert.equal(result.status, 200, await result.clone().text());
     const resume = await result.json() as { redirectTo: string };
-    const final = await request(resume.redirectTo);
+    let final = await request(resume.redirectTo);
+    if (final.status === 200) {
+      // oidc-provider posts this form when replacing a browser session's account.
+      const html = await final.text();
+      const action = html.match(/<form method="post" action="([^"]+)"/)?.[1];
+      const xsrf = html.match(/name="xsrf" value="([^"]+)"/)?.[1];
+      assert.ok(action && xsrf);
+      const logout = await request(action, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ xsrf, logout: "yes" }) });
+      assert.equal(logout.status, 303);
+      final = await request(logout.headers.get("location")!);
+    }
     assert.equal(final.status, 303, `${resume.redirectTo}: ${await final.clone().text()}`);
     const callback = new URL(final.headers.get("location")!);
     assert.equal(callback.searchParams.get("state"), "unchanged-client-state");
@@ -173,6 +184,37 @@ function refresh(f: Awaited<ReturnType<typeof fixture>>, token: string, extra: R
     body: new URLSearchParams({ grant_type: "refresh_token", client_id: f.config.clientId, refresh_token: token, ...extra }),
   });
 }
+
+test("separate accounts keep their OAuth identity through browser account switching, MCP and refresh", async () => {
+  const f = await fixture();
+  try {
+    f.config.allowedUids = new Set([...f.config.allowedUids, "firebase-fred"]);
+    const verify = f.store.services.verifyFirebaseToken;
+    f.store.services.verifyFirebaseToken = async token => token === "verified-fred-token"
+      ? { uid: "firebase-fred", tokensValidAfter: 0, authTime: Math.floor(Date.now() / 1000) }
+      : verify(token);
+    const administrator = await (await f.exchange(await f.approve())).json() as RefreshTokens;
+    const fred = await (await f.exchange(await f.approve("verified-fred-token"))).json() as RefreshTokens;
+    // A later browser login must neither replace Fred's delegation nor retarget the old one.
+    await f.exchange(await f.approve());
+    for (const [tokens, uid] of [[administrator, "firebase-alice"], [fred, "firebase-fred"]] as const) {
+      assert.equal((await authenticateMcp(f.runtime, `Bearer ${tokens.access_token}`)).uid, uid);
+      const execute: typeof executeCreateLesson = async identity => {
+        assert.equal(identity.uid, uid);
+        return { lessonId: `${uid}-draft`, title: "Draft", editorUrl: `${f.config.origin}/nb/producer/${uid}-draft`, status: "draft" };
+      };
+      const call = await handleMcp(new Request(f.config.resource, {
+        method: "POST", headers: { Authorization: `Bearer ${tokens.access_token}`, Accept: "application/json, text/event-stream", "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "createLesson", arguments: {} } }),
+      }), f.runtime, execute);
+      assert.equal((await call.json()).result.structuredContent.lessonId, `${uid}-draft`);
+      const renewed = await refresh(f, tokens.refresh_token);
+      assert.equal(renewed.status, 200);
+      const rotated = await renewed.json() as RefreshTokens;
+      assert.equal((await authenticateMcp(f.runtime, `Bearer ${rotated.access_token}`)).uid, uid);
+    }
+  } finally { await f.close(); }
+});
 
 test("refresh works after access expiry, rotates once, keeps UID/audience/scope and rejects replay for the whole grant", async () => {
   const f = await fixture();

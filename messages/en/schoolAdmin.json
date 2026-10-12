@@ -208,6 +208,28 @@
       "pendingInviteExists": "There is already a pending invitation for this email address.",
       "createError": "Could not create invitation."
     },
+    "inviteEmail": {
+      "send": "Send email",
+      "resend": "Send again",
+      "sending": "Sending email…",
+      "help": "Sends a friendly invitation with a link and PDF with QR code.",
+      "sent": "Invitation with PDF sent to {email}.",
+      "lastSent": "Last emailed: {date}",
+      "errors": {
+        "send_failed": "Could not send the email. Please try again shortly.",
+        "email_not_configured": "Email sending is currently unavailable. Contact the administrator.",
+        "email_recently_sent": "A send was recently attempted. Wait one minute before trying again.",
+        "invite_expired": "This invitation has expired. Create a new invitation.",
+        "invite_not_found": "Invitation not found.",
+        "invite_not_pending": "This invitation has already been used or removed.",
+        "missing_invite_link": "Use “Create link” to create an invitation link first.",
+        "invalid_email": "This invitation needs a valid email address.",
+        "school_not_active": "The school does not have an active license.",
+        "school_not_found": "School not found.",
+        "forbidden": "You must be an active administrator at this school to send the invitation.",
+        "unauthorized": "Sign in again before sending."
+      }
+    },
     "welcome": {
       "eyebrow": "A good place to begin",
       "newTitle": "Welcome to {school}",

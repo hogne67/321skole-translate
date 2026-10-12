@@ -36,6 +36,7 @@ type SchoolTeacher = {
 };
 
 type SchoolInvite = {
+  emailSentAt?: TimestampLike;
   displayName?: string | null;
   inviteCode?: string;
   id?: string;
@@ -96,6 +97,7 @@ export default function SchoolTeachersPage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
+  const [emailFeedback, setEmailFeedback] = useState<{ id: string; text: string; failed: boolean } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [temporaryInviteLink, setTemporaryInviteLink] = useState("");
@@ -406,6 +408,29 @@ export default function SchoolTeachersPage() {
     }
   }
 
+  async function sendInviteEmail(invite: SchoolInvite) {
+    if (!user || user.isAnonymous || !hasSchoolAdminAccess || actionId || !invite.id) return;
+    const id = invite.id;
+    setActionId(`email-invite:${id}`);
+    setEmailFeedback(null);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/schools/send-invite-email", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ schoolId, inviteId: id, locale }),
+      });
+      const data = await response.json() as ActionResponse;
+      if (!response.ok || !data.ok) {
+        const key = `inviteEmail.errors.${data.reason || "send_failed"}`;
+        throw new Error(t.has(key) ? t(key) : t("inviteEmail.errors.send_failed"));
+      }
+      setInvites(current => current.map(item => item.id === id ? { ...item, emailSentAt: new Date().toISOString() } : item));
+      setEmailFeedback({ id, text: t("inviteEmail.sent", { email: invite.email || "" }), failed: false });
+    } catch (error) {
+      setEmailFeedback({ id, text: error instanceof Error ? error.message : t("inviteEmail.errors.send_failed"), failed: true });
+    } finally { setActionId(null); }
+  }
+
   async function revokeInvite(invite: SchoolInvite) {
     if (!user || user.isAnonymous || !hasSchoolAdminAccess || actionId) return;
 
@@ -618,6 +643,10 @@ export default function SchoolTeachersPage() {
                     adminName={profile?.displayName || user?.displayName || user?.email || ""}
                     loading={actionId === `invite-link:${invite.id}`}
                     removing={actionId === `revoke-invite:${invite.id}`}
+                    sending={actionId === `email-invite:${invite.id}`}
+                    actionBusy={Boolean(actionId)}
+                    emailFeedback={emailFeedback?.id === invite.id ? emailFeedback : null}
+                    onSendEmail={sendInviteEmail}
                     onCreateLink={createAndOpenInvitePrint}
                     onRevoke={revokeInvite}
                     t={t}
@@ -750,6 +779,10 @@ function InviteRow({
   adminName,
   loading,
   removing,
+  sending,
+  actionBusy,
+  emailFeedback,
+  onSendEmail,
   onCreateLink,
   onRevoke,
   t,
@@ -760,6 +793,10 @@ function InviteRow({
   adminName: string;
   loading: boolean;
   removing: boolean;
+  sending: boolean;
+  actionBusy: boolean;
+  emailFeedback: { text: string; failed: boolean } | null;
+  onSendEmail: (invite: SchoolInvite) => void;
   onCreateLink: (invite: SchoolInvite) => void;
   onRevoke: (invite: SchoolInvite) => void;
   t: SchoolAdminTranslator;
@@ -786,9 +823,15 @@ function InviteRow({
           {t("invites.created")}: {formatDate(invite.createdAt)} | {t("invites.expires")}:{" "}
           {formatDate(invite.expiresAt)}
         </div>
+        {invite.emailSentAt ? <div style={styles.rowMeta}>{t("inviteEmail.lastSent", { date: formatDate(invite.emailSentAt) })}</div> : null}
+        {emailFeedback ? <p role={emailFeedback.failed ? "alert" : "status"} style={{ margin: "6px 0 0", color: emailFeedback.failed ? "#b91c1c" : "#166534" }}>{emailFeedback.text}</p> : null}
       </div>
       <StatusPill status={invite.status ?? "-"} />
       <div style={styles.rowActions}>
+        <button type="button" onClick={() => onSendEmail(invite)} disabled={actionBusy || !invite.email}
+          title={t("inviteEmail.help")} style={{ ...styles.primaryButtonSmall, opacity: actionBusy ? 0.55 : 1 }}>
+          {sending ? t("inviteEmail.sending") : t(invite.emailSentAt ? "inviteEmail.resend" : "inviteEmail.send")}
+        </button>
         {printHref ? (
           <Link href={printHref} target="_blank" style={styles.secondaryLinkButton}>
             {t("invites.print")}
@@ -797,7 +840,7 @@ function InviteRow({
           <button
             type="button"
             onClick={() => onCreateLink(invite)}
-            disabled={loading || removing}
+            disabled={actionBusy}
             style={styles.secondaryButton}
           >
             {loading ? t("invites.creatingLink") : t("invites.createLink")}
@@ -806,7 +849,7 @@ function InviteRow({
         <button
           type="button"
           onClick={() => onRevoke(invite)}
-          disabled={loading || removing}
+          disabled={actionBusy}
           style={styles.dangerOutlineButton}
         >
           {removing ? t("invites.revoking") : t("invites.revoke")}

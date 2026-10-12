@@ -13,6 +13,14 @@ supported. Missing language/level retain the existing defaults. Task order is
 derived from array order, missing task IDs are generated, and boolean true/false
 answers are persisted as strings.
 
+Draft creation also accepts optional `tags` (up to 30 nonempty strings of at
+most 100 characters), `aiCoverPrompt` (up to 8,000 characters) and
+`aiCoverStyle` (`illustration` or `realistic`). Tags are trimmed and deduplicated
+without regard to case. A nonempty cover prompt selects AI cover generation,
+custom prompt mode and 16:9 format in the existing editor; it does not generate
+an image or consume image quota when saving. Omitted metadata remains omitted
+so save retries for existing payloads retain their fingerprints.
+
 The existing fact-check metadata contract is preserved. These fields remain
 self-reported; they are not server-issued proof of a fact check. An eventual
 external adapter must not treat them as such.
@@ -20,6 +28,11 @@ external adapter must not treat them as such.
 Pending fact checks no longer prevent task generation or draft creation. The
 lesson editor runs a source-backed, report-only review of text, tasks and keys.
 Teachers make corrections themselves and explicitly acknowledge the report.
+The review first researches facts, then assesses tasks against their answer keys.
+An intentionally false true/false statement keyed false is valid; incorrect
+multiple-choice distractors are not treated as factual errors. Review-only task
+context supports both boolean and persisted string keys without changing lesson
+content or its review fingerprint.
 Reviews and acknowledgements are stored server-side in `lessonFactChecks`
 (client access is denied by the default Firestore rule). Acknowledgement covers
 the current text, supplementary reading text, tasks and answer keys; subsequent

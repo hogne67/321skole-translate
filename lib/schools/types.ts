@@ -54,6 +54,9 @@ export type SchoolMemberDoc = {
 };
 
 export type SchoolInviteDoc = {
+  emailSentAt?: Timestamp | null;
+  emailSentByUid?: string;
+  emailLastAttemptAt?: Timestamp | null;
   displayName?: string | null;
   inviteCode?: string;
   inviteCodeHash?: string;

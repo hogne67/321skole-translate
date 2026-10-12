@@ -30,6 +30,7 @@ import {
 } from "@/lib/a1start/soundWords";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 type GenerateTextBody = {
   level?: string;

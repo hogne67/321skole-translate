@@ -55,6 +55,27 @@ test("ChatGPT can save all tasks with a pending fact check without fabricating a
   assert.equal(quality.factChecked, false);
   assert.equal(quality.checkedTextHash, null);
 });
+
+test("complete package saves topic, tags and a ready-to-use image prompt with safe retries", async () => {
+  const s = store();
+  const full = { ...input, lesson: { ...input.lesson, topic: "Demokrati", tags: ["demokrati", "samfunn"],
+    aiCoverPrompt: "A diverse group discussing ideas in a classroom, wide composition, no text.", aiCoverStyle: "illustration" } };
+  const first = await executeCreateLesson(identity, full, "https://staging.example", s.db);
+  assert.deepEqual(await executeCreateLesson(identity, full, "https://staging.example", s.db), first);
+  assert.equal(s.lessons().length, 1);
+  const lesson = s.lessons()[0][1];
+  assert.equal(lesson.topic, "Demokrati");
+  assert.deepEqual(lesson.tags, ["demokrati", "samfunn"]);
+  assert.equal(lesson.aiCoverPrompt, full.lesson.aiCoverPrompt);
+  assert.equal(lesson.coverImageSource, "ai");
+  assert.equal(lesson.aiCoverPromptMode, "custom");
+  assert.equal(lesson.aiCoverStyle, "illustration");
+  assert.equal(lesson.coverImageFormat, "16:9");
+  assert.equal("coverImageUrl" in lesson, false);
+  for (const fields of [{ tags: ["changed"] }, { aiCoverPrompt: "A different image" }]) {
+    await assert.rejects(executeCreateLesson(identity, { ...full, lesson: { ...full.lesson, ...fields } }, "https://staging.example", s.db), /different lesson content/);
+  }
+});
 test("unauthenticated and wrong-scope calls never reach storage", async () => {
   for (const auth of [{ uid: "", scope: identity.scope }, { uid: "alice", scope: "lessons:read" }]) {
     await assert.rejects(executeCreateLesson(auth, input, "https://staging.example"), IntegrationError);

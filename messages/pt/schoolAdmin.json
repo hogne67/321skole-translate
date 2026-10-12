@@ -208,6 +208,28 @@
       "pendingInviteExists": "Ja existe um convite pendente para este email.",
       "createError": "Nao foi possivel criar convite."
     },
+    "inviteEmail": {
+      "send": "Enviar e-mail",
+      "resend": "Enviar novamente",
+      "sending": "Enviando e-mail…",
+      "help": "Envia um convite com mensagem de boas-vindas, link e PDF com código QR.",
+      "sent": "Convite com PDF enviado para {email}.",
+      "lastSent": "Último envio por e-mail: {date}",
+      "errors": {
+        "send_failed": "Não foi possível enviar o e-mail. Tente novamente em breve.",
+        "email_not_configured": "O envio de e-mail está indisponível. Contate o administrador.",
+        "email_recently_sent": "Houve uma tentativa recente. Aguarde um minuto antes de tentar novamente.",
+        "invite_expired": "Este convite expirou. Crie um novo convite.",
+        "invite_not_found": "Convite não encontrado.",
+        "invite_not_pending": "Este convite já foi usado ou removido.",
+        "missing_invite_link": "Use «Criar link» para criar o link do convite primeiro.",
+        "invalid_email": "O convite precisa de um e-mail válido.",
+        "school_not_active": "A escola não tem uma licença ativa.",
+        "school_not_found": "Escola não encontrada.",
+        "forbidden": "Você precisa ser administrador ativo desta escola para enviar o convite.",
+        "unauthorized": "Entre novamente antes de enviar."
+      }
+    },
     "welcome": {
       "eyebrow": "Um bom lugar para começar",
       "newTitle": "Boas-vindas à {school}",

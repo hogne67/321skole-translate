@@ -22,7 +22,7 @@ export async function handleMcp(request: Request, runtime: OAuthRuntime, execute
     await runtime.services.checkRateLimit(identity.uid);
     const server = new Server({ name: "321school", version: "0.2.0" }, {
       capabilities: { tools: {} },
-      instructions: "Develop and revise lesson content in the conversation. Call createLesson only after the user explicitly asks to save/create it in 321school. This creates a new private draft in their own My Content. Reuse the idempotencyKey and unchanged content when retrying a save.",
+      instructions: "Develop and revise lesson content in the conversation. Call createLesson only after the user explicitly asks to save/create it in 321school. This creates a new private draft in their own My Content. When asked for a complete package, include a concise topic, relevant tags and an appropriate cover image prompt alongside the text, tasks and answer keys. The teacher can generate the cover image in the editor using that saved prompt. Reuse the idempotencyKey and unchanged content when retrying a save.",
     });
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       if (process.env.VERCEL_ENV === "preview") console.info("openai_mcp_discovery", JSON.stringify({ event: "tools_list", toolCount: 1, toolName: "createLesson" }));

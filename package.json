@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint app lib components",
-    "test:lessons": "node --conditions=react-server --import tsx --test lib/lessons/input.test.ts lib/lessons/server/createLessonForUser.test.ts lib/lessons/server/factCheck.test.ts",
+    "test:lessons": "node --conditions=react-server --import tsx --test lib/lessons/input.test.ts lib/lessons/factCheckInput.test.ts lib/lessons/server/createLessonForUser.test.ts lib/lessons/server/factCheck.test.ts",
     "test:lessons:rules": "node --import tsx --test lib/lessons/firestore.rules.test.ts",
     "test:openai": "node --conditions=react-server --import tsx --test lib/integrations/openai/*.test.ts",
     "geo:no": "node scripts/generate-no-municipalities.mjs",
