@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminCard from "@/components/admin/AdminCard";
 import AdminSection from "@/components/admin/AdminSection";
 import AdminStatCard from "@/components/admin/AdminStatCard";
+import { schoolAdministratorCopy } from "@/lib/schools/administratorUi";
 
 type SchoolDetail = {
   id?: string;
@@ -45,10 +46,19 @@ type SchoolDetailResponse = {
   schoolId?: string;
   school?: SchoolDetail;
   members?: SchoolMember[];
+  permissions?: { manageAdministrators?: boolean };
+};
+
+type AdministratorCandidate = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  alreadyAdministrator: boolean;
 };
 
 export default function AdminSchoolDetailPage() {
   const locale = useLocale();
+  const adminCopy = schoolAdministratorCopy(locale);
   const params = useParams<{ schoolId?: string }>();
   const schoolId = useMemo(() => {
     const raw = params?.schoolId;
@@ -62,6 +72,10 @@ export default function AdminSchoolDetailPage() {
   const [saving, setSaving] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [connectingAdmin, setConnectingAdmin] = useState(false);
+  const [findingAdmin, setFindingAdmin] = useState(false);
+  const [adminError, setAdminError] = useState("");
+  const [canManageAdmins, setCanManageAdmins] = useState(false);
+  const [candidate, setCandidate] = useState<(AdministratorCandidate & { schoolId: string }) | null>(null);
   const [reload, setReload] = useState(0);
   const [memberFilter, setMemberFilter] = useState("all");
   const [editName, setEditName] = useState("");
@@ -105,6 +119,7 @@ export default function AdminSchoolDetailPage() {
 
         setSchool(data.school);
         setMembers(data.members ?? []);
+        setCanManageAdmins(data.permissions?.manageAdministrators === true);
         setEditName(data.school.name ?? "");
         setEditContactName(data.school.contactName ?? "");
         setEditContactEmail(data.school.contactEmail ?? "");
@@ -143,10 +158,35 @@ export default function AdminSchoolDetailPage() {
     };
   }, [schoolId, reload]);
 
-  async function connectAdministrator(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function findAdministrator(input: { email?: string; uid?: string }) {
+    if (findingAdmin || connectingAdmin || !canManageAdmins) return;
+    setFindingAdmin(true);
+    setAdminError("");
+    setCandidate(null);
+    document.getElementById("school-administrators")?.scrollIntoView({ block: "start" });
+    try {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Not signed in");
+      const token = await getIdToken(user, true);
+      const query = new URLSearchParams(input);
+      const response = await fetch(`/api/admin/schools/${encodeURIComponent(schoolId)}/administrators?${query}`, {
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+      });
+      const data = await response.json() as { ok?: boolean; error?: string; administrator?: AdministratorCandidate };
+      if (!response.ok || !data.ok || !data.administrator) throw new Error(data.error || adminCopy.lookupError);
+      setCandidate({ ...data.administrator, schoolId });
+      setAdminEmail(data.administrator.email ?? "");
+    } catch (err) {
+      setAdminError(err instanceof Error ? err.message : adminCopy.lookupError);
+    } finally {
+      setFindingAdmin(false);
+    }
+  }
+
+  async function connectAdministrator() {
+    if (!candidate || candidate.schoolId !== schoolId || candidate.alreadyAdministrator || connectingAdmin || !canManageAdmins) return;
     setConnectingAdmin(true);
-    setError("");
+    setAdminError("");
     setMessage("");
     try {
       const user = getAuth().currentUser;
@@ -155,15 +195,15 @@ export default function AdminSchoolDetailPage() {
       const response = await fetch(`/api/admin/schools/${encodeURIComponent(schoolId)}/administrators`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ adminEmail }),
+        body: JSON.stringify({ adminEmail: candidate.email, adminUid: candidate.uid }),
       });
       const data = await response.json();
-      if (!response.ok || !data.ok) throw new Error(data.error || "Could not connect administrator");
-      setAdminEmail("");
-      setMessage("School administrator connected. The school menu is now available to this user.");
+      if (!response.ok || !data.ok) throw new Error(data.error || adminCopy.saveError);
+      setCandidate({ ...candidate, alreadyAdministrator: true });
+      setMessage(adminCopy.success);
       setReload((value) => value + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not connect administrator");
+      setAdminError(err instanceof Error ? err.message : adminCopy.saveError);
     } finally {
       setConnectingAdmin(false);
     }
@@ -272,6 +312,9 @@ export default function AdminSchoolDetailPage() {
 
       {!loading && school ? (
         <>
+          {canManageAdmins ? (
+            <div><a className="adminShortcut" href="#school-administrators">{adminCopy.add}</a></div>
+          ) : null}
           <section className="statsGrid" aria-label="School license summary">
             <AdminStatCard
               title="Status"
@@ -446,21 +489,47 @@ export default function AdminSchoolDetailPage() {
             </form>
           </AdminSection>
 
-          <AdminSection title="School administrators">
-            <form onSubmit={connectAdministrator} className="form">
-              <label>
-                Administrator email (existing account)
-                <input type="email" value={adminEmail} onChange={(event) => setAdminEmail(event.target.value)} required disabled={connectingAdmin} />
-              </label>
-              <div className="formActions">
-                <button type="submit" disabled={connectingAdmin || !adminEmail.trim()}>
-                  {connectingAdmin ? "Connecting..." : "Connect administrator"}
-                </button>
-                <span>Only superadmins can connect administrators. This also repairs a missing profile link.</span>
+          <div id="school-administrators">
+          <AdminSection title={adminCopy.title} description={adminCopy.description}>
+            {canManageAdmins ? (
+              <div className="administratorControls">
+                <form onSubmit={(event) => { event.preventDefault(); void findAdministrator({ email: adminEmail }); }} className="settingsForm">
+                  <label>
+                    {adminCopy.email}
+                    <input type="email" autoComplete="off" value={adminEmail} onChange={(event) => {
+                      setAdminEmail(event.target.value); setCandidate(null); setAdminError("");
+                    }} required disabled={connectingAdmin || findingAdmin} />
+                  </label>
+                  <div className="formActions">
+                    <button type="submit" disabled={connectingAdmin || findingAdmin || !adminEmail.trim()}>
+                      {findingAdmin ? adminCopy.finding : adminCopy.find}
+                    </button>
+                  </div>
+                </form>
+                {adminError ? <p className="adminError" role="alert">{adminError}</p> : null}
+                {candidate && candidate.schoolId === schoolId ? (
+                  <div className="administratorCandidate" aria-live="polite">
+                    <div className="muted">{adminCopy.selected}</div>
+                    <strong>{candidate.displayName || candidate.email || candidate.uid}</strong>
+                    {candidate.email ? <div>{candidate.email}</div> : null}
+                    <div className="subText">UID: {candidate.uid}</div>
+                    <p>{adminCopy.school}: <strong>{school.name}</strong></p>
+                    {candidate.alreadyAdministrator ? <p role="status">{adminCopy.already}</p> : (
+                      <div className="formActions">
+                        <button type="button" onClick={() => void connectAdministrator()} disabled={connectingAdmin}>
+                          {connectingAdmin ? adminCopy.granting : adminCopy.grant}
+                        </button>
+                        <button type="button" className="secondary" onClick={() => setCandidate(null)} disabled={connectingAdmin}>
+                          {adminCopy.cancel}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            </form>
+            ) : <p className="muted">{adminCopy.readOnly}</p>}
             {schoolAdmins.length === 0 ? (
-              <div className="muted">No school administrators found.</div>
+              <div className="muted">{adminCopy.empty}</div>
             ) : (
               <div className="memberList">
                 {schoolAdmins.map((member) => (
@@ -469,6 +538,7 @@ export default function AdminSchoolDetailPage() {
               </div>
             )}
           </AdminSection>
+          </div>
 
           <AdminSection title="Members">
             {members.length === 0 ? (
@@ -498,6 +568,7 @@ export default function AdminSchoolDetailPage() {
                         <th>Role</th>
                         <th>Status</th>
                         <th>Joined</th>
+                        {canManageAdmins ? <th>{adminCopy.actions}</th> : null}
                       </tr>
                     </thead>
                     <tbody>
@@ -505,11 +576,25 @@ export default function AdminSchoolDetailPage() {
                         <tr key={member.uid || member.id}>
                           <td>
                             <div className="strongText">{member.displayName || member.email || "-"}</div>
+                            {member.displayName && member.email ? <div className="subText">{member.email}</div> : null}
                             <div className="subText">{member.uid || member.id || "-"}</div>
                           </td>
                           <td>{member.role || "-"}</td>
                           <td>{member.status || "-"}</td>
                           <td>{formatDate(member.joinedAt || member.createdAt)}</td>
+                          {canManageAdmins ? (
+                            <td>
+                              {member.role === "school_admin" && member.status === "active" && member.profileLinked ? (
+                                <span className="muted">{adminCopy.already}</span>
+                              ) : (
+                                <button className="memberAdminButton" type="button"
+                                  disabled={findingAdmin || connectingAdmin || !(member.uid || member.id)}
+                                  onClick={() => void findAdministrator({ uid: member.uid || member.id || "" })}>
+                                  {member.role === "school_admin" ? adminCopy.repair : adminCopy.grant}
+                                </button>
+                              )}
+                            </td>
+                          ) : null}
                         </tr>
                       ))}
                     </tbody>
@@ -526,6 +611,43 @@ export default function AdminSchoolDetailPage() {
           display: grid;
           gap: var(--admin-gap, 16px);
         }
+
+        #school-administrators {
+          scroll-margin-top: 24px;
+        }
+
+        .administratorControls {
+          display: grid;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .administratorCandidate {
+          padding: 16px;
+          border: 1px solid #bfdbfe;
+          border-radius: var(--admin-radius, 10px);
+          background: #eff6ff;
+          overflow-wrap: anywhere;
+        }
+
+        .adminError { color: #991b1b; }
+
+        .adminShortcut,
+        .memberAdminButton {
+          display: inline-block;
+          padding: 10px 14px;
+          border: 1px solid #1d4ed8;
+          border-radius: var(--admin-radius, 10px);
+          background: #ffffff;
+          color: #1d4ed8;
+          font: inherit;
+          font-weight: 700;
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        .adminShortcut { background: #1d4ed8; color: #ffffff; }
+        .memberAdminButton:disabled { opacity: 0.5; cursor: not-allowed; }
 
         :global(.messageCard),
         :global(.loadingCard),
@@ -686,6 +808,11 @@ export default function AdminSchoolDetailPage() {
           background: #e5e7eb;
           color: #6b7280;
           cursor: not-allowed;
+        }
+
+        .formActions button.secondary {
+          background: #ffffff;
+          color: #111827;
         }
 
         .formActions span {

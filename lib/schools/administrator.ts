@@ -10,6 +10,15 @@ type AccountLookup = {
   getUserByEmail(email: string): Promise<AdministratorAccount>;
 };
 
+export function canManageSchoolAdministrators(profile: {
+  role?: unknown; roles?: unknown; adminLevel?: unknown; disabled?: unknown;
+} | null | undefined): boolean {
+  if (!profile || profile.disabled === true || profile.adminLevel !== "superadmin") return false;
+  const roles = typeof profile.roles === "object" && profile.roles !== null
+    ? profile.roles as Record<string, unknown> : {};
+  return profile.role === "admin" || roles.admin === true;
+}
+
 export function normalizeAdministratorUid(value: string): string {
   return value.trim().replace(/^uid\s*:\s*/i, "").trim();
 }

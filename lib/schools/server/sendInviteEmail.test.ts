@@ -4,6 +4,12 @@ import { Timestamp, type Firestore } from "firebase-admin/firestore";
 import { InviteEmailError, sendSchoolInviteEmail } from "./sendInviteEmail";
 import type { SendEmailInput } from "../../email/resend";
 
+type TestReference = {
+  path: string;
+  collection: (name: string) => { doc: (id: string) => TestReference };
+  update: (data: Record<string, unknown>) => Promise<void>;
+};
+
 function fixture() {
   const records = new Map<string, Record<string, unknown>>([
     ["schools/school", { status: "active", name: "Eksempelskolen" }],
@@ -12,7 +18,7 @@ function fixture() {
       displayName: "Lærer Ærlig", inviteToken: "existing-secret-token", inviteCode: "AAAA-BBBB-CCCC-DDDD",
       expiresAt: Timestamp.fromMillis(Date.now() + 86400000) }],
   ]);
-  const ref = (path: string): { path: string; collection: (name: string) => { doc: (id: string) => ReturnType<typeof ref> }; update: (data: Record<string, unknown>) => Promise<void> } => ({
+  const ref = (path: string): TestReference => ({
     path, collection: name => ({ doc: id => ref(`${path}/${name}/${id}`) }),
     update: async data => { Object.assign(records.get(path)!, data); },
   });

@@ -5,6 +5,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { isValidSchoolPlanKey } from "@/lib/schools/constants";
+import { canManageSchoolAdministrators } from "@/lib/schools/administrator";
 import type { BillingType, SchoolPlanKey, SchoolStatus } from "@/lib/schools/types";
 
 export const runtime = "nodejs";
@@ -129,7 +130,7 @@ async function verifyAdmin(req: Request): Promise<{
 
 export async function GET(req: Request, context: RouteContext) {
   try {
-    await verifyAdmin(req);
+    const { profile } = await verifyAdmin(req);
 
     const { schoolId: rawSchoolId } = await context.params;
     const schoolId = readString(rawSchoolId);
@@ -178,6 +179,7 @@ export async function GET(req: Request, context: RouteContext) {
     return json({
       ok: true,
       schoolId,
+      permissions: { manageAdministrators: canManageSchoolAdministrators(profile) },
       school: {
         id: schoolId,
         name: schoolData.name ?? null,

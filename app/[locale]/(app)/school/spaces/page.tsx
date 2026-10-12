@@ -36,7 +36,7 @@ export default function SchoolSpacesPage() {
   const [spaces, setSpaces] = useState<SchoolSpace[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [showClosed, setShowClosed] = useState(true);
+  const [showClosed, setShowClosed] = useState(false);
 
   const schoolId = profile?.schoolId ?? "";
   const hasSchoolAdminAccess = canAccessSchoolAdmin(profile);
