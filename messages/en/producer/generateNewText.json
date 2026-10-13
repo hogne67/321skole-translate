@@ -1,7 +1,7 @@
 {
   "generateNewText": {
     "title": "Create new lesson",
-    "subtitle": "Step 1: generate text → Step 2: generate tasks → edit → save draft.",
+    "subtitle": "Choose a text → review the text → create tasks → save draft.",
     "defaults": {
       "title": "New lesson",
       "prompt": "Example: Write a story about Edvard Munch and the painting The Scream. Include some facts about the painting and his life."
@@ -11,11 +11,11 @@
       "language": "Choose lesson language",
       "languageSearchPlaceholder": "Search language (e.g. Norwegian, Somali, ti, pt-BR...)",
       "languageCount": "Showing {count} languages",
-      "prompt": "Here you write instructions for the AI",
+      "prompt": "Describe the text you would like a suggestion for",
       "promptTip": "Tip: Write the subject, level, language, topic and desired content. Avoid names and other personal information about students.",
       "textType": "Text type",
       "textTypeOtherPlaceholder": "Describe the text type...",
-      "textLength": "Text length (words)",
+      "textLength": "Desired text length (words)",
       "sharedSettingsTitle": "Text settings"
     },
     "a1Start": {
@@ -142,8 +142,8 @@
       }
     },
     "buttons": {
-      "generateText": "Generate text",
-      "generatingText": "Generating text...",
+      "generateText": "Create text suggestion",
+      "generatingText": "Creating text suggestion...",
       "generateFactCheckedText": "Extra fact check",
       "generatingFactCheckedText": "Fact-checking...",
       "generateTasks": "Generate tasks",
@@ -155,7 +155,7 @@
       "saving": "Saving..."
     },
     "hints": {
-      "generateTextFirst": "Generate or write text first.",
+      "generateTextFirst": "Write or paste text first, or choose an AI suggestion.",
       "generateTasks": "Generate tasks based on the current text.",
       "approveTextFirst": "Approve the text before creating tasks.",
       "factCheckFirst": "Run extra fact check before creating tasks.",
@@ -182,9 +182,9 @@
     },
     "builder": {
       "lessonTitle": "Title",
-      "text": "Your own or generated text is dispayed here",
-      "textbox": "Paste your text here.",
-      "textHelp": "Go to step 2 and create tasks once you have checked the text.",
+      "text": "The text you want to use",
+      "textbox": "Write or paste text",
+      "textHelp": "Review and edit the text before creating tasks.",
       "wordCount": "Word count: {count}"
     },
     "review": {
@@ -216,7 +216,7 @@
       "title": "Debug: latest generated pack snapshot"
     },
     "errors": {
-      "generateOrWriteTextFirst": "Generate or write text first.",
+      "generateOrWriteTextFirst": "Write or paste text first, or choose an AI suggestion.",
       "missingTextInResponse": "Missing text in response.",
       "missingTasksInResponse": "Missing tasks in response.",
       "titleRequired": "Title is required.",
@@ -234,15 +234,15 @@
       "tasks": "Tasks",
       "finishing": "Finishing",
       "ready": "Ready",
-      "generateOrPasteText": "Generate or paste text",
+      "generateOrPasteText": "Write, paste or use an AI suggestion",
       "nextStep": "Next step",
       "lockedUntilTextReady": "Locked until the text is ready",
       "readyForFinalSetup": "Ready for final setup",
       "lockedUntilTasksReady": "Locked until the tasks are ready"
     },
     "stepStatus": {
-      "step1Title": "Step 1: Create or paste text",
-      "step1Body": "Start by generating a text or pasting your own. When the text is ready, the next step is unlocked.",
+      "step1Title": "Step 1: Choose a text",
+      "step1Body": "Start by writing or pasting your own text. You can also choose an AI suggestion. Review the text before creating tasks.",
       "reviewTextTitle": "Review the text",
       "reviewTextBody": "The teacher must approve the text before tasks can be generated.",
       "textReadyTitle": "The text is ready",
@@ -251,15 +251,26 @@
       "tasksReadyBody": "The next step is finishing. There you can add an image, metadata, share to Space, and make final adjustments."
     },
     "sections": {
-      "generateOrPasteTextTitle": "Generate / paste text",
-      "generateOrPasteTextBody": "Choose level, language, text type, and prompt. You can also write or paste the text yourself.",
+      "generateOrPasteTextTitle": "Choose a text",
+      "generateOrPasteTextBody": "Use your own text or get a text suggestion from AI. Review the text before creating tasks.",
       "generateTasksTitle": "Generate tasks",
       "generateTasksBody": "Choose how many tasks you want. This section is unlocked when the text is ready.",
-      "enableTaskGeneratorFirst": "Generate or paste text first to activate the task generator.",
+      "enableTaskGeneratorFirst": "Add text first. You can write, paste or use an AI suggestion.",
       "approveTextFirst": "Review the text and click “Approve text and create tasks” before generating tasks.",
       "goToFinishingTitle": "Go to finishing",
       "goToFinishingBody": "From here you continue to image, metadata, sharing to Space, and final adjustments.",
       "readyToFinishBody": "When the tasks are generated, you can continue to finishing."
+    },
+    "textTabs": {
+      "label": "Choose how to enter your text",
+      "manual": "Write or paste text",
+      "ai": "Create a text suggestion with AI",
+      "manualHelp": "Write or paste the text you want to create tasks for. You can edit the text before continuing.",
+      "aiHelp": "AI creates a suggestion. It appears in the text tab, where you can review and edit it before creating tasks.",
+      "replaceTitle": "Replace your current text?",
+      "replaceBody": "A new suggestion replaces the title and text and removes any existing tasks. Do you want to continue?",
+      "replaceConfirm": "Create suggestion and replace text",
+      "cancel": "Keep current text"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "generateNewText": {
     "title": "Criar nova atividade",
-    "subtitle": "Etapa 1: gerar texto → Etapa 2: gerar atividades → editar → salvar rascunho.",
+    "subtitle": "Escolher texto → revisar o texto → criar atividades → salvar rascunho.",
     "defaults": {
       "title": "Nova atividade",
       "prompt": "Exemplo: Escreva uma história sobre Edvard Munch e a pintura O Grito. Inclua algumas informações sobre a obra e a vida dele."
@@ -11,11 +11,11 @@
       "language": "Escolha o idioma da atividade",
       "languageSearchPlaceholder": "Buscar idioma (ex.: norueguês, somali, ti, pt-BR...)",
       "languageCount": "Mostrando {count} idiomas",
-      "prompt": "Aqui você escreve as instruções para a IA.",
+      "prompt": "Descreva o texto para o qual deseja uma sugestão",
       "promptTip": "Dica: escreva a disciplina, o nível, o idioma, o tema e o conteúdo desejado. Evite nomes e outros dados pessoais de alunos.",
       "textType": "Tipo de texto",
       "textTypeOtherPlaceholder": "Descreva o tipo de texto...",
-      "textLength": "Tamanho do texto (palavras)",
+      "textLength": "Tamanho desejado do texto (palavras)",
       "sharedSettingsTitle": "Configurações do texto"
     },
     "a1Start": {
@@ -142,8 +142,8 @@
       }
     },
     "buttons": {
-      "generateText": "Gerar texto",
-      "generatingText": "Gerando texto...",
+      "generateText": "Criar sugestão de texto",
+      "generatingText": "Criando sugestão de texto...",
       "generateFactCheckedText": "Verificação extra",
       "generatingFactCheckedText": "Verificando fatos...",
       "generateTasks": "Gerar atividades",
@@ -155,7 +155,7 @@
       "saving": "Salvando..."
     },
     "hints": {
-      "generateTextFirst": "Gere ou escreva o texto primeiro.",
+      "generateTextFirst": "Escreva ou cole o texto primeiro, ou escolha uma sugestão da IA.",
       "generateTasks": "Gere atividades com base no texto atual.",
       "approveTextFirst": "Aprove o texto antes de criar atividades.",
       "factCheckFirst": "Execute a verificação extra antes de criar atividades.",
@@ -182,9 +182,9 @@
     },
     "builder": {
       "lessonTitle": "Título",
-      "text": "Seu texto, seja ele próprio ou gerado por você, será exibido aqui.",
-      "textbox": "Cole seu texto aqui",
-      "textHelp": "Vá para a etapa 2 e crie as tarefas depois de verificar o texto.",
+      "text": "O texto que deseja usar",
+      "textbox": "Escrever ou colar texto",
+      "textHelp": "Revise e edite o texto antes de criar atividades.",
       "wordCount": "Contagem de palavras: {count}"
     },
     "review": {
@@ -216,7 +216,7 @@
       "title": "Debug: último snapshot do pacote gerado"
     },
     "errors": {
-      "generateOrWriteTextFirst": "Gere ou escreva o texto primeiro.",
+      "generateOrWriteTextFirst": "Escreva ou cole o texto primeiro, ou escolha uma sugestão da IA.",
       "missingTextInResponse": "Falta texto na resposta.",
       "missingTasksInResponse": "Faltam atividades na resposta.",
       "titleRequired": "O título é obrigatório.",
@@ -234,15 +234,15 @@
       "tasks": "Atividades",
       "finishing": "Finalização",
       "ready": "Pronto",
-      "generateOrPasteText": "Gerar ou colar texto",
+      "generateOrPasteText": "Escrever, colar ou usar sugestão da IA",
       "nextStep": "Próxima etapa",
       "lockedUntilTextReady": "Bloqueado até o texto estar pronto",
       "readyForFinalSetup": "Pronto para a configuração final",
       "lockedUntilTasksReady": "Bloqueado até as atividades estarem prontas"
     },
     "stepStatus": {
-      "step1Title": "Etapa 1: Criar ou colar texto",
-      "step1Body": "Comece gerando um texto ou colando o seu próprio. Quando o texto estiver pronto, a próxima etapa será desbloqueada.",
+      "step1Title": "Etapa 1: Escolher texto",
+      "step1Body": "Comece escrevendo ou colando o seu próprio texto. Você também pode escolher uma sugestão da IA. Revise o texto antes de criar atividades.",
       "reviewTextTitle": "Revise o texto",
       "reviewTextBody": "O professor deve aprovar o texto antes que as atividades possam ser geradas.",
       "textReadyTitle": "O texto está pronto",
@@ -251,15 +251,26 @@
       "tasksReadyBody": "A próxima etapa é a finalização. Lá você pode adicionar imagem, metadados, compartilhar no Space e fazer os ajustes finais."
     },
     "sections": {
-      "generateOrPasteTextTitle": "Gerar / colar texto",
-      "generateOrPasteTextBody": "Escolha nível, idioma, tipo de texto e prompt. Você também pode escrever ou colar o texto manualmente.",
+      "generateOrPasteTextTitle": "Escolher texto",
+      "generateOrPasteTextBody": "Use seu próprio texto ou obtenha uma sugestão da IA. Revise o texto antes de criar atividades.",
       "generateTasksTitle": "Gerar atividades",
       "generateTasksBody": "Escolha quantas atividades você quer. Esta seção é desbloqueada quando o texto está pronto.",
-      "enableTaskGeneratorFirst": "Gere ou cole o texto primeiro para ativar o gerador de atividades.",
+      "enableTaskGeneratorFirst": "Adicione o texto primeiro. Você pode escrever, colar ou usar uma sugestão da IA.",
       "approveTextFirst": "Revise o texto e clique em “Aprovar texto e criar atividades” antes de gerar atividades.",
       "goToFinishingTitle": "Ir para finalização",
       "goToFinishingBody": "A partir daqui você continua para imagem, metadados, compartilhamento no Space e ajustes finais.",
       "readyToFinishBody": "Quando as atividades forem geradas, você poderá seguir para a finalização."
+    },
+    "textTabs": {
+      "label": "Escolha como inserir o texto",
+      "manual": "Escrever ou colar texto",
+      "ai": "Criar sugestão de texto com IA",
+      "manualHelp": "Escreva ou cole o texto para o qual deseja criar atividades. Você pode editar o texto antes de continuar.",
+      "aiHelp": "A IA cria uma sugestão. Ela aparece na aba de texto, onde você pode revisar e editar antes de criar atividades.",
+      "replaceTitle": "Substituir o texto atual?",
+      "replaceBody": "Uma nova sugestão substitui o título e o texto e remove as atividades existentes. Deseja continuar?",
+      "replaceConfirm": "Criar sugestão e substituir texto",
+      "cancel": "Manter texto atual"
     }
   }
 }

@@ -804,6 +804,8 @@ export default function NewTextPage() {
     });
   }, [locale]);
   const [prompt, setPrompt] = useState("");
+  const [textEntryMode, setTextEntryMode] = useState<"manual" | "ai">("manual");
+  const [confirmTextReplacement, setConfirmTextReplacement] = useState(false);
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
   const textTypeLabel = useMemo(() => {
@@ -1316,13 +1318,24 @@ export default function NewTextPage() {
       setPack(null);
       setTasksDirty(false);
 
+      setTextEntryMode("manual");
+
       await refreshFeatureStatus(user.uid);
+      requestAnimationFrame(() => document.getElementById("lesson-source-text")?.focus());
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
     } finally {
       setLoadingText(false);
       setTextGenerationMode(null);
     }
+  }
+
+  function requestTextSuggestion() {
+    if (title.trim() || sourceText.trim() || lessonTasks.length > 0) {
+      setConfirmTextReplacement(true);
+      return;
+    }
+    void generateTextOnly(false);
   }
 
   async function generateTasksOnly(approvedTextOverride = "") {
@@ -1797,6 +1810,33 @@ export default function NewTextPage() {
               </div>
             </div>
 
+            <div role="tablist" aria-label={t("textTabs.label")}
+              style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {(["manual", "ai"] as const).map(mode => (
+                <button key={mode} id={`text-entry-${mode}-tab`} type="button" role="tab"
+                  aria-selected={textEntryMode === mode} aria-controls={`text-entry-${mode}-panel`}
+                  tabIndex={textEntryMode === mode ? 0 : -1} disabled={busy}
+                  onClick={() => { setTextEntryMode(mode); setConfirmTextReplacement(false); }}
+                  onKeyDown={event => {
+                    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === "Home" ? "manual" : event.key === "End" ? "ai" : mode === "manual" ? "ai" : "manual";
+                    setTextEntryMode(next);
+                    setConfirmTextReplacement(false);
+                    document.getElementById(`text-entry-${next}-tab`)?.focus();
+                  }}
+                  style={{
+                    padding: "10px 16px", borderRadius: 12, font: "inherit", fontWeight: 800,
+                    border: textEntryMode === mode ? "1px solid #1d4ed8" : "1px solid #cbd5e1",
+                    background: textEntryMode === mode ? "#1d4ed8" : "#ffffff",
+                    color: textEntryMode === mode ? "#ffffff" : "#334155",
+                    cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.65 : 1,
+                  }}>
+                  {t(`textTabs.${mode}`)}
+                </button>
+              ))}
+            </div>
+
             <div
               style={{
                 border: "1px solid #e2e8f0",
@@ -1813,7 +1853,7 @@ export default function NewTextPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: isNarrow ? "1fr" : textEntryMode === "ai" ? "repeat(4, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
                   gap: 12,
                 }}
               >
@@ -1892,7 +1932,7 @@ export default function NewTextPage() {
                       )}
                     </label>
 
-                    <label>
+                    {textEntryMode === "ai" ? <label>
                       {t("fields.textLength")}
                       <input
                         type="number"
@@ -1902,7 +1942,7 @@ export default function NewTextPage() {
                         min={60}
                         max={900}
                       />
-                    </label>
+                    </label> : null}
                   </>
                 )}
               </div>
@@ -2212,15 +2252,25 @@ export default function NewTextPage() {
               </div>
             )}
 
+            {error && (
+              <div role="alert" style={{ marginBottom: 14, border: "1px solid #fecdd3", borderRadius: 12,
+                background: "#fff1f2", color: "#be123c", padding: "10px 12px", fontSize: 13,
+                fontWeight: 700, lineHeight: 1.45 }}>
+                {error}
+              </div>
+            )}
+
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
+                gridTemplateColumns: "1fr",
                 gap: 14,
                 alignItems: "start",
               }}
             >
               <div
+                id="text-entry-ai-panel" role="tabpanel" aria-labelledby="text-entry-ai-tab"
+                hidden={textEntryMode !== "ai"}
                 style={{
                   border: "1px solid #dbeafe",
                   borderRadius: 16,
@@ -2229,8 +2279,12 @@ export default function NewTextPage() {
                 }}
               >
                 <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 16, fontWeight: 800 }}>
-                  {t("buttons.generateText")}
+                  {t("textTabs.ai")}
                 </h3>
+
+                <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
+                  {t("textTabs.aiHelp")}
+                </p>
 
                 {!isA1Start && (
                   <label>
@@ -2261,7 +2315,7 @@ export default function NewTextPage() {
                 <div style={{ marginTop: 12 }}>
                   <button
                     className="actionBtn"
-                    onClick={() => generateTextOnly(false)}
+                    onClick={requestTextSuggestion}
                     disabled={busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb)}
                     style={{
                       ...buttonPrimary,
@@ -2272,53 +2326,21 @@ export default function NewTextPage() {
                   >
                     {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
-                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
-                    <button
-                      className="actionBtn"
-                      onClick={() => generateTextOnly(true)}
-                      disabled={busy || !sourceText.trim()}
-                      style={{
-                        ...buttonSecondary,
-                        width: isNarrow ? "100%" : "auto",
-                        marginLeft: isNarrow ? 0 : 8,
-                        marginTop: isNarrow ? 8 : 0,
-                        opacity: busy || !sourceText.trim() ? 0.7 : 1,
-                        cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {loadingText && textGenerationMode === "factcheck"
-                        ? t("buttons.generatingFactCheckedText")
-                        : t("buttons.generateFactCheckedText")}
-                    </button>
-                  )}
-                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
-                    <div style={{ fontSize: 12, color: "#92400e", marginTop: 8, lineHeight: 1.45 }}>
-                      {t("warnings.factCheckRequiredBeforePublish")}
+                  {confirmTextReplacement ? (
+                    <div role="group" aria-label={t("textTabs.replaceTitle")}
+                      style={{ marginTop: 12, border: "1px solid #fed7aa", borderRadius: 12, padding: 14, background: "#fff7ed" }}>
+                      <strong>{t("textTabs.replaceTitle")}</strong>
+                      <p style={{ margin: "6px 0 12px", fontSize: 14, lineHeight: 1.5 }}>{t("textTabs.replaceBody")}</p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        <button type="button" className="actionBtn" disabled={busy} style={buttonPrimary}
+                          onClick={() => { setConfirmTextReplacement(false); void generateTextOnly(false); }}>
+                          {t("textTabs.replaceConfirm")}
+                        </button>
+                        <button type="button" className="actionBtn" disabled={busy} style={buttonSecondary}
+                          onClick={() => setConfirmTextReplacement(false)}>{t("textTabs.cancel")}</button>
+                      </div>
                     </div>
-                  )}
-                  {!isA1Start && publishFactCheckRequired && currentTextFactChecked && (
-                    <div style={{ fontSize: 12, color: "#166534", marginTop: 8, lineHeight: 1.45 }}>
-                      {t("warnings.factCheckCompleted")}
-                    </div>
-                  )}
-                  {error && (
-                    <div
-                      role="alert"
-                      style={{
-                        marginTop: 10,
-                        border: "1px solid #fecdd3",
-                        borderRadius: 12,
-                        background: "#fff1f2",
-                        color: "#be123c",
-                        padding: "10px 12px",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      {error}
-                    </div>
-                  )}
+                  ) : null}
                   {isA1Start && (
                     <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8, lineHeight: 1.45 }}>
                       {t("a1Start.reviewReminder")}
@@ -2328,6 +2350,8 @@ export default function NewTextPage() {
               </div>
 
               <div
+                id="text-entry-manual-panel" role="tabpanel" aria-labelledby="text-entry-manual-tab"
+                hidden={textEntryMode !== "manual"}
                 style={{
                   border: "1px solid #e2e8f0",
                   borderRadius: 16,
@@ -2339,10 +2363,15 @@ export default function NewTextPage() {
                   {t("builder.text")}
                 </h3>
 
+                <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14, lineHeight: 1.5 }}>
+                  {t("textTabs.manualHelp")}
+                </p>
+
                 <label style={{ display: "block" }}>
                   {t("builder.lessonTitle")}
                   <input
                     value={title}
+                    disabled={loadingText}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={t("defaults.title")}
                     style={fieldStyle}
@@ -2352,7 +2381,9 @@ export default function NewTextPage() {
                 <label style={{ display: "block", marginTop: 10 }}>
                   {t("builder.textbox")}
                   <textarea
+                    id="lesson-source-text"
                     value={sourceText}
+                    disabled={loadingText}
                     onChange={(e) => {
                       setSourceText(e.target.value);
                       setApprovedSourceText("");
@@ -2383,6 +2414,37 @@ export default function NewTextPage() {
                     <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
                   </div>
                 </label>
+                <div style={{ marginTop: 12 }}>
+                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
+                    <button
+                      className="actionBtn"
+                      onClick={() => generateTextOnly(true)}
+                      disabled={busy || !sourceText.trim()}
+                      style={{
+                        ...buttonSecondary,
+                        width: isNarrow ? "100%" : "auto",
+                        marginLeft: 0,
+                        marginTop: isNarrow ? 8 : 0,
+                        opacity: busy || !sourceText.trim() ? 0.7 : 1,
+                        cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {loadingText && textGenerationMode === "factcheck"
+                        ? t("buttons.generatingFactCheckedText")
+                        : t("buttons.generateFactCheckedText")}
+                    </button>
+                  )}
+                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
+                    <div style={{ fontSize: 12, color: "#92400e", marginTop: 8, lineHeight: 1.45 }}>
+                      {t("warnings.factCheckRequiredBeforePublish")}
+                    </div>
+                  )}
+                  {!isA1Start && publishFactCheckRequired && currentTextFactChecked && (
+                    <div style={{ fontSize: 12, color: "#166534", marginTop: 8, lineHeight: 1.45 }}>
+                      {t("warnings.factCheckCompleted")}
+                    </div>
+                  )}
+                </div>
                 {isA1StartHighFrequency && visibleHighFrequencyReadingSentences && (
                   <div
                     style={{
@@ -2653,7 +2715,7 @@ export default function NewTextPage() {
             className="stickyFinishSection"
             style={{
               marginTop: 22,
-              position: hasTasks ? "fixed" : "sticky",
+              position: hasTasks ? "fixed" : "static",
               left: hasTasks ? 12 : undefined,
               right: hasTasks ? 12 : undefined,
               bottom: 12,

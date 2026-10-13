@@ -1,7 +1,7 @@
 {
   "generateNewText": {
     "title": "Lag ny oppgave",
-    "subtitle": "Steg 1: generer tekst → Steg 2: generer oppgaver → rediger → lagre kladd.",
+    "subtitle": "Velg tekst → gjennomgå teksten → lag oppgaver → lagre kladd.",
     "defaults": {
       "title": "Ny oppgave",
       "prompt": "Eksempel: Lag en fortelling om Edvard Munch og bildet Skrik. Ta med litt om bildet og livet hans "
@@ -11,11 +11,11 @@
       "language": "Velg språk for oppgaven",
       "languageSearchPlaceholder": "Søk etter språk (f.eks. norsk, somali, ti, pt-BR...)",
       "languageCount": "Viser {count} språk",
-      "prompt": "Her skriver du instruksjoner til AI",
+      "prompt": "Beskriv teksten du ønsker et forslag til",
       "promptTip": "Tips: Skriv fag, nivå, språk, tema og ønsket innhold. Unngå navn og andre personopplysninger om elever.",
       "textType": "Teksttype",
       "textTypeOtherPlaceholder": "Beskriv teksttypen...",
-      "textLength": "Tekstlengde (ord)",
+      "textLength": "Ønsket tekstlengde (ord)",
       "sharedSettingsTitle": "Tekstinnstillinger"
     },
     "a1Start": {
@@ -142,8 +142,8 @@
       }
     },
     "buttons": {
-      "generateText": "Generer KI tekst",
-      "generatingText": "Genererer tekst...",
+      "generateText": "Lag tekstforslag",
+      "generatingText": "Lager tekstforslag...",
       "generateFactCheckedText": "Ekstra faktasjekk",
       "generatingFactCheckedText": "Faktasjekker...",
       "generateTasks": "Generer oppgaver",
@@ -155,7 +155,7 @@
       "saving": "Lagrer..."
     },
     "hints": {
-      "generateTextFirst": "Generer eller skriv tekst først.",
+      "generateTextFirst": "Skriv eller lim inn tekst først, eller velg et KI-forslag.",
       "generateTasks": "Generer oppgaver basert på teksten som er der nå.",
       "approveTextFirst": "Godkjenn teksten før du lager oppgaver.",
       "factCheckFirst": "Kjør ekstra faktasjekk før du lager oppgaver.",
@@ -182,9 +182,9 @@
     },
     "builder": {
       "lessonTitle": "Tittel",
-      "text": "Her vises egen eller generert tekst",
-      "textbox": "Lim inn teksten din her",
-      "textHelp": "Gå til steg 2 og lag oppgaver når du har sjekket teksten.",
+      "text": "Teksten du vil bruke",
+      "textbox": "Skriv eller lim inn tekst",
+      "textHelp": "Les gjennom og rediger teksten før du lager oppgaver.",
       "wordCount": "Ordtelling: {count}"
     },
     "review": {
@@ -216,7 +216,7 @@
       "title": "Debug: siste snapshot av generert pakke"
     },
     "errors": {
-      "generateOrWriteTextFirst": "Generer eller skriv tekst først.",
+      "generateOrWriteTextFirst": "Skriv eller lim inn tekst først, eller velg et KI-forslag.",
       "missingTextInResponse": "Mangler tekst i svaret.",
       "missingTasksInResponse": "Mangler oppgaver i svaret.",
       "titleRequired": "Tittel er påkrevd.",
@@ -234,15 +234,15 @@
       "tasks": "Oppgaver",
       "finishing": "Ferdigstilling",
       "ready": "Klar",
-      "generateOrPasteText": "Generer eller lim inn tekst",
+      "generateOrPasteText": "Skriv, lim inn eller bruk KI-forslag",
       "nextStep": "Neste steg",
       "lockedUntilTextReady": "Låst til teksten er klar",
       "readyForFinalSetup": "Klar for sluttoppsett",
       "lockedUntilTasksReady": "Låst til oppgavene er klare"
     },
     "stepStatus": {
-      "step1Title": "Steg 1: Lag eller lim inn tekst",
-      "step1Body": "Start med å generere en tekst eller lime inn din egen. Når teksten er klar, låses neste steg opp.",
+      "step1Title": "Steg 1: Velg tekst",
+      "step1Body": "Start med å skrive eller lime inn din egen tekst. Du kan også velge et tekstforslag fra KI. Gjennomgå teksten før du lager oppgaver.",
       "reviewTextTitle": "Les gjennom teksten",
       "reviewTextBody": "Lærer må godkjenne teksten før oppgaver kan genereres.",
       "textReadyTitle": "Teksten er klar",
@@ -251,15 +251,26 @@
       "tasksReadyBody": "Neste steg er ferdigstilling. Der kan du legge til bilde, metadata, dele til Space og gjøre siste justeringer."
     },
     "sections": {
-      "generateOrPasteTextTitle": "Generer / lim inn tekst",
-      "generateOrPasteTextBody": "Velg nivå, språk, teksttype og prompt. Du kan også skrive eller lime inn teksten selv.",
+      "generateOrPasteTextTitle": "Velg tekst",
+      "generateOrPasteTextBody": "Bruk egen tekst, eller få et tekstforslag fra KI. Gjennomgå teksten før du lager oppgaver.",
       "generateTasksTitle": "Generer oppgaver",
       "generateTasksBody": "Velg hvor mange oppgaver du vil ha. Denne delen låses opp når teksten er klar.",
-      "enableTaskGeneratorFirst": "Generer eller lim inn tekst først for å aktivere oppgavegeneratoren.",
+      "enableTaskGeneratorFirst": "Legg inn tekst først. Du kan skrive, lime inn eller bruke et KI-forslag.",
       "approveTextFirst": "Les gjennom teksten og trykk «Godkjenn tekst og lag oppgaver» før du genererer oppgaver.",
       "goToFinishingTitle": "Gå til ferdigstilling",
       "goToFinishingBody": "Herfra går du videre til bilde, metadata, deling til Space og siste justeringer.",
       "readyToFinishBody": "Når oppgavene er generert, kan du gå videre til ferdigstilling."
+    },
+    "textTabs": {
+      "label": "Velg hvordan du vil legge inn teksten",
+      "manual": "Skriv eller lim inn tekst",
+      "ai": "Lag tekstforslag med KI",
+      "manualHelp": "Skriv eller lim inn teksten du vil lage oppgaver til. Du kan redigere teksten før du går videre.",
+      "aiHelp": "KI lager et forslag. Forslaget legges i tekstfanen, der du kan lese gjennom og redigere før du lager oppgaver.",
+      "replaceTitle": "Vil du erstatte teksten du har?",
+      "replaceBody": "Et nytt forslag erstatter tittel og tekst og fjerner eventuelle oppgaver. Vil du fortsette?",
+      "replaceConfirm": "Lag forslag og erstatt teksten",
+      "cancel": "Behold teksten"
     }
   }
 }
