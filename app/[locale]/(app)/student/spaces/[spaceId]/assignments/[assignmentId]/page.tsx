@@ -1,5 +1,9 @@
 // app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
+
+import { getSubmissionStatus } from "@/lib/submissions/status";
+import AnswerTextarea from "@/components/student/AnswerTextarea";
+import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1051,6 +1055,7 @@ export default function StudentAssignmentPage() {
             taskType: aDoc.taskType ?? d.taskType,
             readingTestConfig: aDoc.readingTestConfig ?? d.readingTestConfig ?? null,
             textSize: normalizeTextSize(aDoc.textSize ?? d.textSize),
+            allowAnswerPaste: aDoc.allowAnswerPaste ?? d.allowAnswerPaste,
             mathWorksheet: aDoc.mathWorksheet ?? d.mathWorksheet ?? null,
             fractionWorksheet: aDoc.fractionWorksheet ?? d.fractionWorksheet ?? null,
             arithmeticWorksheet: aDoc.arithmeticWorksheet ?? d.arithmeticWorksheet ?? null,
@@ -1122,7 +1127,7 @@ export default function StudentAssignmentPage() {
               : null;
           if (owner && owner !== user.uid && ownerParticipant !== currentParticipantId) return false;
 
-          const sStatus = normalizeStatus(sd.status);
+          const sStatus = normalizeStatus(getSubmissionStatus(sd));
           setLiveStatus(sStatus);
           setSubmitted(isFinalSubmissionStatus(sStatus));
           setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
@@ -1267,7 +1272,7 @@ export default function StudentAssignmentPage() {
             : null;
         if (owner && owner !== uid && ownerParticipant !== participantId) return;
 
-        const sStatus = normalizeStatus(sd.status);
+        const sStatus = normalizeStatus(getSubmissionStatus(sd));
         setLiveStatus(sStatus);
         setSubmitted(isFinalSubmissionStatus(sStatus));
 
@@ -2002,7 +2007,8 @@ export default function StudentAssignmentPage() {
             </button>
           </div>
 
-          <textarea
+          <AnswerTextarea
+            allowPaste={isReadingTest || isAnswerPasteAllowed(lesson?.allowAnswerPaste ?? assignment?.allowAnswerPaste)}
             value={preReadingAnswer}
             onChange={(event) => setAnswer(PRE_READING_ANSWER_KEY, event.target.value)}
             placeholder={tString("preReading.placeholder")}
@@ -2208,6 +2214,7 @@ export default function StudentAssignmentPage() {
         !isPercentageAssignment &&
         !isPodcastWorkshop ? (
           <StandardAssignmentSection
+            allowAnswerPaste={isAnswerPasteAllowed(lesson?.allowAnswerPaste ?? assignment?.allowAnswerPaste)}
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
             textSize={effectiveStudentTextSize}
             textSizeOptions={STUDENT_TEXT_SIZE_OPTIONS}

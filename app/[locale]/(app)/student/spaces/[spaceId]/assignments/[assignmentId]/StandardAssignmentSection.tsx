@@ -77,6 +77,7 @@ type Props = {
     translatedTasksMap: Map<string, TranslatedTask>;
 
     lock: boolean;
+    allowAnswerPaste?: boolean;
 
     getStableTaskId: (task: Task, idx: number) => string;
 
@@ -140,6 +141,7 @@ export default function StandardAssignmentSection({
     answers,
     translatedTasksMap,
     lock,
+    allowAnswerPaste = false,
     getStableTaskId,
     isTaskTranslationVisible,
     getMcqSelectedIndex,
@@ -224,6 +226,7 @@ export default function StandardAssignmentSection({
                                     showTranslation={isTaskTranslationVisible(stableId)}
                                     autoGrade={autoGrade}
                                     locked={lock}
+                                    allowAnswerPaste={allowAnswerPaste}
                                     t={t}
                                     getMcqSelectedIndex={getMcqSelectedIndex}
                                     isTrueSelected={isTrueSelected}

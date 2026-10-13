@@ -1,6 +1,8 @@
 // app\[locale]\(app)\teacher\spaces\[spaceId]\lessons\[assignmentId]\submissions\[subId]\page.tsx
 "use client";
 
+import { podcastFeedbackUpdate } from "@/lib/submissions/status";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -1170,8 +1172,8 @@ function Inner() {
     }));
   }
 
-  async function savePodcastWorkshopFeedback() {
-    if (!canOperate) return;
+  async function savePodcastWorkshopFeedback(room?: PodcastWorkshopRoomKey) {
+    if (!canOperate || !user || podcastFeedbackSaving) return;
     if (!nestedRef && !indexRef) return;
 
     setPodcastFeedbackSaving(true);
@@ -1181,12 +1183,7 @@ function Inner() {
       const dbx = requireDb(db);
       const payload = {
         ...submissionIndexBasePayload(),
-        podcastWorkshopFeedback: {
-          ...podcastWorkshopFeedback,
-          updatedAt: serverTimestamp(),
-          teacherUid: user?.uid ?? null,
-        },
-        updatedAt: serverTimestamp(),
+        ...podcastFeedbackUpdate(podcastWorkshopFeedback, room, user.uid, serverTimestamp()),
       };
 
       const batch = writeBatch(dbx);

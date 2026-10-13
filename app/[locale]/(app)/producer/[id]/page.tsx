@@ -20,6 +20,8 @@ import {
 } from "@/lib/featureAccess";
 import { LANGUAGES } from "@/lib/languages";
 import LessonFactCheck from "@/components/LessonFactCheck";
+import AnswerPasteSetting from "@/components/AnswerPasteSetting";
+import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import { getTextTypeLabel, normalizeTextTypeKey, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type TaskType = "truefalse" | "mcq" | "open";
@@ -59,6 +61,7 @@ type Lesson = {
   estimatedMinutes?: number;
   releaseMode?: ReleaseMode;
   textSize?: TextSize;
+  allowAnswerPaste?: boolean;
   textType?: string;
   highFrequencyWord?: string;
   highFrequencyReadingSentences?: string;
@@ -361,6 +364,7 @@ export default function ProducerLessonEditorPage() {
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(20);
   const [releaseMode, setReleaseMode] = useState<ReleaseMode>("ALL_AT_ONCE");
   const [textSize, setTextSize] = useState<TextSize>("normal");
+  const [allowAnswerPaste, setAllowAnswerPaste] = useState(false);
 
   const [producerName, setProducerName] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
@@ -498,6 +502,7 @@ export default function ProducerLessonEditorPage() {
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
         setTextSize(normalizeTextSize(data.textSize));
+        setAllowAnswerPaste(isAnswerPasteAllowed(data.allowAnswerPaste));
 
         if (typeof data.producerName === "string" && data.producerName.trim()) {
           setProducerName(data.producerName.trim());
@@ -712,6 +717,7 @@ export default function ProducerLessonEditorPage() {
           estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
           releaseMode,
           textSize,
+          allowAnswerPaste,
 
           producerName: producerName.trim(),
           coverImageUrl: coverImageUrl.trim(),
@@ -1653,6 +1659,8 @@ export default function ProducerLessonEditorPage() {
               </div>
               <div style={smallHelpStyle}>{t("fields.textSizeHelp")}</div>
             </div>
+
+            <AnswerPasteSetting allowed={allowAnswerPaste} onChange={setAllowAnswerPaste} disabled={saving} />
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.text")}</div>

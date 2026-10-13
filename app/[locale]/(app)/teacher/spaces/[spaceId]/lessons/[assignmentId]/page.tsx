@@ -22,6 +22,7 @@ import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { readStudentAudioAsset } from "@/lib/audio/studentAudio";
 import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
+import { getSubmissionStatus } from "@/lib/submissions/status";
 
 /* =========================
    Types
@@ -73,6 +74,8 @@ type SubmissionDoc = {
   displayName?: string;
   createdAt?: unknown;
   status?: string;
+  submittedAt?: unknown;
+  podcastWorkshopFeedback?: unknown;
   auth?: unknown;
   answers?: unknown;
   audioReading?: unknown;
@@ -404,7 +407,7 @@ export default function TeacherSpaceAssignedTaskPage() {
       (snap) => {
         const rows = snap.docs
           .map((d) => ({ id: d.id, data: (d.data() as SubmissionDoc) ?? {} }))
-          .filter((row) => isPodcastWorkshopAssignment || normalizeStatus(row.data.status) !== "draft");
+          .filter((row) => isPodcastWorkshopAssignment || normalizeStatus(getSubmissionStatus(row.data)) !== "draft");
 
         setSubmissions(rows);
         setLoadingSubs(false);
@@ -662,7 +665,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                   );
 
                 const createdAt = formatMaybeDate(s.data.createdAt, locale) || dash;
-                const badge = statusBadge(s.data.status, (k) => t(k), dash);
+                const badge = statusBadge(getSubmissionStatus(s.data), (k) => t(k), dash);
                 const hasAudio = !!readStudentAudioAsset(s.data.audioReading, "audio_reading");
                 const linkedCode = typeof s.data.linkedStudentCode === "string" ? s.data.linkedStudentCode.trim() : "";
 

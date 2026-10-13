@@ -108,6 +108,7 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         taskType: a.taskType,
         readingTestConfig: a.readingTestConfig ?? null,
         textSize: a.textSize,
+        allowAnswerPaste: a.allowAnswerPaste,
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,
         arithmeticWorksheet: a.arithmeticWorksheet ?? null,

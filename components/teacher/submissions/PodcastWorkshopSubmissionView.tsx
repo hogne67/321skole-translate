@@ -41,7 +41,7 @@ type Props = {
     saveMsg: string | null;
     onFeedbackChange: (room: PodcastWorkshopRoomKey, next: PodcastWorkshopRoomFeedback) => void;
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
     t: (key: string, values?: Record<string, unknown>) => string;
 };
 
@@ -788,7 +788,7 @@ function renderRoom({
     canOperate: boolean;
     saving: boolean;
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
     t: Props["t"];
 }) {
     const segments = getPodcastWorkshopSegments(config, submission);
@@ -1081,7 +1081,7 @@ function SegmentList({
     getText: (segmentId: string) => string;
     getSupportWords: (segmentId: string) => string[];
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
 }) {
     return (
         <div className="grid gap-3">
@@ -1133,7 +1133,7 @@ function InfoBlock({
     canOperate: boolean;
     saving: boolean;
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
     t: Props["t"];
 }) {
     return (
@@ -1226,7 +1226,7 @@ function RoomFeedbackBox({
     saving: boolean;
     saveMsg: string | null;
     onFeedbackChange: (room: PodcastWorkshopRoomKey, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
     t: Props["t"];
 }) {
     const roomFeedback = feedback.rooms[room] ?? { text: "", status: "" };
@@ -1280,7 +1280,7 @@ function RoomFeedbackBox({
             <button
                 type="button"
                 disabled={!canOperate || saving}
-                onClick={onSaveFeedback}
+                onClick={() => onSaveFeedback(room)}
                 className="mt-3 w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-black text-violet-800 disabled:opacity-60"
             >
                 {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFeedback")}
@@ -1309,7 +1309,7 @@ function FieldFeedbackBox({
     canOperate: boolean;
     saving: boolean;
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
+    onSaveFeedback: (room?: PodcastWorkshopRoomKey) => void;
     t: Props["t"];
 }) {
     const fieldFeedback = feedback.fields?.[fieldKey] ?? { text: "", status: "" };
@@ -1360,7 +1360,7 @@ function FieldFeedbackBox({
                 <button
                     type="button"
                     disabled={!canOperate || saving}
-                    onClick={onSaveFeedback}
+                    onClick={() => onSaveFeedback()}
                     className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-black text-violet-800 disabled:opacity-60"
                 >
                     {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFieldFeedback")}

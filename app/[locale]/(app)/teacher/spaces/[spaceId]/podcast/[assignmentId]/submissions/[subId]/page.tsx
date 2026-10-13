@@ -10,6 +10,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
+import { podcastFeedbackUpdate } from "@/lib/submissions/status";
 import {
   createPodcastWorkshopFeedback,
   readPodcastWorkshopConfig,
@@ -35,6 +36,8 @@ type AssignmentDoc = {
 
 type SubmissionDoc = {
   uid?: string;
+  auth?: { uid?: string };
+  participantId?: string;
   status?: string;
   podcastWorkshop?: unknown;
   podcastWorkshopFeedback?: unknown;
@@ -96,6 +99,7 @@ function Inner() {
   const [config, setConfig] = useState<PodcastWorkshopConfig | null>(null);
   const [submission, setSubmission] = useState<PodcastWorkshopSubmission>(() => readPodcastWorkshopSubmission(null, null));
   const [feedback, setFeedback] = useState<PodcastWorkshopFeedback>(() => createPodcastWorkshopFeedback());
+  const [submissionDoc, setSubmissionDoc] = useState<SubmissionDoc | null>(null);
   const [studentName, setStudentName] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [loading, setLoading] = useState(true);
@@ -162,6 +166,7 @@ function Inner() {
       }
 
       const data = (snap.data() as SubmissionDoc) ?? {};
+      setSubmissionDoc(data);
       void resolvePodcastAudioForPlayback(
         readPodcastWorkshopSubmission(data.podcastWorkshop, config)
       ).then(setSubmission);
@@ -206,18 +211,18 @@ function Inner() {
     }));
   }
 
-  async function saveFeedback() {
+  async function saveFeedback(room?: PodcastWorkshopRoomKey) {
+    if (!user || !submissionDoc || saving) return;
     setSaving(true);
     setMsg(null);
 
     try {
+      const studentUid = submissionDoc.uid || submissionDoc.auth?.uid;
       const payload = {
-        podcastWorkshopFeedback: {
-          ...feedback,
-          updatedAt: serverTimestamp(),
-          teacherUid: user?.uid ?? null,
-        },
-        updatedAt: serverTimestamp(),
+        spaceId, assignmentId,
+        ...(studentUid ? { uid: studentUid } : {}),
+        ...(submissionDoc.participantId ? { participantId: submissionDoc.participantId } : {}),
+        ...podcastFeedbackUpdate(feedback, room, user.uid, serverTimestamp()),
       };
       const batch = writeBatch(db);
       batch.set(doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId), payload, { merge: true });

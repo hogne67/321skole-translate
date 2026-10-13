@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase/firestore";
+import { getSubmissionStatus } from "./status";
 import type {
     AutoGrade,
     AutoGradeEntry,
@@ -171,7 +172,7 @@ export function readAiFeedbackText(
 export function readStatus(
     sub: SubmissionDoc
 ): SubmissionStatus {
-    const s = sub.status;
+    const s = getSubmissionStatus(sub);
 
     if (typeof s === "string" && s.trim()) {
         return s as SubmissionStatus;
@@ -183,7 +184,7 @@ export function readStatus(
 export function readStatusDefaultNeedsWork(
     sub: SubmissionDoc
 ): ReviewStatus {
-    const s = sub.status;
+    const s = getSubmissionStatus(sub);
 
     return s === "needs_work" || s === "reviewed"
         ? s

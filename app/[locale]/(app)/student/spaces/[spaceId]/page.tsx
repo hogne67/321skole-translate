@@ -25,6 +25,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
+import { getSubmissionStatus } from "@/lib/submissions/status";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -285,7 +286,7 @@ function spaceSubRowFromData(
   return {
     id,
     assignmentId,
-    status: normalizeStatus(data.status),
+    status: normalizeStatus(getSubmissionStatus(data)),
     updatedAtMs: toMillisAny(data.updatedAt) || toMillisAny(data.createdAt),
     createdAtMs: toMillisAny(data.createdAt),
     title: safeString(data.title) ?? null,

@@ -1,6 +1,8 @@
 // app/api/teacher/spaces/[spaceId]/assign/route.ts
 import "server-only";
 
+import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
+
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
@@ -29,6 +31,7 @@ type UsageDoc = {
 };
 
 type SourceLessonData = {
+  allowAnswerPaste?: boolean;
   title?: string;
   level?: string;
   language?: string;
@@ -136,6 +139,7 @@ function pickSourceLessonData(
     taskType: nonEmptyOrUndefined(d.taskType),
     readingTestConfig: d.readingTestConfig ?? null,
     textSize: nonEmptyOrUndefined(d.textSize),
+    allowAnswerPaste: isAnswerPasteAllowed(d.allowAnswerPaste),
 
     mathWorksheet: d.mathWorksheet ?? null,
     fractionWorksheet: d.fractionWorksheet ?? null,
@@ -466,6 +470,7 @@ export async function POST(
           : source.taskType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
         textSize: source.textSize ?? null,
+        allowAnswerPaste: isAnswerPasteAllowed(source.allowAnswerPaste),
 
         mathWorksheet: isFractions ? fractionWorksheet : source.mathWorksheet ?? null,
         fractionWorksheet: isFractions ? fractionWorksheet : source.fractionWorksheet ?? null,

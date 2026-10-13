@@ -9,6 +9,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { getTeacherUidFromSpaceData } from "@/lib/teacherStudentLimit";
+import { getSubmissionStatus, type SubmissionStatusSource } from "@/lib/submissions/status";
 
 export type SubmissionDashboardStats = {
   total: number;
@@ -104,8 +105,19 @@ function isActiveAssignment(data: DocumentData): boolean {
   return status !== "archived" && status !== "draft" && data.archived !== true;
 }
 
-function isVisibleSubmission(data: { status?: unknown; archived?: unknown; studentArchived?: unknown }): boolean {
-  return normalizeStatus(data.status) !== "draft" && data.archived !== true && data.studentArchived !== true;
+type DashboardSubmission = SubmissionStatusSource & { archived?: unknown; studentArchived?: unknown };
+
+function isVisibleSubmission(data: DashboardSubmission): boolean {
+  return normalizeStatus(getSubmissionStatus(data)) !== "draft" && data.archived !== true && data.studentArchived !== true;
+}
+
+export function summarizeSubmissionStatuses(submissions: DashboardSubmission[], includeDrafts = false): SubmissionDashboardStats {
+  const stats = emptyStats();
+  for (const submission of submissions) {
+    if (!includeDrafts && !isVisibleSubmission(submission)) continue;
+    addStatus(stats, getSubmissionStatus(submission));
+  }
+  return stats;
 }
 
 async function getSpacesByOwnerField(
@@ -151,28 +163,20 @@ async function countNestedSubmissionsForTask(
   path: [string, string, string, string]
 ) {
   const snap = await getDocs(collection(db, path[0], path[1], path[2], path[3], "submissions"));
-  snap.forEach((docSnap) => {
-    const data = docSnap.data() as { status?: unknown; archived?: unknown; studentArchived?: unknown };
-    if (!isVisibleSubmission(data)) return;
-    addStatus(stats, data.status);
-  });
+  const taskStats = summarizeSubmissionStatuses(snap.docs.map((docSnap) => docSnap.data()));
+  for (const key of Object.keys(stats) as (keyof SubmissionDashboardStats)[]) stats[key] += taskStats[key];
 }
 
 export async function getStudentDashboardStats(
   db: Firestore,
   uid: string
 ): Promise<StudentDashboardStatsResult> {
-  const stats = emptyStats();
-
   const [submissionsSnap, memberSnap] = await Promise.all([
     getDocs(query(collection(db, "spaceSubmissions"), where("uid", "==", uid))),
     getDocs(query(collection(db, "spaceMembers"), where("uid", "==", uid))),
   ]);
 
-  submissionsSnap.forEach((docSnap) => {
-    const data = docSnap.data() as { status?: unknown };
-    addStatus(stats, data.status);
-  });
+  const stats = summarizeSubmissionStatuses(submissionsSnap.docs.map((docSnap) => docSnap.data()), true);
 
   const activeMembershipCount = memberSnap.docs.filter((docSnap) => isActiveMembership(docSnap.data())).length;
 

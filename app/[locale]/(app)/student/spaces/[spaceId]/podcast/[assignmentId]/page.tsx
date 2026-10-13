@@ -1,4 +1,6 @@
 "use client";
+
+import { getSubmissionStatus } from "@/lib/submissions/status";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import { useEffect, useMemo, useState } from "react";
@@ -40,6 +42,7 @@ type AssignmentDoc = {
 };
 
 type SubmissionDoc = {
+  submittedAt?: unknown;
   status?: string;
   uid?: string;
   participantId?: string;
@@ -233,7 +236,7 @@ export default function StudentPodcastWorkshopPage() {
       (snap) => {
         if (!snap.exists()) return;
         const data = (snap.data() as SubmissionDoc) ?? {};
-        setStatus(String(data.status ?? ""));
+        setStatus(getSubmissionStatus(data));
         void resolvePodcastAudioForPlayback(
           readPodcastWorkshopSubmission(data.podcastWorkshop, config)
         ).then(setSubmission);

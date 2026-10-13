@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import AnswerTextarea from "@/components/student/AnswerTextarea";
 import type { AnswersMap, AutoGrade, Task, TextSize, TranslatedTask, TranslatingState } from "./types";
 import {
     blueButtonActiveStyle,
@@ -16,6 +17,7 @@ type Props = {
     showTranslation: boolean;
     autoGrade: AutoGrade | null;
     locked: boolean;
+    allowAnswerPaste?: boolean;
     translating: TranslatingState;
     ttsBusy: null | "original" | "translation";
     textSize: TextSize;
@@ -69,6 +71,7 @@ export default function AssignmentTaskCard({
     showTranslation,
     autoGrade,
     locked,
+    allowAnswerPaste = false,
     translating,
     ttsBusy,
     textSize,
@@ -472,7 +475,8 @@ export default function AssignmentTaskCard({
                         </button>
                     </div>
                 ) : (
-                    <textarea
+                    <AnswerTextarea
+                        allowPaste={allowAnswerPaste}
                         value={String(answers[stableId] ?? "")}
                         disabled={locked}
                         onChange={(e) => onAnswer(stableId, e.target.value)}

@@ -29,6 +29,7 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
+    allowAnswerPaste?: boolean;
     mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
@@ -68,6 +69,7 @@ export type AssignmentDoc = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
+    allowAnswerPaste?: boolean;
 
     mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;

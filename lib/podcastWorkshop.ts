@@ -79,6 +79,8 @@ export type PodcastWorkshopFeedback = {
     version: 1;
     rooms: Record<PodcastWorkshopRoomKey, PodcastWorkshopRoomFeedback>;
     fields: Record<string, PodcastWorkshopRoomFeedback>;
+    updatedAt?: unknown;
+    finalReviewedAt?: unknown;
 };
 
 function readStringArray(value: unknown): string[] {
@@ -440,5 +442,7 @@ export function readPodcastWorkshopFeedback(value: unknown): PodcastWorkshopFeed
         version: 1,
         rooms,
         fields: readFeedbackMap(data.fields),
+        ...(data.updatedAt !== undefined ? { updatedAt: data.updatedAt } : {}),
+        ...(data.finalReviewedAt !== undefined ? { finalReviewedAt: data.finalReviewedAt } : {}),
     };
 }

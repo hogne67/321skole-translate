@@ -2,6 +2,8 @@
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
+import AnswerTextarea from "@/components/student/AnswerTextarea";
+import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -62,6 +64,7 @@ type Lesson = {
   readingTestConfig?: unknown;
   isActive?: boolean;
   textSize?: TextSize;
+  allowAnswerPaste?: boolean;
   sourceCollection?: "published_lessons" | "lessons";
   publishedLessonId?: string | null;
 };
@@ -110,6 +113,7 @@ type PublishedLessonDoc = {
   readingTestConfig?: unknown;
   isActive?: boolean;
   textSize?: TextSize;
+  allowAnswerPaste?: boolean;
 };
 
 type PrivateLessonDoc = {
@@ -131,6 +135,7 @@ type PrivateLessonDoc = {
   readingTestConfig?: unknown;
   status?: "draft" | "published";
   textSize?: TextSize;
+  allowAnswerPaste?: boolean;
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -540,6 +545,7 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     readingTestConfig: d.readingTestConfig,
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
     textSize: normalizeTextSize(d.textSize),
+    allowAnswerPaste: isAnswerPasteAllowed(d.allowAnswerPaste),
   };
 }
 
@@ -587,6 +593,7 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     readingTestConfig: d.readingTestConfig,
     status: d.status === "published" ? "published" : "draft",
     textSize: normalizeTextSize(d.textSize),
+    allowAnswerPaste: isAnswerPasteAllowed(d.allowAnswerPaste),
   };
 }
 
@@ -1699,6 +1706,7 @@ export default function StudentLessonPage() {
               readingTestConfig: rawData.readingTestConfig,
               isActive: rawData.isActive,
               textSize: rawData.textSize,
+              allowAnswerPaste: rawData.allowAnswerPaste,
               sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
               text: rawData.text,
               highFrequencyWord: rawData.highFrequencyWord,
@@ -1753,6 +1761,7 @@ export default function StudentLessonPage() {
             imageTasks: rawPrivate.imageTasks,
             readingTestConfig: rawPrivate.readingTestConfig,
             textSize: rawPrivate.textSize,
+            allowAnswerPaste: rawPrivate.allowAnswerPaste,
             sourceText: (rawPrivate.sourceText ?? rawPrivate.text ?? "") as string,
             text: rawPrivate.text,
             highFrequencyWord: rawPrivate.highFrequencyWord,
@@ -2565,7 +2574,8 @@ export default function StudentLessonPage() {
                 {renderAudioLoginNotice("pre_reading")}
               </div>
             </div>
-            <textarea
+            <AnswerTextarea
+              allowPaste={isReadingTest || isAnswerPasteAllowed(lesson?.allowAnswerPaste)}
               value={preReadingAnswer}
               onChange={(event) => setAnswer(PRE_READING_ANSWER_KEY, event.target.value)}
               placeholder={t("preReading.placeholder")}
@@ -3216,7 +3226,8 @@ export default function StudentLessonPage() {
                   ) : null}
 
                   {type === "open" || !["mcq", "truefalse"].includes(type) ? (
-                    <textarea
+                    <AnswerTextarea
+                      allowPaste={isAnswerPasteAllowed(lesson?.allowAnswerPaste)}
                       value={typeof val === "string" ? val : val == null ? "" : String(val)}
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       placeholder={t("tasks.writeAnswerPlaceholder")}

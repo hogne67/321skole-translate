@@ -8,6 +8,8 @@ import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import LessonFactCheck from "@/components/LessonFactCheck";
+import AnswerPasteSetting from "@/components/AnswerPasteSetting";
+import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import { useLocale } from "next-intl";
 import {
   getTextTypeLabel,
@@ -28,6 +30,7 @@ type ModerateResult = {
 };
 
 type LessonDraft = {
+  allowAnswerPaste?: boolean;
   title?: string;
   description?: string;
   level?: string;
@@ -251,6 +254,7 @@ export default function ProducerTextDetailPage() {
         texttype: textType || "",
 
         sourceText: draft.sourceText ?? "",
+        allowAnswerPaste: isAnswerPasteAllowed(draft.allowAnswerPaste),
         highFrequencyWord: draft.highFrequencyWord ?? "",
         highFrequencyReadingSentences: draft.highFrequencyReadingSentences ?? "",
         highFrequencyExplanation: draft.highFrequencyExplanation ?? "",
@@ -596,6 +600,12 @@ export default function ProducerTextDetailPage() {
                 />
               </label>
             </section>
+
+            <div style={{ marginTop: 22 }}>
+              <AnswerPasteSetting allowed={isAnswerPasteAllowed(draft.allowAnswerPaste)}
+                onChange={allowed => setDraft({ ...draft, allowAnswerPaste: allowed })}
+                disabled={saving || publishing || serverPublishing} />
+            </div>
 
             <div style={{ marginTop: 22 }}><LessonFactCheck lessonId={id} lesson={draft} save={save} disabled={saving || publishing || serverPublishing} /></div>
 
