@@ -5,7 +5,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, sendEmailVerification, type User } from "firebase/auth";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { sendVerificationEmail } from "@/lib/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import GeoSearchSelect from "@/components/geo/GeoSearchSelect";
 import { COUNTRIES } from "@/lib/geo/countries";
@@ -65,20 +66,13 @@ function isEmailPasswordUser(user: User): boolean {
   return user.providerData.some((provider) => provider.providerId === "password");
 }
 
-function firebaseLanguageCode(locale: string) {
-  if (locale === "nb") return "no";
-  if (locale === "pt") return "pt-BR";
-  return locale;
-}
-
-async function maybeSendParentVerification(user: User, locale: string) {
+async function maybeSendVerification(user: User, locale: string) {
   if (user.emailVerified || !isEmailPasswordUser(user)) return;
 
   try {
-    auth.languageCode = firebaseLanguageCode(locale);
-    await sendEmailVerification(user);
+    await sendVerificationEmail(user, locale);
   } catch (error) {
-    console.warn("parent firebase email verification send failed", error);
+    console.warn("account email verification send failed", error);
   }
 }
 
@@ -434,8 +428,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       await setDoc(ref, payload, { merge: true });
 
-      if (role === "parent" && auth.currentUser) {
-        await maybeSendParentVerification(auth.currentUser, locale);
+      if (auth.currentUser) {
+        await maybeSendVerification(auth.currentUser, locale);
       }
 
       const finalNext = normalizeNext(nextUrl, locale, role);

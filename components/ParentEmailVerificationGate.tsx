@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { sendEmailVerification } from "firebase/auth";
+import { sendVerificationEmail } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale } from "next-intl";
@@ -20,10 +20,10 @@ function copyFor(locale: string) {
       expiredTitle: "Verify your email to continue creating",
       text: "You can read, view and study while waiting. Creating family rooms and using AI tools require a verified email.",
       expiredText: "The verification period has ended. You can still read and view content, but creating family rooms and using AI tools require a verified email.",
-      hint: "The email can take a few minutes to arrive. Check your inbox and spam/junk folder.",
+      hint: "We send the verification email to {email}. Check your spam/junk folder if you cannot find it.",
       resend: "Send verification email",
       resendWait: "Send again in {seconds}s",
-      sent: "Verification email sent. It can take a few minutes, and it may land in spam/junk.",
+      sent: "Verification email sent. Open the email and click the verification button.",
       failed: "We could not send the email right now. Try again in a moment.",
       tooMany: "Too many attempts right now. Please wait a while before trying again.",
       reload: "I have verified. Check again",
@@ -39,10 +39,10 @@ function copyFor(locale: string) {
       expiredTitle: "Confirme seu e-mail para continuar criando",
       text: "Você pode ler, ver e estudar enquanto espera. Criar espaços familiares e usar ferramentas de IA exige e-mail confirmado.",
       expiredText: "O prazo de confirmação terminou. Você ainda pode ler e ver conteúdo, mas criar espaços familiares e usar ferramentas de IA exige e-mail confirmado.",
-      hint: "O e-mail pode levar alguns minutos para chegar. Verifique a caixa de entrada e também spam/lixo eletrônico.",
+      hint: "Enviamos o e-mail de confirmação para {email}. Verifique spam/lixo eletrônico se não o encontrar.",
       resend: "Enviar e-mail de confirmação",
       resendWait: "Enviar novamente em {seconds}s",
-      sent: "E-mail de confirmação enviado. Pode levar alguns minutos e pode cair em spam/lixo eletrônico.",
+      sent: "E-mail de confirmação enviado. Abra o e-mail e clique no botão de confirmação.",
       failed: "Não foi possível enviar o e-mail agora. Tente novamente em instantes.",
       tooMany: "Muitas tentativas agora. Aguarde um pouco antes de tentar novamente.",
       reload: "Já confirmei. Verificar novamente",
@@ -57,10 +57,10 @@ function copyFor(locale: string) {
     expiredTitle: "Bekreft e-posten for å fortsette å lage",
     text: "Du kan lese, se og studere mens du venter. For å lage familierom og bruke KI-verktøy må e-posten være bekreftet.",
     expiredText: "Bekreftelsesfristen er ute. Du kan fortsatt lese og se innhold, men for å lage familierom og bruke KI-verktøy må e-posten være bekreftet.",
-    hint: "Det kan ta noen minutter før e-posten kommer fram. Sjekk innboksen og eventuelt søppelpost/spam.",
-    resend: "Send bekreftelsesmail",
+    hint: "Bekreftelseseposten sendes til {email}. Sjekk søppelpost hvis du ikke finner den.",
+    resend: "Send bekreftelsesepost",
     resendWait: "Send på nytt om {seconds} sek",
-    sent: "Bekreftelsesmail er sendt. Det kan ta noen minutter, og den kan havne i søppelpost/spam.",
+    sent: "Bekreftelsesepost er sendt. Åpne e-posten og trykk på bekreftelsesknappen.",
     failed: "Vi klarte ikke å sende e-post akkurat nå. Prøv igjen om litt.",
     tooMany: "Det er gjort for mange forsøk akkurat nå. Vent litt før du prøver igjen.",
     reload: "Jeg har bekreftet. Sjekk på nytt",
@@ -68,12 +68,6 @@ function copyFor(locale: string) {
     missingSent: "Takk. Vi har mottatt beskjed og kan følge opp.",
     missingFailed: "Kunne ikke sende beskjed akkurat nå.",
   };
-}
-
-function firebaseLanguageCode(locale: string) {
-  if (locale === "nb") return "no";
-  if (locale === "pt") return "pt-BR";
-  return locale;
 }
 
 function daysLeft(user: NonNullable<ReturnType<typeof useUserProfile>["user"]>) {
@@ -123,12 +117,13 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
     setError(null);
 
     try {
-      auth.languageCode = firebaseLanguageCode(locale);
-      await sendEmailVerification(auth.currentUser);
+      const result = await sendVerificationEmail(auth.currentUser, locale);
+      if (result.alreadyVerified) { await refresh(); return; }
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage(t.sent);
     } catch (err) {
       console.warn("parent resend verification failed", err);
+      if (err instanceof Error && err.message === "too_many_attempts") setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setError(err instanceof Error && err.message === "too_many_attempts" ? t.tooMany : t.failed);
     } finally {
       setBusy(false);
@@ -196,7 +191,7 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
             <div style={badgeStyle}>321school</div>
             <h2 style={titleStyle}>{title}</h2>
             <p style={textStyle}>{expired ? t.expiredText : t.text}</p>
-            <p style={hintStyle}>{t.hint}</p>
+            <p style={hintStyle}>{t.hint.replace("{email}", user.email || "")}</p>
             {message ? <p style={successStyle}>{message}</p> : null}
             {error ? <p style={errorStyle}>{error}</p> : null}
           </div>

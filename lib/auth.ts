@@ -6,10 +6,8 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   signOut,
   updateProfile,
-  type ActionCodeSettings,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -45,9 +43,22 @@ export async function signUpWithEmail(
 
 export async function sendVerificationEmail(
   user: User,
-  actionCodeSettings?: ActionCodeSettings
-): Promise<void> {
-  await sendEmailVerification(user, actionCodeSettings);
+  locale = "nb"
+): Promise<{ alreadyVerified: boolean }> {
+  const token = await user.getIdToken();
+  const response = await fetch("/api/email/verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ locale }),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.ok) {
+    const reason = response.status === 429 ? "too_many_attempts" : "verification_email_failed";
+    throw Object.assign(new Error(reason), {
+      code: response.status === 429 ? "auth/too-many-requests" : reason,
+    });
+  }
+  return { alreadyVerified: result.alreadyVerified === true };
 }
 
 export async function logout() {
