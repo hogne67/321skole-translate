@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { useLocale } from "next-intl";
 import { answerPasteCopy } from "@/lib/lessons/answerPaste";
+import styles from "./AnswerPasteSetting.module.css";
 
 export default function AnswerPasteSetting({ allowed, onChange, disabled = false }: {
   allowed: boolean;
@@ -10,16 +11,37 @@ export default function AnswerPasteSetting({ allowed, onChange, disabled = false
   disabled?: boolean;
 }) {
   const copy = answerPasteCopy(useLocale());
-  const helpId = useId();
+  const groupId = useId();
+  const options = [
+    { value: false, label: copy.disallowed, help: copy.disallowedHelp },
+    { value: true, label: copy.allowed, help: copy.allowedHelp },
+  ];
   return (
-    <div style={{ display: "grid", gap: 6 }}>
-      <label style={{ display: "flex", alignItems: "start", gap: 10, cursor: "pointer" }}>
-        <input type="checkbox" checked={!allowed} disabled={disabled}
-          aria-describedby={helpId} onChange={event => onChange(!event.target.checked)}
-          style={{ marginTop: 3, flexShrink: 0 }} />
-        <span style={{ fontWeight: 700 }}>{copy.label}</span>
-      </label>
-      <div id={helpId} style={{ color: "#64748b", fontSize: 13, paddingLeft: 23 }}>{copy.help}</div>
-    </div>
+    <fieldset className={styles.setting} disabled={disabled}>
+      <legend className={styles.heading}>{copy.heading}</legend>
+      <div className={styles.options}>
+        {options.map(option => {
+          const selected = allowed === option.value;
+          const helpId = `${groupId}-${option.value}-help`;
+          return (
+            <label key={String(option.value)} className={styles.option} data-selected={selected}>
+              <input className={styles.input} type="radio" name={groupId}
+                value={String(option.value)} checked={selected}
+                aria-describedby={helpId} onChange={() => onChange(option.value)} />
+              <span className={styles.indicator} aria-hidden="true">
+                {selected && <span className={styles.dot} />}
+              </span>
+              <span className={styles.content}>
+                <span className={styles.label}>
+                  {option.label}
+                  {!option.value && <span className={styles.badge}>{copy.defaultLabel}</span>}
+                </span>
+                <span id={helpId} className={styles.help}>{option.help}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

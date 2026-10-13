@@ -5,18 +5,30 @@ export function isAnswerPasteAllowed(value: unknown): boolean {
 
 export function answerPasteCopy(locale: string) {
   if (locale.startsWith("en")) return {
-    label: "Do not allow pasting into students' answer fields",
-    help: "Turn off if students may paste text or answers.",
+    heading: "Pasting into students' answer fields",
+    disallowed: "Not allowed",
+    disallowedHelp: "Students write their own answers.",
+    allowed: "Allowed",
+    allowedHelp: "Students may paste text into the answer fields.",
+    defaultLabel: "Default",
     blocked: "Pasting text is not allowed in this assignment.",
   };
   if (locale.startsWith("pt")) return {
-    label: "Não permitir colar nos campos de resposta dos alunos",
-    help: "Desative se os alunos puderem colar texto ou respostas.",
+    heading: "Colar nos campos de resposta dos alunos",
+    disallowed: "Não permitido",
+    disallowedHelp: "Os alunos escrevem as próprias respostas.",
+    allowed: "Permitido",
+    allowedHelp: "Os alunos podem colar texto nos campos de resposta.",
+    defaultLabel: "Padrão",
     blocked: "Não é permitido colar texto nesta atividade.",
   };
   return {
-    label: "Ikke tillat innliming i elevens svarfelt",
-    help: "Slå av dersom eleven kan få lime inn tekst eller svar.",
+    heading: "Innliming i elevens svarfelt",
+    disallowed: "Ikke tillatt",
+    disallowedHelp: "Eleven skriver svarene selv.",
+    allowed: "Tillatt",
+    allowedHelp: "Eleven kan lime inn tekst i svarfeltene.",
+    defaultLabel: "Standard",
     blocked: "Innliming av tekst er ikke tillatt i denne oppgaven.",
   };
 }
