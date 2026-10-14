@@ -1,5 +1,6 @@
 // lib/auth.ts
 import { auth } from "@/lib/firebase";
+import type { VerificationEmailResult } from "@/lib/email/verificationResult";
 import {
   GoogleAuthProvider,
   OAuthProvider,
@@ -44,7 +45,7 @@ export async function signUpWithEmail(
 export async function sendVerificationEmail(
   user: User,
   locale = "nb"
-): Promise<{ alreadyVerified: boolean }> {
+): Promise<VerificationEmailResult> {
   const token = await user.getIdToken();
   const response = await fetch("/api/email/verification", {
     method: "POST",
@@ -58,7 +59,12 @@ export async function sendVerificationEmail(
       code: response.status === 429 ? "auth/too-many-requests" : reason,
     });
   }
-  return { alreadyVerified: result.alreadyVerified === true };
+  return {
+    ok: true, alreadyVerified: result.alreadyVerified === true,
+    delivery: ["sent", "recently_sent", "pending"].includes(result.delivery) ? result.delivery : undefined,
+    retryAfterSeconds: typeof result.retryAfterSeconds === "number"
+      ? Math.max(0, Math.min(60, Math.ceil(result.retryAfterSeconds))) : 60,
+  };
 }
 
 export async function logout() {

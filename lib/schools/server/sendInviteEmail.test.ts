@@ -24,7 +24,8 @@ function fixture() {
   });
   let queue = Promise.resolve();
   const db = {
-    collection: (name: string) => ({ doc: (id: string) => ref(`${name}/${id}`) }),
+    collection: (name: string) => ({ doc: (id: string) => ref(`${name}/${id}`),
+      add: async (data: Record<string, unknown>) => { records.set(`${name}/log`, data); } }),
     runTransaction: <T>(fn: (tx: unknown) => Promise<T>) => {
       const run = queue.then(() => fn({
         get: async (reference: { path: string }) => ({ exists: records.has(reference.path), get: (key: string) => records.get(reference.path)?.[key] }),
@@ -55,6 +56,8 @@ test("sends stored recipient and existing link with real attachment payload; pre
   const after = f.records.get("schoolInvites/invite")!;
   for (const key of ["inviteToken", "inviteCode", "expiresAt", "email", "status"]) assert.equal(after[key], before[key]);
   assert.ok(after.emailSentAt); assert.equal(after.emailSentByUid, "admin");
+  assert.equal(f.records.get("emailLogs/log")?.subject, f.sent[0].subject);
+  assert.equal(f.records.get("emailLogs/log")?.status, "sent");
 });
 
 test("foreign invitations, non-admins, inactive members/schools and unusable invitations cannot send", async () => {
@@ -84,4 +87,17 @@ test("concurrent requests send once; provider failure never reports success or m
   const missing = fixture();
   await assert.rejects(sendSchoolInviteEmail(missing.input, { ...missing.deps, configured: false }), /email_not_configured/);
   assert.equal(missing.records.get("schoolInvites/invite")!.emailLastAttemptAt, undefined);
+});
+
+test("local or missing site configuration cannot leak localhost into emailed invitation or PDF", async () => {
+  for (const baseUrl of ["", "http://localhost:3000", "https://localhost:3000", "http://127.0.0.1:3000", "https://[::1]:3000", "invalid"]) {
+    const f = fixture();
+    await sendSchoolInviteEmail(f.input, { ...f.deps, baseUrl });
+    assert.equal(f.pdfInputs[0], "https://321school.com/nb/school/accept?token=existing-secret-token");
+    assert.ok(f.sent[0].html.includes(f.pdfInputs[0]));
+    assert.ok(f.sent[0].text?.includes(f.pdfInputs[0]));
+  }
+  const f = fixture();
+  await sendSchoolInviteEmail(f.input, { ...f.deps, baseUrl: "https://321school.example/path/" });
+  assert.ok(f.pdfInputs[0].startsWith("https://321school.example/nb/school/accept?token="));
 });

@@ -21,7 +21,7 @@ function fixture() {
     runTransaction: <T>(fn: (tx: unknown) => Promise<T>) => {
       const run = queue.then(() => fn({
         get: async (ref: { path: string }) => ({ get: (key: string) => records.get(ref.path)?.[key] }),
-        set: (ref: { path: string }, data: Record<string, unknown>) => { records.set(ref.path, data); },
+        set: (ref: { path: string }, data: Record<string, unknown>) => { records.set(ref.path, { ...records.get(ref.path), ...data }); },
       }));
       queue = run.then(() => undefined, () => undefined);
       return run;
@@ -65,16 +65,52 @@ test("verified, disabled and email-less accounts never receive a verification em
 
 test("concurrent requests share one reservation and cannot send twice", async () => {
   const f = fixture();
-  const results = await Promise.allSettled([
+  const results = await Promise.all([
     sendAccountVerificationEmail(f.input, f.deps), sendAccountVerificationEmail(f.input, f.deps),
   ]);
-  assert.equal(results.filter(r => r.status === "fulfilled").length, 1);
+  assert.ok(results.every(r => r.ok));
+  assert.equal(results.filter(r => r.delivery === "sent").length, 1);
+  assert.ok(results.some(r => r.delivery === "pending" || r.delivery === "recently_sent"));
   assert.equal(f.sent.length, 1);
-  const rejected = results.find(r => r.status === "rejected");
-  assert.ok(rejected?.status === "rejected" && rejected.reason instanceof VerificationEmailError && rejected.reason.status === 429);
   f.records.set("emailVerificationRequests/fred", { lastAttemptAt: Timestamp.fromMillis(Date.now() - 61_000) });
   await sendAccountVerificationEmail(f.input, f.deps);
   assert.equal(f.sent.length, 2);
+});
+
+test("first dashboard click after onboarding returns a calm already-sent result, without sending twice", async () => {
+  const f = fixture();
+  await sendAccountVerificationEmail(f.input, f.deps);
+  const response = await handleVerificationEmail(new Request("https://321school.com/api/email/verification", {
+    method: "POST", headers: { Authorization: "Bearer test", "Content-Type": "application/json" },
+    body: JSON.stringify({ locale: "nb" }),
+  }), false, {
+    verifyToken: async () => ({ uid: "fred", anonymous: false }),
+    send: input => sendAccountVerificationEmail(input, f.deps),
+  });
+  const result = await response.json();
+  assert.equal(response.status, 200); assert.equal(result.delivery, "recently_sent");
+  assert.ok(result.retryAfterSeconds > 0 && result.retryAfterSeconds <= 60);
+  assert.equal(f.sent.length, 1);
+});
+
+test("pending or legacy attempts and a changed email address are never described as successfully sent", async () => {
+  for (const state of [{ status: "sending", email: "fred@example.com" }, {}, { status: "sent", email: "old@example.com" }]) {
+    const f = fixture();
+    f.records.set("emailVerificationRequests/fred", { lastAttemptAt: Timestamp.fromMillis(Date.now() - 20_000), ...state });
+    const result = await sendAccountVerificationEmail(f.input, f.deps);
+    assert.equal(result.delivery, "pending");
+    assert.ok(result.retryAfterSeconds! > 0 && result.retryAfterSeconds! <= 40);
+    assert.equal(f.sent.length, 0);
+  }
+});
+
+test("a failed provider attempt remains a real failure when the button is pressed again during cooldown", async () => {
+  const f = fixture(); let attempts = 0;
+  const deps = { ...f.deps, send: async () => { attempts++; return { ok: false as const, reason: "send_failed" as const }; } };
+  for (let i = 0; i < 2; i++) {
+    await assert.rejects(sendAccountVerificationEmail(f.input, deps), error => error instanceof VerificationEmailError && error.status === 502);
+  }
+  assert.equal(attempts, 1);
 });
 
 test("missing configuration and provider failure never report success; logging failure cannot undo accepted email", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sendVerificationEmail } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -41,12 +41,13 @@ function copyFor(locale: string, role: GateRole) {
       expiredTitle: "Verify your email to continue creating",
       text: roleText.en,
       expiredText: "The verification period has ended. You can still read and view content, but creating, publishing and AI tools require a verified email.",
-      hint: "We send the verification email to {email}. Check your spam/junk folder if you cannot find it.",
+      hint: "We send the verification email to {email}.",
       resend: "Send verification email",
       resendWait: "Send again in {seconds}s",
       sent: "Verification email sent. Open the email and click the verification button.",
       failed: "We could not send the email right now. Try again in a moment.",
-      tooMany: "Too many attempts right now. Please wait a while before trying again.",
+      recentlySent: "The verification email has already been sent. Check your inbox.",
+      pending: "You can send again shortly.",
       reload: "I have verified. Check again",
       missingEmail: "I am not receiving the email",
       missingSent: "Thanks. We have received your message and can follow up.",
@@ -60,12 +61,13 @@ function copyFor(locale: string, role: GateRole) {
       expiredTitle: "Confirme seu e-mail para continuar criando",
       text: roleText.pt,
       expiredText: "O prazo de confirmação terminou. Você ainda pode ler e ver conteúdo, mas criar, publicar e usar IA exige e-mail confirmado.",
-      hint: "Enviamos o e-mail de confirmação para {email}. Verifique spam/lixo eletrônico se não o encontrar.",
+      hint: "Enviamos o e-mail de confirmação para {email}.",
       resend: "Enviar e-mail de confirmação",
       resendWait: "Enviar novamente em {seconds}s",
       sent: "E-mail de confirmação enviado. Abra o e-mail e clique no botão de confirmação.",
       failed: "Não foi possível enviar o e-mail agora. Tente novamente em instantes.",
-      tooMany: "Muitas tentativas agora. Aguarde um pouco antes de tentar novamente.",
+      recentlySent: "O e-mail de confirmação já foi enviado. Verifique sua caixa de entrada.",
+      pending: "Você poderá enviar novamente em instantes.",
       reload: "Já confirmei. Verificar novamente",
       missingEmail: "Não recebi o e-mail",
       missingSent: "Obrigado. Recebemos sua mensagem e podemos acompanhar.",
@@ -78,12 +80,13 @@ function copyFor(locale: string, role: GateRole) {
     expiredTitle: "Bekreft e-posten for å fortsette å lage",
     text: `Du kan lese, se og studere mens du venter. ${roleText.nb}`,
     expiredText: "Bekreftelsesfristen er ute. Du kan fortsatt lese og se innhold, men for å lage, publisere og bruke KI må e-posten være bekreftet.",
-    hint: "Bekreftelseseposten sendes til {email}. Sjekk søppelpost hvis du ikke finner den.",
+    hint: "Bekreftelseseposten sendes til {email}.",
     resend: "Send bekreftelsesepost",
     resendWait: "Send på nytt om {seconds} sek",
     sent: "Bekreftelsesepost er sendt. Åpne e-posten og trykk på bekreftelsesknappen.",
     failed: "Vi klarte ikke å sende e-post akkurat nå. Prøv igjen om litt.",
-    tooMany: "Det er gjort for mange forsøk akkurat nå. Vent litt før du prøver igjen.",
+    recentlySent: "Bekreftelseseposten er allerede sendt. Sjekk innboksen din.",
+    pending: "Du kan sende på nytt om litt.",
     reload: "Jeg har bekreftet. Sjekk på nytt",
     missingEmail: "Jeg får ikke e-post",
     missingSent: "Takk. Vi har mottatt beskjed og kan følge opp.",
@@ -121,6 +124,7 @@ export default function EmailVerificationGate({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resendInFlight = useRef(false);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -144,7 +148,8 @@ export default function EmailVerificationGate({
     : t.title.replace("{days}", String(remainingDays));
 
   async function resend() {
-    if (!auth.currentUser || resendCooldown > 0) return;
+    if (!auth.currentUser || resendCooldown > 0 || resendInFlight.current) return;
+    resendInFlight.current = true;
 
     setBusy(true);
     setMessage(null);
@@ -153,14 +158,17 @@ export default function EmailVerificationGate({
     try {
       const result = await sendVerificationEmail(auth.currentUser, locale);
       if (result.alreadyVerified) { await refresh(); return; }
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      setMessage(t.sent);
+      setResendCooldown(result.retryAfterSeconds ?? RESEND_COOLDOWN_SECONDS);
+      setMessage(result.delivery === "recently_sent" ? t.recentlySent : result.delivery === "pending" ? t.pending : t.sent);
     } catch (err) {
       console.warn("email verification resend failed", err);
       const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
-      if (code.includes("too-many-requests")) setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      setError(code.includes("too-many-requests") ? t.tooMany : t.failed);
+      if (code.includes("too-many-requests")) {
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        setMessage(t.pending);
+      } else { setError(t.failed); }
     } finally {
+      resendInFlight.current = false;
       setBusy(false);
     }
   }

@@ -4,6 +4,7 @@ import { getAdmin } from "../../firebaseAdmin";
 import { getEmailConfiguration } from "../../email/configuration";
 import { sendEmail, type SendEmailInput, type SendEmailResult } from "../../email/resend";
 import { buildInviteEmail, type InviteEmailDetails } from "../inviteEmail";
+import { schoolInviteOrigin } from "../inviteOrigin";
 
 export class InviteEmailError extends Error {
   constructor(public reason: string, public status = 400) { super(reason); }
@@ -24,8 +25,7 @@ export async function sendSchoolInviteEmail(input: { uid: string; schoolId: stri
   };
   if (!input.uid) throw new InviteEmailError("unauthorized", 401);
   const locale = input.locale === "en" || input.locale === "pt" ? input.locale : "nb";
-  const origin = new URL(deps.baseUrl).origin;
-  if (!/^https?:\/\//.test(origin)) throw new InviteEmailError("email_not_configured", 503);
+  const origin = schoolInviteOrigin(deps.baseUrl);
   const schoolRef = deps.db.collection("schools").doc(input.schoolId);
   const inviteRef = deps.db.collection("schoolInvites").doc(input.inviteId);
   const data = await deps.db.runTransaction(async tx => {
@@ -63,6 +63,12 @@ export async function sendSchoolInviteEmail(input: { uid: string; schoolId: stri
       attachments: [{ filename: "321school-invitation.pdf", content: pdf.toString("base64"), contentType: "application/pdf" }],
     });
   } catch { result = { ok: false, reason: "send_failed" }; }
+  try {
+    await deps.db.collection("emailLogs").add({ type: "school_invite", uid: input.uid,
+      schoolId: input.schoolId, inviteId: input.inviteId, email: data.email, locale,
+      subject: mail.subject, provider: "resend", status: result.ok ? "sent" : "failed",
+      ...(result.ok ? {} : { error: result.reason }), createdAt: FieldValue.serverTimestamp() });
+  } catch { console.error("school_invite_email_log_failed"); }
   if (!result.ok) throw new InviteEmailError(result.reason, 502);
   // Provider acceptance is the send result. A metadata failure must not invite an immediate duplicate send.
   try {
