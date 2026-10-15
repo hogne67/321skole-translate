@@ -20,6 +20,19 @@ export type PublishVisibility = "public" | "unlisted" | "private";
 
 export type ContentItem =
   | {
+    type: "learningPoster";
+    id: string;
+    title: string;
+    status?: string;
+    updatedAt?: Date | null;
+    href: string;
+    meta?: string[];
+    level: string;
+    language: string;
+    sourceTitle: string;
+    sourceHref: string | null;
+  }
+  | {
     type: "lesson";
     id: string;
     title: string;

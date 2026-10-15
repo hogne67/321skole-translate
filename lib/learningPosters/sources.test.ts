@@ -3,6 +3,7 @@ import test from "node:test";
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 import { listPosterLessons, readSavedPosterLesson } from "./sources.server";
 import { filterPosterLessons } from "./sources";
+import { POSTER_LANGUAGES, posterLanguageCode, posterLanguageLabel, posterLevelLabel } from "./presentation";
 import { readSource, savePoster, type PosterAccount } from "./server";
 
 function fixture() {
@@ -28,6 +29,20 @@ function fixture() {
   } as unknown as Firestore;
   return { db, records, reads, projections };
 }
+
+test("language names and level labels remain readable without changing stored lesson codes", () => {
+  for (const value of ["no", "nb-NO", "Norsk (bokmål)"]) assert.equal(posterLanguageCode(value), "nb");
+  assert.equal(posterLanguageCode("pt_br"), "pt-BR");
+  assert.equal(posterLanguageLabel("nb", "nb"), "Norsk bokmål");
+  assert.equal(posterLanguageLabel("en", "nb"), "Engelsk");
+  assert.equal(posterLanguageLabel("en", "pt"), "Inglês");
+  assert.equal(posterLanguageLabel("Norsk (bokmål)", "en"), "Norwegian Bokmål");
+  assert.ok(POSTER_LANGUAGES.includes("nn")); assert.ok(POSTER_LANGUAGES.includes("pt"));
+  assert.equal(posterLevelLabel("A1_START"), "A1 start");
+  const lesson = { id: "legacy", title: "Familie", level: "A1_START", language: "no", origin: "own" as const, addedAt: 0 };
+  assert.equal(filterPosterLessons([lesson], "A1 start norsk", "nb")[0], lesson);
+  assert.equal(lesson.language, "no"); assert.equal(lesson.level, "A1_START");
+});
 
 test("all own lessons and saved library references are listed, newest addition first, without answer data", async () => {
   const f = fixture();

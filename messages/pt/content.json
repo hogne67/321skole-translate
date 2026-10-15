@@ -23,7 +23,8 @@
       "submission": "Envio",
       "submissions": "ENVIOS",
       "space": "Spaces",
-      "spaces": "SPACES"
+      "spaces": "SPACES",
+      "posters": "CARTAZES"
     },
     "cardTypes": {
       "space": "Space",
@@ -37,7 +38,8 @@
       "podcastWorkshop": "Oficina de podcast",
       "writingActivity": "Atividade de escrita",
       "ownGenerated": "Conteúdo próprio",
-      "content": "Conteúdo"
+      "content": "Conteúdo",
+      "learningPoster": "Cartaz de aprendizagem"
     },
     "filterHints": {
       "library": "Suas próprias atividades da biblioteca (prática)",
@@ -249,6 +251,15 @@
     },
     "fallback": {
       "untitledTask": "Atividade sem título"
+    },
+    "posters": {
+      "source": "Texto de origem",
+      "openEdit": "Abrir e editar",
+      "openSource": "Abrir texto de origem",
+      "thumbnailAlt": "Prévia de {title}",
+      "loadingThumbnail": "Carregando prévia…",
+      "thumbnailUnavailable": "Abra o cartaz para ver a imagem.",
+      "loadFailed": "Não foi possível carregar os cartazes. Tente Atualizar novamente."
     }
   }
 }

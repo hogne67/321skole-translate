@@ -3,6 +3,13 @@
 .learning-poster .lp-source-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; padding-bottom: 14px; border-bottom: 1px solid #cbd5e1; }
 .learning-poster .lp-source-tabs button[aria-pressed=true] { background: #0369a1; color: #fff; border-color: #0369a1; box-shadow: 0 0 0 2px #bae6fd; }
 .learning-poster .lp-panel { margin-top: 22px; padding: 22px; background: #fff; border: 1px solid #cbd5e1; border-radius: 16px; }
+.learning-poster .lp-step-heading { scroll-margin-top: 24px; }
+.learning-poster .lp-step-heading:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 6px; border-radius: 4px; }
+.learning-poster .lp-focus-field { max-width: 480px; margin: 14px 0; }
+.learning-poster .lp-progress { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; }
+.learning-poster .lp-spinner { width: 24px; height: 24px; flex: 0 0 24px; border: 3px solid #bae6fd; border-top-color: #0369a1; border-radius: 50%; animation: lp-spin 1s linear infinite; }
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .learning-poster .lp-spinner { animation: none; } }
 .learning-poster .lp-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 14px; margin: 14px 0; }
 .learning-poster label { display: grid; gap: 6px; font-size: 14px; font-weight: 700; }
 .learning-poster input:not([type=checkbox]), .learning-poster select, .learning-poster textarea { width: 100%; min-width: 0; border: 1px solid #94a3b8; border-radius: 9px; background: #fff; padding: 10px 12px; color: #0f172a; font: inherit; font-weight: 400; }

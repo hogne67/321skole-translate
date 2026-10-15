@@ -1,7 +1,7 @@
 // app\[locale]\(app)\content\ContentClient.tsx
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -21,6 +21,8 @@ import QRCode from "qrcode";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { loadMyContent, type ContentItem } from "@/lib/contentFeed";
+import { fetchPosterContentItems } from "@/lib/learningPosters/contentClient";
+import LearningPosterContentCard from "@/components/learning-posters/LearningPosterContentCard";
 import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
 import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
@@ -28,7 +30,7 @@ import { getOrigin } from "@/lib/url";
 import { getTextTypeLabel, normalizeTextTypeKey } from "@/lib/textTypes";
 
 type LessonStatus = "draft" | "published";
-type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "submission" | "space";
+type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "poster" | "submission" | "space";
 type SharePreset = "example1" | "example2" | "example3" | "example4" | "example5" | "example6";
 type ShareTone = "short" | "professional" | "friendly";
 
@@ -355,6 +357,7 @@ type LoadMyContentArgs = {
   uid: string | null;
   isAnon: boolean;
   mode: "student" | "teacher" | "creator";
+  locale: string;
 };
 
 export default function ContentClient() {
@@ -389,12 +392,14 @@ export default function ContentClient() {
   const [notes, setNotes] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const refreshSequence = useRef(0);
+  const invalidateRefresh = useCallback(() => { refreshSequence.current++; }, []);
 
   const [busyByKey, setBusyByKey] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
-  const initialFilter = searchParams.get("filter") === "writing" ? "writing" : "all";
+  const initialFilter = searchParams.get("filter") === "writing" ? "writing" : searchParams.get("filter") === "poster" ? "poster" : "all";
   const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [showDeleted, setShowDeleted] = useState(false);
 
@@ -588,6 +593,7 @@ export default function ContentClient() {
 
   const cardTypeLabel = useCallback((it: ContentItem): string => {
     if (it.type === "space") return safeMsg("cardTypes.space", "Space");
+    if (it.type === "learningPoster") return t("cardTypes.learningPoster");
     if (it.type === "writingActivity") return safeMsg("cardTypes.writingActivity", "Skriveaktivitet");
 
     if (it.type === "submission") {
@@ -608,7 +614,7 @@ export default function ContentClient() {
     }
 
     return safeMsg("cardTypes.content", "Innhold");
-  }, [safeMsg]);
+  }, [safeMsg, t]);
 
   function parentChildProgressLabel(status: string | null) {
     const s = String(status ?? "").trim().toLowerCase();
@@ -672,6 +678,7 @@ export default function ContentClient() {
   }
 
   async function refresh() {
+    const sequence = ++refreshSequence.current;
     if (!uid) {
       setItems([]);
       setNotes([]);
@@ -685,22 +692,31 @@ export default function ContentClient() {
     setErr(null);
 
     try {
-      const args: LoadMyContentArgs = { db, mode: contentMode, uid, isAnon };
-      const res = await loadMyContent(args as unknown as Parameters<typeof loadMyContent>[0]);
-      setItems(res.items);
+      const args: LoadMyContentArgs = { db, mode: contentMode, uid, isAnon, locale };
+      const [contentResult, posterResult] = await Promise.allSettled([
+        loadMyContent(args),
+        !isAnon && (isTeacher || isCreator || isParent) ? fetchPosterContentItems(uid, locale) : Promise.resolve([]),
+      ]);
+      if (sequence !== refreshSequence.current) return;
+      if (contentResult.status === "rejected") throw contentResult.reason;
+      const res = contentResult.value;
+      const posters = posterResult.status === "fulfilled" ? posterResult.value : [];
+      setItems([...res.items, ...posters]);
       setNotes(res.notes);
-      setWarnings(res.warnings);
+      const contentWarnings = res.warnings.filter(warning => !posters.length || !warning.startsWith("Fant ingen dokumenter i feeden"));
+      setWarnings([...contentWarnings, ...(posterResult.status === "rejected" ? [t("posters.loadFailed")] : [])]);
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : t("errors.loadFailed"));
+      if (sequence === refreshSequence.current) setErr(e instanceof Error ? e.message : t("errors.loadFailed"));
     } finally {
-      setLoading(false);
+      if (sequence === refreshSequence.current) setLoading(false);
     }
   }
 
   useEffect(() => {
     void refresh();
+    return invalidateRefresh;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthReady, uid, isAnon, role]);
+  }, [isAuthReady, uid, isAnon, role, locale, invalidateRefresh]);
 
   useEffect(() => {
     if (!canUsePublishActions || mySpaces.length === 0 || !items.some(usesSpaceSharingStatus)) {
@@ -1505,6 +1521,7 @@ export default function ContentClient() {
   }
 
   function buildActions(it: ContentItem): ActionItem[] {
+    if (it.type === "learningPoster") return [];
     const key = `${it.type}:${it.id}`;
     const busy = !!busyByKey[key];
 
@@ -2246,10 +2263,11 @@ export default function ContentClient() {
   }
 
   const counts = useMemo(() => {
-    const c = { lesson: 0, writing: 0, submission: 0, space: 0, library: 0, math: 0 };
+    const c = { lesson: 0, writing: 0, poster: 0, submission: 0, space: 0, library: 0, math: 0 };
 
     for (const it of items) {
-      if (isWritingContentItem(it)) c.writing += 1;
+      if (it.type === "learningPoster") c.poster += 1;
+      else if (isWritingContentItem(it)) c.writing += 1;
       else if (it.type === "lesson") c.lesson += 1;
       else if (it.type === "submission") {
         c.submission += 1;
@@ -2286,6 +2304,7 @@ export default function ContentClient() {
         if (filter === "math") return isMathContent(it);
         if (filter === "lesson") return it.type === "lesson" && !isImageWritingLesson(it);
         if (filter === "writing") return isWritingContentItem(it);
+        if (filter === "poster") return it.type === "learningPoster";
         if (filter === "submission") return it.type === "submission";
         if (filter === "space") return it.type === "space";
         return true;
@@ -2319,6 +2338,7 @@ export default function ContentClient() {
   const deletedAtLabel = t("labels.deletedAt");
 
   function labelWithCount(ft: FilterType) {
+    if (ft === "poster") return `${t("filters.posters")} (${counts.poster})`;
     const label =
       ft === "all"
         ? (t("filters.all") as string)
@@ -2341,11 +2361,11 @@ export default function ContentClient() {
     if (ft === "library") return `${label} (${counts.library})`;
     if (ft === "math") return `${label} (${counts.math})`;
 
-    return `${label} (${counts.lesson + counts.writing + counts.submission + counts.space})`;
+    return `${label} (${counts.lesson + counts.writing + counts.poster + counts.submission + counts.space})`;
   }
 
   const mobileFilterActions: ActionItem[] = [
-    ...(["library", "math", "lesson", "writing", "submission", "space"] as const).map((ft) => ({
+    ...(["library", "math", "lesson", "writing", "poster", "submission", "space"] as const).filter(ft => ft !== "poster" || isTeacher || isCreator || isParent).map((ft) => ({
       key: `mobile-filter-${ft}`,
       label: labelWithCount(ft),
       onClick: () => setFilter(ft),
@@ -2383,7 +2403,7 @@ export default function ContentClient() {
 
           <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
             <div className="flex flex-wrap gap-2">
-              {(["all", "library", "math", "lesson", "writing", "submission", "space"] as const).map((ft) => (
+              {(["all", "library", "math", "lesson", "writing", "poster", "submission", "space"] as const).filter(ft => ft !== "poster" || isTeacher || isCreator || isParent).map((ft) => (
                 <button
                   key={ft}
                   onClick={() => setFilter(ft)}
@@ -2486,6 +2506,7 @@ export default function ContentClient() {
           {!loading
             ? filtered.map((it) => {
               const key = `${it.type}:${it.id}`;
+              if (it.type === "learningPoster") return <LearningPosterContentCard key={`${uid}:${locale}:${key}:${it.updatedAt?.getTime()}`} poster={it} accountUid={uid || ""} />;
               const actions = buildActions(it);
               const desktopMainActions = desktopActions(it, actions);
               const desktopExtraActions = desktopOverflowActions(it, actions);

@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { logUsageEvent } from "@/lib/usageClient";
 import { posterCopy } from "@/lib/learningPosters/copy";
+import { POSTER_LANGUAGES, posterLanguageCode, posterLanguageLabel, posterLevelLabel } from "@/lib/learningPosters/presentation";
 import { filterPosterLessons, posterLessonLanguage, type PosterLessonChoice } from "@/lib/learningPosters/sources";
 import { normalizedText, POSTER_KINDS, POSTER_PURPOSES, sourceWarnings, type LearningPoster, type PosterPlan, type PosterSource } from "@/lib/learningPosters/model";
 import PosterPreview from "./PosterPreview";
@@ -47,12 +48,24 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
   const [lessonSearch, setLessonSearch] = useState(""); const [lessonsLoading, setLessonsLoading] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState(initialLessonId || "");
   const [busy, setBusy] = useState(""); const inFlight = useRef(false);
+  const [imageStage, setImageStage] = useState<"" | "saving" | "illustrating" | "finishing">("");
+  const reviewHeading = useRef<HTMLHeadingElement>(null); const previewHeading = useRef<HTMLHeadingElement>(null);
+  const [nextStep, setNextStep] = useState<{ target: "review" | "preview" } | null>(null);
   const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [hidden, setHidden] = useState(false);
   const fingerprint = JSON.stringify({ source, plan, approved });
   const dirty = fingerprint !== saved;
   const invalidQuotes = plan ? sourceWarnings(plan, source.text) : [];
   const complete = !!plan && images.length === plan.items.length;
   const filteredLessons = filterPosterLessons(lessons, lessonSearch, locale);
+  const languageCode = posterLanguageCode(settings.language);
+  const languageOptions = POSTER_LANGUAGES.includes(languageCode) ? POSTER_LANGUAGES : [languageCode, ...POSTER_LANGUAGES];
+  const missingFocus = settings.kind === "sounds" && !settings.focus.trim();
+  useEffect(() => {
+    if (!nextStep) return;
+    const heading = (nextStep.target === "review" ? reviewHeading : previewHeading).current;
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+  }, [nextStep]);
   function errorText(reason: string) {
     if (reason.startsWith("quota")) return copy.quotaError;
     if (reason === "source_changed") return copy.sourceChanged;
@@ -75,7 +88,7 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
       const reason = err instanceof Error ? err.message : "generation_failed";
       if (reason === "source_changed") setStale(true);
       setError(errorText(reason));
-    } finally { inFlight.current = false; setBusy(""); }
+    } finally { inFlight.current = false; setBusy(""); setImageStage(""); }
   }
   function applyPoster(p: LearningPoster) {
     const includeExplanations = p.plan.includeExplanations ?? p.plan.items.some(item => !!item.explanation);
@@ -115,6 +128,7 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
     const unsavedWork = dirty && (plan || (sourceMode === "manual" && source.text.trim()) || settings.goal.trim());
     if (unsavedWork && !confirmed) { setPendingSourceMode(mode); return; }
     setPendingSourceMode(null);
+    setNextStep(null);
     workspaceRevision.current++;
     setSourceMode(mode); setSource(emptySource); setPlan(null); setId(undefined); setImages([]);
     setSettings({ title: "", goal: "", focus: "", level: "A1_START", language: locale, kind: "keywords", purpose: "during", includeExplanations: false });
@@ -166,7 +180,7 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
     await run("download", async () => {
       if (!id || !auth.currentUser) return;
       const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`${endpoint}?posterId=${encodeURIComponent(id)}&download=png${hidden ? "&hideText=1" : ""}`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`${endpoint}?posterId=${encodeURIComponent(id)}&download=png&locale=${encodeURIComponent(locale)}${hidden ? "&hideText=1" : ""}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) { const data = await response.json(); throw new Error(data.reason || "generation_failed"); }
       const url = URL.createObjectURL(await response.blob()); const a = document.createElement("a");
       a.href = url; a.download = "321school-learning-poster.png"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -195,7 +209,7 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
         setSelectedLesson(current => matches.some(lesson => lesson.id === current) ? current : matches[0]?.id || "");
       }} /></label>
       <div className="lp-fields"><label>{copy.choose}<select value={selectedLesson} disabled={!!busy || !signedIn || lessonsLoading} onChange={e => setSelectedLesson(e.target.value)}>
-        <option value="">{copy.choosePlaceholder}</option>{filteredLessons.map(l => <option key={l.id} value={l.id}>{l.title || copy.untitledLesson} · {l.level} · {posterLessonLanguage(l.language, locale)} · {l.origin === "library" ? copy.libraryLesson : copy.ownLesson}</option>)}</select></label>
+        <option value="">{copy.choosePlaceholder}</option>{filteredLessons.map(l => <option key={l.id} value={l.id}>{l.title || copy.untitledLesson} · {posterLevelLabel(l.level)} · {posterLessonLanguage(l.language, locale)} · {l.origin === "library" ? copy.libraryLesson : copy.ownLesson}</option>)}</select></label>
         <div className="lp-actions"><button disabled={!!busy || lessonsLoading || !selectedLesson || !signedIn} onClick={() => void loadSource()}>{copy.load}</button></div></div>
       <p className="lp-help" role="status">{lessonsLoading ? copy.lessonsLoading : lessonSearch && !filteredLessons.length ? copy.noLessonsFound : copy.lessonsHelp}</p>
       </>}
@@ -206,33 +220,39 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
       <p className="lp-help">{sourceMode === "manual" ? copy.manualLimit : copy.textLimit} {copy.privacy}</p>
       {goalNotice === "reset" && <p className="lp-help" role="status">{copy.goalReset}</p>}
       <div className="lp-fields">
-        <label>{copy.kind}<select value={settings.kind} disabled={!!busy} onChange={e => editSettings({ kind: e.target.value as PosterPlan["kind"] })}>{POSTER_KINDS.map(k => <option key={k} value={k}>{copy.kinds[k]}</option>)}</select></label>
+        <label>{copy.kind}<select value={settings.kind} disabled={!!busy} onChange={e => editSettings({ kind: e.target.value as PosterPlan["kind"], focus: "" })}>{POSTER_KINDS.map(k => <option key={k} value={k}>{copy.kinds[k]}</option>)}</select></label>
         <label>{copy.purpose}<select value={settings.purpose} disabled={!!busy} onChange={e => editSettings({ purpose: e.target.value as PosterPlan["purpose"] })}>{POSTER_PURPOSES.map(p => <option key={p} value={p}>{copy.purposes[p]}</option>)}</select></label>
-        <label>{copy.level}<select value={settings.level} disabled={!!busy} onChange={e => editSettings({ level: e.target.value })}>{["A1_START", "A1", "A2", "B1", "B2", "C1", "C2"].map(l => <option key={l}>{l}</option>)}</select></label>
-        <label>{copy.language}<input maxLength={60} value={settings.language} disabled={!!busy} onChange={e => editSettings({ language: e.target.value })} /></label>
-        <label>{copy.focus}<input maxLength={60} value={settings.focus} disabled={!!busy} onChange={e => editSettings({ focus: e.target.value })} /></label>
+        <label>{copy.level}<select value={settings.level} disabled={!!busy} onChange={e => editSettings({ level: e.target.value })}>{["A1_START", "A1", "A2", "B1", "B2", "C1", "C2"].map(l => <option key={l} value={l}>{posterLevelLabel(l)}</option>)}</select></label>
+        <label>{copy.language}<select value={languageCode} disabled={!!busy} onChange={e => editSettings({ language: e.target.value })}>{languageOptions.map(code => <option key={code} value={code}>{posterLanguageLabel(code, locale)}</option>)}</select></label>
       </div>
+      {settings.kind !== "keywords" && <div className="lp-focus-field">
+        <label>{copy.focusLabels[settings.kind]}<input maxLength={60} value={settings.focus} required={settings.kind === "sounds"} aria-describedby="lp-focus-help" placeholder={copy.focusPlaceholders[settings.kind]} disabled={!!busy} onChange={e => editSettings({ focus: e.target.value })} /></label>
+        <p className="lp-help" id="lp-focus-help">{copy.focusHelp[settings.kind]}</p>
+      </div>}
       <details><summary>{copy.moreOptions}</summary>
+        {settings.kind === "keywords" && <label style={{ marginTop: 14 }}>{copy.focusLabels.keywords}<input maxLength={60} value={settings.focus} placeholder={copy.focusPlaceholders.keywords} disabled={!!busy} onChange={e => editSettings({ focus: e.target.value })} /></label>}
         {!plan && <div style={{ marginTop: 14 }}>
           <label>{copy.optionalGoal}<textarea rows={2} maxLength={240} value={settings.goal} placeholder={copy.goalPlaceholder} disabled={!!busy} onChange={e => editSettings({ goal: e.target.value })} /></label>
           <p className="lp-help">{copy.goalHelp}</p>
         </div>}
         <label className="lp-approve" style={{ marginTop: 10, padding: 10 }}><input type="checkbox" checked={settings.includeExplanations ?? false} disabled={!!busy} onChange={e => editSettings({ includeExplanations: e.target.checked })} /><span>{copy.includeExplanations}</span></label>
       </details>
-      <div className="lp-actions"><button className="lp-primary" disabled={!!busy || !signedIn || !source.text.trim()} onClick={() => {
+      <div className="lp-actions"><button className="lp-primary" disabled={!!busy || !signedIn || !source.text.trim() || missingFocus} onClick={() => {
         if (!replaceAllowed()) return;
         void run("suggest", async () => {
           const data = await request("", { action: "suggest", source, settings: { ...settings, title: settings.title || source.title || copy.title } });
           if (!data.plan) throw new Error("generation_failed");
           setPlan(data.plan); setSettings(data.plan); setImages([]); setApproved(false); setSaved(""); setGoalNotice("");
+          setNextStep({ target: "review" });
         });
       }}>{busy === "suggest" ? copy.working : copy.suggest}</button>
-      <button disabled={!!busy || !source.text.trim()} onClick={() => {
+      <button disabled={!!busy || !source.text.trim() || missingFocus} onClick={() => {
         if (!replaceAllowed()) return;
         setPlan({ ...settings, title: settings.title || source.title || copy.title, items: Array.from({ length: 6 }, emptyItem) }); setApproved(false); setImages([]);
+        setNextStep({ target: "review" });
       }}>{copy.manualPlan}</button></div><p className="lp-help">{copy.imageCost}</p>
     </section>
-    {plan && <><section className="lp-panel"><h2>{copy.review}</h2><div className="lp-fields">
+    {plan && <><section className="lp-panel"><h2 ref={reviewHeading} tabIndex={-1} className="lp-step-heading">{copy.review}</h2><div className="lp-fields">
       <label>{copy.posterTitle}<input maxLength={120} value={plan.title} disabled={!!busy} onChange={e => editPlan({ title: e.target.value })} /></label>
       <label>{copy.goal}<textarea rows={2} maxLength={240} value={plan.goal} placeholder={copy.goalPlaceholder} disabled={!!busy} onChange={e => editSettings({ goal: e.target.value })} /></label>
     </div><p className="lp-help">{copy.reviewGoalHelp}</p>
@@ -245,19 +265,24 @@ export default function LearningPosterGenerator({ initialLessonId, initialPoster
     </fieldset>)}
     <p className="lp-help">{copy.quoteHelp}</p><button disabled={!!busy || plan.items.length >= 6} onClick={() => editPlan({ items: [...plan.items, emptyItem()] })}>{copy.add}</button>
     <label className="lp-approve" style={{ marginTop: 18 }}><input type="checkbox" checked={approved} disabled={!!busy || invalidQuotes.length > 0 || stale || !plan.goal.trim()} onChange={e => setApproved(e.target.checked)} /><span>{copy.approve}</span></label>
+    {imageStage && <div className="lp-progress" role="status"><span className="lp-spinner" aria-hidden="true" /><div><strong>{copy.imageStages[imageStage]}</strong><p className="lp-help">{copy.imageWait}</p></div></div>}
     <div className="lp-actions"><button disabled={!!busy || !signedIn || invalidQuotes.length > 0} onClick={() => void run("save", async () => { await saveCurrent(); setMessage(copy.saved); })}>{busy === "save" ? copy.working : copy.save}</button>
       <button className="lp-primary" disabled={!!busy || !signedIn || !approved || stale || invalidQuotes.length > 0} onClick={() => void run("generate", async () => {
-        const p = await saveCurrent(); await request("", { action: "generate", id: p.id });
-        const data = await request(`?posterId=${encodeURIComponent(p.id)}`); if (data.poster) applyPoster(data.poster);
+        setImageStage("saving"); const p = await saveCurrent();
+        setImageStage("illustrating"); await request("", { action: "generate", id: p.id });
+        setImageStage("finishing"); const data = await request(`?posterId=${encodeURIComponent(p.id)}`);
+        if (!data.poster) throw new Error("generation_failed");
+        applyPoster(data.poster); setMessage(copy.imagesReady); setNextStep({ target: "preview" });
       })}>{busy === "generate" ? copy.working : copy.generate}</button></div>
     </section>
-    <section className="lp-panel"><h2>{copy.preview}</h2><div className="lp-actions">
+    <section className="lp-panel"><h2 ref={previewHeading} tabIndex={-1} className="lp-step-heading">{copy.preview}</h2><div className="lp-actions">
       <button disabled={!!busy || !complete || dirty || !approved || stale} onClick={() => void download()}>{copy.download}</button>
       <button disabled={!!busy || !complete || dirty || !approved || stale} onClick={() => void run("print", async () => {
         await logUsageEvent({ feature: "pdf_download", contentId: id, contentType: "learning_poster", source: "own", path: window.location.pathname });
         window.print();
       })}>{copy.print}</button>
       <label className="lp-approve" style={{ padding: 8 }}><input type="checkbox" checked={hidden} onChange={e => setHidden(e.target.checked)} /><span>{copy.hide}</span></label>
+      {complete && !dirty && approved && <Link href={`/${locale}/content?filter=poster`}>{copy.inMyContent}</Link>}
     </div>{dirty && <p className="lp-help">{copy.editHint}</p>}<PosterPreview plan={plan} images={images} locale={locale} hidden={hidden} /></section></>}
     {posters.length > 0 && <section className="lp-panel"><h2>{copy.gallery}</h2>{posters.map(p => <p key={p.id}><Link href={`/${locale}/producer/learning-posters?posterId=${encodeURIComponent(p.id)}`} onClick={e => { if (plan && dirty && !window.confirm(copy.replace)) e.preventDefault(); }}>{p.title || copy.title}</Link></p>)}</section>}
   </main>;

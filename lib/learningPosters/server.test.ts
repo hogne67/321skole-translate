@@ -251,6 +251,8 @@ test("quota reservation is atomic, failed work is refunded, and unverified accou
 test("export escapes teacher text, highlights focus, and supports an illustration-only version", async () => {
   const hostile = { ...plan, items: [{ ...plan.items[0], label: "<script>alert(1)</script>", explanation: "En forklaring med æøå." }] };
   const svg = renderPosterSvg(hostile, []);
+  assert.ok(svg.includes("A1 · Norsk bokmål"));
+  assert.ok(renderPosterSvg({ ...hostile, level: "A1_START" }, [], false, "", "en").includes("A1 start · Norwegian Bokmål"));
   assert.ok(!svg.includes("<script>")); assert.ok(svg.includes("&lt;script&gt;"));
   assert.ok(svg.includes('fill="#0284c7" font-weight="700">drikker'));
   assert.ok(!renderPosterSvg(hostile, [], true).includes("alert(1)"));

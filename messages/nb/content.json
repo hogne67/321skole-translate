@@ -23,7 +23,8 @@
       "submission": "Innlevering",
       "submissions": "INNLEVERINGER",
       "space": "Spaces",
-      "spaces": "SPACES"
+      "spaces": "SPACES",
+      "posters": "PLAKATER"
     },
     "cardTypes": {
       "space": "Space",
@@ -37,7 +38,8 @@
       "podcastWorkshop": "Podcastverksted",
       "writingActivity": "Skriveaktivitet",
       "ownGenerated": "Eget innhold",
-      "content": "Innhold"
+      "content": "Innhold",
+      "learningPoster": "Læringsplakat"
     },
     "filterHints": {
       "library": "Dine egne oppgaver fra biblioteket (øving)",
@@ -249,6 +251,15 @@
     },
     "fallback": {
       "untitledTask": "Oppgave uten tittel"
+    },
+    "posters": {
+      "source": "Kildetekst",
+      "openEdit": "Åpne og rediger",
+      "openSource": "Åpne kildetekst",
+      "thumbnailAlt": "Forhåndsvisning av {title}",
+      "loadingThumbnail": "Henter forhåndsvisning…",
+      "thumbnailUnavailable": "Åpne plakaten for å se bildet.",
+      "loadFailed": "Kunne ikke hente læringsplakatene. Prøv «Oppdater» igjen."
     }
   }
 }

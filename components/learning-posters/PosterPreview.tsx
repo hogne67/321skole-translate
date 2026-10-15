@@ -1,6 +1,7 @@
 "use client";
 import type { LearningPoster, PosterPlan } from "@/lib/learningPosters/model";
 import { posterCopy } from "@/lib/learningPosters/copy";
+import { posterLanguageLabel, posterLevelLabel } from "@/lib/learningPosters/presentation";
 export default function PosterPreview({ plan, images, locale, hidden = false }: {
   plan: PosterPlan; images: LearningPoster["images"]; locale: string; hidden?: boolean;
 }) {
@@ -18,7 +19,7 @@ export default function PosterPreview({ plan, images, locale, hidden = false }: 
     return parts;
   }
   return <article className="learning-poster-print" aria-label={copy.title}>
-    <header><div className="lp-poster-top"><span>{plan.level} · {plan.language}</span>
+    <header><div className="lp-poster-top"><span>{posterLevelLabel(plan.level)} · {posterLanguageLabel(plan.language, locale)}</span>
       <div className="lp-poster-brand"><img src="/logo321ny.png" alt="" width={36} height={33} /><span>321school</span></div>
     </div><h2>{plan.title}</h2><p>{plan.goal}</p></header>
     <div className="learning-poster-cards">

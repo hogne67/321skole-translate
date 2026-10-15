@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { normalizePosterSettings, PosterError, type PosterPlan } from "@/lib/learningPosters/model";
 import { digest, generatePosterImages, ownedPoster, posterAccount, readSource, savePoster, suggestPoster, suggestPosterGoal, withPosterQuota } from "@/lib/learningPosters/server";
 import { renderPosterPng } from "@/lib/learningPosters/render.server";
 import { listPosterLessons } from "@/lib/learningPosters/sources.server";
+import { listFinishedPosters, posterImageData, posterThumbnail } from "@/lib/learningPosters/content.server";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -16,9 +16,17 @@ export async function GET(req: Request) {
   try {
     const account = await posterAccount(req);
     const params = new URL(req.url).searchParams;
+    const locale = ["nb", "en", "pt"].includes(params.get("locale") || "") ? params.get("locale")! : "nb";
+    if (params.get("content") === "1") {
+      return NextResponse.json({ ok: true, posters: await listFinishedPosters(account, locale) }, { headers: { "Cache-Control": "private, no-store" } });
+    }
     const posterId = params.get("posterId");
     if (posterId) {
       const poster = await ownedPoster(account, posterId);
+      if (params.get("thumbnail") === "1") {
+        const thumbnail = await posterThumbnail(account, poster, locale);
+        return new Response(new Uint8Array(thumbnail), { headers: { "Content-Type": "image/webp", "Cache-Control": "private, max-age=60", Vary: "Authorization" } });
+      }
       let stale = true;
       try {
         const source = await readSource(account.db, account.uid, { lessonId: poster.source.lessonId, text: poster.source.text });
@@ -27,15 +35,8 @@ export async function GET(req: Request) {
       if (params.get("download") === "png") {
         if (stale || poster.reviewedHash !== digest(poster.plan)) throw new PosterError("review_required");
         if (poster.images.length !== poster.plan.items.length) throw new PosterError("images_required");
-        const bucket = account.storage.bucket(process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
-        const images = await Promise.all(poster.images.map(async image => {
-          if (!image.path.startsWith(`learning-posters/${account.uid}/${poster.id}/`)) throw new PosterError("forbidden", 403);
-          const [buffer] = await bucket.file(image.path).download();
-          // librsvg does not reliably decode embedded WebP on all server platforms.
-          const png = await sharp(buffer).png().toBuffer();
-          return `data:image/png;base64,${png.toString("base64")}`;
-        }));
-        const png = await withPosterQuota(account, "image_download", () => renderPosterPng(poster.plan, images, params.get("hideText") === "1"));
+        const images = await posterImageData(account, poster);
+        const png = await withPosterQuota(account, "image_download", () => renderPosterPng(poster.plan, images, params.get("hideText") === "1", locale));
         return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Content-Disposition": 'attachment; filename="321school-learning-poster.png"', "Cache-Control": "private, no-store" } });
       }
       return NextResponse.json({ ok: true, poster: { ...poster, stale } });

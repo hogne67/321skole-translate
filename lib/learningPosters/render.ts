@@ -1,4 +1,5 @@
 import type { PosterPlan } from "./model";
+import { posterLanguageLabel, posterLevelLabel } from "./presentation";
 const xml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 function wrap(value: string, width: number): string[] {
   const tokens = value.split(/\s+/).flatMap(word => word.match(new RegExp(`.{1,${width}}`, "gu")) || []);
@@ -10,7 +11,7 @@ function wrap(value: string, width: number): string[] {
   if (line) lines.push(line);
   return lines;
 }
-export function renderPosterSvg(plan: PosterPlan, images: string[], hidden = false, logoDataUrl = "") {
+export function renderPosterSvg(plan: PosterPlan, images: string[], hidden = false, logoDataUrl = "", locale = "nb") {
   function highlight(line: string) {
     if (!plan.focus) return xml(line);
     let rest = line; let result = "";
@@ -45,7 +46,7 @@ export function renderPosterSvg(plan: PosterPlan, images: string[], hidden = fal
   }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1440" viewBox="0 0 1920 1440">
     <rect width="1920" height="1440" fill="#f0f9ff"/>
-    ${text(`${plan.level} · ${plan.language}`, 42, 48, 23, 120, "#0369a1", true).svg}
+    ${text(`${posterLevelLabel(plan.level)} · ${posterLanguageLabel(plan.language, locale)}`, 42, 48, 23, 100, "#0369a1", true).svg}
     ${logoDataUrl ? `<image x="1670" y="15" width="54" height="49" preserveAspectRatio="xMidYMid meet" href="${xml(logoDataUrl)}"/>` : ""}
     <text x="1735" y="48" font-family="DejaVu Sans,Arial,sans-serif" font-size="25" fill="#0369a1" font-weight="700">321school</text>
     ${text(plan.title, 42, 103, 40, 72, "#0f172a", true).svg}

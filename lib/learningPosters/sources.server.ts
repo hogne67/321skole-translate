@@ -53,7 +53,7 @@ function choice(id: string, data: Data, origin: PosterLessonChoice["origin"], da
   return { id, title: text(data.title), level: text(data.level) || "A1", language: text(data.language) || "nb", addedAt: date, origin };
 }
 
-export async function readSavedPosterLesson(db: Firestore, uid: string, selector: string): Promise<Data> {
+export async function resolveSavedPosterLesson(db: Firestore, uid: string, selector: string): Promise<{ publishedId: string; data: Data }> {
   const match = selector.match(/^saved:(practice|legacy):([^/\r\n]{1,1500})$/);
   if (!match) throw new PosterError("invalid_input");
   if ([".", ".."].includes(match[2])) throw new PosterError("invalid_input");
@@ -63,7 +63,10 @@ export async function readSavedPosterLesson(db: Firestore, uid: string, selector
   if (!publishedId) throw new PosterError("source_not_found", 404);
   const published = (await db.collection("published_lessons").doc(publishedId).get()).data();
   if (!readablePublished(published)) throw new PosterError("source_not_found", 404);
-  return published;
+  return { publishedId, data: published };
+}
+export async function readSavedPosterLesson(db: Firestore, uid: string, selector: string): Promise<Data> {
+  return (await resolveSavedPosterLesson(db, uid, selector)).data;
 }
 
 export async function listPosterLessons(db: Firestore, uid: string): Promise<PosterLessonChoice[]> {

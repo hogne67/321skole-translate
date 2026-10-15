@@ -23,7 +23,8 @@
       "submission": "Submission",
       "submissions": "SUBMISSIONS",
       "space": "Spaces",
-      "spaces": "SPACES"
+      "spaces": "SPACES",
+      "posters": "POSTERS"
     },
     "cardTypes": {
       "space": "Space",
@@ -37,7 +38,8 @@
       "podcastWorkshop": "Podcast workshop",
       "writingActivity": "Writing activity",
       "ownGenerated": "Own content",
-      "content": "Content"
+      "content": "Content",
+      "learningPoster": "Learning poster"
     },
     "filterHints": {
       "library": "Your own tasks from the library (practice)",
@@ -249,6 +251,15 @@
     },
     "fallback": {
       "untitledTask": "Untitled task"
+    },
+    "posters": {
+      "source": "Source text",
+      "openEdit": "Open and edit",
+      "openSource": "Open source text",
+      "thumbnailAlt": "Preview of {title}",
+      "loadingThumbnail": "Loading preview…",
+      "thumbnailUnavailable": "Open the poster to see the image.",
+      "loadFailed": "Could not load learning posters. Try Refresh again."
     }
   }
 }
