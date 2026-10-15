@@ -4,11 +4,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   onAuthStateChanged,
   type User,
-  sendPasswordResetEmail,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -30,6 +29,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { trackSignUp } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
 import { Eye, EyeOff } from "lucide-react";
+import { requestPasswordReset } from "@/lib/email/passwordResetClient";
+import { passwordResetCopy } from "@/lib/email/passwordResetEmail";
 
 function toErrorString(err: unknown): string {
   if (!err) return "";
@@ -147,6 +148,7 @@ export default function LoginClient() {
   const [loadingFeide, setLoadingFeide] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+  const resetInFlight = useRef(false);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isAnon = !!currentUser?.isAnonymous;
@@ -430,6 +432,7 @@ export default function LoginClient() {
   }
 
   async function handleForgotPassword() {
+    if (resetInFlight.current) return;
     resetMessages();
 
     const e = email.trim();
@@ -438,22 +441,17 @@ export default function LoginClient() {
       return;
     }
 
+    resetInFlight.current = true;
     setSendingReset(true);
 
     try {
-      auth.languageCode = locale;
-      await sendPasswordResetEmail(auth, e);
-      setInfo(
-        safeT(
-          "messages.resetSent",
-          "We sent you an email with a link to reset your password."
-        )
-      );
+      await requestPasswordReset(e, locale);
+      setInfo(passwordResetCopy(locale).requestReceived);
       setShowForgotPassword(false);
-    } catch (err: unknown) {
-      const key = friendlyAuthErrorKey(toErrorString(err));
-      setError(safeT(`errors.${key}`, "Could not send password reset email."));
+    } catch {
+      setError(passwordResetCopy(locale).failed);
     } finally {
+      resetInFlight.current = false;
       setSendingReset(false);
     }
   }

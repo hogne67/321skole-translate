@@ -9,6 +9,7 @@ import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import LessonFactCheck from "@/components/LessonFactCheck";
 import AnswerPasteSetting from "@/components/AnswerPasteSetting";
+import LessonPosterAction from "@/components/learning-posters/LessonPosterAction";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import { useLocale } from "next-intl";
 import {
@@ -608,6 +609,7 @@ export default function ProducerTextDetailPage() {
             </div>
 
             <div style={{ marginTop: 22 }}><LessonFactCheck lessonId={id} lesson={draft} save={save} disabled={saving || publishing || serverPublishing} /></div>
+            <LessonPosterAction lessonId={id} sourceText={draft.sourceText || draft.text || ""} save={save} disabled={saving || publishing || serverPublishing} />
 
             <section style={{ marginTop: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -1,0 +1,60 @@
+.learning-poster { max-width: 1120px; margin: auto; padding: 24px 18px 60px; color: #0f172a; }
+.learning-poster h1 { margin: 0 0 8px; }
+.learning-poster .lp-source-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; padding-bottom: 14px; border-bottom: 1px solid #cbd5e1; }
+.learning-poster .lp-source-tabs button[aria-pressed=true] { background: #0369a1; color: #fff; border-color: #0369a1; box-shadow: 0 0 0 2px #bae6fd; }
+.learning-poster .lp-panel { margin-top: 22px; padding: 22px; background: #fff; border: 1px solid #cbd5e1; border-radius: 16px; }
+.learning-poster .lp-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 14px; margin: 14px 0; }
+.learning-poster label { display: grid; gap: 6px; font-size: 14px; font-weight: 700; }
+.learning-poster input:not([type=checkbox]), .learning-poster select, .learning-poster textarea { width: 100%; min-width: 0; border: 1px solid #94a3b8; border-radius: 9px; background: #fff; padding: 10px 12px; color: #0f172a; font: inherit; font-weight: 400; }
+.learning-poster textarea { resize: vertical; }
+.learning-poster input:focus-visible, .learning-poster textarea:focus-visible, .learning-poster select:focus-visible { outline: 3px solid #7dd3fc; outline-offset: 2px; }
+.learning-poster input:disabled, .learning-poster textarea:disabled, .learning-poster select:disabled { opacity: .7; }
+.learning-poster .lp-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.learning-poster button, .lp-launch button { border: 1px solid #94a3b8; border-radius: 10px; background: #f8fafc; color: #0f172a; font: inherit; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+.learning-poster .lp-primary { background: #0369a1; color: #fff; border-color: #0369a1; }
+.learning-poster button:disabled, .lp-launch button:disabled { cursor: not-allowed; opacity: .5; }
+.learning-poster .lp-help { color: #475569; font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.learning-poster .lp-editor { border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 14px 0; background: #f8fafc; }
+.learning-poster .lp-badge { font-size: 12px; padding: 4px 8px; background: #e0f2fe; border-radius: 6px; }
+.learning-poster .lp-alert { padding: 12px 16px; border: 1px solid #f59e0b; background: #fffbeb; border-radius: 10px; margin: 14px 0; }
+.learning-poster .lp-error { padding: 12px 16px; color: #991b1b; background: #fef2f2; border-radius: 10px; margin: 14px 0; }
+.learning-poster .lp-approve { display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; }
+.learning-poster .lp-approve input[type=checkbox] { appearance: auto !important; width: 22px; height: 22px; flex: 0 0 22px; margin: 2px 0 0; accent-color: #0369a1; }
+.learning-poster-print { padding: 28px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 16px; margin-top: 18px; }
+.learning-poster-print header span { color: #0369a1; font-weight: 800; }
+.learning-poster-print .lp-poster-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.learning-poster-print .lp-poster-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.learning-poster-print .lp-poster-brand img { width: 36px; height: 33px; object-fit: contain; }
+.learning-poster-print header h2 { font-size: 32px; margin: 10px 0; }
+.learning-poster-print header p { color: #475569; }
+.learning-poster-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.learning-poster-card { min-width: 0; background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 15px; break-inside: avoid; }
+.learning-poster-card img, .learning-poster-placeholder { width: 100%; height: 190px; object-fit: contain; }
+.learning-poster-placeholder { display: grid; place-items: center; background: #f8fafc; color: #64748b; font-size: 13px; border-radius: 8px; }
+.learning-poster-card h3 { color: #075985; font-size: 22px; margin: 12px 0 8px; overflow-wrap: anywhere; }
+.learning-poster-card p { font-size: 17px; overflow-wrap: anywhere; }
+.learning-poster-card .learning-poster-explanation { font-size: 14px; color: #475569; }
+.learning-poster-card mark { background: #fef08a; color: inherit; font-weight: 800; }
+.learning-poster-print footer { color: #64748b; font-size: 12px; margin-top: 16px; }
+.lp-launch { padding: 16px; margin: 16px 0; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; }
+.lp-launch ul { margin: 12px 0 0; padding-left: 18px; }
+@media(max-width:680px) { .learning-poster-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } .learning-poster-print { padding: 14px; } .learning-poster-card { padding: 10px; } .learning-poster-card img, .learning-poster-placeholder { height: 130px; } }
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body:has(.learning-poster-print) * { visibility: hidden; }
+  body:has(.learning-poster-print) *:has(.learning-poster-print) { display: contents !important; }
+  body:has(.learning-poster-print) *:not(:has(.learning-poster-print)):not(.learning-poster-print):not(.learning-poster-print *) { display: none !important; }
+  body:has(.learning-poster-print) .learning-poster-print, body:has(.learning-poster-print) .learning-poster-print * { visibility: visible; }
+  body:has(.learning-poster-print) .learning-poster-print { position: static; width: 100%; padding: 5mm; margin: 0; border: 0; border-radius: 0; print-color-adjust: exact; }
+  .learning-poster-print header h2 { font-size: 20pt; margin: 2mm 0; }
+  .learning-poster-print .lp-poster-brand { font-size: 9pt; }
+  .learning-poster-print .lp-poster-brand img { width: 8mm; height: 7.3mm; }
+  .learning-poster-print header p { font-size: 10pt; margin-bottom: 4mm; }
+  .learning-poster-cards { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 3mm; }
+  .learning-poster-card { padding: 3mm; }
+  .learning-poster-card img { height: 27mm; }
+  .learning-poster-card h3 { font-size: 13pt; margin: 2mm 0; }
+  .learning-poster-card p { font-size: 10pt; margin: 1mm 0; }
+  .learning-poster-card .learning-poster-explanation { font-size: 9pt; }
+  .learning-poster-print footer { margin-top: 2mm; }
+}

@@ -20,6 +20,7 @@ const premiumTools: Tool[] = [
   { id: "assignmentGenerator", href: "/producer/texts/new", badge: "PREMIUM" },
   { id: "writingActivityGenerator", href: "/producer/text/new", badge: "NEW" },
   { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
+  { id: "learningPosterGenerator", href: "/producer/learning-posters", badge: "BETA" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
   { id: "mathematics", href: "/producer/math", badge: "PREMIUM" },
   { id: "academyGenerator", href: "/teacher/courses/generate", badge: "PREMIUM" },

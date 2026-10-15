@@ -21,6 +21,7 @@ import {
 import { LANGUAGES } from "@/lib/languages";
 import LessonFactCheck from "@/components/LessonFactCheck";
 import AnswerPasteSetting from "@/components/AnswerPasteSetting";
+import LessonPosterAction from "@/components/learning-posters/LessonPosterAction";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import { getTextTypeLabel, normalizeTextTypeKey, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
@@ -1296,6 +1297,8 @@ export default function ProducerLessonEditorPage() {
             </div>
           </div>
 
+          <LessonPosterAction lessonId={lessonId} sourceText={sourceText} save={() => persistLesson("stay")} disabled={saving || generatingCover} />
+
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
@@ -1722,6 +1725,7 @@ export default function ProducerLessonEditorPage() {
               <div style={smallHelpStyle}>{t("fields.highFrequencyA1StartOnly")}</div>
             )}
           </div>
+
         </section>
 
         <section style={sectionStyle}>

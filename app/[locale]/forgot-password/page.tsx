@@ -1,45 +1,39 @@
 // app/[locale]/forgot-password/page.tsx
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
-import { getAuth, sendPasswordResetEmail } from "firebase/auth";
+import { requestPasswordReset } from "@/lib/email/passwordResetClient";
+import { passwordResetCopy } from "@/lib/email/passwordResetEmail";
 import { useParams } from "next/navigation";
 
 export default function ForgotPasswordPage() {
     const params = useParams<{ locale: string }>();
     const locale = params?.locale || "nb";
+    const copy = passwordResetCopy(locale);
 
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
     const [error, setError] = useState("");
+    const inFlight = useRef(false);
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
+        if (inFlight.current) return;
+        inFlight.current = true;
         setLoading(true);
         setError("");
         setDone(false);
 
         try {
-            const auth = getAuth();
-            auth.languageCode = locale;
-
-            await sendPasswordResetEmail(auth, email.trim(), {
-                url: `${window.location.origin}/${locale}/login?reset=1`,
-                handleCodeInApp: false,
-            });
+            await requestPasswordReset(email, locale);
 
             setDone(true);
-        } catch (err: unknown) {
-            console.error(err);
-
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("Kunne ikke sende e-post for passordbytte.");
-            }
+        } catch {
+            setError(copy.failed);
         } finally {
+            inFlight.current = false;
             setLoading(false);
         }
     }
@@ -47,21 +41,23 @@ export default function ForgotPasswordPage() {
     return (
         <main className="mx-auto max-w-md px-4 py-10">
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold">Glemt passord?</h1>
+                <h1 className="text-2xl font-semibold">{copy.title}</h1>
                 <p className="mt-2 text-sm text-gray-600">
-                    Skriv inn e-postadressen din, så sender vi deg en lenke for å lage nytt passord.
+                    {copy.formIntro}
                 </p>
 
                 <form onSubmit={onSubmit} className="mt-6 space-y-4">
                     <div>
-                        <label className="mb-1 block text-sm font-medium">E-post</label>
+                        <label htmlFor="reset-email" className="mb-1 block text-sm font-medium">{copy.emailLabel}</label>
                         <input
                             type="email"
+                            id="reset-email"
+                            autoComplete="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full rounded-xl border px-3 py-2 outline-none focus:ring"
-                            placeholder="navn@epost.no"
+                            placeholder={copy.emailPlaceholder}
                         />
                     </div>
 
@@ -70,25 +66,25 @@ export default function ForgotPasswordPage() {
                         disabled={loading}
                         className="w-full rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
                     >
-                        {loading ? "Sender..." : "Send lenke"}
+                        {loading ? copy.sending : copy.sendLink}
                     </button>
                 </form>
 
                 {done && (
-                    <p className="mt-4 rounded-xl bg-green-50 p-3 text-sm text-green-700">
-                        Hvis e-postadressen finnes i systemet, er lenken sendt.
+                    <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-sm text-green-700">
+                        {copy.requestReceived}
                     </p>
                 )}
 
                 {error && (
-                    <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                    <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
                         {error}
                     </p>
                 )}
 
                 <div className="mt-6 text-sm">
                     <Link href={`/${locale}/login`} className="text-blue-600 hover:underline">
-                        Tilbake til innlogging
+                        {copy.back}
                     </Link>
                 </div>
             </div>

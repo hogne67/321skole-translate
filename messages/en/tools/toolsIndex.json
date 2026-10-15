@@ -60,6 +60,10 @@
         "podcastWorkshop": {
           "title": "Podcast workshop",
           "description": "Create oral production tasks from ideas and planning to script, recording, and submission."
+        },
+        "learningPosterGenerator": {
+          "title": "Learning poster",
+          "description": "Create visual support for a lesson: sound words, sentence patterns and keywords."
         }
       }
     },

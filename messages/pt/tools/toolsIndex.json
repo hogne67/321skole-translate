@@ -60,6 +60,10 @@
         "podcastWorkshop": {
           "title": "Oficina de podcast",
           "description": "Crie tarefas de produção oral desde ideias e planejamento até roteiro, gravação e entrega."
+        },
+        "learningPosterGenerator": {
+          "title": "Cartaz de aprendizagem",
+          "description": "Crie apoio visual para uma lição: sons, padrões de frases e palavras-chave."
         }
       }
     },

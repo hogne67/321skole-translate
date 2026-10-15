@@ -64,6 +64,10 @@
         "podcastWorkshop": {
           "title": "Podcastverksted",
           "description": "Lag muntlige produksjonsoppgaver fra idé og plan til manus, opptak og levering."
+        },
+        "learningPosterGenerator": {
+          "title": "Læringsplakat",
+          "description": "Lag visuell støtte til en leksjon: lydord, setningsmønstre og nøkkelord."
         }
       }
     },
