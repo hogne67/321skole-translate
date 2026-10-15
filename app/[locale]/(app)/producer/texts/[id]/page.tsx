@@ -609,7 +609,8 @@ export default function ProducerTextDetailPage() {
             </div>
 
             <div style={{ marginTop: 22 }}><LessonFactCheck lessonId={id} lesson={draft} save={save} disabled={saving || publishing || serverPublishing} /></div>
-            <LessonPosterAction lessonId={id} sourceText={draft.sourceText || draft.text || ""} save={save} disabled={saving || publishing || serverPublishing} />
+            <LessonPosterAction lessonId={id} sourceText={draft.sourceText || draft.text || ""} save={save} disabled={saving || publishing || serverPublishing}
+              onCoverApplied={cover => setDraft(previous => previous ? { ...previous, ...cover, imageUrl: cover.coverImageUrl } : previous)} />
 
             <section style={{ marginTop: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

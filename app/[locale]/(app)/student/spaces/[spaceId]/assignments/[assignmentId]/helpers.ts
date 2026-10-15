@@ -102,6 +102,7 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         highFrequencyExplanation: a.highFrequencyExplanation,
         tasks: a.tasks,
         coverImageUrl: a.coverImageUrl,
+        learningPosterAttachments: a.learningPosterAttachments,
         imageTasks: a.imageTasks,
         status: a.status,
         lessonType: a.lessonType,

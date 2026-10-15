@@ -1,3 +1,4 @@
+import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/teacher/spaces/[spaceId]/assign/route.ts
 import "server-only";
 
@@ -31,6 +32,7 @@ type UsageDoc = {
 };
 
 type SourceLessonData = {
+  learningPosterAttachments?: unknown;
   allowAnswerPaste?: boolean;
   title?: string;
   level?: string;
@@ -120,6 +122,7 @@ function pickSourceLessonData(
 
   return {
     title: nonEmptyOrUndefined(d.title),
+    learningPosterAttachments: currentPosterAttachments(d),
     level: nonEmptyOrUndefined(d.level),
     language: nonEmptyOrUndefined(d.language),
     topic: nonEmptyOrUndefined(d.topic),
@@ -460,6 +463,7 @@ export async function POST(
         highFrequencyExplanation: source.highFrequencyExplanation ?? null,
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
+        learningPosterAttachments: source.learningPosterAttachments ?? [],
         imageTasks: source.imageTasks ?? null,
 
         lessonType: isFractions

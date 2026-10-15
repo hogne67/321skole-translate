@@ -1049,6 +1049,7 @@ export default function StudentAssignmentPage() {
             highFrequencyExplanation: aDoc.highFrequencyExplanation ?? d.highFrequencyExplanation,
             tasks: d.tasks,
             coverImageUrl: aDoc.coverImageUrl ?? d.coverImageUrl,
+            learningPosterAttachments: aDoc.learningPosterAttachments ?? d.learningPosterAttachments,
             status: d.status,
             isActive: d.isActive,
             lessonType: aDoc.lessonType ?? d.lessonType,
@@ -2214,6 +2215,7 @@ export default function StudentAssignmentPage() {
         !isPercentageAssignment &&
         !isPodcastWorkshop ? (
           <StandardAssignmentSection
+            learningPosterAttachments={lesson?.learningPosterAttachments ?? assignment?.learningPosterAttachments}
             allowAnswerPaste={isAnswerPasteAllowed(lesson?.allowAnswerPaste ?? assignment?.allowAnswerPaste)}
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
             textSize={effectiveStudentTextSize}

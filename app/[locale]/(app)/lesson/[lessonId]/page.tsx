@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -33,6 +34,7 @@ type Lesson = {
   highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  learningPosterAttachments?: unknown;
   imageUrl?: string;
   isActive?: boolean;
   lessonId?: string;
@@ -270,6 +272,7 @@ export default function LessonPreviewPage() {
           highFrequencyExplanation: toStringOrEmpty(raw?.highFrequencyExplanation) || undefined,
           tasks: raw?.tasks,
           coverImageUrl: toStringOrEmpty(raw?.coverImageUrl) || undefined,
+          learningPosterAttachments: raw?.learningPosterAttachments,
           imageUrl: toStringOrEmpty(raw?.imageUrl) || undefined,
           isActive: raw?.isActive,
           lessonId: toStringOrEmpty(raw?.lessonId) || undefined,
@@ -510,6 +513,7 @@ export default function LessonPreviewPage() {
       <section style={{ marginTop: 16 }}>
         <h2 style={{ marginBottom: 8 }}>{t("textHeading")}</h2>
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
+          <StudentPosterAttachments attachments={lesson.learningPosterAttachments} sourceText={sourceTextSafe} />
           {sourceTextSafe ? (
             <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div>
           ) : (

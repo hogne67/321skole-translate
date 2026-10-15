@@ -1,5 +1,6 @@
 // app/(app)/producer/[id]/preview/page.tsx
 "use client";
+import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -31,6 +32,7 @@ type Lesson = {
   status?: "draft" | "published";
   textSize?: TextSize;
   coverImageUrl?: string;
+  learningPosterAttachments?: unknown;
   tasks?: Task[];
 };
 
@@ -256,6 +258,7 @@ export default function ProducerLessonPreviewPage() {
           </div>
         ) : null}
 
+        <StudentPosterAttachments attachments={lesson.learningPosterAttachments} sourceText={lesson.sourceText} />
         <div>
           <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("fields.text")}</div>
           <div style={{ whiteSpace: "pre-wrap", color: "#0f172a", ...readingTextStyle }}>

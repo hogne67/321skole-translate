@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { createHash } from "crypto";
 import { hasTeacherReviewApproval } from "@/lib/lessons/server/factCheck";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
@@ -310,6 +311,7 @@ export async function POST(req: Request) {
 
   const publishedDoc = {
     ...draft,
+    learningPosterAttachments: currentPosterAttachments(draft),
 
     // Correct linkage
     lessonId: draftId,

@@ -146,6 +146,7 @@ export type AssignmentDoc = {
     text?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    learningPosterAttachments?: unknown;
 
     mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
@@ -168,6 +169,7 @@ export type Lesson = {
     text?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    learningPosterAttachments?: unknown;
 
     isActive?: boolean;
     status?: string;

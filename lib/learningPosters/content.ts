@@ -3,6 +3,7 @@ import { posterLanguageLabel, posterLevelLabel } from "./presentation";
 
 export type PosterContentSummary = { id: string; title: string; level: string; language: string; updatedAt: number;
   sourceTitle: string; sourceHref: string | null };
+export type LinkedPosterSummary = Pick<PosterContentSummary, "id" | "title" | "level" | "language" | "updatedAt"> & { sourceText: string; ready: boolean; revision?: string; sourceHash?: string; purpose?: "before" | "during" | "after"; imageLabels?: string[] };
 
 export function posterContentItem(poster: PosterContentSummary, locale: string): Extract<ContentItem, { type: "learningPoster" }> {
   return { type: "learningPoster", id: poster.id, title: poster.title, level: poster.level, language: poster.language,

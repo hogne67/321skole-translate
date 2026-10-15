@@ -22,6 +22,7 @@ export type Lesson = {
     highFrequencyExplanation?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    learningPosterAttachments?: unknown;
     imageTasks?: unknown;
     isActive?: boolean;
     status?: string;
@@ -64,6 +65,7 @@ export type AssignmentDoc = {
     highFrequencyExplanation?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    learningPosterAttachments?: unknown;
     imageTasks?: unknown;
     lessonType?: string;
     taskType?: string;

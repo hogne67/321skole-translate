@@ -3,6 +3,7 @@
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
+import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -58,6 +59,7 @@ type Lesson = {
   status?: "draft" | "published";
   language?: string;
   coverImageUrl?: string;
+  learningPosterAttachments?: unknown;
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
@@ -107,6 +109,7 @@ type PublishedLessonDoc = {
   highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  learningPosterAttachments?: unknown;
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
@@ -129,6 +132,7 @@ type PrivateLessonDoc = {
   highFrequencyExplanation?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  learningPosterAttachments?: unknown;
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
@@ -539,6 +543,7 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
       typeof d.highFrequencyExplanation === "string" ? d.highFrequencyExplanation : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    learningPosterAttachments: d.learningPosterAttachments,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
@@ -587,6 +592,7 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
       typeof d.highFrequencyExplanation === "string" ? d.highFrequencyExplanation : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    learningPosterAttachments: d.learningPosterAttachments,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
@@ -1700,6 +1706,7 @@ export default function StudentLessonPage() {
               language: rawData.language,
               tasks: rawData.tasks,
               coverImageUrl: rawData.coverImageUrl,
+              learningPosterAttachments: rawData.learningPosterAttachments,
               lessonType: rawData.lessonType,
               taskType: rawData.taskType,
               imageTasks: rawData.imageTasks,
@@ -1756,6 +1763,7 @@ export default function StudentLessonPage() {
             language: rawPrivate.language,
             tasks: rawPrivate.tasks,
             coverImageUrl: rawPrivate.coverImageUrl,
+            learningPosterAttachments: rawPrivate.learningPosterAttachments,
             lessonType: rawPrivate.lessonType,
             taskType: rawPrivate.taskType,
             imageTasks: rawPrivate.imageTasks,
@@ -2649,6 +2657,7 @@ export default function StudentLessonPage() {
         </section>
       ) : null}
 
+      {!isImageWriting && !isReadingTest && <StudentPosterAttachments attachments={lesson.learningPosterAttachments} sourceText={sourceTextSafe} />}
       {!isImageWriting && !isReadingTest && displayedSourceTextSafe.trim() ? (
       <section style={{ marginTop: 14 }}>
         <div

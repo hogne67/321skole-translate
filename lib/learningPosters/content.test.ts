@@ -4,7 +4,7 @@ import sharp from "sharp";
 import type { Firestore } from "firebase-admin/firestore";
 import { digest, type PosterAccount } from "./server";
 import type { LearningPoster, PosterPlan } from "./model";
-import { listFinishedPosters, posterThumbnail } from "./content.server";
+import { listFinishedPosters, listLinkedPosters, posterThumbnail } from "./content.server";
 import { posterContentItem } from "./content";
 
 const plan: PosterPlan = { title: "Vi drikker", goal: "Lese ord om drikke.", focus: "", level: "A1_START", language: "nb", kind: "keywords", purpose: "before", includeExplanations: false,
@@ -19,7 +19,7 @@ function fixture() {
     doc: (id: string) => ({ get: async () => { reads.push(`${name}/${id}`); return { data: () => records.get(`${name}/${id}`) }; } }),
     where: (field: string, op: string, value: string) => {
       assert.equal(field, "ownerId"); assert.equal(op, "=="); assert.equal(value, "fred");
-      return { select: (...fields: string[]) => { projections.push(fields); return { get: async () => ({
+      const selectedQuery = { select: (...fields: string[]) => { projections.push(fields); return { get: async () => ({
         // Deliberately return another owner too, to test the defensive account check.
         docs: [...records].filter(([path]) => path.startsWith(`${name}/`)).map(([path, value]) => ({ id: path.split("/").at(-1)!, data: () => {
           const selected: Record<string, unknown> = {};
@@ -32,6 +32,9 @@ function fixture() {
           return selected;
         } })),
       }) }; } };
+      return { ...selectedQuery, where: (field: string, op: string, value: string) => {
+        assert.equal(field, "source.lessonId"); assert.equal(op, "=="); assert.ok(value); return selectedQuery;
+      } };
     },
   }) } as unknown as Firestore;
   let downloads = 0;
@@ -100,4 +103,29 @@ test("poster feed items use their own content type and link to the saved poster"
   const item = posterContentItem({ id: "poster-id", title: plan.title, level: plan.level, language: plan.language, updatedAt: 2000, sourceTitle: "Drikke", sourceHref: null }, "nb");
   assert.equal(item.type, "learningPoster"); assert.equal(item.href, "/nb/producer/learning-posters?posterId=poster-id");
   assert.equal(item.updatedAt?.getTime(), 2000); assert.ok(item.meta?.includes("A1 start")); assert.ok(item.meta?.includes("Norsk bokmål"));
+});
+
+test("lesson overview includes ready posters and drafts for the same source and account, without the old 100-item cap", async () => {
+  const f = fixture();
+  f.records.set("lessons/own", { ownerId: "fred", sourceText: "PRIVATE SOURCE TEXT", tasks: [{ answer: "DO NOT SEND ANSWERS" }] });
+  for (let i = 0; i < 130; i++) f.records.set(`learningPosters/ready-${i}`, { ...poster(`ready-${i}`, "own"), updatedAt: i + 1 });
+  f.records.set("learningPosters/draft", { ...poster("draft", "own"), reviewedHash: null, images: [], updatedAt: 200 });
+  f.records.set("learningPosters/other-source", { ...poster("other-source", "elsewhere") });
+  f.records.set("learningPosters/manual", { ...poster("manual") });
+  f.records.set("learningPosters/other-owner", { ...poster("other-owner", "own"), ownerId: "admin" });
+  f.records.set("learningPosters/deleted", { ...poster("deleted", "own"), deletedAt: 1 });
+  const list = await listLinkedPosters(f.account, "own");
+  assert.equal(list.length, 131); assert.equal(list[0].id, "draft"); assert.equal(list[0].ready, false);
+  assert.equal(list[1].id, "ready-129"); assert.equal(list[1].ready, true);
+  assert.equal(list[1].sourceText, "PRIVATE SOURCE TEXT");
+  assert.equal(list[1].sourceHash, "source-hash");
+  assert.deepEqual(list[1].imageLabels, ["Vann", "Melk"]);
+  assert.ok(!JSON.stringify(list).includes("DO NOT SEND ANSWERS")); assert.ok(!JSON.stringify(list).includes("visualPrompt"));
+});
+
+test("a lesson must belong to the authenticated account before its linked poster list can be queried", async () => {
+  const f = fixture(); f.records.set("lessons/private", { ownerId: "admin", sourceText: "Private text" });
+  await assert.rejects(listLinkedPosters(f.account, "private"), /source_not_found/);
+  await assert.rejects(listLinkedPosters(f.account, "../private"), /invalid_input/);
+  assert.equal(f.projections.length, 0);
 });

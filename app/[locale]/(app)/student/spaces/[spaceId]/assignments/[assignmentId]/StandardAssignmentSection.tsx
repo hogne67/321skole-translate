@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import StudentAssignmentTextSection from "./StudentAssignmentTextSection";
+import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 import AssignmentTasksHeader from "./AssignmentTasksHeader";
 import AssignmentTaskCard from "./AssignmentTaskCard";
 import type {
@@ -17,6 +18,7 @@ import type {
 import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSections";
 
 type Props = {
+    learningPosterAttachments?: unknown;
     lessonLanguage?: string;
     textSize: TextSize;
     textSizeOptions?: TextSize[];
@@ -109,6 +111,7 @@ type Props = {
 };
 
 export default function StandardAssignmentSection({
+    learningPosterAttachments,
     lessonLanguage,
     textSize,
     textSizeOptions,
@@ -159,6 +162,7 @@ export default function StandardAssignmentSection({
     return (
         <div style={{ display: "grid", gap: 18 }}>
             {beforeText}
+            <StudentPosterAttachments attachments={learningPosterAttachments} sourceText={sourceTextSafe} />
 
             {sourceTextSafe.trim() ? (
                 <StudentAssignmentTextSection

@@ -1,3 +1,4 @@
+import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/parent/spaces/[spaceId]/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
@@ -183,6 +184,7 @@ export async function POST(
 
     const assignmentDoc: Record<string, unknown> = {
       ...lessonData,
+      learningPosterAttachments: currentPosterAttachments(lessonData),
 
       title: lessonTitle,
 

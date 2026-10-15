@@ -1,10 +1,10 @@
 import "server-only";
 import sharp from "sharp";
 import { normalizePlan, PosterError, type LearningPoster } from "./model";
-import { digest, type PosterAccount } from "./server";
+import { digest, readSource, type PosterAccount } from "./server";
 import { resolveSavedPosterLesson } from "./sources.server";
 import { renderPosterPng } from "./render.server";
-import type { PosterContentSummary } from "./content";
+import type { LinkedPosterSummary, PosterContentSummary } from "./content";
 
 function dateMillis(value: unknown): number {
   if (value && typeof value === "object" && "toMillis" in value && typeof value.toMillis === "function") return value.toMillis();
@@ -47,6 +47,24 @@ export async function listFinishedPosters(account: PosterAccount, locale: string
       sourceHref: await links.get(lessonId)! };
   }));
   return summaries.filter((item): item is PosterContentSummary => item !== null).sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
+}
+export async function listLinkedPosters(account: PosterAccount, lessonId: string): Promise<LinkedPosterSummary[]> {
+  // Verify the source account before listing any linked metadata, including draft posters.
+  await readSource(account.db, account.uid, { lessonId });
+  const snapshot = await account.db.collection("learningPosters").where("ownerId", "==", account.uid)
+    .where("source.lessonId", "==", lessonId).select("ownerId", "source.lessonId", "source.text", "source.hash", "plan", "images", "reviewedHash", "updatedAt", "createdAt", "deletedAt").get();
+  const result: LinkedPosterSummary[] = [];
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    if (data.ownerId !== account.uid || data.source?.lessonId !== lessonId || data.deletedAt) continue;
+    try {
+      const plan = normalizePlan(data.plan);
+      result.push({ id: doc.id, title: plan.title, level: plan.level, language: plan.language,
+        updatedAt: dateMillis(data.updatedAt) || dateMillis(data.createdAt),
+        sourceText: typeof data.source?.text === "string" ? data.source.text : "", sourceHash: typeof data.source?.hash === "string" ? data.source.hash : "", ready: isFinishedPoster(data), revision: digest(data.plan), purpose: plan.purpose, imageLabels: plan.items.map(item => item.label) });
+    } catch { /* Skip malformed records without hiding other posters for the lesson. */ }
+  }
+  return result.sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
 }
 export async function posterImageData(account: PosterAccount, poster: LearningPoster): Promise<string[]> {
   const bucket = account.storage.bucket(process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);

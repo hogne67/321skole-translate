@@ -1287,6 +1287,12 @@ export default function ProducerLessonEditorPage() {
           </div>
         </section>
 
+        <LessonPosterAction lessonId={lessonId} sourceText={sourceText} save={() => persistLesson("stay")} disabled={saving || generatingCover || uploadingCover}
+          onCoverApplied={cover => {
+            setCoverImageUrl(cover.coverImageUrl); setCoverImageFormat(cover.coverImageFormat);
+            setCoverImageSource(cover.coverImageSource); setCoverImageCredit(cover.coverImageCredit); setAiCoverPrompt(cover.aiCoverPrompt);
+          }} />
+
         <section style={sectionStyle}>
           <div style={{ marginBottom: 14 }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
@@ -1296,8 +1302,6 @@ export default function ProducerLessonEditorPage() {
               {t("sections.coverHelp")}
             </div>
           </div>
-
-          <LessonPosterAction lessonId={lessonId} sourceText={sourceText} save={() => persistLesson("stay")} disabled={saving || generatingCover} />
 
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

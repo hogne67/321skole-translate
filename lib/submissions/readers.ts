@@ -109,6 +109,7 @@ export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
         text: a.text,
         tasks: a.tasks,
         coverImageUrl: a.coverImageUrl,
+        learningPosterAttachments: a.learningPosterAttachments,
         status: a.status,
         lessonType: a.lessonType,
         taskType: a.taskType,

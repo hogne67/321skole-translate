@@ -3,7 +3,11 @@ import { normalizePosterSettings, PosterError, type PosterPlan } from "@/lib/lea
 import { digest, generatePosterImages, ownedPoster, posterAccount, readSource, savePoster, suggestPoster, suggestPosterGoal, withPosterQuota } from "@/lib/learningPosters/server";
 import { renderPosterPng } from "@/lib/learningPosters/render.server";
 import { listPosterLessons } from "@/lib/learningPosters/sources.server";
-import { listFinishedPosters, posterImageData, posterThumbnail } from "@/lib/learningPosters/content.server";
+import { listFinishedPosters, listLinkedPosters, posterImageData, posterThumbnail } from "@/lib/learningPosters/content.server";
+import { setLessonPosterAttachment } from "@/lib/learningPosters/attachments.server";
+import { readPosterAttachments } from "@/lib/learningPosters/attachments";
+import { applyLessonPosterCover, previewLessonPosterCover } from "@/lib/learningPosters/cover.server";
+import type { PosterCoverSelection } from "@/lib/learningPosters/cover";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -17,6 +21,12 @@ export async function GET(req: Request) {
     const account = await posterAccount(req);
     const params = new URL(req.url).searchParams;
     const locale = ["nb", "en", "pt"].includes(params.get("locale") || "") ? params.get("locale")! : "nb";
+    const linkedLessonId = params.get("linkedLessonId");
+    if (linkedLessonId) {
+      const posters = await listLinkedPosters(account, linkedLessonId);
+      const lesson = (await account.db.collection("lessons").doc(linkedLessonId).get()).data();
+      return NextResponse.json({ ok: true, posters, attachments: readPosterAttachments(lesson?.learningPosterAttachments) }, { headers: { "Cache-Control": "private, no-store" } });
+    }
     if (params.get("content") === "1") {
       return NextResponse.json({ ok: true, posters: await listFinishedPosters(account, locale) }, { headers: { "Cache-Control": "private, no-store" } });
     }
@@ -59,8 +69,24 @@ export async function POST(req: Request) {
     const account = await posterAccount(req);
     const body: unknown = await req.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)
-      || Object.keys(body).some(key => !["action", "id", "source", "settings", "plan", "approved"].includes(key))) throw new PosterError("invalid_input");
+      || Object.keys(body).some(key => !["action", "id", "source", "settings", "plan", "approved", "lessonId", "posterId", "enabled", "selection", "revision"].includes(key))) throw new PosterError("invalid_input");
     const data = body as Record<string, unknown>;
+    if (data.action === "cover-preview" || data.action === "cover-apply") {
+      if (typeof data.lessonId !== "string" || typeof data.posterId !== "string" || (data.selection !== "all" && typeof data.selection !== "number")) throw new PosterError("invalid_input");
+      const input = { lessonId: data.lessonId, posterId: data.posterId, selection: data.selection as PosterCoverSelection };
+      if (data.action === "cover-preview") {
+        const preview = await previewLessonPosterCover(account, input);
+        return new Response(new Uint8Array(preview.buffer), { headers: { "Content-Type": "image/webp", "Cache-Control": "private, no-store", "X-Poster-Revision": preview.revision } });
+      }
+      if (typeof data.revision !== "string") throw new PosterError("invalid_input");
+      return NextResponse.json({ ok: true, cover: await applyLessonPosterCover(account, { ...input, revision: data.revision }) });
+    }
+    if (data.action === "attachment") {
+      if (typeof data.lessonId !== "string" || typeof data.posterId !== "string" || typeof data.enabled !== "boolean") throw new PosterError("invalid_input");
+      const selectedLocale = new URL(req.url).searchParams.get("locale");
+      const locale = selectedLocale && ["nb", "en", "pt"].includes(selectedLocale) ? selectedLocale : "nb";
+      return NextResponse.json({ ok: true, attachments: await setLessonPosterAttachment(account, { lessonId: data.lessonId, posterId: data.posterId, enabled: data.enabled }, locale) });
+    }
     if (data.action === "generate") {
       if (typeof data.id !== "string") throw new PosterError("invalid_input");
       return NextResponse.json({ ok: true, poster: await generatePosterImages(account, data.id) });
