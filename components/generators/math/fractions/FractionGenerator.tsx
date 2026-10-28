@@ -1,4 +1,5 @@
 "use client";
+import { watchOwnedSpaceSnapshots, type OwnedSpaceSnapshot } from "@/lib/security/ownedSpaces.client";
 
 import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBackLink";
 
@@ -7,15 +8,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { useLocale } from "next-intl";
 import { onAuthStateChanged } from "firebase/auth";
-import {
-    collection,
-    onSnapshot,
-    orderBy,
-    query,
-    where,
-    type DocumentData,
-    type QueryDocumentSnapshot,
-} from "firebase/firestore";
+
 
 import FractionGeneratorPanel from "@/components/generators/math/fractions/FractionGeneratorPanel";
 import FractionCalculationPanel from "./FractionCalculationPanel";
@@ -130,17 +123,11 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
 
             setSpacesLoading(true);
 
-            const q = query(
-                collection(db, "spaces"),
-                where("ownerId", "==", uid),
-                orderBy("createdAt", "desc")
-            );
-
-            unsubscribeSpaces = onSnapshot(
-                q,
+            unsubscribeSpaces = watchOwnedSpaceSnapshots(
+                db, uid,
                 (snap) => {
                     const next: TeacherSpaceRow[] = snap.docs.map(
-                        (d: QueryDocumentSnapshot<DocumentData>) => {
+                        (d: OwnedSpaceSnapshot) => {
                             const data = (d.data() ?? {}) as Record<string, unknown>;
 
                             return {

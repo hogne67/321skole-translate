@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -125,6 +126,6 @@ export async function POST(req: Request) {
     return json({ ok: true, publishedId, publishedLessonId: publishedId, lessonId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not prepare quiz sharing";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

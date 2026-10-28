@@ -11,6 +11,7 @@ import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
 import { isSpaceOnlyStudent } from "@/lib/studentAccessMode";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
+import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
 
 type LessonRow = {
   id: string; // published lesson id
@@ -67,8 +68,7 @@ export default function StudentBrowsePage() {
         const pubSnap = await getDocs(qPub);
 
         // 2) user's submissions (to mark already opened/hented)
-        const qSubs = query(collection(db, "submissions"), where("uid", "==", user.uid));
-        const subSnap = await getDocs(qSubs);
+        const subSnap = await getOwnSubmissions("submissions", user.uid);
 
         if (!alive) return;
 

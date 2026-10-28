@@ -20,7 +20,7 @@ export async function handleSchoolInvite(req: Request, dependencies?: Dependenci
   const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   const deps = dependencies ?? {
-    authenticate: async (value: string) => (await getAdmin().auth.verifyIdToken(value)).uid,
+    authenticate: async (value: string) => (await getAdmin().auth.verifyIdToken(value, true)).uid,
     getMember: getSchoolMember, createInvites: createSchoolInvites, sendInvite: sendSchoolInviteEmail,
   };
   let uid: string;

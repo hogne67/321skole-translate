@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -205,7 +206,7 @@ export async function GET(req: Request, context: RouteContext) {
         ? 403
         : message.includes("Authorization") || message === "Unauthorized"
           ? 401
-          : 500;
+          : (accountErrorStatus(error) ?? 500);
 
     return json({ ok: false, error: message || "Failed to load school" }, status);
   }
@@ -280,7 +281,7 @@ export async function PATCH(req: Request, context: RouteContext) {
         ? 403
         : message.includes("Authorization") || message === "Unauthorized"
           ? 401
-          : 500;
+          : (accountErrorStatus(error) ?? 500);
 
     return json({ ok: false, error: message || "Failed to update school" }, status);
   }

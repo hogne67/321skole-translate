@@ -65,6 +65,7 @@ export async function POST(req: Request) {
     if (!text) return Response.json({ error: "Mangler tekst." }, { status: 400 });
 
     const r = await client.responses.create({
+      store: false,
       model: "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       input: [

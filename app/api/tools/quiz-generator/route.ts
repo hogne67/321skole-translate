@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import OpenAI, { toFile } from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
@@ -541,6 +542,7 @@ export async function POST(req: Request) {
     let response: Awaited<ReturnType<typeof client.responses.create>>;
     try {
       response = await client.responses.create({
+        store: false,
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         text: { format: { type: "json_object" } },
         temperature: sourceHasDocument ? 0.1 : 0.2,
@@ -634,6 +636,6 @@ export async function POST(req: Request) {
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quiz-generator route error:", error);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

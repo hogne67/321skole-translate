@@ -1,3 +1,7 @@
+import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { validateStoredStudentSubmission, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -76,21 +80,7 @@ function isAdminProfile(profile: unknown): boolean {
   return isRecord(profile.roles) && profile.roles.admin === true;
 }
 
-function isActiveMember(member: unknown): boolean {
-  if (!isRecord(member)) return false;
-  const status = safeString(member.status).toLowerCase();
-  if (member.archived === true || member.active === false) return false;
-  return !status || status === "active";
-}
 
-function getOwnerUid(space: Record<string, unknown>, activity?: Record<string, unknown>): string {
-  return (
-    safeString(activity?.ownerUid) ||
-    safeString(space.ownerUid) ||
-    safeString(space.ownerId) ||
-    safeString(space.teacherId)
-  );
-}
 
 function findSection(activity: WritingActivity, sectionId: string): WritingSectionTemplate | null {
   for (const room of activity.rooms ?? []) {
@@ -291,11 +281,11 @@ export async function POST(
     const profile = (profileSnap.data() ?? {}) as Record<string, unknown>;
     const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
     const activityData = (activitySnap.data() ?? {}) as Record<string, unknown>;
-    const ownerUid = getOwnerUid(space, activityData);
+    const ownerUid = getSpaceOwnerUid(space);
     const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
-    const isOwner = ownerUid === uid;
+    const isOwner = hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
     const isAdmin = isAdminProfile(profile);
-    const hasMemberAccess = memberSnap.exists && isActiveMember(member);
+    const hasMemberAccess = memberSnap.exists && isActiveSpaceMember(member);
     const participantId = safeString(member.participantId) || uid;
     const displayName = safeString(member.displayName) || null;
 
@@ -378,6 +368,8 @@ export async function POST(
 
     const submissionSnap = await submissionRef.get();
     const submissionData = (submissionSnap.data() ?? {}) as Record<string, unknown>;
+    const identityContext = { kind: "writingActivities" as const, spaceId, activityId, submissionId, uid, participantId };
+    validateStoredStudentSubmission(submissionSnap.data(), identityContext);
     const aiUsage = Array.isArray(submissionData.aiUsage) ? submissionData.aiUsage : [];
     const sectionUses = aiUsage.filter((item) => isRecord(item) && item.sectionId === sectionId).length;
     const totalUses = aiUsage.length;
@@ -401,6 +393,7 @@ export async function POST(
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
         { role: "system", content: buildSystemPrompt(safeString(activity.language) || "nb", activity.genre === "factual") },
@@ -424,13 +417,11 @@ export async function POST(
       createdAt: now,
     };
 
-    await submissionRef.set(
-      {
-        activityId,
-        spaceId,
-        uid,
-        studentUid: participantId,
-        participantId,
+    await db.runTransaction(async tx => {
+      const current = await tx.get(submissionRef);
+      validateStoredStudentSubmission(current.data(), identityContext);
+      tx.set(submissionRef, {
+        ...retainedSubmissionIdentity(current.data(), identityContext),
         displayName,
         answersByFieldId,
         sectionDrafts,
@@ -441,8 +432,8 @@ export async function POST(
           ? submissionData.createdAt ?? FieldValue.serverTimestamp()
           : FieldValue.serverTimestamp(),
       },
-      { merge: true }
-    );
+      { merge: true });
+    });
 
     await consumeServerFeature({
       db,
@@ -466,6 +457,6 @@ export async function POST(
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    return json({ error: message || "Writing AI support failed" }, 500);
+    return json({ error: message || "Writing AI support failed" }, e instanceof SubmissionWriteError ? e.status : (accountErrorStatus(e) ?? 500));
   }
 }

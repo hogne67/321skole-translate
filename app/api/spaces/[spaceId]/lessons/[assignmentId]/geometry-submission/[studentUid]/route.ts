@@ -1,3 +1,5 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess, ownsSpaceSubmission } from "@/lib/security/spaceAccess.server";
 // app\api\spaces\[spaceId]\lessons\[assignmentId]\geometry-submission\[studentUid]\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -12,7 +14,7 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(_req: Request, context: RouteContext) {
+export async function GET(req: Request, context: RouteContext) {
   try {
     const { spaceId, assignmentId, studentUid } = await context.params;
 
@@ -23,7 +25,14 @@ export async function GET(_req: Request, context: RouteContext) {
       );
     }
 
-    const { db } = getAdmin();
+    const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { auth, db } = getAdmin();
+    let decoded;
+    try { decoded = await auth.verifyIdToken(token, true); }
+    catch (accountError) { return NextResponse.json({ error: "Unauthorized" }, { status: (accountErrorStatus(accountError) ?? 401) }); }
+    const access = await getSpaceAccess(db, spaceId, decoded.uid);
+    if (!access.canRead) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const submissionRef = db
       .collection("spaces")
@@ -42,7 +51,10 @@ export async function GET(_req: Request, context: RouteContext) {
       );
     }
 
-    const data = snap.data();
+    const data = snap.data()!;
+    if (!access.canTeach && !ownsSpaceSubmission(data, decoded.uid, access.participantId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     return NextResponse.json({
       ok: true,
@@ -56,7 +68,7 @@ export async function GET(_req: Request, context: RouteContext) {
 
     return NextResponse.json(
       { ok: false, error: "Failed to load geometry submission" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

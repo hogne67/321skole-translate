@@ -1,3 +1,6 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getActiveSpaceMembership } from "@/lib/security/spaceAccess.server";
+import { validateStoredStudentSubmission, validateStoredSubmissionIndex, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -36,35 +39,6 @@ function getBearerToken(req: Request): string | null {
   const header = req.headers.get("authorization") || req.headers.get("Authorization");
   const match = header?.match(/^Bearer\s+(.+)$/i);
   return match?.[1]?.trim() || null;
-}
-
-function isActiveMember(data: FirebaseFirestore.DocumentData | undefined): boolean {
-  if (!data) return false;
-  if (data.archived === true || data.active === false) return false;
-  if (typeof data.status === "string" && data.status.toLowerCase() === "removed") return false;
-  return true;
-}
-
-async function getSpaceMember(
-  db: FirebaseFirestore.Firestore,
-  spaceId: string,
-  uid: string
-): Promise<{ ok: boolean; participantId: string }> {
-  const canonical = await db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get();
-  if (canonical.exists && isActiveMember(canonical.data())) {
-    const data = canonical.data() ?? {};
-    return { ok: true, participantId: safeString(data.participantId) || uid };
-  }
-
-  const legacy = await db
-    .collection("spaceMembers")
-    .where("spaceId", "==", spaceId)
-    .where("uid", "==", uid)
-    .limit(5)
-    .get();
-  const active = legacy.docs.find((doc) => isActiveMember(doc.data()));
-  if (!active) return { ok: false, participantId: "" };
-  return { ok: true, participantId: safeString(active.data().participantId) || uid };
 }
 
 function buildSystemPrompt(language: string) {
@@ -190,7 +164,7 @@ export async function POST(req: Request, ctx: RouteParams) {
 
     const [assignmentSnap, membership] = await Promise.all([
       db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId).get(),
-      getSpaceMember(db, spaceId, uid),
+      getActiveSpaceMembership(db, spaceId, uid),
     ]);
 
     if (!assignmentSnap.exists) return json({ error: "Assignment not found." }, 404);
@@ -214,6 +188,11 @@ export async function POST(req: Request, ctx: RouteParams) {
       .doc(submissionId);
     const submissionSnap = await submissionRef.get();
     const submissionData = (submissionSnap.data() ?? {}) as Record<string, unknown>;
+    const identityContext = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId, uid, participantId };
+    validateStoredStudentSubmission(submissionSnap.data(), identityContext);
+    const indexRef = db.collection("spaceSubmissions").doc(submissionId);
+    const indexSnap = await indexRef.get();
+    validateStoredSubmissionIndex(indexSnap.data(), submissionSnap.data(), identityContext);
     const existingUsage = Array.isArray(submissionData.podcastWorkshopAiUsage)
       ? submissionData.podcastWorkshopAiUsage
       : [];
@@ -241,6 +220,7 @@ export async function POST(req: Request, ctx: RouteParams) {
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
         { role: "system", content: buildSystemPrompt(safeString(assignment.language) || safeString(source.language) || "nb") },
@@ -264,18 +244,19 @@ export async function POST(req: Request, ctx: RouteParams) {
       createdAt: now,
     };
     const writePayload = {
-      uid,
-      participantId,
-      spaceId,
-      assignmentId,
       status: safeString(submissionData.status) || "draft",
       podcastWorkshopAiUsage: FieldValue.arrayUnion(usageLog),
       updatedAt: FieldValue.serverTimestamp(),
       ...(submissionSnap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
     };
 
-    await submissionRef.set(writePayload, { merge: true });
-    await db.collection("spaceSubmissions").doc(submissionId).set(writePayload, { merge: true });
+    await db.runTransaction(async tx => {
+      const [current, index] = await Promise.all([tx.get(submissionRef), tx.get(indexRef)]);
+      validateStoredStudentSubmission(current.data(), identityContext);
+      validateStoredSubmissionIndex(index.data(), current.data(), identityContext);
+      tx.set(submissionRef, { ...writePayload, ...retainedSubmissionIdentity(current.data(), identityContext) }, { merge: true });
+      tx.set(indexRef, { ...writePayload, ...retainedSubmissionIdentity(index.data() ?? current.data(), identityContext), spaceId, assignmentId }, { merge: true });
+    });
 
     return json({
       supportText,
@@ -287,6 +268,6 @@ export async function POST(req: Request, ctx: RouteParams) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Podcast AI support failed.";
-    return json({ error: message }, 500);
+    return json({ error: message }, error instanceof SubmissionWriteError ? error.status : (accountErrorStatus(error) ?? 500));
   }
 }

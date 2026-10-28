@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/producer/generate-tasks/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
@@ -558,6 +559,7 @@ Counts:
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const resp = await client.responses.create({
+      store: false,
       model,
       text: { format: { type: "json_object" } },
       input: [
@@ -686,7 +688,7 @@ Counts:
     }
     return NextResponse.json(
       { ok: false, error: getErrorMessage(err) || "Ukjent feil" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

@@ -1,3 +1,5 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -64,9 +66,8 @@ export async function POST(
     if (!spaceSnap.exists) return json({ error: "Space not found" }, 404);
 
     const source = sourceSnap.data() ?? {};
-    const space = spaceSnap.data() ?? {};
     const ownsSource = source.ownerUid === uid;
-    const ownsSpace = space.ownerId === uid;
+    const ownsSpace = (await getSpaceAccess(db, spaceId, uid)).owner;
 
     if (!isAdmin && (!ownsSource || !ownsSpace)) {
       return json({ error: "No access (owner/admin required)" }, 403);
@@ -137,6 +138,6 @@ export async function POST(
     return json({ activityId: assignedRef.id, spaceId }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Assign writing activity failed" }, 500);
+    return json({ error: msg || "Assign writing activity failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

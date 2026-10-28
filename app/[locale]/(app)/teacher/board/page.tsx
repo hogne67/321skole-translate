@@ -1,4 +1,6 @@
 "use client";
+import { watchOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
+
 
 import Link from "next/link";
 import Image from "next/image";
@@ -7,7 +9,7 @@ import AuthGate from "@/components/AuthGate";
 import { auth, db, storage } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import type { SpaceDoc } from "@/lib/spacesClient";
-import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, limit, onSnapshot, query, where } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { ArrowLeft, ArrowRight, BarChart3, ChevronDown, Clock3, ImageIcon, Play, Radio, Sparkles, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -789,8 +791,7 @@ function TeacherBoardIndexInner() {
   useEffect(() => {
     if (!user?.uid || !canUse) return;
 
-    const q = query(collection(db, "spaces"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (snap) => {
+    return watchOwnedSpaceSnapshots(db, user.uid, (snap) => {
       setSpaces(
         snap.docs.map((d) => ({
           id: d.id,

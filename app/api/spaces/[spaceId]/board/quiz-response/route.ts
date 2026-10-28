@@ -1,4 +1,7 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -65,16 +68,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     if (quizQuestionIndex < 0) return json({ error: "Missing quizQuestionIndex" }, 400);
 
     const memberSnap = await db.collection("spaceMembers").doc(memberDocId(spaceId, uid)).get();
-    const spaceSnap = await db.collection("spaces").doc(spaceId).get();
     const userSnap = await db.collection("users").doc(uid).get();
 
-    const space = spaceSnap.data() ?? {};
     const user = userSnap.data() ?? {};
     const roles = user.roles && typeof user.roles === "object" ? (user.roles as Record<string, unknown>) : {};
-    const isOwner = typeof space.ownerId === "string" && space.ownerId === uid;
+    const isOwner = (await getSpaceAccess(db, spaceId, uid)).owner;
     const isAdmin = user.role === "admin" || roles.admin === true;
 
-    if (!memberSnap.exists && !isOwner && !isAdmin) {
+    if (!isActiveSpaceMember(memberSnap.data()) && !isOwner && !isAdmin) {
       return json({ error: "Not a member of this space" }, 403);
     }
 
@@ -117,6 +118,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     return json({ ok: true, responseId: responseRef.id, quizResponseMs: responseTimeMs, quizResponseLimitMs: questionLimitMs });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save quiz response";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

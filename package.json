@@ -10,6 +10,11 @@
     "lint": "eslint app lib components",
     "test:lessons": "node --conditions=react-server --import tsx --test lib/lessons/input.test.ts lib/lessons/factCheckInput.test.ts lib/lessons/server/createLessonForUser.test.ts lib/lessons/server/factCheck.test.ts",
     "test:lessons:rules": "node --import tsx --test lib/lessons/firestore.rules.test.ts",
+    "test:security": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 OPENAI_API_KEY=isolated-test-no-network node --conditions=react-server --import tsx --test --test-concurrency=1 lib/security/access.integration.test.ts lib/security/clientAccess.test.ts lib/spaceOnboarding.integration.test.ts lib/lessons/firestore.rules.test.ts lib/schools/access.test.ts lib/schools/administrator.test.ts lib/schools/administratorRoute.test.ts lib/schools/inviteBatch.test.ts lib/spaceJoinPolicy.test.ts lib/submissions/status.test.ts",
+    "test:security:1b": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9098 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 OPENAI_API_KEY=isolated-test-no-network node --conditions=react-server --import tsx --test --test-concurrency=1 lib/security/reconciliation.test.ts lib/schools/aggregateStatistics.test.ts lib/security/schools.integration.test.ts lib/security/staging.integration.test.ts lib/schools/server/sendInviteEmail.test.ts lib/schools/server/inviteRoute.test.ts",
+    "test:security:ui": "node --import tsx --test lib/schools/aggregateStatistics.ui.test.ts",
+    "test:security:files": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 OPENAI_API_KEY=isolated-test-no-network node --conditions=react-server --import tsx --test --test-concurrency=1 lib/security/privateFiles.integration.test.ts lib/security/privateFiles.client.test.ts",
+    "test:security:migration": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8188 FIREBASE_STORAGE_EMULATOR_HOST=127.0.0.1:9199 node --conditions=react-server --import tsx --test --test-concurrency=1 lib/security/fileMigration.integration.test.ts",
     "test:openai": "node --conditions=react-server --import tsx --test lib/integrations/openai/*.test.ts",
     "geo:no": "node scripts/generate-no-municipalities.mjs",
     "geo:no:watch": "node scripts/generate-no-municipalities.mjs && next dev"

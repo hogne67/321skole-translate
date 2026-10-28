@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/producer/create-reading-test/route.ts
 import "server-only";
 
@@ -243,6 +244,6 @@ export async function POST(req: Request) {
     return json({ id: lessonRef.id }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Unknown error" }, 500);
+    return json({ error: msg || "Unknown error" }, (accountErrorStatus(e) ?? 500));
   }
 }

@@ -1,7 +1,7 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getAdmin } from "@/lib/firebaseAdmin";
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const decoded = await getAuth().verifyIdToken(token);
+        const decoded = await getAdmin().auth.verifyIdToken(token);
         const body = (await req.json()) as Body;
 
         const notificationId = body.notificationId?.trim();
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json(
             { ok: false, error: "server_error" },
-            { status: 500 }
+            { status: (accountErrorStatus(error) ?? 500) }
         );
     }
 }

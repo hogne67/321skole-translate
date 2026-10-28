@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -97,7 +98,7 @@ export async function GET(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load submission";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -142,6 +143,6 @@ export async function PATCH(
     return json({ submissionId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update submission";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

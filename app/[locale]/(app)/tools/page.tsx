@@ -1,6 +1,8 @@
 // app/[locale]/(app)/tools/page.tsx
 "use client";
 
+import { PLANNER_PAUSED } from "@/lib/planner/availability";
+
 import Link from "next/link";
 import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
 import { isSpaceOnlyStudent } from "@/lib/studentAccessMode";
@@ -54,7 +56,7 @@ export default function ToolsPage() {
     isAnonymous: isGuestPreview,
   });
   const visiblePremiumTools =
-    locale === "nb"
+    !PLANNER_PAUSED && locale === "nb"
       ? [...premiumTools, { id: "plannerGenerator", href: "/teacher/planner", badge: "PREMIUM" as const }]
       : premiumTools;
 

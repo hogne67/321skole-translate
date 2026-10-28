@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 import { NextResponse } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
@@ -14,8 +15,8 @@ export async function POST(req: Request) {
     let decoded: DecodedIdToken;
     try {
       decoded = await auth.verifyIdToken(token, true);
-    } catch {
-      return NextResponse.json({ error: "Invalid or expired token." }, { status: 401 });
+    } catch (accountError) {
+      return NextResponse.json({ error: "Invalid or expired token." }, { status: (accountErrorStatus(accountError) ?? 401) });
     }
     let input: unknown;
     try {
@@ -29,6 +30,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Create lesson failed", error);
-    return NextResponse.json({ error: "Could not create lesson." }, { status: 500 });
+    return NextResponse.json({ error: "Could not create lesson." }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

@@ -1,3 +1,6 @@
+import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
@@ -11,14 +14,17 @@ import {
   type PlanKey,
 } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import { authorizeSpaceFileScope, saveGeneratedSpaceImage, SpaceFileError } from "@/lib/spaceFiles.server";
+import type { SpaceFileScope } from "@/lib/spaceFiles";
 
 type CoverImageStyle = "illustration" | "realistic";
 type CoverImagePromptMode = "custom" | "fromText";
 
 type GenerateImageBody = {
-  context?: "student_writing_print";
+  context?: "student_writing_print" | "space_board";
   spaceId?: string;
   activityId?: string;
+  submissionId?: string;
   lessonId?: string;
   uid?: string;
   format?: "16:9";
@@ -158,7 +164,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { auth, db, storage } = getAdmin();
-    const decoded = await auth.verifyIdToken(authToken);
+    const decoded = await auth.verifyIdToken(authToken, true);
     const uid = decoded.uid;
 
     if (!uid) {
@@ -166,6 +172,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as GenerateImageBody;
+    const privateScope: SpaceFileScope | null = body.context === "student_writing_print"
+      ? { spaceId: body.spaceId || "", activityId: body.activityId || "", submissionId: body.submissionId, purpose: "writing_image" }
+      : body.context === "space_board" ? { spaceId: body.spaceId || "", activityId: "state", purpose: "board_image" } : null;
+    if (privateScope) await authorizeSpaceFileScope(uid, privateScope, true);
 
     const userSnap = await db.doc(`users/${uid}`).get();
     const userData = userSnap.exists ? userSnap.data() : {};
@@ -274,13 +284,17 @@ export async function POST(req: NextRequest) {
     const bucketName = getBucketName();
     const bucket = storage.bucket(bucketName);
 
-    const downloadToken = randomUUID();
-    const titleSlug = safeSlug(body.title || "lesson");
-    const storagePath = `covers/${uid}/${lessonId}/ai-${Date.now()}-${titleSlug || "cover"}.webp`;
-
-    const file = bucket.file(storagePath);
-
-    await file.save(croppedBuffer, {
+    let storagePath: string;
+    let imageUrl: string;
+    if (privateScope) {
+      const saved = await saveGeneratedSpaceImage(uid, privateScope, croppedBuffer, () => auth.verifyIdToken(authToken, true));
+      storagePath = saved.storagePath; imageUrl = saved.imageUrl;
+    } else {
+      const downloadToken = randomUUID();
+      const titleSlug = safeSlug(body.title || "lesson");
+      storagePath = `covers/${uid}/${lessonId}/ai-${Date.now()}-${titleSlug || "cover"}.webp`;
+      const file = bucket.file(storagePath);
+      await file.save(croppedBuffer, {
       contentType: "image/webp",
       resumable: false,
       metadata: {
@@ -295,7 +309,9 @@ export async function POST(req: NextRequest) {
           aspectRatio: "16:9",
         },
       },
-    });
+      });
+      imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
+    }
 
     await usageRef.set(
       {
@@ -304,10 +320,6 @@ export async function POST(req: NextRequest) {
       },
       { merge: true }
     );
-
-    const imageUrl =
-      `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/` +
-      `${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
 
     return NextResponse.json({
       ok: true,
@@ -320,12 +332,13 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof SpaceFileError) return NextResponse.json({ error: error.message }, { status: error.status });
     const message =
       error instanceof Error ? error.message : "Image generation failed.";
 
     return NextResponse.json(
       { error: message || "Image generation failed." },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }
@@ -336,12 +349,6 @@ function safeString(value: unknown): string {
 
 function isAdminProfile(data: Record<string, unknown>) {
   return data.role === "admin" || data.admin === true || data.isAdmin === true;
-}
-
-function isActiveMember(data: Record<string, unknown>) {
-  const status = safeString(data.status).toLowerCase();
-  if (data.archived === true || data.active === false) return false;
-  return !status || status === "active";
 }
 
 async function verifyStudentWritingAccess(
@@ -376,14 +383,10 @@ async function verifyStudentWritingAccess(
 
   const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
   const activity = (activitySnap.data() ?? {}) as Record<string, unknown>;
-  const ownerUid =
-    safeString(activity.ownerUid) ||
-    safeString(space.ownerUid) ||
-    safeString(space.ownerId) ||
-    safeString(space.teacherId);
+  const ownerUid = getSpaceOwnerUid(space);
   const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
-  const isOwner = ownerUid === uid || safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid;
-  const hasMemberAccess = memberSnap.exists && isActiveMember(member);
+  const isOwner = hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
+  const hasMemberAccess = memberSnap.exists && isActiveSpaceMember(member);
 
   if (!ownerUid) {
     return { ok: false, response: NextResponse.json({ error: "Space owner missing." }, { status: 403 }) };

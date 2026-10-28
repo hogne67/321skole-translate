@@ -4,6 +4,14 @@ service firebase.storage {
     function signedIn() {
       return request.auth != null;
     }
+    function accountEnabled() {
+      let profile = myUser();
+      return signedIn() && profile.get("disabled", false) != true
+        && profile.get("authDisabled", false) != true
+        && (!("authRevokedBefore" in profile) || (profile.authRevokedBefore is number
+          && profile.authRevokedBefore >= 0 && request.auth.token.get("auth_time", 0) is number
+          && request.auth.token.get("auth_time", 0) > profile.authRevokedBefore));
+    }
 
     function myUid() {
       return request.auth.uid;
@@ -37,13 +45,8 @@ service firebase.storage {
       return spaceExists(spaceId) ? firestore.get(spacePath(spaceId)).data : {};
     }
 
-    function isSpaceOwner(spaceId) {
-      return signedIn()
-        && spaceExists(spaceId)
-        && ("ownerId" in spaceData(spaceId))
-        && spaceData(spaceId).ownerId == myUid();
-    }
-
+    // Ownership uses profile + Space + membership: too many cross-service reads.
+    // Owner-only access is served by authenticated application routes.
     function isSpaceMember(spaceId) {
       return signedIn()
         && firestore.exists(/databases/(default)/documents/spaceMembers/$(memberDocId(spaceId, myUid())));
@@ -56,14 +59,16 @@ service firebase.storage {
     }
 
     function isActiveSpaceMember(spaceId) {
-      return isSpaceMember(spaceId)
-        && !("archived" in spaceMemberData(spaceId) && spaceMemberData(spaceId).archived == true)
-        && !("active" in spaceMemberData(spaceId) && spaceMemberData(spaceId).active == false)
-        && !("status" in spaceMemberData(spaceId) && (
-          spaceMemberData(spaceId).status == "removed"
-          || spaceMemberData(spaceId).status == "disabled"
-          || spaceMemberData(spaceId).status == "inactive"
-        ));
+      let member = spaceMemberData(spaceId);
+      return isSpaceMember(spaceId) && isActiveSpaceMemberData(member);
+    }
+
+    function isActiveSpaceMemberData(data) {
+      let status = data.get("status", "");
+      return data is map && data.get("role", "") != "school_admin"
+        && status is string && status.lower().matches('[ \\t\\r\\n]*active[ \\t\\r\\n]*')
+        && data.get("active", true) == true
+        && data.get("archived", false) == false;
     }
 
     function isSpaceCoTeacher(spaceId) {
@@ -98,12 +103,19 @@ service firebase.storage {
     function canReadStudentAudio(spaceId, studentUid) {
       return signedIn()
         && (
-          myUid() == studentUid
-          || myParticipantId(spaceId) == studentUid
-          || isAdmin()
-          || isSpaceOwner(spaceId)
-          || isSpaceCoTeacher(spaceId)
+          (isActiveSpaceMember(spaceId) && (myUid() == studentUid || myParticipantId(spaceId) == studentUid || isSpaceCoTeacher(spaceId)))
         );
+    }
+
+    function canReadIndividualWritingImage(spaceId, pupilId) {
+      let member = spaceMemberData(spaceId);
+      return signedIn() && (
+        (isActiveSpaceMember(spaceId) && (
+          myUid() == pupilId || member.get("participantId", "") == pupilId
+          || member.get("role", "") in ["teacher", "co_teacher"]
+          || member.get("staffRole", "") in ["co_teacher", "substitute"]
+        ))
+      );
     }
 
     function myParticipantId(spaceId) {
@@ -125,73 +137,52 @@ service firebase.storage {
         || request.resource.contentType == 'application/octet-stream';
     }
 
+    function isIndividualWritingCover() {
+      // These legacy files lack a reliable submission binding. Do not expose
+      // them through the public teaching-cover namespace while awaiting review.
+      // Both uploaded writing-print-* and unlabelled AI writing-* covers were used.
+      return resource.name.matches('(.*[/])?covers/[^/]+/writing-.*')
+        || resource.metadata.get("context", "") in ["student-writing-print", "student_writing_print"];
+    }
+
     match /spaces/{spaceId}/assignments/{assignmentId}/submissions/{studentUid}/audio/{fileName} {
-      allow read: if canReadStudentAudio(spaceId, studentUid);
-
-      allow create, update: if signedIn()
-        && (myUid() == studentUid || myParticipantId(spaceId) == studentUid)
-        && isSpaceMember(spaceId)
-        && assignmentExists(spaceId, assignmentId)
-        && request.resource.size < 25 * 1024 * 1024
-        && isAudioUpload();
-
-      allow delete: if signedIn()
-        && (
-          myUid() == studentUid
-          || isAdmin()
-          || isSpaceOwner(spaceId)
-          || isSpaceCoTeacher(spaceId)
-        );
+      // S02 C: legacy files are read through canonical, authenticated server readers.
+      // No direct SDK/REST operations; existing data and token metadata are untouched.
+      allow read, write: if false;
     }
 
     match /covers/{ownerUid}/{rest=**} {
-      allow read: if true;
-      allow create, update: if signedIn()
+      allow read: if !isIndividualWritingCover();
+      allow create, update: if accountEnabled() && (signedIn()
         && myUid() == ownerUid
+        && myRole() != "student"
+        && request.resource.metadata.get("context", "") != "student-writing-print"
+        && request.resource.metadata.get("context", "") != "student_writing_print"
         && request.resource.size < 8 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-      allow delete: if signedIn() && (myUid() == ownerUid || isAdmin());
+        && request.resource.contentType.matches('image/.*'));
+      allow delete: if accountEnabled() && (signedIn() && (myUid() == ownerUid || isAdmin()));
     }
 
     match /board-images/{ownerUid}/{spaceId}/{fileName} {
-      allow read: if true;
-      allow create, update: if signedIn()
-        && myUid() == ownerUid
-        && (isSpaceOwner(spaceId) || (isTeacher() && isSpaceMember(spaceId)) || isAdmin())
-        && request.resource.size < 8 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-      allow delete: if signedIn()
-        && (
-          isAdmin()
-          || myUid() == ownerUid
-          || isSpaceOwner(spaceId)
-        );
+      // S02 C: legacy files are read through canonical, authenticated server readers.
+      // No direct SDK/REST operations; existing data and token metadata are untouched.
+      allow read, write: if false;
     }
 
     match /writing-print-images/{ownerUid}/{spaceId}/{activityId}/{fileName} {
-      allow read: if true;
-      allow create, update: if signedIn()
-        && myUid() == ownerUid
-        && (isAdmin() || isSpaceOwner(spaceId) || isActiveSpaceMember(spaceId))
-        && writingActivityExists(spaceId, activityId)
-        && request.resource.size < 8 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-      allow delete: if signedIn()
-        && (
-          isAdmin()
-          || myUid() == ownerUid
-          || isSpaceOwner(spaceId)
-        );
+      // S02 C: legacy files are read through canonical, authenticated server readers.
+      // No direct SDK/REST operations; existing data and token metadata are untouched.
+      allow read, write: if false;
     }
 
     match /live-image-activities/{ownerUid}/{fileName} {
       allow read: if true;
-      allow create, update: if signedIn()
+      allow create, update: if accountEnabled() && (signedIn()
         && myUid() == ownerUid
         && (isTeacher() || isAdmin())
         && request.resource.size < 8 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-      allow delete: if signedIn() && (myUid() == ownerUid || isAdmin());
+        && request.resource.contentType.matches('image/.*'));
+      allow delete: if accountEnabled() && (signedIn() && (myUid() == ownerUid || isAdmin()));
     }
 
     match /{allPaths=**} {

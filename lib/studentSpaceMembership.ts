@@ -1,13 +1,9 @@
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  query,
-  where,
   type Firestore,
 } from "firebase/firestore";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 type SpaceMemberData = {
   archived?: unknown;
@@ -28,15 +24,7 @@ export type StudentSpaceMembershipInfo = {
 };
 
 function isActiveMember(data: SpaceMemberData | null): boolean {
-  if (!data) return false;
-  const status = String(data.status ?? "").trim().toLowerCase();
-  return (
-    data.archived !== true &&
-    data.active !== false &&
-    status !== "removed" &&
-    status !== "disabled" &&
-    status !== "inactive"
-  );
+  return isActiveSpaceMember(data);
 }
 
 function readMembershipInfo(
@@ -96,27 +84,8 @@ export async function getStudentSpaceMembership(
     return info;
   }
 
-  const qy = query(
-    collection(db, "spaceMembers"),
-    where("spaceId", "==", spaceId),
-    where("uid", "==", uid),
-    limit(1)
-  );
-  const snap = await getDocs(qy);
-  if (snap.empty) {
-    return {
-      isMember: false,
-      participantId: null,
-      displayName: null,
-      studentCode: null,
-    };
-  }
-
-  const legacyData = snap.docs[0].data() as SpaceMemberData;
-  const info = readMembershipInfo(legacyData, uid);
-  if (!info.isMember) return info;
-
-  return info;
+  // Match the canonical-only authorization used by rules and server routes.
+  return readMembershipInfo(null, uid);
 }
 
 export async function ensureStudentSpaceMembership(

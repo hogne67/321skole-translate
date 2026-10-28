@@ -1,4 +1,5 @@
 "use client";
+import ProtectedSpaceImage from "@/components/ProtectedSpaceImage";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -839,8 +840,7 @@ export default function TeacherWritingSubmissionDetailPage() {
               <div className={["mt-3 grid gap-4", !isPlanningReview ? "lg:grid-cols-[minmax(0,1fr)_380px]" : ""].join(" ")}>
                 <article className="writingPrintProduct rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                   <div className="mb-5 flex justify-end">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <ProtectedSpaceImage
                       src="/logo321ny.png"
                       alt="321 Skole"
                       className="h-8 w-auto object-contain"
@@ -848,8 +848,7 @@ export default function TeacherWritingSubmissionDetailPage() {
                   </div>
                   {textValue(printProfile.imageUrl) ? (
                     <figure className="m-0 mb-6">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <ProtectedSpaceImage
                         src={textValue(printProfile.imageUrl)}
                         alt=""
                         className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"

@@ -1,3 +1,4 @@
+import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { inviteCapacityReason, validateInviteRecipients, type InviteRecipient } from "@/lib/schools/inviteBatch";
@@ -15,7 +16,7 @@ export async function createSchoolInvites(input: { schoolId: string; recipients:
   catch (error) { return { ok: false, reason: error instanceof Error ? error.message : "invalid_batch" }; }
   const { db } = getAdmin();
   const schoolRef = db.collection("schools").doc(input.schoolId);
-  return db.runTransaction(async (transaction) => {
+  return runCapacityTransaction(db, async (transaction) => {
     const [school, members, pending] = await Promise.all([
       transaction.get(schoolRef), transaction.get(schoolRef.collection("members")),
       transaction.get(db.collection("schoolInvites").where("schoolId", "==", input.schoolId).where("status", "==", "pending")),

@@ -1,9 +1,12 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { pdf } from "@react-pdf/renderer";
 import React from "react";
 import fs from "node:fs";
 import path from "node:path";
 import { BoardImagePdf, type BoardImagePdfPayload } from "@/lib/pdf/BoardImagePdf";
+import { SpaceFileError } from "@/lib/spaceFiles.server";
+import { pdfAccount, pdfJson, safePdfImage } from "@/lib/pdf/safeImage.server";
 
 export const runtime = "nodejs";
 
@@ -82,24 +85,6 @@ function logoDataUrl() {
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
 
-async function imageUrlToDataUrl(imageUrl: string | undefined) {
-  if (!imageUrl) return "";
-  if (imageUrl.startsWith("data:image/")) return imageUrl;
-
-  try {
-    const res = await fetch(imageUrl);
-    if (!res.ok) return "";
-
-    const contentType = res.headers.get("content-type") ?? "image/jpeg";
-    if (!contentType.startsWith("image/")) return "";
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
-  } catch {
-    return "";
-  }
-}
-
 function isSentence(value: unknown): value is BoardImagePdfPayload["sentences"][number] {
   if (!value || typeof value !== "object") return false;
   const item = value as { id?: unknown; name?: unknown; text?: unknown };
@@ -121,7 +106,8 @@ function isPayload(value: unknown): value is BoardImagePdfPayload {
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { data?: unknown };
+    const account = await pdfAccount(req);
+    const body = (await pdfJson(req)) as { data?: unknown };
 
     if (!isPayload(body?.data)) {
       return NextResponse.json({ error: "Missing or invalid image activity payload" }, { status: 400 });
@@ -130,31 +116,35 @@ export async function POST(req: Request) {
     const data: BoardImagePdfPayload = {
       ...body.data,
       logoPath: logoDataUrl(),
-      imageUrl: await imageUrlToDataUrl(body.data.imageUrl),
+      imageUrl: await safePdfImage(body.data.imageUrl, account.uid),
       sentences: body.data.sentences.slice(0, 80),
     };
 
+    await account.recheck();
     type PdfElement = Parameters<typeof pdf>[0];
     const element = React.createElement(BoardImagePdf, { data }) as unknown as PdfElement;
     const instance = pdf(element);
     const out = await instance.toBuffer();
     const buffer = await toNodeBuffer(out);
+    await account.recheck();
     const filename = `${safeFilename(data.title || "bildeaktivitet") || "bildeaktivitet"}.pdf`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
+        "Cache-Control": "private,no-store",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (err: unknown) {
+    if (err instanceof SpaceFileError) return NextResponse.json({ error: err.message }, { status: err.status });
     return NextResponse.json(
       {
         error: "PDF generation failed",
         details: err instanceof Error ? err.message : String(err),
       },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

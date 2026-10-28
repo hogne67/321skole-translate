@@ -1,0 +1,10 @@
+{
+  "title": "321school test bucket inspection",
+  "description": "Read project identity and bucket metadata/IAM for isolated testbilde-5683f preflight; no bucket or object writes.",
+  "stage": "GA",
+  "includedPermissions": [
+    "resourcemanager.projects.get",
+    "storage.buckets.get",
+    "storage.buckets.getIamPolicy"
+  ]
+}

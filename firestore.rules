@@ -6,6 +6,14 @@ service cloud.firestore {
        Helpers (null-safe)
     ========================= */
     function signedIn() { return request.auth != null; }
+    function accountEnabled() {
+      let profile = myUser();
+      return signedIn() && profile.get("disabled", false) != true
+        && profile.get("authDisabled", false) != true
+        && (!("authRevokedBefore" in profile) || (profile.authRevokedBefore is number
+          && profile.authRevokedBefore >= 0 && request.auth.token.get("auth_time", 0) is number
+          && request.auth.token.get("auth_time", 0) > profile.authRevokedBefore));
+    }
     function myUid() { return request.auth.uid; }
 
     function myUserPath() {
@@ -23,7 +31,7 @@ service cloud.firestore {
     function nonEmptyString(x) { return isString(x) && x.size() > 0; }
 
     function mapHasTrue(m, key) { return isMap(m) && (key in m) && m[key] == true; }
-    function hasRole(roleName) { return mapHasTrue(myUser().roles, roleName); }
+    function hasRole(roleName) { return ("roles" in myUser()) && mapHasTrue(myUser().roles, roleName); }
 
     /* =========================
        Role helpers
@@ -36,7 +44,8 @@ service cloud.firestore {
     function isParent() { return signedIn() && myRole() == "parent"; }
 
     function isAdmin() {
-      return signedIn() && (myRole() == "admin" || hasRole("admin"));
+      let profile = myUser();
+      return signedIn() && (profile.get("role", "student") == "admin" || mapHasTrue(profile.get("roles", {}), "admin"));
     }
 
     function hasActiveSchoolProfile() {
@@ -45,12 +54,6 @@ service cloud.firestore {
         && (myUser().schoolId is string)
         && ("schoolStatus" in myUser())
         && myUser().schoolStatus == "active";
-    }
-
-    function isActiveSchoolAdmin() {
-      return hasActiveSchoolProfile()
-        && ("schoolRole" in myUser())
-        && myUser().schoolRole == "school_admin";
     }
 
     /* =========================
@@ -69,11 +72,22 @@ service cloud.firestore {
     }
 
     function isSpaceOwner(spaceId) {
-      return signedIn()
-        && spaceExists(spaceId)
-        && ("ownerId" in spaceData(spaceId))
-        && (spaceData(spaceId).ownerId is string)
-        && spaceData(spaceId).ownerId == myUid();
+      let space = spaceData(spaceId);
+      return signedIn() && spaceOwnerUid(space) == myUid()
+        && (!exists(myMemberPath(spaceId)) || isActiveSpaceMemberData(get(myMemberPath(spaceId)).data));
+    }
+
+    function validSpaceOwnerUid(value) {
+      return value is string && value.size() > 0 && value.size() <= 128
+        && value.matches('[^/ \\t\\r\\n]+');
+    }
+
+    function spaceOwnerUid(data) {
+      let id = data.get("ownerId", null);
+      let legacy = data.get("ownerUid", null);
+      return "ownerId" in data
+        ? (validSpaceOwnerUid(id) && (!("ownerUid" in data) || legacy == id) ? id : null)
+        : ("ownerUid" in data && validSpaceOwnerUid(legacy) ? legacy : null);
     }
 
     function spaceIsOpen(spaceId) {
@@ -87,7 +101,8 @@ service cloud.firestore {
       return /databases/$(database)/documents/spaceMembers/$(memberDocId(spaceId, myUid()));
     }
     function isSpaceMember(spaceId) {
-      return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId));
+      return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId))
+        && isActiveSpaceMemberData(get(myMemberPath(spaceId)).data);
     }
 
     function mySpaceMemberData(spaceId) {
@@ -95,33 +110,25 @@ service cloud.firestore {
     }
 
     function isActiveSpaceMemberData(data) {
+      let status = data.get("status", "");
       return isMap(data)
-        && (!("archived" in data) || data.archived != true)
-        && (!("active" in data) || data.active != false)
-        && (!("status" in data) || data.status != "removed");
+        && data.get("role", "") != "school_admin"
+        && status is string && status.lower().matches('[ \\t\\r\\n]*active[ \\t\\r\\n]*')
+        && data.get("active", true) == true
+        && data.get("archived", false) == false;
     }
 
     function isSpaceCoTeacher(spaceId) {
       let member = mySpaceMemberData(spaceId);
       return signedIn()
-        && (isTeacher() || hasRole("teacher") || hasRole("creator"))
-        && isActiveSpaceMemberData(member)
         && (
           (("role" in member) && (member.role == "teacher" || member.role == "co_teacher"))
           || (("staffRole" in member) && (member.staffRole == "co_teacher" || member.staffRole == "substitute"))
         );
     }
 
-    function isSchoolAdminForSpace(spaceId) {
-      return isActiveSchoolAdmin()
-        && spaceExists(spaceId)
-        && ("schoolId" in spaceData(spaceId))
-        && (spaceData(spaceId).schoolId is string)
-        && spaceData(spaceId).schoolId == myUser().schoolId;
-    }
-
     function canTeachInSpace(spaceId) {
-      return isAdmin() || isSpaceOwner(spaceId) || isSpaceCoTeacher(spaceId) || isSchoolAdminForSpace(spaceId);
+      return isSpaceOwner(spaceId) || isSpaceCoTeacher(spaceId) || isAdmin();
     }
 
     function spaceCode(spaceId) {
@@ -200,9 +207,27 @@ service cloud.firestore {
       return !("schoolId" in request.resource.data)
         || request.resource.data.schoolId == null
         || (
-          hasActiveSchoolProfile()
+          (isTeacher() || isAdmin())
+          && hasActiveSchoolProfile()
+          && nonEmptyString(request.resource.data.schoolId)
+          && !request.resource.data.schoolId.matches('.*[/].*')
           && request.resource.data.schoolId == myUser().schoolId
+          && activeSchoolSpaceCreator(request.resource.data.schoolId)
         );
+    }
+
+    function activeSchoolSpaceCreator(schoolId) {
+      let schoolPath = /databases/$(database)/documents/schools/$(schoolId);
+      let memberPath = /databases/$(database)/documents/schools/$(schoolId)/members/$(myUid());
+      let school = exists(schoolPath) ? get(schoolPath).data : {};
+      let member = exists(memberPath) ? get(memberPath).data : {};
+      return school.get("status", "") == "active"
+        && school.get("teacherSeatLimit", 0) is int && school.get("teacherSeatLimit", 0) > 0
+        && member.get("uid", "") == myUid()
+        && member.get("schoolId", schoolId) == schoolId
+        && member.get("status", "") == "active"
+        && member.get("role", "") in ["school_teacher", "school_admin"]
+        && member.get("role", "") == myUser().get("schoolRole", "");
     }
 
     function validParentGoalBase(data) {
@@ -283,13 +308,13 @@ service cloud.firestore {
     }
 
     match /spaces/{spaceId}/board/{docId} {
-      allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
-      allow create, update, delete: if canBoardManage(spaceId);
+      allow read: if accountEnabled() && (signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId)));
+      allow create, update, delete: if accountEnabled() && (canBoardManage(spaceId));
     }
 
     match /spaces/{spaceId}/boardResponses/{responseId} {
-  allow read: if canBoardManage(spaceId)
-    || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
+  allow read: if accountEnabled() && (canBoardManage(spaceId)
+    || (isSpaceMember(spaceId) && responseId.matches('^.+_' + myUid() + '$')));
 
   function isTextResponseId() {
     return responseId.matches('^.+_text_.+$')
@@ -352,16 +377,16 @@ service cloud.firestore {
       && nonEmptyString(request.resource.data.wordwallWord);
   }
 
-  allow create: if signedIn()
+  allow create: if accountEnabled() && (signedIn()
     && isSpaceMember(spaceId)
     && (
       canBoardManage(spaceId)
       || (isTextResponseId() && textKeysOk() && textPayloadOk())
       || (isPollResponseId() && pollKeysOk() && pollPayloadOk())
       || (isWordwallResponseId() && wordwallKeysOk() && wordwallPayloadOk())
-    );
+    ));
 
-  allow update: if signedIn()
+  allow update: if accountEnabled() && (signedIn()
     && isSpaceMember(spaceId)
     && (
       canBoardManage(spaceId)
@@ -374,9 +399,9 @@ service cloud.firestore {
         && (resource.data.uid is string)
         && resource.data.uid == myUid()
       )
-    );
+    ));
 
-  allow delete: if canBoardManage(spaceId);
+  allow delete: if accountEnabled() && (canBoardManage(spaceId));
 }
 
     /* =========================
@@ -384,36 +409,74 @@ service cloud.firestore {
     ========================= */
     match /users/{uid} {
   function isSelf() { return signedIn() && myUid() == uid; }
-  function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
-  function isChanging(field) { return changedKeys().hasAny([field]); }
-
-  function roleOk() {
-    return !isChanging("role")
-      || (
-        (request.resource.data.role is string)
-        && (
-          request.resource.data.role == "student"
-          || request.resource.data.role == "teacher"
-          || request.resource.data.role == "parent"
-        )
-      );
+  function profileKeys() {
+    return ["uid", "displayName", "email", "locale", "legal", "role", "studentAccessMode",
+      "onboardingComplete", "org", "institutionType", "municipality", "createdAt", "updatedAt",
+      "lastLoginAt", "mode", "attestation", "creatorStatus", "creatorAppliedAt"];
+  }
+  function safeProfileValues() {
+    return (!("uid" in request.resource.data) || request.resource.data.uid == uid)
+      && (!("studentAccessMode" in request.resource.data) || request.resource.data.studentAccessMode in ["space_only", "self_study"]);
+  }
+  function orgKeys() { return ["country", "municipality", "institutionType", "institutionName"]; }
+  function safeOrgCreate() {
+    return !("org" in request.resource.data) || (request.resource.data.org is map && request.resource.data.org.keys().hasOnly(orgKeys()));
+  }
+  function safeOrgUpdate() {
+    return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["org"])
+      || (request.resource.data.org is map
+        && request.resource.data.org.diff(resource.data.get("org", {})).affectedKeys().hasOnly(orgKeys()));
+  }
+  function safeRole() {
+    return !("role" in request.resource.data) || request.resource.data.role in ["student", "teacher", "parent"];
+  }
+  function safeMode() {
+    return !("mode" in request.resource.data) || request.resource.data.mode in ["student", "teacher", "parent"]
+      || (request.resource.data.mode == "creator" && resource != null
+        && (resource.data.get("role", "") in ["teacher", "creator"]
+          || mapHasTrue(resource.data.get("roles", {}), "creator") || mapHasTrue(resource.data.get("roles", {}), "teacher")))
+      || (request.resource.data.mode == "admin" && resource != null
+        && (resource.data.get("role", "") == "admin" || mapHasTrue(resource.data.get("roles", {}), "admin")));
+  }
+  function safeCreatorApplication() {
+    return !("creatorStatus" in request.resource.data) || request.resource.data.creatorStatus == "pending";
   }
 
-  function rolesNotChangedBySelf() { return !isChanging("roles"); }
-
-  allow create: if isSelf();
-  allow read: if isSelf() || isAdmin();
-  allow update: if isAdmin() || (isSelf() && rolesNotChangedBySelf() && roleOk());
+  allow create: if accountEnabled() && ((isAdmin() && !isSelf()) || (isSelf()
+    && request.resource.data.keys().hasOnly(profileKeys().concat(["disabled"]))
+    && (!("disabled" in request.resource.data) || request.resource.data.disabled == false)
+    && safeRole() && safeMode() && safeCreatorApplication() && safeProfileValues() && safeOrgCreate()));
+  allow read: if accountEnabled() && (isSelf() || isAdmin());
+  allow update: if accountEnabled() && ((isAdmin() && !isSelf()) || (isSelf()
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(profileKeys())
+    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"]) || safeRole())
+    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["mode"]) || safeMode())
+    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["creatorStatus"]) || safeCreatorApplication())
+    && safeProfileValues() && safeOrgUpdate()));
   allow delete: if false;
 
   match /usage/{monthId} {
-    allow read: if signedIn() && myUid() == uid;
-    allow create, update: if signedIn() && myUid() == uid;
+    function usageKeys() { return ["premium_generators", "image_generation", "ai_feedback", "downloads", "members", "app_access", "updatedAt"]; }
+    function counterOk(key) {
+      return request.resource.data.get(key, 0) is number && request.resource.data.get(key, 0) >= 0;
+    }
+    function counterNotReduced(key) {
+      return request.resource.data.get(key, 0) >= resource.data.get(key, 0);
+    }
+    function countersOk() {
+      return counterOk("premium_generators") && counterOk("image_generation") && counterOk("ai_feedback")
+        && counterOk("downloads") && counterOk("members") && counterOk("app_access");
+    }
+    allow read: if accountEnabled() && (signedIn() && myUid() == uid);
+    allow create: if accountEnabled() && (isSelf() && request.resource.data.keys().hasOnly(usageKeys()) && countersOk());
+    allow update: if accountEnabled() && (isSelf() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(usageKeys()) && countersOk()
+      && counterNotReduced("premium_generators") && counterNotReduced("image_generation") && counterNotReduced("ai_feedback")
+      && counterNotReduced("downloads") && counterNotReduced("members") && counterNotReduced("app_access"));
     allow delete: if false;
   }
 
   match /geometryAttempts/{attemptId} {
-    allow read, create, update: if signedIn() && myUid() == uid;
+    allow read, create, update: if accountEnabled() && (signedIn() && myUid() == uid);
     allow delete: if false;
   }
 }
@@ -466,7 +529,12 @@ service cloud.firestore {
         );
   }
 
-  allow read: if isAdmin()
+  function isOwnerMembership() {
+    let owner = spaceOwnerUid(spaceData(resource.data.spaceId));
+    return owner is string && docId == resource.data.spaceId + "_" + owner;
+  }
+
+  allow read: if accountEnabled() && (isAdmin()
     || (signedIn() && docUidFromId() == myUid())
     || (resource != null
         && ("uid" in resource.data)
@@ -479,23 +547,26 @@ service cloud.firestore {
     || (resource != null
         && ("spaceId" in resource.data)
         && (resource.data.spaceId is string)
-        && (isSpaceOwner(resource.data.spaceId) || isSpaceCoTeacher(resource.data.spaceId) || isSchoolAdminForSpace(resource.data.spaceId)));
+        && (isSpaceOwner(resource.data.spaceId) || isSpaceCoTeacher(resource.data.spaceId))));
 
   // Pupil identities, personal codes and access links are created by validated server endpoints.
-  allow create: if signedIn()
+  allow create: if accountEnabled() && (signedIn()
     && request.resource.data.spaceId is string
     && request.resource.data.uid == myUid()
     && docId == request.resource.data.spaceId + "_" + myUid()
     && request.resource.data.role == "parent"
+    && isActiveSpaceMemberData(request.resource.data)
     && isSpaceOwner(request.resource.data.spaceId)
-    && spaceData(request.resource.data.spaceId).kind == "family";
-  allow update: if signedIn()
+    && spaceData(request.resource.data.spaceId).kind == "family");
+  allow update: if accountEnabled() && (signedIn()
     && resource != null
     && (resource.data.spaceId is string)
     && request.resource.data.spaceId == resource.data.spaceId
     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherStudentId'])
     && displayNameOk()
-    && (isSpaceOwner(resource.data.spaceId) || isAdmin());
+    && (isSpaceOwner(resource.data.spaceId) || isAdmin())
+    && (isAdmin() || !isOwnerMembership()
+      || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName", "studentName", "updatedAt", "nameUpdatedAt", "nameUpdatedByUid"])));
 
   allow delete: if false;
 }
@@ -524,11 +595,11 @@ service cloud.firestore {
         );
       }
 
-      allow get: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
-      allow list: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
+      allow get: if accountEnabled() && (isAdmin() || isOwner() || (signedIn() && isPublishedForStudents()));
+      allow list: if accountEnabled() && (isAdmin() || isOwner() || (signedIn() && isPublishedForStudents()));
       allow create: if false;
-      allow update: if isOwner()
-        && request.resource.data.ownerId == resource.data.ownerId;
+      allow update: if accountEnabled() && (isOwner()
+        && request.resource.data.ownerId == resource.data.ownerId);
       allow delete: if false;
     }
 
@@ -536,17 +607,17 @@ service cloud.firestore {
        TEACHER WRITING LIBRARY
     ========================= */
     match /writingActivities/{activityId} {
-      allow read: if isAdmin()
-        || (signedIn() && resource.data.ownerUid == myUid());
+      allow read: if accountEnabled() && (isAdmin()
+        || (signedIn() && resource.data.ownerUid == myUid()));
 
-      allow create: if isAdmin()
+      allow create: if accountEnabled() && (isAdmin()
         || (
           isTeacher()
           && request.resource.data.ownerUid == myUid()
-        );
+        ));
 
-      allow update, delete: if isAdmin()
-        || (signedIn() && resource.data.ownerUid == myUid());
+      allow update, delete: if accountEnabled() && (isAdmin()
+        || (signedIn() && resource.data.ownerUid == myUid()));
     }
 
     /* =========================
@@ -562,28 +633,28 @@ service cloud.firestore {
       );
   }
 
-  allow read: if pubIsActive() || isAdmin();
+  allow read: if (pubIsActive() || accountEnabled()) && (pubIsActive() || isAdmin());
 
-  allow update: if signedIn()
+  allow update: if accountEnabled() && (signedIn()
     && request.resource.data.diff(resource.data).changedKeys().hasOnly([
       "ratingCount",
       "ratingSum",
       "ratingAverage"
-    ]);
+    ]));
 
   allow create, delete: if false;
 
   match /ratings/{uid} {
     allow read: if true;
 
-    allow create, update: if signedIn()
+    allow create, update: if accountEnabled() && (signedIn()
       && request.auth.uid == uid
       && request.resource.data.uid == request.auth.uid
       && request.resource.data.value is int
       && request.resource.data.value >= 1
-      && request.resource.data.value <= 5;
+      && request.resource.data.value <= 5);
 
-    allow delete: if signedIn() && request.auth.uid == uid;
+    allow delete: if accountEnabled() && (signedIn() && request.auth.uid == uid);
   }
 }
 
@@ -659,32 +730,32 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid == myUid();
       }
 
-      allow read: if isAdmin() || isCourseOwner();
+      allow read: if accountEnabled() && (isAdmin() || isCourseOwner());
 
-      allow create: if signedIn()
+      allow create: if accountEnabled() && (signedIn()
         && validCoursePayload(request.resource.data)
         && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time);
 
-      allow update: if isCourseOwner()
+      allow update: if accountEnabled() && (isCourseOwner()
         && validCoursePayload(request.resource.data)
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.updatedAt is timestamp);
 
-      allow delete: if isCourseOwner();
+      allow delete: if accountEnabled() && (isCourseOwner());
 
       match /participants/{participantId} {
-        allow read, create, update, delete: if isAdmin() || isCourseParentOwner();
+        allow read, create, update, delete: if accountEnabled() && (isAdmin() || isCourseParentOwner());
       }
 
       match /messages/{messageId} {
-        allow read, create, update, delete: if isAdmin() || isCourseParentOwner();
+        allow read, create, update, delete: if accountEnabled() && (isAdmin() || isCourseParentOwner());
       }
 
       match /signupRequests/{requestId} {
         allow create: if false;
-        allow read, update, delete: if isAdmin() || isCourseParentOwner();
+        allow read, update, delete: if accountEnabled() && (isAdmin() || isCourseParentOwner());
       }
     }
 
@@ -692,86 +763,24 @@ service cloud.firestore {
        PLANNERS / 321PLANNER
     ========================= */
     match /planners/{plannerId} {
-      function isTeacherLike() {
-        return isTeacher() || hasRole("teacher") || isAdmin();
-      }
-
-      function plannerKeys() {
-        return [
-          "ownerUid",
-          "status",
-          "frame",
-          "curriculum",
-          "document",
-          "copiedFromPlannerId",
-          "createdAt",
-          "updatedAt"
-        ];
-      }
-
-      function requiredPlannerKeys() {
-        return [
-          "ownerUid",
-          "status",
-          "frame",
-          "curriculum",
-          "document",
-          "createdAt",
-          "updatedAt"
-        ];
-      }
-
-      function validPlannerStatus(status) {
-        return status == "draft"
-          || status == "active"
-          || status == "archived";
-      }
-
-      function validPlannerPayload(data) {
-        return data.keys().hasAll(requiredPlannerKeys())
-          && data.keys().hasOnly(plannerKeys())
-          && data.ownerUid is string
-          && validPlannerStatus(data.status)
-          && data.frame is map
-          && data.curriculum is map
-          && data.document is map
-          && (!("copiedFromPlannerId" in data) || data.copiedFromPlannerId is string)
-          && data.createdAt is timestamp
-          && data.updatedAt is timestamp;
-      }
-
-      function isPlannerOwner() {
-        return signedIn()
-          && resource != null
-          && resource.data.ownerUid is string
-          && resource.data.ownerUid == myUid();
-      }
-
-      allow read: if isAdmin() || isPlannerOwner();
-
-      allow create: if signedIn()
-        && isTeacherLike()
-        && validPlannerPayload(request.resource.data)
-        && request.resource.data.ownerUid == myUid();
-
-      allow update: if (isAdmin() || isPlannerOwner())
-        && validPlannerPayload(request.resource.data)
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt is timestamp;
-
-      allow delete: if isAdmin() || isPlannerOwner();
+      // Planner is paused for every ordinary client, including platform administrators.
+      allow read, write: if false;
+      match /{nested=**} { allow read, write: if false; }
     }
 
     /* =========================
        SPACES
     ========================= */
     match /spaces/{spaceId} {
-  allow read: if true;
+  allow read: if accountEnabled() && (signedIn() && (
+    isSpaceOwner(spaceId)
+    || isSpaceMember(spaceId)
+    || isAdmin()));
 
-  allow create: if signedIn()
+  allow create: if accountEnabled() && (signedIn()
     && (request.resource.data.ownerId is string)
     && request.resource.data.ownerId == myUid()
+    && spaceOwnerUid(request.resource.data) == myUid()
     && (request.resource.data.title is string)
     && request.resource.data.title.size() > 0
     && (request.resource.data.isOpen is bool)
@@ -793,42 +802,103 @@ service cloud.firestore {
           || request.resource.data.kind == "parent_group"
         )
       )
-    );
+    ));
 
-  allow update, delete: if isAdmin() || isSpaceOwner(spaceId);
+  allow update: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId))
+    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["schoolId", "ownerId", "ownerUid"]);
+  // Deleting only the parent leaves children/members behind and permits recreation
+  // with another schoolId. Space removal requires a separate controlled process.
+  allow delete: if false;
 }
 
     /* =========================
        PARENT SPACE GOALS
     ========================= */
     match /spaces/{spaceId}/goals/{goalId} {
-      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+      allow read: if accountEnabled() && (canTeachInSpace(spaceId) || isSpaceMember(spaceId));
 
-      allow create: if (isAdmin() || isSpaceOwner(spaceId))
-        && validParentGoalCreate();
+      allow create: if accountEnabled() && ((isAdmin() || isSpaceOwner(spaceId))
+        && validParentGoalCreate());
 
-      allow update: if (isAdmin() || isSpaceOwner(spaceId))
-        && validParentGoalUpdate();
+      allow update: if accountEnabled() && ((isAdmin() || isSpaceOwner(spaceId))
+        && validParentGoalUpdate());
 
-      allow delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow delete: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId));
     }
 
     /* =========================
        SPACE-LOCAL ASSIGNMENTS
     ========================= */
     match /spaces/{spaceId}/lessons/{assignmentId} {
-      allow read: if canTeachInSpace(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
-      allow create, update: if canTeachInSpace(spaceId);
-      allow delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow read: if accountEnabled() && (canTeachInSpace(spaceId) || isSpaceMember(spaceId));
+      allow create, update: if accountEnabled() && (canTeachInSpace(spaceId));
+      allow delete: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId));
+    }
+
+
+    // F2-06: students write work, never identity or trusted review fields.
+    function lessonStudentFields() { return ["sourceType","sourceId","title","level","language","isAnon","status","taskType","lessonType","contentType","mathWorksheet","arithmeticWorksheet","measurementWorksheet","lengthWorksheet","fractionWorksheet","mathType","worksheet","answers","answersByTaskId","auto","startedAt","submittedAt","timeSpentSeconds","readingTestTimeLimitSeconds","readingTestTimeUsedSeconds","readingTestTimeSpentSeconds","readingTestSecondsLeftAtSubmit","readingTestTimedOut","readingTestSubmittedManually","readingTimerResult","audioReading","podcastWorkshop","updatedAt","createdAt","studentArchived","studentArchivedAt","displayName","studentName","studentDisplayName","role","isParentFlow","isChildPortal","childSelfReport"]; }
+    function writingStudentFields() { return ["displayName","answersByFieldId","sectionDrafts","finalText","status","printProfile","sectionImprovementRequests","submittedAt","planningSubmittedAt","updatedAt","createdAt"]; }
+    function studentCreateIdentityFields() { return ["uid","participantId","studentUid","spaceId","assignmentId","activityId","lessonId","auth"]; }
+    function submissionParticipant(spaceId) {
+      let member = get(myMemberPath(spaceId)).data;
+      return member.get("participantId", "") is string && member.get("participantId", "").size() > 0 ? member.participantId : myUid();
+    }
+    function submissionScopeOk(data, spaceId, activityId, writing) {
+      return data.get("spaceId", spaceId) == spaceId
+        && data.get("assignmentId", activityId) == activityId
+        && data.get("activityId", activityId) == activityId
+        && (writing || data.get("lessonId", activityId) == activityId);
+    }
+    function studentSubmissionOwned(data, participant) {
+      let storedParticipant = data.get("participantId", "");
+      return (storedParticipant == participant
+        || (storedParticipant == "" && (data.get("uid", "") == myUid()
+          || data.get("studentUid", "") in [myUid(), participant])))
+        && data.get("studentUid", participant) in [participant, myUid(), data.get("uid", myUid())];
+    }
+    function submissionIdOk(id, spaceId, activityId, participant, data, existing) {
+      let prefix = spaceId + "_" + activityId + "_";
+      let storedUid = data.get("uid", "");
+      let studentUid = data.get("studentUid", "");
+      return id in [prefix + myUid(), prefix + participant]
+        || (existing && ((storedUid is string && storedUid.size() > 0 && id in [storedUid, prefix + storedUid])
+          || (studentUid is string && studentUid.size() > 0 && id in [studentUid, prefix + studentUid])));
+    }
+    function studentSubmissionCreate(spaceId, activityId, id, writing) {
+      let data = request.resource.data;
+      let participant = submissionParticipant(spaceId);
+      let editable = writing ? writingStudentFields() : lessonStudentFields();
+      return data.keys().hasOnly(editable.concat(studentCreateIdentityFields()))
+        && data.get("uid", "") == myUid()
+        && data.get("participantId", myUid()) == participant
+        && data.get("studentUid", participant) in [myUid(), participant]
+        && data.get("spaceId", "") == spaceId
+        && (writing ? data.get("activityId", "") == activityId : data.get("assignmentId", "") == activityId)
+        && submissionScopeOk(data, spaceId, activityId, writing)
+        && submissionIdOk(id, spaceId, activityId, participant, data, false)
+        && (!("auth" in data) || (data.auth is map && data.auth.keys().hasOnly(["uid", "participantId", "isAnon"])
+          && data.auth.get("uid", "") == myUid() && data.auth.get("participantId", participant) == participant))
+        && data.get("status", "draft") in ["draft", "new", "submitted", "planning_submitted"];
+    }
+    function studentSubmissionUpdate(spaceId, activityId, id, writing) {
+      let data = resource.data;
+      let participant = submissionParticipant(spaceId);
+      return studentSubmissionOwned(data, participant)
+        && submissionScopeOk(data, spaceId, activityId, writing)
+        && submissionIdOk(id, spaceId, activityId, participant, data, true)
+        && request.resource.data.diff(data).affectedKeys().hasOnly(writing ? writingStudentFields() : lessonStudentFields())
+        && (request.resource.data.get("status", "draft") == data.get("status", "draft")
+          || request.resource.data.get("status", "draft") in ["draft", "new", "submitted", "planning_submitted"]);
     }
 
     /* =========================
        SPACE-LOCAL WRITING ACTIVITIES
     ========================= */
     match /spaces/{spaceId}/writingActivities/{activityId} {
-      allow read: if canTeachInSpace(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
-      allow create, update: if canTeachInSpace(spaceId);
-      allow delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow read: if accountEnabled() && (canTeachInSpace(spaceId) || isSpaceMember(spaceId));
+      allow create, update: if accountEnabled() && (canTeachInSpace(spaceId));
+      allow delete: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId));
     }
 
     match /spaces/{spaceId}/writingActivities/{activityId}/submissions/{subId} {
@@ -837,7 +907,7 @@ service cloud.firestore {
       }
 
       function isWritingSubOwner() {
-        return signedIn()
+        return isSpaceMember(spaceId)
           && resource != null
           && (
             (
@@ -919,28 +989,13 @@ service cloud.firestore {
           && (request.resource.data.sectionFeedback is map);
       }
 
-      allow read: if canWritingTeacherRead() || isWritingSubOwner();
-      allow create: if signedIn()
-        && isSpaceMember(spaceId)
-        && isOwnWritingSubmissionId()
-        && validStudentWritingIdentity()
-        && validStudentWritingStatus()
-        && !("teacherFeedback" in request.resource.data);
-      allow update: if (
-        signedIn()
-        && isSpaceMember(spaceId)
-        && isOwnWritingSubmissionId()
-        && validStudentWritingIdentity()
-        && validStudentWritingStatus()
-        && writingTeacherFeedbackUnchanged()
-      ) || (
-        canWritingTeacherRead()
-        && writingTeacherReviewUpdateOnly()
-      ) || (
-        canWritingTeacherRead()
-        && writingTeacherSectionFeedbackUpdateOnly()
-      );
-      allow delete: if isAdmin() || isSpaceOwner(spaceId);
+      allow read: if accountEnabled() && (canWritingTeacherRead() || isWritingSubOwner());
+      allow create: if accountEnabled() && (signedIn() && isSpaceMember(spaceId)
+        && studentSubmissionCreate(spaceId, activityId, subId, true));
+      allow update: if accountEnabled() && ((signedIn() && isSpaceMember(spaceId)
+        && studentSubmissionUpdate(spaceId, activityId, subId, true))
+        || (canWritingTeacherRead() && (writingTeacherReviewUpdateOnly() || writingTeacherSectionFeedbackUpdateOnly())));
+      allow delete: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId));
     }
 
     /* =========================
@@ -949,7 +1004,7 @@ service cloud.firestore {
     match /spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId} {
 
   function isSubOwner() {
-    return signedIn()
+    return isSpaceMember(spaceId)
       && resource != null
       && ("uid" in resource.data)
       && (resource.data.uid is string)
@@ -964,7 +1019,7 @@ service cloud.firestore {
   }
 
   function isParticipantSubOwner() {
-    return signedIn()
+    return isSpaceMember(spaceId)
       && resource != null
       && ("participantId" in resource.data)
       && (resource.data.participantId is string)
@@ -972,7 +1027,7 @@ service cloud.firestore {
   }
 
   function isOwnSubmissionId() {
-    return signedIn()
+    return isSpaceMember(spaceId)
       && subId == (spaceId + "_" + assignmentId + "_" + myUid());
   }
 
@@ -988,25 +1043,17 @@ service cloud.firestore {
   }
 
   allow read: if
-    isAdmin()
-    || isSubOwner()
+    accountEnabled() && (isSubOwner()
     || isParticipantSubOwner()
     || isOwnSubmissionId()
     || canTeacherReadHere()
-    || canParentReadOwnHere();
+    || canParentReadOwnHere());
 
-  allow create: if signedIn()
-    && (request.resource.data.uid is string)
-    && request.resource.data.uid == myUid()
-    && isSpaceMember(spaceId);
-
-  allow update: if
-    isAdmin()
-    || isSpaceOwner(spaceId)
-    || canTeachInSpace(spaceId)
-    || isSubOwner()
-    || isParticipantSubOwner()
-    || canParentReadOwnHere();
+  allow create: if accountEnabled() && ((signedIn() && isSpaceMember(spaceId)
+    && studentSubmissionCreate(spaceId, assignmentId, subId, false))
+    || (canTeachInSpace(spaceId) && submissionScopeOk(request.resource.data, spaceId, assignmentId, false)));
+  allow update: if accountEnabled() && (canTeachInSpace(spaceId) || (signedIn() && isSpaceMember(spaceId)
+    && studentSubmissionUpdate(spaceId, assignmentId, subId, false)));
 
   allow delete: if false;
 }
@@ -1017,15 +1064,15 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
   }
 
   allow read: if
-    isAdmin()
+    accountEnabled() && (isAdmin()
     || isSpaceOwner(spaceId)
-    || isOwnParentReview();
+    || (isSpaceMember(spaceId) && isOwnParentReview()));
 
   allow create, update: if
-    signedIn()
+    accountEnabled() && (signedIn()
     && isParent()
     && isSpaceMember(spaceId)
-    && isOwnParentReview();
+    && isOwnParentReview());
 
   allow delete: if false;
 }
@@ -1037,6 +1084,7 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
 
       function isOwnerDoc() {
         return signedIn()
+          && spaceIdFromDoc() != null && isSpaceMember(spaceIdFromDoc())
           && resource != null
           && ("uid" in resource.data)
           && (resource.data.uid is string)
@@ -1053,6 +1101,7 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
 
       function isParticipantOwnerDoc() {
         return signedIn()
+          && spaceIdFromDoc() != null && isSpaceMember(spaceIdFromDoc())
           && resource != null
           && ("participantId" in resource.data)
           && (resource.data.participantId is string)
@@ -1073,32 +1122,35 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
       function canTeacherReadIndex() {
         return signedIn()
           && spaceIdFromDoc() != null
-          && (
-            isSpaceOwner(spaceIdFromDoc())
-            || isAdmin()
-            || (isTeacher() && isSpaceMember(spaceIdFromDoc()))
-          );
+          && canTeachInSpace(spaceIdFromDoc());
       }
 
-      allow read: if isAdmin() || isOwnerDoc() || isParticipantOwnerDoc() || canTeacherReadIndex();
+      allow read: if accountEnabled() && (isAdmin() || isOwnerDoc() || isParticipantOwnerDoc() || canTeacherReadIndex());
 
-      allow create: if (
-        signedIn()
-        && (request.resource.data.uid is string)
-        && request.resource.data.uid == myUid()
-        && (request.resource.data.spaceId is string)
-        && isSpaceMember(request.resource.data.spaceId)
-      ) || (
-        signedIn()
-        && (request.resource.data.uid is string)
-        && (request.resource.data.spaceId is string)
-        && canTeachInSpace(request.resource.data.spaceId)
-      );
 
-      allow update: if isAdmin()
-        || isOwnerDoc()
-        || isParticipantOwnerDoc()
-        || (signedIn() && spaceIdFromDoc() != null && canTeachInSpace(spaceIdFromDoc()));
+      function indexActivity(data) { return data.get("assignmentId", data.get("activityId", data.get("lessonId", ""))); }
+      function indexWriting(data) { return !("assignmentId" in data) && ("activityId" in data); }
+      function indexSourceMatches() {
+        let data = request.resource.data;
+        let space = data.get("spaceId", "");
+        let activity = indexActivity(data);
+        let writing = indexWriting(data);
+        let source = writing
+          ? getAfter(/databases/$(database)/documents/spaces/$(space)/writingActivities/$(activity)/submissions/$(id)).data
+          : getAfter(/databases/$(database)/documents/spaces/$(space)/lessons/$(activity)/submissions/$(id)).data;
+        return activity is string && activity.size() > 0
+          && submissionScopeOk(source, space, activity, writing)
+          && source.get("uid", "") == data.get("uid", "")
+          && source.get("participantId", "") == data.get("participantId", "")
+          && source.get("studentUid", "") == data.get("studentUid", "");
+      }
+      allow create: if accountEnabled() && (signedIn() && indexSourceMatches() && (
+        canTeachInSpace(request.resource.data.spaceId)
+        || (isSpaceMember(request.resource.data.spaceId)
+          && studentSubmissionCreate(request.resource.data.spaceId, indexActivity(request.resource.data), id, indexWriting(request.resource.data)))));
+      allow update: if accountEnabled() && (signedIn() && request.resource.data.spaceId == resource.data.spaceId
+        && indexSourceMatches() && (canTeacherReadIndex() || (isSpaceMember(resource.data.spaceId)
+          && studentSubmissionUpdate(resource.data.spaceId, indexActivity(resource.data), id, indexWriting(resource.data)))));
 
       allow delete: if false;
     }
@@ -1131,14 +1183,14 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
         return !request.resource.data.diff(resource.data).affectedKeys().hasAny(reviewFields());
       }
 
-      allow create: if signedIn()
+      allow create: if accountEnabled() && (signedIn()
         && (request.resource.data.uid is string)
         && request.resource.data.uid == myUid()
-        && noReviewFieldsOnCreate();
+        && noReviewFieldsOnCreate());
 
-      allow read: if isAdmin() || isOwnerDoc();
-      allow update: if isAdmin()
-        || (isOwnerDoc() && reviewFieldsUnchanged());
+      allow read: if accountEnabled() && (isAdmin() || isOwnerDoc());
+      allow update: if accountEnabled() && (isAdmin()
+        || (isOwnerDoc() && reviewFieldsUnchanged()));
       allow delete: if false;
     }
 
@@ -1154,37 +1206,29 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
           && (resource.data.uid == myUid());
       }
 
-      allow read: if isAdmin() || isOwnerDoc();
+      allow read: if accountEnabled() && (isAdmin() || (isOwnerDoc()
+        && (!("spaceId" in resource.data) || isSpaceMember(resource.data.spaceId))));
       allow create, update, delete: if false;
     }
 
-    /* =========================
-       GLOBAL SUBMISSIONS
-    ========================= */
-    match /{document=**}/submissions/{subId} {
-      allow get, list: if signedIn()
-        && (
-          (("uid" in resource.data) && (resource.data.uid is string) && resource.data.uid == myUid())
-          || (("userId" in resource.data) && (resource.data.userId is string) && resource.data.userId == myUid())
-        );
-
-      allow create, update, delete: if false;
-    }
+    // No recursive owner-only submissions grant: it would override Space revocation.
+    // Client overviews query the spaceSubmissions index with Space membership checks.
 
     /* =========================
    ANALYTICS EVENTS
 ========================= */
 match /analyticsEvents/{eventId} {
-  allow create: if true;
-  allow read: if isAdmin();
+  // GA-01: stop all client collection; historical authorized reads remain.
+  allow create: if false;
+  allow read: if accountEnabled() && (isAdmin());
   allow update, delete: if false;
 }
    /* =========================
        NOTIFICATIONS
     ========================= */
     match /users/{userId}/notifications/{notificationId} {
-      allow read: if request.auth != null
-                  && request.auth.uid == userId;
+      allow read: if accountEnabled() && (request.auth != null
+                  && request.auth.uid == userId);
 
       allow write: if false;
     }

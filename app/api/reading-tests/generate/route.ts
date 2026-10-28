@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -738,6 +739,7 @@ Do not shorten the text below ${min} words.
 `.trim();
 
       const resp = await client.responses.create({
+        store: false,
         model,
         temperature: 0.4,
         max_output_tokens: 5000,
@@ -831,7 +833,7 @@ Do not shorten the text below ${min} words.
     }
     return NextResponse.json(
       { ok: false, error: getErrorMessage(err) || "Unknown error" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

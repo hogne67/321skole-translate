@@ -1,5 +1,23 @@
 {
   "schoolAdmin": {
+    "productAnalytics": {
+      "title": "A análise de produto está desativada",
+      "description": "O Google Analytics e os nossos eventos de análise de produto estão desativados para todos os utilizadores e áreas, incluindo antes do início de sessão. Não existe uma opção para ativar a análise.",
+      "necessaryLogging": "Mantêm-se os registos necessários de operação e segurança, a contabilização de quotas e as estatísticas pedagógicas. Estes são separados da análise de produto."
+    },
+    "aggregate": {
+  "description": "Esta página apresenta totais administrativos. As estatísticas dos alunos são apresentadas apenas para grupos suficientemente grandes e em intervalos amplos.",
+  "submissions": "Entregas",
+  "title": "Estatísticas agregadas da escola",
+  "myTeachingSpaces": "As minhas salas de ensino",
+  "spaces": "Número de Spaces",
+  "activities": "Número de atividades",
+  "suppressed": "Oculto por privacidade ou dados insuficientes.",
+  "current": "Total atual",
+  "teachers": "Professores ativos",
+  "period": "As entregas referem-se ao mês concluído: {month}.",
+  "spacesDescription": "A administração apresenta o número total de salas. Aceda às suas salas através das permissões habituais de professor."
+},
     "nav": {
       "overview": "Início",
       "teachers": "Professores",

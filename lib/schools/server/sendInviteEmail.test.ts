@@ -12,6 +12,7 @@ type TestReference = {
 
 function fixture() {
   const records = new Map<string, Record<string, unknown>>([
+    ["users/admin", { schoolId: "school", schoolRole: "school_admin", schoolStatus: "active" }],
     ["schools/school", { status: "active", name: "Eksempelskolen" }],
     ["schools/school/members/admin", { role: "school_admin", status: "active", displayName: "Skoleleder" }],
     ["schoolInvites/invite", { schoolId: "school", role: "school_teacher", status: "pending", email: "teacher@example.com",
@@ -64,6 +65,10 @@ test("foreign invitations, non-admins, inactive members/schools and unusable inv
   for (const [path, changes, reason] of [
     ["schools/school/members/admin", { role: "school_teacher" }, "forbidden"],
     ["schools/school/members/admin", { status: "disabled" }, "forbidden"],
+    ["users/admin", { disabled: true }, "forbidden"],
+    ["users/admin", { schoolId: "foreign" }, "forbidden"],
+    ["users/admin", { schoolRole: "school_teacher" }, "forbidden"],
+    ["users/admin", { schoolStatus: "disabled" }, "forbidden"],
     ["schools/school", { status: "inactive" }, "school_not_active"],
     ["schoolInvites/invite", { schoolId: "foreign" }, "invite_not_found"],
     ["schoolInvites/invite", { status: "accepted" }, "invite_not_pending"],

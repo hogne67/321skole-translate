@@ -1,3 +1,6 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import type { Auth } from "firebase-admin/auth";
@@ -68,8 +71,7 @@ async function canManageSpaceStaff(params: {
   const spaceSnap = await db.collection("spaces").doc(spaceId).get();
   if (!spaceSnap.exists) return false;
 
-  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-  return safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid;
+  return (await getSpaceAccess(db, spaceId, uid)).owner;
 }
 
 async function findUserByEmail(params: {
@@ -180,7 +182,7 @@ export async function POST(
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not invite staff.";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -215,6 +217,8 @@ export async function DELETE(
     });
     if (!canManage) return json({ error: "No access to manage staff for this space" }, 403);
 
+    const ownerUid = getSpaceOwnerUid((await db.doc(`spaces/${spaceId}`).get()).data());
+    if (targetUid === ownerUid && !isAdminProfile(requesterProfile)) return json({ error: "Platform administrator required for owner membership" }, 403);
     await db.collection("spaceMembers").doc(`${spaceId}_${targetUid}`).set(
       {
         archived: true,
@@ -230,6 +234,6 @@ export async function DELETE(
     return json({ ok: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not remove staff.";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

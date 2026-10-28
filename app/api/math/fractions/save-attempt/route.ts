@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     console.error("save-fraction-attempt failed:", err);
     return NextResponse.json(
       { ok: false, error: "Failed to save fraction attempt" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

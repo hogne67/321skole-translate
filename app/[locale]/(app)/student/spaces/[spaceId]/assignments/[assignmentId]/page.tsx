@@ -1,5 +1,6 @@
 // app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import { getSubmissionStatus } from "@/lib/submissions/status";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
@@ -941,7 +942,7 @@ export default function StudentAssignmentPage() {
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
           const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
-          if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
+          if (getSpaceOwnerUid(spaceData) !== user.uid) throw new Error(t("errors.notMember"));
         }
         const currentParticipantId = membership.participantId || user.uid;
         setParticipantId(currentParticipantId);
@@ -1425,7 +1426,6 @@ export default function StudentAssignmentPage() {
           podcastWorkshop: isPodcastWorkshop ? persistedPodcastWorkshop : undefined,
 
           auto: null,
-          aiFeedback: null,
 
           startedAt: Date.now(),
           timeSpentSeconds: 0,
@@ -1617,7 +1617,6 @@ export default function StudentAssignmentPage() {
           : null;
 
         let auto: unknown = computeAutoGrade(tasksOriginal, finalAnswers);
-        const aiFeedback: unknown = null;
 
         if (isGeometryAssignment && geometryWorksheet) {
           const geometryAuto = gradeGeometryWorksheet(
@@ -1726,7 +1725,6 @@ export default function StudentAssignmentPage() {
           podcastWorkshop: isPodcastWorkshop ? persistedPodcastWorkshop : undefined,
 
           auto,
-          aiFeedback,
 
           submittedAt: Date.now(),
 

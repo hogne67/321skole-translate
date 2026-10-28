@@ -129,6 +129,9 @@ export default function ParentNewSpacePage() {
           uid: user.uid,
           displayName: safeDisplayName(profile, user.displayName),
           role: "parent",
+          status: "active",
+          active: true,
+          archived: false,
           createdAt: serverTimestamp(),
         });
       } catch (e: unknown) {

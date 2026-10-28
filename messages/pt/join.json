@@ -10,7 +10,7 @@
       "studentCode": {
         "label": "Código do aluno",
         "placeholder": "ex.: S7K4P",
-        "tip": "Use o código de aluno do professor para abrir o aluno correto e continuar em outro dispositivo. Não se lembra do código de aluno? Peça ao professor."
+        "tip": "Use o código de aluno do professor. O professor deve aprovar uma nova sessão antes de esta aceder a trabalhos anteriores."
       }
     },
     "actions": {
@@ -34,7 +34,9 @@
       "identityConflict": "Este código de aluno tem registos em conflito. Peça ajuda ao professor.",
       "missingPupilName": "O professor deve registar um nome antes de usar este código.",
       "accessRevoked": "Este acesso foi revogado. Contacte o professor.",
-      "roomUnavailable": "Esta sala está arquivada e não pode ser aberta com um código de aluno."
+      "roomUnavailable": "Esta sala está arquivada e não pode ser aberta com um código de aluno.",
+      "managerAccount": "Esta sessão administra a sala. Termine a sessão ou use outro perfil do navegador para pedir acesso de aluno.",
+      "requestChanged": "O pedido já foi processado ou alterado. Verifique o acesso novamente."
     },
     "confirmation": {
       "identity": "Vai entrar como {name} em {room}.",
@@ -52,6 +54,19 @@
       "logoutConfirm": "Vai sair desta sessão no navegador. As suas respostas são mantidas. O próximo aluno deve usar o seu próprio código ou link de aluno.",
       "loggingOut": "A sair…",
       "signedOut": "Saiu da sessão. O próximo aluno pode usar o seu próprio código ou link de aluno. Não se lembra do código de aluno? Peça ao professor."
+    },
+    "approval": {
+      "title": "O professor deve aprovar o acesso",
+      "description": "Envie um pedido antes de usar esta sessão para o participante. Os trabalhos existentes são preservados.",
+      "waiting": "Mostre o código de confirmação ao professor. Pode continuar após a aprovação.",
+      "expired": "O pedido expirou. Envie um novo pedido e mostre o novo código ao professor.",
+      "codeLabel": "Código de confirmação para o professor",
+      "request": "Pedir acesso ao professor",
+      "check": "Verificar aprovação",
+      "rejected": "O professor recusou o pedido. Fale com o professor antes de enviar outro.",
+      "cancelled": "O pedido foi cancelado. Pode enviar outro quando estiver pronto.",
+      "replace": "Já existe outro pedido para esta sessão. Envie um novo pedido para o código que selecionou agora.",
+      "renew": "Enviar novo pedido"
     }
   }
 }

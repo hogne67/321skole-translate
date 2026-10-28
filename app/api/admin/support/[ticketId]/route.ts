@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -77,7 +78,7 @@ export async function PATCH(
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update support ticket";
-    const status = message.includes("No access") ? 403 : message.includes("Authorization") ? 401 : 500;
+    const status = message.includes("No access") ? 403 : message.includes("Authorization") ? 401 : (accountErrorStatus(error) ?? 500);
     return json({ error: message }, status);
   }
 }

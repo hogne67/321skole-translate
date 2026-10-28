@@ -10,25 +10,12 @@ import type {
     PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
-import { getPodcastSound, getSoundDuration, getSoundTailSeconds, playPodcastSound } from "@/lib/podcastSoundLibrary";
-import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
+import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
+import { readStudentAudioBlob, resolveStudentAudioForPlayback, studentAudioFilename } from "@/lib/audio/studentAudio";
 import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { podcastExportClips, renderPodcastWav, downloadAudioBlob } from "@/lib/audio/podcastExport";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
-
-type TeacherAudioUrlMode = "inline" | "download";
-
-type TeacherAudioUrlResponse = {
-    url: string;
-    expiresAt?: number;
-    filename?: string;
-};
-
-type PodcastExportClip = {
-    url?: string;
-    asset?: StudentAudioAsset;
-    label: string;
-    tailSeconds?: number;
-};
 
 type Props = {
     title: string;
@@ -113,180 +100,11 @@ function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: 
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
 
-function browserAudioContext() {
-    const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    return AudioContextClass ? new AudioContextClass() : null;
-}
-
-function audioBufferToWav(buffer: AudioBuffer) {
-    const channels = Math.min(2, buffer.numberOfChannels);
-    const sampleRate = buffer.sampleRate;
-    const bytesPerSample = 2;
-    const blockAlign = channels * bytesPerSample;
-    const dataSize = buffer.length * blockAlign;
-    const arrayBuffer = new ArrayBuffer(44 + dataSize);
-    const view = new DataView(arrayBuffer);
-
-    function writeString(offset: number, value: string) {
-        for (let index = 0; index < value.length; index += 1) {
-            view.setUint8(offset + index, value.charCodeAt(index));
-        }
-    }
-
-    writeString(0, "RIFF");
-    view.setUint32(4, 36 + dataSize, true);
-    writeString(8, "WAVE");
-    writeString(12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, channels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * blockAlign, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, 16, true);
-    writeString(36, "data");
-    view.setUint32(40, dataSize, true);
-
-    const channelData = Array.from({ length: channels }, (_, index) => buffer.getChannelData(index));
-    let offset = 44;
-    for (let sample = 0; sample < buffer.length; sample += 1) {
-        for (let channel = 0; channel < channels; channel += 1) {
-            const value = Math.max(-1, Math.min(1, channelData[channel][sample] ?? 0));
-            view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
-            offset += bytesPerSample;
-        }
-    }
-
-    return new Blob([arrayBuffer], { type: "audio/wav" });
-}
-
-async function decodeAudioClip(context: AudioContext, url: string) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("audio-fetch-failed");
-    const data = await response.arrayBuffer();
-    return await context.decodeAudioData(data.slice(0));
-}
-
-async function fetchTeacherAudioBytes(asset: StudentAudioAsset) {
-    if (!asset.storagePath) throw new Error("missing-storage-path");
-
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) throw new Error("missing-token");
-
-    const response = await fetch("/api/teacher/audio-url", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ storagePath: asset.storagePath, mode: "bytes" }),
-    });
-
-    if (!response.ok) throw new Error("audio-bytes-fetch-failed");
-    return await response.arrayBuffer();
-}
-
-async function decodePodcastExportClip(context: AudioContext, clip: PodcastExportClip) {
-    if (clip.asset) {
-        const data = clip.asset.audioDataUrl && clip.asset.audioDataUrl.startsWith("data:")
-            ? await (await fetch(clip.asset.audioDataUrl)).arrayBuffer()
-            : await fetchTeacherAudioBytes(clip.asset);
-        return await context.decodeAudioData(data.slice(0));
-    }
-
-    if (!clip.url) throw new Error("missing-clip-url");
-    return await decodeAudioClip(context, clip.url);
-}
-
-async function renderPodcastWav(clips: PodcastExportClip[]) {
-    const context = browserAudioContext();
-    if (!context) throw new Error("audio-context-unavailable");
-
-    try {
-        const decoded = await Promise.all(clips.map((clip) => decodePodcastExportClip(context, clip)));
-        const sampleRate = context.sampleRate;
-        const channels = Math.min(2, Math.max(1, ...decoded.map((buffer) => buffer.numberOfChannels)));
-        const totalLength = decoded.reduce((sum, buffer, index) => {
-            const tailSeconds = Math.max(0, clips[index]?.tailSeconds ?? 0);
-            return sum + Math.ceil((buffer.duration + tailSeconds) * sampleRate);
-        }, 0);
-        const offline = new OfflineAudioContext(channels, Math.max(1, totalLength), sampleRate);
-        let cursor = 0;
-
-        decoded.forEach((buffer, index) => {
-            const source = offline.createBufferSource();
-            source.buffer = buffer;
-            source.connect(offline.destination);
-            source.start(cursor / sampleRate);
-            cursor += Math.ceil((buffer.duration + Math.max(0, clips[index]?.tailSeconds ?? 0)) * sampleRate);
-        });
-
-        const rendered = await offline.startRendering();
-        return audioBufferToWav(rendered);
-    } finally {
-        void context.close();
-    }
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.rel = "noopener";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function requestTeacherAudioUrl(
-    asset: StudentAudioAsset,
-    mode: TeacherAudioUrlMode = "inline"
-): Promise<TeacherAudioUrlResponse | null> {
-    if (!asset.storagePath) return null;
-
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) return null;
-
-    const res = await fetch("/api/teacher/audio-url", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ storagePath: asset.storagePath, mode }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = (await res.json().catch(() => null)) as {
-        url?: unknown;
-        expiresAt?: unknown;
-        filename?: unknown;
-    } | null;
-    const url = typeof data?.url === "string" ? data.url : "";
-    if (!url) return null;
-
-    return {
-        url,
-        expiresAt: typeof data?.expiresAt === "number" ? data.expiresAt : undefined,
-        filename: typeof data?.filename === "string" ? data.filename : undefined,
-    };
-}
-
-async function resolveTeacherAudioForPlayback(
-    asset: StudentAudioAsset | null
-): Promise<StudentAudioAsset | null> {
-    if (!asset) return null;
-
-    const direct = await resolveStudentAudioForPlayback(asset).catch(() => asset);
-    if (direct?.audioDataUrl || !asset.storagePath) return direct;
-
-    const signed = await requestTeacherAudioUrl(asset, "inline");
-    return signed?.url ? { ...asset, audioDataUrl: signed.url } : direct;
+function withoutStoredPreview(asset: StudentAudioAsset | null): StudentAudioAsset | null {
+    if (!asset?.storagePath) return asset;
+    const { audioDataUrl: _preview, ...reference } = asset;
+    void _preview;
+    return reference;
 }
 
 async function resolvePodcastSubmissionAudio(
@@ -295,7 +113,7 @@ async function resolvePodcastSubmissionAudio(
     const productionSegments = { ...submission.productionSegments };
     const entries = await Promise.all(
         Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
-            const voice = await resolveTeacherAudioForPlayback(segment.voice).catch(() => segment.voice);
+            const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => withoutStoredPreview(segment.voice));
             return [
                 segmentId,
                 {
@@ -331,19 +149,26 @@ export default function PodcastWorkshopSubmissionView({
     t,
 }: Props) {
     const [activeRoom, setActiveRoom] = useState<PodcastWorkshopRoomKey>("ideas");
-    const [playbackSubmission, setPlaybackSubmission] = useState(submission);
+    const [actor, setActor] = useState(auth.currentUser);
+    const [playback, setPlayback] = useState<{ source: PodcastWorkshopSubmission; actor: typeof actor; value: PodcastWorkshopSubmission } | null>(null);
+    useEffect(() => onAuthStateChanged(auth, setActor), []);
+    const playbackSubmission = playback?.source === submission && playback.actor === actor ? playback.value : {
+        ...submission,
+        productionSegments: Object.fromEntries(Object.entries(submission.productionSegments).map(([id, segment]) =>
+            [id, { ...segment, voice: withoutStoredPreview(segment.voice) }])),
+    };
 
     useEffect(() => {
         let alive = true;
 
         void resolvePodcastSubmissionAudio(submission).then((next) => {
-            if (alive) setPlaybackSubmission(next);
+            if (alive && auth.currentUser === actor) setPlayback({ source: submission, actor, value: next });
         });
 
         return () => {
             alive = false;
         };
-    }, [submission]);
+    }, [submission, actor]);
 
     const rooms = useMemo(
         () => [
@@ -452,20 +277,25 @@ function PodcastFullPlayback({
     const [exportMessage, setExportMessage] = useState<string | null>(null);
     const playerRef = useRef<HTMLAudioElement | null>(null);
     const cancelledRef = useRef(false);
-    const segments = getPodcastWorkshopSegments(config, submission);
+    const runRef = useRef(0);
+    const cancelAudioRef = useRef<(() => void) | null>(null);
     const segmentsWithAudio = getVoiceSegments(config, submission);
     const totalSeconds = getPodcastDuration(config, submission);
     const progressPercent = totalSeconds > 0 ? Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100)) : 0;
 
     useEffect(() => {
+        const playbackRun = runRef;
+        setPlaying(false);
+        setElapsedSeconds(0);
         return () => {
+            playbackRun.current++; cancelledRef.current = true; cancelAudioRef.current?.();
             playerRef.current?.pause();
             playerRef.current = null;
         };
-    }, []);
+    }, [submission]);
 
     function stopPlayback() {
-        cancelledRef.current = true;
+        cancelledRef.current = true; runRef.current++; cancelAudioRef.current?.();
         playerRef.current?.pause();
         playerRef.current = null;
         setPlaying(false);
@@ -482,9 +312,11 @@ function PodcastFullPlayback({
             const finish = (ok: boolean) => {
                 if (settled) return;
                 settled = true;
+                window.clearTimeout(timeout); cancelAudioRef.current = null;
                 resolve(ok);
             };
 
+            cancelAudioRef.current = () => finish(false);
             audio.ontimeupdate = () => {
                 setElapsedSeconds(Math.min(totalSeconds, offsetSeconds + audio.currentTime));
             };
@@ -496,117 +328,50 @@ function PodcastFullPlayback({
                 .then(() => undefined)
                 .catch(() => finish(false));
 
-            window.setTimeout(() => {
+            const timeout = window.setTimeout(() => {
                 if (!settled && !cancelledRef.current) {
-                    finish(true);
+                    finish(false);
                 }
             }, Math.max(4000, (durationSeconds + 8) * 1000));
         });
     }
 
     async function playWholePodcast() {
-        if (playing) {
-            stopPlayback();
-            return;
-        }
-
+        if (playing) { stopPlayback(); return; }
         if (segmentsWithAudio.length === 0) return;
-
+        const actor = auth.currentUser;
+        const run = ++runRef.current;
+        const isCancelled = () => cancelledRef.current || runRef.current !== run;
         cancelledRef.current = false;
-        setPlaying(true);
-        setElapsedSeconds(0);
-        setPlaybackError(null);
-
-        await playPodcastSound(submission.productionMix.introSoundId);
-        let elapsed = getSoundDuration(submission.productionMix.introSoundId);
-        setElapsedSeconds(Math.min(totalSeconds, elapsed));
-
-        for (let index = 0; index < segments.length; index += 1) {
-            if (cancelledRef.current) break;
-            const segment = segments[index];
-            const voice = submission.productionSegments[segment.id]?.voice ?? null;
-            const playableVoice = await resolveTeacherAudioForPlayback(voice).catch(() => voice);
-            const url = playableVoice?.audioDataUrl;
-            if (url && playableVoice) {
-                const played = await playAudioUrl(url, elapsed, playableVoice.durationSeconds);
-                if (!played && !cancelledRef.current) {
-                    setPlaybackError("Kunne ikke spille av ett av elevopptakene.");
-                    break;
-                }
-                elapsed += playableVoice.durationSeconds;
+        setPlaying(true); setElapsedSeconds(0); setPlaybackError(null);
+        try {
+            await playPodcastSound(submission.productionMix.introSoundId);
+            let elapsed = getSoundDuration(submission.productionMix.introSoundId);
+            for (const segment of segmentsWithAudio) {
+                if (isCancelled()) return;
+                if (auth.currentUser !== actor) throw new Error("Audio session changed");
+                const voice = submission.productionSegments[segment.id]?.voice ?? null;
+                const playable = await resolveStudentAudioForPlayback(voice);
+                if (isCancelled()) return;
+                if (!playable?.audioDataUrl || auth.currentUser !== actor) throw new Error("Audio unavailable");
+                if (!await playAudioUrl(playable.audioDataUrl, elapsed, playable.durationSeconds)) throw new Error("Audio playback failed");
+                elapsed += playable.durationSeconds;
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
-            } else if (voice?.storagePath && !cancelledRef.current) {
-                setPlaybackError("Fant lydopptak, men kunne ikke hente avspillingslenke.");
-                break;
-            }
-
-            const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-                const nextVoice = submission.productionSegments[nextSegment.id]?.voice;
-                return !!(nextVoice?.audioDataUrl || nextVoice?.storagePath);
-            });
-            if (!cancelledRef.current && hasNextVoice) {
-                const transitionSoundId = getTransitionSoundId(submission, segment.id);
-                await playPodcastSound(transitionSoundId);
-                elapsed += getSoundDuration(transitionSoundId);
-                setElapsedSeconds(Math.min(totalSeconds, elapsed));
-            }
-        }
-
-        if (!cancelledRef.current) {
-            await playPodcastSound(submission.productionMix.outroSoundId);
-            elapsed += getSoundDuration(submission.productionMix.outroSoundId);
-            setElapsedSeconds(Math.min(totalSeconds, elapsed));
-        }
-        if (!cancelledRef.current) {
-            setPlaying(false);
-            window.setTimeout(() => setElapsedSeconds(0), 700);
-        }
-    }
-
-    async function buildExportClips(): Promise<PodcastExportClip[]> {
-        const clips: PodcastExportClip[] = [];
-        const intro = getPodcastSound(submission.productionMix.introSoundId);
-        if (intro) {
-            clips.push({ url: intro.src, label: "intro" });
-        }
-
-        for (let index = 0; index < segments.length; index += 1) {
-            const segment = segments[index];
-            const voice = submission.productionSegments[segment.id]?.voice ?? null;
-            const playableVoice = await resolveTeacherAudioForPlayback(voice).catch(() => voice);
-            if (playableVoice?.audioDataUrl) {
-                clips.push({
-                    asset: playableVoice,
-                    label: segment.title || `del-${index + 1}`,
-                });
-            }
-
-            const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-                const nextVoice = submission.productionSegments[nextSegment.id]?.voice;
-                return !!(nextVoice?.audioDataUrl || nextVoice?.storagePath);
-            });
-            if ((playableVoice?.audioDataUrl || voice?.storagePath) && hasNextVoice) {
-                const transition = getPodcastSound(getTransitionSoundId(submission, segment.id));
-                if (transition) {
-                    clips.push({
-                        url: transition.src,
-                        label: "overgang",
-                        tailSeconds: getSoundTailSeconds(transition.id),
-                    });
+                if (isCancelled()) return;
+                if (segment !== segmentsWithAudio[segmentsWithAudio.length - 1]) {
+                    const soundId = getTransitionSoundId(submission, segment.id);
+                    await playPodcastSound(soundId); elapsed += getSoundDuration(soundId);
                 }
             }
+            if (!isCancelled()) await playPodcastSound(submission.productionMix.outroSoundId);
+        } catch {
+            if (!isCancelled()) setPlaybackError("Avspillingen ble stoppet fordi et opptak ikke kunne hentes eller spilles av.");
+        } finally {
+            if (runRef.current === run) {
+            playerRef.current?.pause(); playerRef.current = null;
+            setPlaying(false); setElapsedSeconds(0);
+            }
         }
-
-        const outro = getPodcastSound(submission.productionMix.outroSoundId);
-        if (outro) {
-            clips.push({
-                url: outro.src,
-                label: "outro",
-                tailSeconds: getSoundTailSeconds(outro.id),
-            });
-        }
-
-        return clips;
     }
 
     async function exportWholePodcast() {
@@ -615,15 +380,17 @@ function PodcastFullPlayback({
         setExporting(true);
         setExportMessage("Lager lydfil...");
         setPlaybackError(null);
+        const run = runRef.current;
 
         try {
-            const clips = await buildExportClips();
+            const clips = podcastExportClips(config, submission);
             if (clips.length === 0) throw new Error("no-clips");
             const wav = await renderPodcastWav(clips);
-            downloadBlob(wav, `321skole-podcast-${Date.now()}.wav`);
-            setExportMessage("Podcasten er lastet ned som WAV og lagret på din enhet. Den kan brukes i PowerPoint.");
+            if (runRef.current !== run) throw new Error("Podcast changed during export");
+            downloadAudioBlob(wav, `321skole-podcast-${Date.now()}.wav`);
+            setExportMessage("WAV-filen er klar. Nedlasting er startet.");
         } catch {
-            setExportMessage("Kunne ikke lage eksportfil akkurat nå.");
+            setExportMessage("Eksporten ble stoppet. Alle segmentene må ha opptak som kan hentes og spilles av. Ingen WAV-fil ble lastet ned.");
         } finally {
             setExporting(false);
         }
@@ -698,17 +465,15 @@ function TeacherAudioExportControls({
     const [busy, setBusy] = useState<"copy" | "download" | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
-    if (!asset?.storagePath) return null;
+    if (!asset?.storagePath && !asset?.audioDataUrl) return null;
 
     async function copyLink() {
         if (!asset?.storagePath) return;
         setBusy("copy");
         setMessage(null);
         try {
-            const signed = await requestTeacherAudioUrl(asset, "inline");
-            if (!signed?.url) throw new Error("missing-url");
-            await navigator.clipboard.writeText(signed.url);
-            setMessage("Lenke kopiert. Den virker i ca. 15 minutter.");
+            await navigator.clipboard.writeText(window.location.href);
+            setMessage("Lenke til innleveringen kopiert. Mottakeren må logge inn og ha tilgang.");
         } catch {
             setMessage("Kunne ikke kopiere lenke akkurat nå.");
         } finally {
@@ -717,19 +482,12 @@ function TeacherAudioExportControls({
     }
 
     async function downloadAudio() {
-        if (!asset?.storagePath) return;
+        if (!asset) return;
         setBusy("download");
         setMessage(null);
         try {
-            const signed = await requestTeacherAudioUrl(asset, "download");
-            if (!signed?.url) throw new Error("missing-url");
-            const anchor = document.createElement("a");
-            anchor.href = signed.url;
-            anchor.download = signed.filename || `${label}.webm`;
-            anchor.rel = "noopener";
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
+            const blob = await readStudentAudioBlob(asset);
+            downloadAudioBlob(blob, studentAudioFilename({ ...asset, mimeType: blob.type }, label));
             setMessage("Nedlasting startet.");
         } catch {
             setMessage("Kunne ikke starte nedlasting akkurat nå.");
@@ -750,7 +508,7 @@ function TeacherAudioExportControls({
                     disabled={busy !== null}
                     className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-black text-teal-900 disabled:opacity-60"
                 >
-                    {busy === "copy" ? "Kopierer..." : "Kopier midlertidig lenke"}
+                    {busy === "copy" ? "Kopierer..." : "Kopier lenke til innleveringen"}
                 </button>
                 <button
                     type="button"

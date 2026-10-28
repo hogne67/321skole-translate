@@ -9,6 +9,7 @@ import {
   where,
   type Firestore,
 } from "firebase/firestore";
+import { isActiveSpaceMember } from "./security/spaceAccess";
 
 export type SpaceRole = "student" | "teacher" | "creator" | "parent";
 
@@ -73,8 +74,7 @@ export async function listMySpaceIds(db: Firestore, uid: string): Promise<string
   const out: string[] = [];
   snap.forEach((d) => {
     const data = d.data() as { spaceId?: unknown; archived?: unknown; active?: unknown; status?: unknown };
-    const status = typeof data.status === "string" ? data.status.trim().toLowerCase() : "";
-    if (data.archived === true || data.active === false || status === "removed") return;
+    if (!isActiveSpaceMember(data) || d.id !== `${data.spaceId}_${uid}`) return;
     if (typeof data.spaceId === "string" && data.spaceId) out.push(data.spaceId);
   });
 

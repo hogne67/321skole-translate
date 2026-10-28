@@ -1,13 +1,14 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/board/page.tsx
 "use client";
+import ProtectedSpaceImage from "@/components/ProtectedSpaceImage";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { collection, doc, onSnapshot, setDoc, serverTimestamp, updateDoc, type Firestore } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { uploadPrivateSpaceFile } from "@/lib/spaceFiles.client";
 import { Check, Clock, Download, ExternalLink, Menu, MonitorUp, PauseCircle, Pencil, Play, RotateCcw, Send, Square, Users, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -194,10 +195,6 @@ function normalizeWordwallWord(input: string): string {
 function displayWordwallWord(input: string): string {
   if (!input) return "";
   return input.charAt(0).toUpperCase() + input.slice(1);
-}
-
-function safeStorageName(input: string) {
-  return input.replace(/[^\w.-]+/g, "_").slice(0, 90) || "image";
 }
 
 function isoWeekNumber(date: Date) {
@@ -849,12 +846,7 @@ export default function TeacherBoardPage() {
       if (!file.type.startsWith("image/")) throw new Error(t("image.errors.imageOnly"));
       if (file.size > 8 * 1024 * 1024) throw new Error(t("image.errors.tooLarge"));
 
-      const fileRef = ref(storage, `board-images/${user.uid}/${spaceId}/${Date.now()}-${safeStorageName(file.name)}`);
-      await uploadBytes(fileRef, file, {
-        contentType: file.type,
-        cacheControl: "public,max-age=31536000",
-      });
-      const url = await getDownloadURL(fileRef);
+      const { imageUrl: url } = await uploadPrivateSpaceFile({ spaceId, activityId: "state", purpose: "board_image" }, file);
       await publishImageUrl(url);
       setImageToolMessage(t("image.uploaded"));
     } catch (e: unknown) {
@@ -882,6 +874,7 @@ export default function TeacherBoardPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          context: "space_board", spaceId,
           lessonId: `board-${spaceId}`,
           format: "16:9",
           style: "illustration",
@@ -1086,7 +1079,7 @@ export default function TeacherBoardPage() {
       const featuredId = featuredImageResponse?.id ?? null;
       const res = await fetch("/api/pdf/board-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
         body: JSON.stringify({
           data: {
             title: t("image.pdfTitle"),
@@ -1930,8 +1923,7 @@ export default function TeacherBoardPage() {
                   <div className="grid gap-0 bg-violet-50/25 lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)]">
                     <div className="border-b border-violet-100 p-3 lg:border-b-0 lg:border-r sm:p-5">
                       {boardImageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={boardImageUrl} alt="" className="aspect-video w-full rounded-2xl border border-violet-100 object-cover shadow-sm" />
+                        <ProtectedSpaceImage src={boardImageUrl} alt="" className="aspect-video w-full rounded-2xl border border-violet-100 object-cover shadow-sm" />
                       ) : (
                         <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed border-violet-200 bg-white text-center text-sm text-slate-500">
                           {t("image.noImage")}
@@ -2717,8 +2709,7 @@ function StudentScreenPreview({
           ) : mode === "image" ? (
             <div>
               {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageUrl} alt="" className={compact ? "mb-2 aspect-video w-full rounded-lg object-cover" : "mb-3 aspect-video w-full rounded-xl object-cover"} />
+                <ProtectedSpaceImage src={imageUrl} alt="" className={compact ? "mb-2 aspect-video w-full rounded-lg object-cover" : "mb-3 aspect-video w-full rounded-xl object-cover"} />
               ) : null}
               <div className={compact ? "line-clamp-2 text-sm font-semibold leading-snug" : "text-base font-semibold leading-snug"}>{imagePrompt}</div>
               <div className={compact ? "mt-3 truncate rounded-md border border-white/15 bg-white px-2 py-1.5 text-xs text-slate-400" : "mt-5 rounded-lg border border-white/15 bg-white px-3 py-2 text-sm text-slate-400"}>{t("studentPreview.imagePlaceholder")}</div>

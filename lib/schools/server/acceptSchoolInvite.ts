@@ -1,3 +1,4 @@
+import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -54,7 +55,7 @@ export async function acceptSchoolInvite(
   const lookup = inviteLookupField(input.token);
   const { db } = getAdmin();
 
-  return db.runTransaction(async (transaction) => {
+  return runCapacityTransaction(db, async (transaction) => {
     const inviteSnapshot = await transaction.get(
       schoolInvitesCollectionRef()
         .where(lookup.field, "==", lookup.hash)
@@ -72,7 +73,8 @@ export async function acceptSchoolInvite(
       ...(inviteDoc.data() as SchoolInviteDoc),
     };
 
-    if (invite.status !== "pending") {
+    // Administrator assignments belong exclusively to central administration.
+    if (invite.status !== "pending" || invite.role !== "school_teacher") {
       return {
         ok: false,
         reason: "invite_not_pending",
@@ -128,7 +130,7 @@ export async function acceptSchoolInvite(
       };
     }
 
-    if (!Number.isFinite(teacherSeatLimit) || teacherSeatLimit <= 0) {
+    if (!Number.isInteger(teacherSeatLimit) || teacherSeatLimit <= 0) {
       return {
         ok: false,
         reason: "invalid_seat_limit",
@@ -137,8 +139,7 @@ export async function acceptSchoolInvite(
       };
     }
 
-    // TODO: If invite acceptance becomes highly concurrent, consider a
-    // transactionally maintained teacher counter instead of query counting.
+    // The school document is written below, serializing all capacity changes.
     const activeTeachersSnapshot = await transaction.get(
       schoolMembersCollectionRef(invite.schoolId)
         .where("role", "==", "school_teacher")

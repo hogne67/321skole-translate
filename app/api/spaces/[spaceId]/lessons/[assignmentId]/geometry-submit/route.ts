@@ -1,3 +1,6 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { validateStoredStudentSubmission, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 // app\api\spaces\[spaceId]\lessons\[assignmentId]\geometry-submit\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -29,11 +32,14 @@ export async function POST(req: Request, context: RouteContext) {
     const idToken = authHeader.slice(7).trim();
     const { auth, db } = getAdmin();
 
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await auth.verifyIdToken(idToken, true);
     const uid = decoded.uid;
 
     const body = await req.json();
-    const { worksheet, answersByTaskId, auto, aiFeedback } = body ?? {};
+    if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(key => !["worksheet", "answersByTaskId", "auto"].includes(key))) {
+      return NextResponse.json({ error: "Protected or invalid submission field" }, { status: 403 });
+    }
+    const { worksheet, answersByTaskId, auto } = body;
 
     if (!spaceId || !assignmentId) {
       return NextResponse.json(
@@ -48,6 +54,9 @@ export async function POST(req: Request, context: RouteContext) {
         { status: 400 }
       );
     }
+
+    const access = await getSpaceAccess(db, spaceId, uid);
+    if (!access.active) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const lessonRef = db
       .collection("spaces")
@@ -66,32 +75,27 @@ export async function POST(req: Request, context: RouteContext) {
 
     const submissionRef = lessonRef.collection("submissions").doc(uid);
 
-    const existingSnap = await submissionRef.get();
     const now = new Date();
 
     const baseData = {
       spaceId,
       assignmentId,
       lessonId: assignmentId,
-      studentUid: uid,
       taskType: "math_geometry",
       status: "submitted",
       worksheet,
       answersByTaskId,
       auto: auto ?? null,
-      aiFeedback: aiFeedback ?? null,
       updatedAt: now,
       submittedAt: now,
     };
 
-    if (existingSnap.exists) {
-      await submissionRef.set(baseData, { merge: true });
-    } else {
-      await submissionRef.set({
-        ...baseData,
-        createdAt: now,
-      });
-    }
+    const identityContext = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId: uid, uid, participantId: access.participantId };
+    await db.runTransaction(async tx => {
+      const existing = await tx.get(submissionRef);
+      if (existing.exists) validateStoredStudentSubmission(existing.data(), identityContext);
+      tx.set(submissionRef, { ...baseData, ...retainedSubmissionIdentity(existing.data(), identityContext), ...(!existing.exists ? { createdAt: now } : {}) }, { merge: true });
+    });
 
     return NextResponse.json({
       ok: true,
@@ -102,7 +106,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     return NextResponse.json(
       { ok: false, error: "Failed to submit geometry to space" },
-      { status: 500 }
+      { status: err instanceof SubmissionWriteError ? err.status : (accountErrorStatus(err) ?? 500) }
     );
   }
 }

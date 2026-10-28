@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quizzes GET error:", error);
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -97,6 +98,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quizzes POST error:", error);
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

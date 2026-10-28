@@ -1,3 +1,5 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { createNotification } from "@/lib/createNotification";
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
 
         const { auth, db } = getAdmin();
 
-        await auth.verifyIdToken(token);
+        const decoded = await auth.verifyIdToken(token, true);
 
         const body = (await req.json()) as Body;
         const spaceId = body.spaceId?.trim();
@@ -54,6 +56,10 @@ export async function POST(req: Request) {
 
         if (!spaceId || !assignmentId || !subId) {
             return NextResponse.json({ ok: false, error: "missing_fields" }, { status: 400 });
+        }
+
+        if (!(await getSpaceAccess(db, spaceId, decoded.uid)).canTeach) {
+            return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
         }
 
         const subSnap = await db
@@ -97,6 +103,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true });
     } catch (error) {
         console.error("teacher feedback notification error", error);
-        return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
+        return NextResponse.json({ ok: false, error: "server_error" }, { status: (accountErrorStatus(error) ?? 500) });
     }
 }

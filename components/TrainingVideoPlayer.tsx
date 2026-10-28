@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ExternalLink, PlayCircle, X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import ExternalTrainingVideoNotice from "./ExternalTrainingVideoNotice";
 
 type TrainingVideoPlayerProps = {
   title: string;
@@ -18,7 +19,7 @@ type TrainingVideoPlayerProps = {
 };
 
 type VideoSource =
-  | { type: "youtube"; embedUrl: string; watchUrl: string }
+  | { type: "youtube"; watchUrl: string }
   | { type: "file"; src: string };
 
 function getYouTubeId(url: string): string | null {
@@ -50,9 +51,6 @@ function resolveVideoSource(videoUrl: string): VideoSource {
   if (youtubeId) {
     return {
       type: "youtube",
-      embedUrl: `https://www.youtube-nocookie.com/embed/${encodeURIComponent(
-        youtubeId
-      )}?autoplay=1&rel=0&modestbranding=1`,
       watchUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(youtubeId)}`,
     };
   }
@@ -74,8 +72,8 @@ export default function TrainingVideoPlayer({
 }: TrainingVideoPlayerProps) {
   const [open, setOpen] = React.useState(false);
   const source = React.useMemo(() => resolveVideoSource(videoUrl), [videoUrl]);
-  const youtubeId = React.useMemo(() => getYouTubeId(videoUrl), [videoUrl]);
-  const resolvedThumbnailUrl = thumbnailUrl ?? (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null);
+  // Do not request YouTube thumbnails, including caller-supplied ones.
+  const resolvedThumbnailUrl = source.type === "youtube" ? null : thumbnailUrl;
   const titleId = React.useId();
 
   React.useEffect(() => {
@@ -176,13 +174,7 @@ export default function TrainingVideoPlayer({
             <div className="bg-black">
               <div className="aspect-video w-full">
                 {source.type === "youtube" ? (
-                  <iframe
-                    className="h-full w-full"
-                    src={source.embedUrl}
-                    title={title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                  <ExternalTrainingVideoNotice href={source.watchUrl} title={title} />
                 ) : (
                   <video className="h-full w-full" src={source.src} controls autoPlay playsInline />
                 )}

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -100,7 +101,7 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not load partner messages" }, 500);
+    return json({ error: msg || "Could not load partner messages" }, (accountErrorStatus(e) ?? 500));
   }
 }
 
@@ -142,6 +143,6 @@ export async function POST(req: Request) {
     return json({ ok: true, id: communicationRef.id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not send partner reply" }, 500);
+    return json({ error: msg || "Could not send partner reply" }, (accountErrorStatus(e) ?? 500));
   }
 }

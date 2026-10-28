@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -83,6 +84,6 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not load partner focus" }, 500);
+    return json({ error: msg || "Could not load partner focus" }, (accountErrorStatus(e) ?? 500));
   }
 }

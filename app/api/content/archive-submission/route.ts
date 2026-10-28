@@ -1,8 +1,10 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getSpaceAccess, ownsSpaceSubmission } from "@/lib/security/spaceAccess.server";
 
 function json(data: unknown, status = 200) {
     return NextResponse.json(data, { status });
@@ -57,6 +59,13 @@ export async function POST(req: Request) {
             const snap = await ref.get();
 
             if (snap.exists) {
+                const data = snap.data() ?? {};
+                if (data.uid !== uid) return json({ error: "Forbidden" }, 403);
+                if (ref.parent.id === "spaceSubmissions" || typeof data.spaceId === "string") {
+                    if (typeof data.spaceId !== "string" || data.spaceId.includes("/")) return json({ error: "Forbidden" }, 403);
+                    const access = await getSpaceAccess(db, data.spaceId, uid);
+                    if (!access.canRead || !ownsSpaceSubmission(data, uid, access.participantId)) return json({ error: "Forbidden" }, 403);
+                }
                 foundRef = ref;
                 break;
             }
@@ -82,7 +91,7 @@ export async function POST(req: Request) {
             {
                 error: e instanceof Error ? e.message : "Archive failed",
             },
-            500
+            (accountErrorStatus(e) ?? 500)
         );
     }
 }

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -154,6 +155,6 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof CourseFullError) return json({ code: "course_full", error: "Course is full" }, 409);
     const message = error instanceof Error ? error.message : "Could not update request";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

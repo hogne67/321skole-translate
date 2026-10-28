@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
   const { auth, db } = getAdmin();
   let uid: string;
   try { uid = (await auth.verifyIdToken(token)).uid; }
-  catch { return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }); }
+  catch (accountError) { return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: (accountErrorStatus(accountError) ?? 401) }); }
   try {
     const body = await req.json();
     const worksheet = sanitizeMeasurementWorksheet(body?.worksheet);
@@ -27,6 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, id: ref.id });
   } catch (error) {
     console.error("save-measurement-worksheet failed", error);
-    return NextResponse.json({ ok: false, error: "Save failed" }, { status: error instanceof SyntaxError ? 400 : 500 });
+    return NextResponse.json({ ok: false, error: "Save failed" }, { status: error instanceof SyntaxError ? 400 : (accountErrorStatus(error) ?? 500) });
   }
 }

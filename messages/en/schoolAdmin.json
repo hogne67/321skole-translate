@@ -1,5 +1,23 @@
 {
   "schoolAdmin": {
+    "productAnalytics": {
+      "title": "Product analytics is disabled",
+      "description": "Google Analytics and our own product analytics events are disabled for all users and surfaces, including before sign-in. There is no switch to enable analytics.",
+      "necessaryLogging": "Necessary operational and security logging, quota accounting and teaching statistics remain. These are separate from product analytics."
+    },
+    "aggregate": {
+  "description": "This overview shows administrative totals. Pupil statistics are shown only for sufficiently large groups, as broad ranges.",
+  "submissions": "Submissions",
+  "title": "School-wide statistics",
+  "myTeachingSpaces": "My teaching rooms",
+  "spaces": "Number of Spaces",
+  "activities": "Number of activities",
+  "suppressed": "Hidden for privacy or insufficient data.",
+  "current": "Current total",
+  "teachers": "Active teachers",
+  "period": "Submissions cover the completed month: {month}.",
+  "spacesDescription": "School administration shows the total number of rooms. Open your own teaching rooms through your regular teacher access."
+},
     "nav": {
       "overview": "Home",
       "teachers": "Teachers",

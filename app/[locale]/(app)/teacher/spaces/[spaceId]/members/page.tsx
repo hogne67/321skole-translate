@@ -1,11 +1,13 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/members/page.tsx
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import TeacherPupilPicker from "@/components/TeacherPupilPicker";
+import SpaceAccessRequests, { type SpaceAccessRequest } from "@/components/SpaceAccessRequests";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "firebase/firestore";
@@ -169,6 +171,7 @@ function Inner() {
   const [spaceCode, setSpaceCode] = useState<string | null>(null);
   const [canManageStaff, setCanManageStaff] = useState(false);
   const [rows, setRows] = useState<MemberRow[]>([]);
+  const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
   const [search, setSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [singleRole, setSingleRole] = useState<"student" | "co_teacher" | "observer">("student");
@@ -237,7 +240,7 @@ function Inner() {
       .then((snap) => {
         const data = snap.data();
         const title = data && isRecord(data) ? safeString(data["title"]) : null;
-        const ownerId = data && isRecord(data) ? safeString(data["ownerId"]) || safeString(data["ownerUid"]) : null;
+        const ownerId = getSpaceOwnerUid(data);
         if (title) setSpaceTitle(title);
         setSpaceCode(readSpaceCode(data));
         setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
@@ -263,9 +266,12 @@ function Inner() {
           const raw = d.data();
           const data: MemberData = isRecord(raw) ? (raw as MemberData) : {};
           return { id: d.id, data };
-        })
-        .filter((row) => row.data.active !== false && String(row.data.status ?? "").toLowerCase() !== "removed");
-      setRows(next);
+        });
+      setAccessRequests(next.filter(row => row.data.status === "pending_approval").map(row => ({
+        id: row.id, isAnon: row.data.isAnon === true,
+        name: next.find(other => other.data.participantId === row.data.participantId && other.data.displayName)?.data.displayName ?? "",
+      })));
+      setRows(next.filter((row) => row.data.active !== false && String(row.data.status ?? "").toLowerCase() !== "removed"));
     });
   }, [spaceId, user?.uid]);
 
@@ -756,6 +762,7 @@ function Inner() {
         </section>
       ) : null}
 
+      {canManageStaff && user && spaceId ? <SpaceAccessRequests spaceId={spaceId} user={user} requests={accessRequests} /> : null}
       <section id="manage-students" aria-labelledby="manage-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border bg-white p-4 shadow-sm">
         <h2 id="manage-students-heading" className="mb-1 text-lg font-semibold">{t("sections.manageTitle")}</h2>
         <p className="mb-4 text-sm text-slate-600">{t("sections.manageDescription")}</p>

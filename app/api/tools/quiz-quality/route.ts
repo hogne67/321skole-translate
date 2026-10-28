@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import OpenAI from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
@@ -225,6 +226,7 @@ export async function POST(req: Request) {
         `Return JSON only: {"items":[{"index":0,"status":"ready|check_fact|improve_language|multiple_answers","note":"short note","suggestedQuestion":"optional","suggestedExplanation":"optional"}]}`;
 
       const response = await client.responses.create({
+        store: false,
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         text: { format: { type: "json_object" } },
         temperature: 0.1,
@@ -271,6 +273,7 @@ export async function POST(req: Request) {
       `- Return JSON only: {"question":{"type":"multiple_choice|true_false","question":"string","options":["string"],"correctIndex":0,"explanation":"string","seconds":30}}`;
 
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       temperature: 0.15,
@@ -295,6 +298,6 @@ export async function POST(req: Request) {
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quiz-quality route error:", error);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

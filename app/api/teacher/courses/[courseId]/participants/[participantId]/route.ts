@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -132,7 +133,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof CourseFullError) return json({ code: "course_full", error: "Course is full" }, 409);
     const message = error instanceof Error ? error.message : "Could not update participant";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -157,6 +158,6 @@ export async function DELETE(
     return json({ participantId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not delete participant";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

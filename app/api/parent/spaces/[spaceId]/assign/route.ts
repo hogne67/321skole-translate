@@ -1,9 +1,10 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/parent/spaces/[spaceId]/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { getAdminApp } from "@/lib/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { getAdmin } from "@/lib/firebaseAdmin";
 
 type AssignBody = {
   sourceType?: string;
@@ -109,9 +110,7 @@ export async function POST(
       );
     }
 
-    const app = getAdminApp();
-    const adminAuth = getAuth(app);
-    const adminDb = getFirestore(app);
+    const { auth: adminAuth, db: adminDb } = getAdmin();
 
     const decoded = await adminAuth.verifyIdToken(token);
     const uid = decoded.uid;
@@ -147,10 +146,9 @@ export async function POST(
     }
 
     const spaceData = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-    const ownerId = safeString(spaceData.ownerId);
     const kind = safeString(spaceData.kind);
 
-    if (role !== "admin" && ownerId !== uid) {
+    if (role !== "admin" && !(await getSpaceAccess(adminDb, spaceId, uid)).owner) {
       return NextResponse.json(
         { error: "You do not own this parent space." },
         { status: 403 }
@@ -239,7 +237,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }

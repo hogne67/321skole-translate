@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { Timestamp } from "firebase-admin/firestore";
@@ -105,7 +106,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load support tickets";
-    const status = message.includes("No access") ? 403 : message.includes("Authorization") ? 401 : 500;
+    const status = message.includes("No access") ? 403 : message.includes("Authorization") ? 401 : (accountErrorStatus(error) ?? 500);
     return json({ error: message }, status);
   }
 }

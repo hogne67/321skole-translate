@@ -2,6 +2,9 @@
 
 import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import SchoolWelcome from "./SchoolWelcome";
+import ProductAnalyticsStatus from "./ProductAnalyticsStatus";
+import SchoolStatisticsCards from "./SchoolStatisticsCards";
+import type { SchoolStatistics } from "@/lib/schools/server/aggregateStatistics";
 import SchoolNav from "@/components/school/SchoolNav";
 import "./schoolAdmin.css";
 import { useLocale, useTranslations } from "next-intl";
@@ -24,20 +27,7 @@ type SchoolSummary = {
   activeTeacherCount?: number;
   pendingTeacherInviteCount?: number;
   teacherSeatLimit?: number;
-  usageStats?: {
-    activeTeachersLast30Days?: number;
-    latestTeacherLoginAt?: string | null;
-    totalStudentCount?: number;
-    activeStudentsLast30Days?: number;
-    totalSpaceCount?: number;
-    activeSpacesLast30Days?: number;
-    assignmentsLast30Days?: number;
-    submissionsLast30Days?: number;
-    aiFeedbackThisMonth?: number;
-    premiumGeneratorsThisMonth?: number;
-    imageGenerationThisMonth?: number;
-    downloadsThisMonth?: number;
-  };
+  usageStats?: SchoolStatistics;
 };
 
 type LoadState = "idle" | "loading" | "success" | "error";
@@ -133,26 +123,10 @@ export default function SchoolDashboard({ view = "overview" }: { view?: "overvie
       : 0;
   const isLicenseFull = teacherSeatLimit > 0 && committedTeacherSeats >= teacherSeatLimit;
   const isAlmostFull = !isLicenseFull && teacherSeatLimit > 0 && seatsRemaining <= 1;
-  const activeTeachersLast30Days = summary?.usageStats?.activeTeachersLast30Days ?? 0;
-  const totalStudentCount = summary?.usageStats?.totalStudentCount ?? 0;
-  const activeStudentsLast30Days = summary?.usageStats?.activeStudentsLast30Days ?? 0;
-  const totalSpaceCount = summary?.usageStats?.totalSpaceCount ?? 0;
-  const activeSpacesLast30Days = summary?.usageStats?.activeSpacesLast30Days ?? 0;
-  const assignmentsLast30Days = summary?.usageStats?.assignmentsLast30Days ?? 0;
-  const submissionsLast30Days = summary?.usageStats?.submissionsLast30Days ?? 0;
-  const aiFeedbackThisMonth = summary?.usageStats?.aiFeedbackThisMonth ?? 0;
-  const premiumGeneratorsThisMonth = summary?.usageStats?.premiumGeneratorsThisMonth ?? 0;
-  const imageGenerationThisMonth = summary?.usageStats?.imageGenerationThisMonth ?? 0;
-  const downloadsThisMonth = summary?.usageStats?.downloadsThisMonth ?? 0;
-  const latestTeacherLoginAt = formatDateTime(
-    summary?.usageStats?.latestTeacherLoginAt,
-    locale,
-    t("overview.noLoginData")
-  );
-
   return (
     <main style={styles.page}>
       <SchoolNav locale={locale} active={view} />
+      <ProductAnalyticsStatus />
 
       {view !== "overview" ? (
         <section style={styles.header}>
@@ -232,74 +206,7 @@ export default function SchoolDashboard({ view = "overview" }: { view?: "overvie
             ) : null}
           </section> : null}
 
-          {view === "statistics" ? <>
-          <section style={styles.card}>
-            <h2 style={styles.sectionTitle}>{t("overview.usageStats")}</h2>
-            <p style={styles.mutedCompact}>{t("overview.usageStatsText")}</p>
-
-            <div style={styles.metricGrid}>
-              <MetricItem
-                label={t("overview.activeTeachersMetric")}
-                value={String(activeTeachersLast30Days)}
-                helper={t("overview.activeTeachersMetricHelp", { total: activeTeacherCount })}
-              />
-              <MetricItem
-                label={t("overview.activeStudentsMetric")}
-                value={String(activeStudentsLast30Days)}
-                helper={t("overview.activeStudentsMetricHelp", { total: totalStudentCount })}
-              />
-              <MetricItem
-                label={t("overview.activeSpacesMetric")}
-                value={String(activeSpacesLast30Days)}
-                helper={t("overview.activeSpacesMetricHelp", { total: totalSpaceCount })}
-              />
-              <MetricItem
-                label={t("overview.assignmentsMetric")}
-                value={String(assignmentsLast30Days)}
-                helper={t("overview.last30Days")}
-              />
-              <MetricItem
-                label={t("overview.submissionsMetric")}
-                value={String(submissionsLast30Days)}
-                helper={t("overview.last30Days")}
-              />
-              <MetricItem
-                label={t("overview.latestTeacherLogin")}
-                value={latestTeacherLoginAt}
-                helper={t("overview.latestTeacherLoginHelp")}
-              />
-            </div>
-          </section>
-
-          <section style={styles.card}>
-            <h2 style={styles.sectionTitle}>{t("overview.toolUsage")}</h2>
-            <p style={styles.mutedCompact}>{t("overview.toolUsageText")}</p>
-
-            <div style={styles.metricGrid}>
-              <MetricItem
-                label={t("overview.aiFeedbackMetric")}
-                value={String(aiFeedbackThisMonth)}
-                helper={t("overview.thisMonth")}
-              />
-              <MetricItem
-                label={t("overview.premiumGeneratorsMetric")}
-                value={String(premiumGeneratorsThisMonth)}
-                helper={t("overview.thisMonth")}
-              />
-              <MetricItem
-                label={t("overview.imageGenerationMetric")}
-                value={String(imageGenerationThisMonth)}
-                helper={t("overview.thisMonth")}
-              />
-              <MetricItem
-                label={t("overview.downloadsMetric")}
-                value={String(downloadsThisMonth)}
-                helper={t("overview.thisMonth")}
-              />
-            </div>
-          </section>
-
-          </> : null}
+          {view === "statistics" ? <SchoolStatisticsCards statistics={summary.usageStats} teachers={activeTeacherCount} /> : null}
           {view === "license" ? <section style={styles.card}>
             <h2 style={styles.sectionTitle}>{t("overview.licenseDetails")}</h2>
             <p style={styles.mutedCompact}>{t("overview.detailsText")}</p>
@@ -321,21 +228,6 @@ export default function SchoolDashboard({ view = "overview" }: { view?: "overvie
 function formatValue(value?: string | null) {
   if (!value) return "-";
   return value.replaceAll("_", " ");
-}
-
-function formatDateTime(value: string | null | undefined, locale: string, fallback: string) {
-  if (!value) return fallback;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-
-  return new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
 }
 
 function formatSeatsRemaining(
@@ -371,16 +263,6 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div style={styles.infoItem}>
       <div style={styles.infoLabel}>{label}</div>
       <div style={styles.infoValue}>{value}</div>
-    </div>
-  );
-}
-
-function MetricItem({ label, value, helper }: { label: string; value: string; helper: string }) {
-  return (
-    <div style={styles.metricItem}>
-      <div style={styles.metricLabel}>{label}</div>
-      <div style={{ ...styles.metricValue, fontSize: value.length > 20 ? 16 : 22 }}>{value}</div>
-      <div style={styles.metricHelper}>{helper}</div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app\api\generate-math-worksheet\route.ts
 import { NextResponse } from "next/server";
 import { buildHint, buildFormula } from "@/lib/math/geometry/displayOptions";
@@ -1057,6 +1058,6 @@ export async function POST(req: Request) {
     const message =
       error instanceof Error ? error.message : "Failed to generate worksheet";
 
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

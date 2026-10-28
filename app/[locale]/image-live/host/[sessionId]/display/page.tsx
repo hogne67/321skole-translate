@@ -351,7 +351,7 @@ export default function ImageActivityDisplayPage() {
     try {
       const response = await fetch("/api/pdf/board-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
         body: JSON.stringify({
           data: {
             title: session.prompt || copy.fallbackTitle,

@@ -15,6 +15,8 @@ import {
   resolveStudentAudioForPlayback,
   type StudentAudioAsset,
 } from "@/lib/audio/studentAudio";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { authedPost } from "@/lib/authedPost";
 import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/podcastSoundLibrary";
 
@@ -135,28 +137,29 @@ function hasVoiceAudio(voice: StudentAudioAsset | null | undefined) {
 }
 
 function useResolvedAudioAsset(asset: StudentAudioAsset | null) {
-  const [resolved, setResolved] = useState<StudentAudioAsset | null>(asset);
+  const [actor, setActor] = useState(auth.currentUser);
+  const [resolved, setResolved] = useState<{ source: StudentAudioAsset; actor: typeof actor; value: StudentAudioAsset | null } | null>(null);
+  useEffect(() => onAuthStateChanged(auth, setActor), []);
+  const fallback = asset?.storagePath ? { ...asset, audioDataUrl: undefined } : asset;
 
   useEffect(() => {
     let alive = true;
-    setResolved(asset);
-
-    if (asset?.storagePath && !asset.audioDataUrl) {
+    if (asset?.storagePath) {
       void resolveStudentAudioForPlayback(asset)
         .then((next) => {
-          if (alive) setResolved(next);
+          if (alive && auth.currentUser === actor) setResolved({ source: asset, actor, value: next });
         })
         .catch(() => {
-          if (alive) setResolved(asset);
+          if (alive) setResolved({ source: asset, actor, value: { ...asset, audioDataUrl: undefined } });
         });
     }
 
     return () => {
       alive = false;
     };
-  }, [asset]);
+  }, [asset, actor]);
 
-  return resolved;
+  return resolved?.source === asset && resolved.actor === actor ? resolved.value : fallback;
 }
 
 function getVoiceDuration(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
@@ -2247,22 +2250,28 @@ function PodcastFullPlayback({
   t: TFn;
 }) {
   const [playing, setPlaying] = useState(false);
+  const [playbackFailed, setPlaybackFailed] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const cancelledRef = useRef(false);
-  const segments = getPodcastWorkshopSegments(config, value);
+  const runRef = useRef(0);
+  const cancelAudioRef = useRef<(() => void) | null>(null);
   const segmentsWithAudio = getVoiceSegments(config, value);
   const totalSeconds = getPodcastDuration(config, value);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
+    const playbackRun = runRef;
+    setPlaying(false);
+    setElapsedSeconds(0);
     return () => {
+      playbackRun.current++; cancelledRef.current = true; cancelAudioRef.current?.();
       playerRef.current?.pause();
       playerRef.current = null;
     };
-  }, []);
+  }, [value]);
 
   function stopPlayback() {
-    cancelledRef.current = true;
+    cancelledRef.current = true; runRef.current++; cancelAudioRef.current?.();
     playerRef.current?.pause();
     playerRef.current = null;
     setPlaying(false);
@@ -2270,15 +2279,19 @@ function PodcastFullPlayback({
   }
 
   async function playAudioUrl(url: string, offsetSeconds: number) {
-    return new Promise<void>((resolve) => {
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
       const audio = new Audio(url);
       playerRef.current = audio;
       audio.ontimeupdate = () => {
         setElapsedSeconds(Math.min(totalSeconds, offsetSeconds + audio.currentTime));
       };
-      audio.onended = () => resolve();
-      audio.onerror = () => resolve();
-      void audio.play();
+      const finish = (ok: boolean) => { if (settled) return; settled = true; cancelAudioRef.current = null; resolve(ok); };
+      cancelAudioRef.current = () => finish(false);
+      audio.onended = () => finish(true);
+      audio.onerror = () => finish(false);
+      audio.onabort = () => finish(false);
+      void audio.play().catch(() => finish(false));
     });
   }
 
@@ -2290,41 +2303,39 @@ function PodcastFullPlayback({
 
     if (segmentsWithAudio.length === 0) return;
 
+    const actor = auth.currentUser;
+    const run = ++runRef.current;
+    const isCancelled = () => cancelledRef.current || runRef.current !== run;
     cancelledRef.current = false;
     setPlaying(true);
     setElapsedSeconds(0);
-    await playPodcastSound(value.productionMix.introSoundId);
-    let elapsed = getSoundDuration(value.productionMix.introSoundId);
-    setElapsedSeconds(Math.min(totalSeconds, elapsed));
-    for (let index = 0; index < segments.length; index += 1) {
-      if (cancelledRef.current) break;
-      const segment = segments[index];
-      const voice = value.productionSegments[segment.id]?.voice ?? null;
-      const playableVoice = await resolveStudentAudioForPlayback(voice).catch(() => voice);
-      const url = playableVoice?.audioDataUrl;
-      if (url) {
-        await playAudioUrl(url, elapsed);
-        elapsed += playableVoice.durationSeconds;
+    setPlaybackFailed(false);
+    try {
+      await playPodcastSound(value.productionMix.introSoundId);
+      let elapsed = getSoundDuration(value.productionMix.introSoundId);
+      for (const segment of segmentsWithAudio) {
+        if (isCancelled()) return;
+        if (auth.currentUser !== actor) throw new Error("Audio session changed");
+        const voice = value.productionSegments[segment.id]?.voice ?? null;
+        const playable = await resolveStudentAudioForPlayback(voice);
+        if (isCancelled()) return;
+        if (!playable?.audioDataUrl || !await playAudioUrl(playable.audioDataUrl, elapsed)) throw new Error("Audio playback failed");
+        elapsed += playable.durationSeconds;
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
+        if (isCancelled()) return;
+        if (segment !== segmentsWithAudio[segmentsWithAudio.length - 1]) {
+          const soundId = getTransitionSoundId(value, segment.id);
+          await playPodcastSound(soundId); elapsed += getSoundDuration(soundId);
+        }
       }
-      const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
-        return hasVoiceAudio(value.productionSegments[nextSegment.id]?.voice);
-      });
-      if (!cancelledRef.current && hasNextVoice) {
-        const transitionSoundId = getTransitionSoundId(value, segment.id);
-        await playPodcastSound(transitionSoundId);
-        elapsed += getSoundDuration(transitionSoundId);
-        setElapsedSeconds(Math.min(totalSeconds, elapsed));
+      if (!isCancelled()) await playPodcastSound(value.productionMix.outroSoundId);
+    } catch {
+      if (!isCancelled()) setPlaybackFailed(true);
+    } finally {
+      if (runRef.current === run) {
+        playerRef.current?.pause(); playerRef.current = null;
+        setPlaying(false); setElapsedSeconds(0);
       }
-    }
-    if (!cancelledRef.current) {
-      await playPodcastSound(value.productionMix.outroSoundId);
-      elapsed += getSoundDuration(value.productionMix.outroSoundId);
-      setElapsedSeconds(Math.min(totalSeconds, elapsed));
-    }
-    if (!cancelledRef.current) {
-      setPlaying(false);
-      window.setTimeout(() => setElapsedSeconds(0), 700);
     }
   }
 
@@ -2344,6 +2355,7 @@ function PodcastFullPlayback({
       >
         {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
       </button>
+      {playbackFailed ? <p role="alert">{t("podcastWorkshop.playbackFailed")}</p> : null}
       <div className="podcastPlaybackProgress" aria-hidden="true">
         <div style={{ width: `${progressPercent}%` }} />
       </div>

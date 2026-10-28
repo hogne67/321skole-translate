@@ -67,7 +67,7 @@
         "linkCopied": "Student link copied.",
         "linkUnavailable": "Could not create student link because the space code is missing.",
         "copyFailed": "Could not copy student code.",
-        "updated": "Student code {code} is ready.",
+        "updated": "Student code {code} is ready. Existing access is retained. Use “Remove from space” to revoke access.",
         "updateFailed": "Could not update student code."
       }
     },
@@ -111,6 +111,19 @@
       "addDescription": "Create new pupils or add pupils you already have in other rooms.",
       "manageTitle": "Manage pupils",
       "manageDescription": "View the pupil list, edit names and manage pupil codes and room access."
+    },
+    "approval": {
+      "title": "Participant access requests",
+      "description": "Approve only after checking who the request is for. Ask the participant to show the confirmation code on their screen.",
+      "codeLabel": "Confirmation code from the participant (6 digits)",
+      "approve": "Approve access",
+      "reject": "Reject",
+      "wrongCode": "The code does not match. Check the code on the participant’s screen.",
+      "expired": "The request has expired. Ask the participant to send a new one.",
+      "failed": "The request could not be processed. Refresh the list and try again.",
+      "unknown": "Unknown participant",
+      "anonymous": "New anonymous sign-in",
+      "account": "New personal sign-in"
     }
   }
 }

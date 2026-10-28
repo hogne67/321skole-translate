@@ -232,6 +232,7 @@
       "recordAgain": "Gravar novamente",
       "recordingControlsHint": "Quando a gravação começar, aparecerão os controles de pausar e parar.",
       "noVoiceRecording": "Ainda não há gravação de voz. Vá para o estúdio e grave esta parte.",
+      "playbackFailed": "A reprodução foi interrompida. Não foi possível carregar ou reproduzir uma gravação.",
       "audioSaved": "A gravação foi salva e pode ser reproduzida depois do envio.",
       "productionControlTitle": "Produção",
       "playFullPodcast": "Reproduzir podcast inteiro",

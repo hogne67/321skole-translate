@@ -1,4 +1,7 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
+import { isActiveSpaceMember, isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 
 import { FieldValue } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
@@ -62,22 +65,12 @@ async function canTeachInSpace(params: {
 
   const spaceSnap = await db.collection("spaces").doc(spaceId).get();
   if (!spaceSnap.exists) return false;
-  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-  if (safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid) return true;
+  if ((await getSpaceAccess(db, spaceId, uid)).owner) return true;
 
   const memberSnap = await db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get();
   if (!memberSnap.exists) return false;
   const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
-  const role = safeString(member.role);
-  const staffRole = safeString(member.staffRole);
-  const status = safeString(member.status).toLowerCase();
-
-  return (
-    member.archived !== true &&
-    member.active !== false &&
-    status !== "removed" &&
-    (role === "teacher" || role === "co_teacher" || staffRole === "co_teacher" || staffRole === "substitute")
-  );
+  return isSpaceTeachingMember(member);
 }
 
 async function findStudentByCode(db: Firestore, spaceId: string, studentCode: string) {
@@ -90,14 +83,11 @@ async function findStudentByCode(db: Firestore, spaceId: string, studentCode: st
   if (snap.empty) return null;
   const docSnap = snap.docs[0];
   const data = (docSnap.data() ?? {}) as Record<string, unknown>;
-  const status = safeString(data.status).toLowerCase();
 
   if (
     safeString(data.spaceId) !== spaceId ||
     safeString(data.role) !== "student" ||
-    data.archived === true ||
-    data.active === false ||
-    status === "removed"
+    !isActiveSpaceMember(data)
   ) {
     return null;
   }
@@ -174,6 +164,6 @@ export async function POST(req: Request, ctx: RouteContext) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not link submission.";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

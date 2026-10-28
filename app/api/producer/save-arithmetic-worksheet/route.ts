@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -156,7 +157,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error ? error.message : "Failed to save worksheet",
       },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }

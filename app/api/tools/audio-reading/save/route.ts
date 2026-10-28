@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -110,6 +111,6 @@ export async function POST(req: Request) {
     return json({ ok: true, id: lessonRef.id }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to save audio reading activity.";
-    return json({ ok: false, error: message }, 500);
+    return json({ ok: false, error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

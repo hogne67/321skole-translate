@@ -1,5 +1,6 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/page.tsx
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
+import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import SpaceAdministration from "@/components/SpaceAdministration";
 import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 import { useLocale, useTranslations } from "next-intl";
@@ -90,14 +92,7 @@ function readIsAdmin(profile: unknown): boolean {
   return roles["admin"] === true;
 }
 
-function readActiveSchoolAdminId(profile: unknown): string | null {
-  if (!isRecord(profile)) return null;
-  return profile["schoolRole"] === "school_admin" &&
-    profile["schoolStatus"] === "active" &&
-    typeof profile["schoolId"] === "string"
-    ? profile["schoolId"]
-    : null;
-}
+
 
 function getErrorInfo(err: unknown): { code?: string; message: string } {
   if (err instanceof Error) return { message: err.message };
@@ -197,7 +192,6 @@ function Inner() {
   const spaceId = params.spaceId;
 
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
-  const schoolAdminId = useMemo(() => readActiveSchoolAdminId(profile), [profile]);
   const canOperateSpace = accessAllowedGuard(user?.uid);
 
   const [space, setSpace] = useState<SpaceDocSafe | null>(null);
@@ -253,18 +247,9 @@ function Inner() {
           return;
         }
 
-        const ownerId = space.ownerId;
-        if (typeof ownerId === "string" && ownerId === user.uid) {
+        if (getSpaceOwnerUid(space) === user.uid) {
           if (!alive) return;
           setSpaceStaffRole(null);
-          setAccess("allowed");
-          return;
-        }
-
-        const spaceSchoolId = typeof space.schoolId === "string" ? space.schoolId : "";
-        if (schoolAdminId && spaceSchoolId === schoolAdminId) {
-          if (!alive) return;
-          setSpaceStaffRole("school_admin");
           setAccess("allowed");
           return;
         }
@@ -273,7 +258,7 @@ function Inner() {
         const ms = await getDoc(doc(db, "spaceMembers", memberDocId));
         if (!alive) return;
 
-        if (ms.exists()) {
+        if (ms.exists() && isSpaceTeachingMember(ms.data())) {
           const member = ms.data() as { role?: unknown; staffRole?: unknown };
           setSpaceStaffRole(
             typeof member.staffRole === "string"
@@ -299,7 +284,7 @@ function Inner() {
     return () => {
       alive = false;
     };
-  }, [loading, user?.uid, isAdmin, schoolAdminId, spaceId, space, t]);
+  }, [loading, user?.uid, isAdmin, spaceId, space, t]);
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -562,8 +547,7 @@ function Inner() {
   const isSpaceOwnerNow = Boolean(
     user?.uid &&
       space &&
-      ((typeof space.ownerId === "string" && space.ownerId === user.uid) ||
-        (typeof space.ownerUid === "string" && space.ownerUid === user.uid))
+      getSpaceOwnerUid(space) === user.uid
   );
   const canControlSpace = access === "allowed" && Boolean(user?.uid) && (isAdmin || isSpaceOwnerNow);
   const canManage =
@@ -574,8 +558,7 @@ function Inner() {
       isSpaceOwnerNow ||
       spaceStaffRole === "co_teacher" ||
       spaceStaffRole === "substitute" ||
-      spaceStaffRole === "teacher" ||
-      spaceStaffRole === "school_admin");
+      spaceStaffRole === "teacher");
 
   return (
     <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">

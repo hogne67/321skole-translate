@@ -10,7 +10,7 @@
       "studentCode": {
         "label": "Student code",
         "placeholder": "e.g. S7K4P",
-        "tip": "Use the student code from your teacher to open the right student and continue on a new device. Forgotten your student code? Ask your teacher."
+        "tip": "Use the student code from your teacher. Your teacher must approve a new sign-in before it can access earlier work."
       }
     },
     "actions": {
@@ -34,7 +34,9 @@
       "identityConflict": "This pupil code has conflicting records. Ask your teacher for help.",
       "missingPupilName": "Your teacher must register a name before this code can be used.",
       "accessRevoked": "This access has been revoked. Contact your teacher.",
-      "roomUnavailable": "This room is archived and cannot be opened with a pupil code."
+      "roomUnavailable": "This room is archived and cannot be opened with a pupil code.",
+      "managerAccount": "This sign-in manages the space. Sign out or use another browser profile to request student access.",
+      "requestChanged": "The request has already been processed or changed. Check access again."
     },
     "confirmation": {
       "identity": "You are entering as {name} in {room}.",
@@ -52,6 +54,19 @@
       "logoutConfirm": "You will be signed out of this browser. Your answers are kept. The next pupil must use their own pupil code or link.",
       "loggingOut": "Signing out…",
       "signedOut": "You are signed out. The next pupil can use their own pupil code or link. Forgotten your pupil code? Ask your teacher."
+    },
+    "approval": {
+      "title": "Your teacher must approve access",
+      "description": "Send a request before this sign-in can be used for the participant. Existing work is preserved.",
+      "waiting": "Show the confirmation code to your teacher. You can continue after approval.",
+      "expired": "This request has expired. Send a new request and show the new code to your teacher.",
+      "codeLabel": "Confirmation code for your teacher",
+      "request": "Ask your teacher for access",
+      "check": "Check approval",
+      "rejected": "Your teacher rejected the request. Talk to your teacher before sending a new one.",
+      "cancelled": "The request was cancelled. You can send a new one when ready.",
+      "replace": "Another request exists for this sign-in. Send a new request for the code you have now selected.",
+      "renew": "Send new request"
     }
   }
 }

@@ -120,6 +120,7 @@ Antall:
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const resp = await client.responses.create({
+      store: false,
       model,
       input: [
         { role: "system", content: system },

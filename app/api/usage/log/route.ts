@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -202,11 +203,7 @@ export async function POST(req: Request) {
         });
         const limit = getBucketLimit(role, plan, bucket as QuotaBucket, { studentAccessMode });
 
-        const contentId = readString(body.contentId);
-        const contentType = readString(body.contentType, "unknown");
-        const source = readString(body.source, "unknown");
-        const path = readString(body.path);
-
+        // Operational quota ledger only; do not retain product-navigation details.
         const usageRef = firestore
             .collection("users")
             .doc(uid)
@@ -248,10 +245,6 @@ export async function POST(req: Request) {
                 feature,
                 bucket,
                 amount,
-                contentId,
-                contentType,
-                source,
-                path,
                 monthId,
                 createdAt: FieldValue.serverTimestamp(),
             });
@@ -298,7 +291,7 @@ export async function POST(req: Request) {
                 error: "Usage logging failed",
                 details: e instanceof Error ? e.message : String(e),
             },
-            500
+            (accountErrorStatus(e) ?? 500)
         );
     }
 }

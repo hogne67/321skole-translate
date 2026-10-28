@@ -559,7 +559,7 @@ export default function StudentSpaceDetailPage() {
         const queries = [
           {
             key: "uid",
-            qy: query(collection(dbx, "spaceSubmissions"), where("uid", "==", uid), limit(200)),
+            qy: query(collection(dbx, "spaceSubmissions"), where("spaceId", "==", spaceId), where("uid", "==", uid), limit(200)),
           },
         ];
 

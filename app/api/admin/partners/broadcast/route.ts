@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -138,7 +139,7 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not load broadcast audience" }, 500);
+    return json({ error: msg || "Could not load broadcast audience" }, (accountErrorStatus(e) ?? 500));
   }
 }
 
@@ -216,6 +217,6 @@ export async function POST(req: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not send partner broadcast" }, 500);
+    return json({ error: msg || "Could not send partner broadcast" }, (accountErrorStatus(e) ?? 500));
   }
 }

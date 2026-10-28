@@ -1,3 +1,4 @@
+import { PLANNER_PAUSED } from "@/lib/planner/availability";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -75,7 +76,7 @@ export default async function SchoolsLandingPage() {
         <>
           <HeroSection locale={locale} />
           <SchoolValueSection locale={locale} />
-          <YearPlansSection locale={locale} />
+          {!PLANNER_PAUSED && <YearPlansSection locale={locale} />}
           <SpacesActivitiesSection locale={locale} />
           <OrderCtaSection locale={locale} />
           <SchoolInfoLinksSection locale={locale} />
@@ -287,7 +288,9 @@ function SchoolValueSection(props: { locale: string }) {
             </h2>
 
             <p className="mt-4 max-w-xl text-base text-slate-100/85 md:mt-5 md:text-xl">
-              Ferdige opplegg, årsplaner og oppfølging samlet på ett sted.
+              {PLANNER_PAUSED
+              ? "Ferdige opplegg og oppfølging samlet på ett sted."
+              : "Ferdige opplegg, årsplaner og oppfølging samlet på ett sted."}
               Enkelt for lærere, assistenter og vikarer, med lave kostnader for
               skolen.
             </p>

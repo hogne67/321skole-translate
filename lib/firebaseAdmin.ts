@@ -1,5 +1,6 @@
 // lib/firebaseAdmin.ts
 import "server-only";
+import { accountCheckedAuth } from "@/lib/security/accountAccess.server";
 
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
@@ -106,7 +107,7 @@ export function getAdmin(): { auth: Auth; db: Firestore; storage: Storage } {
   const app = ensureAdminApp();
 
   return {
-    auth: getAuth(app),
+    auth: accountCheckedAuth(getAuth(app), getFirestore(app)),
     db: getFirestore(app),
     storage: getStorage(app),
   };

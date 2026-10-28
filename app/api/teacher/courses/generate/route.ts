@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import OpenAI from "openai";
@@ -174,6 +175,7 @@ export async function POST(req: Request) {
       const learningGoals = safeString(body.learningGoals).slice(0, 1600);
 
       const response = await client.responses.create({
+        store: false,
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         text: { format: { type: "json_object" } },
         temperature: 0.35,
@@ -248,6 +250,7 @@ Return exact JSON:
     }
 
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       temperature: 0.35,
@@ -319,6 +322,6 @@ Return exact JSON:
     }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not generate course";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -136,6 +137,6 @@ export async function POST(req: Request) {
     return json({ ok: true, lessonId: lessonRef.id, alreadyExists: false });
   } catch (error) {
     console.error("import-published-quiz failed", error);
-    return json({ ok: false, error: error instanceof Error ? error.message : "Import failed." }, 500);
+    return json({ ok: false, error: error instanceof Error ? error.message : "Import failed." }, (accountErrorStatus(error) ?? 500));
   }
 }

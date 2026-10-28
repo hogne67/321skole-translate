@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -79,7 +80,7 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const { auth } = getAdmin();
-    const decoded = await auth.verifyIdToken(authToken);
+    const decoded = await auth.verifyIdToken(authToken, true);
     const uid = decoded.uid;
 
     if (!uid) {
@@ -112,6 +113,6 @@ export async function GET(req: Request, context: RouteContext) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 
-    return json({ ok: false, error: message || "Failed to load school invites" }, 500);
+    return json({ ok: false, error: message || "Failed to load school invites" }, (accountErrorStatus(error) ?? 500));
   }
 }

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -73,6 +74,6 @@ export async function POST(req: Request) {
     return json({ ok: true, sessionId: sessionRef.id, code });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not start quiz session";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

@@ -497,6 +497,7 @@ export async function POST(req: Request) {
         `${t.studentAnswer}:\n${svar || t.notProvided}\n`;
 
     const r = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       temperature: 0.3,
       input: [

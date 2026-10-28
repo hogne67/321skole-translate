@@ -1,4 +1,5 @@
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import { getSubmissionStatus } from "@/lib/submissions/status";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
@@ -185,7 +186,7 @@ export default function StudentPodcastWorkshopPage() {
 
           const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
           const spaceData = spaceSnap.exists() ? (spaceSnap.data() as { ownerId?: unknown }) : {};
-          if (spaceData.ownerId !== user.uid) throw new Error(t("errors.notMember"));
+          if (getSpaceOwnerUid(spaceData) !== user.uid) throw new Error(t("errors.notMember"));
         }
         setParticipantId(membership.participantId || user.uid);
 

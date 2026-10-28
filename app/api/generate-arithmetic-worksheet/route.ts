@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
@@ -920,7 +921,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error ? error.message : "Failed to generate worksheet",
       },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }

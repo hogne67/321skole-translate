@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import OpenAI from "openai";
@@ -115,6 +116,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       temperature: 0.45,
@@ -199,6 +201,6 @@ Return exact JSON:
     }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not generate marketing text";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

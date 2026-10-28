@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -134,7 +135,7 @@ export async function GET(
     return json({ activity: { id: activityId, ...access.activity } }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Read writing activity failed" }, 500);
+    return json({ error: msg || "Read writing activity failed" }, (accountErrorStatus(e) ?? 500));
   }
 }
 
@@ -209,6 +210,6 @@ export async function PATCH(
     return json({ activityId }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Update writing activity failed" }, 500);
+    return json({ error: msg || "Update writing activity failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

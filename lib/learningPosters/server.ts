@@ -1,4 +1,5 @@
 import "server-only";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { createHash, randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import sharp from "sharp";
@@ -23,6 +24,8 @@ export async function posterAccount(req: Request, adminFactory = getAdmin) {
   let decoded;
   try { decoded = await admin.auth.verifyIdToken(token, true); }
   catch (error) {
+    const accountStatus = accountErrorStatus(error);
+    if (accountStatus !== undefined) throw new PosterError(accountStatus === 403 ? "forbidden" : accountStatus === 401 ? "unauthorized" : "authentication_unavailable", accountStatus);
     const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
     if (["auth/argument-error", "auth/invalid-id-token", "auth/id-token-expired", "auth/id-token-revoked", "auth/user-disabled", "auth/user-not-found"].includes(String(code))) {
       throw new PosterError("unauthorized", 401);
@@ -97,6 +100,7 @@ async function requestPosterSuggestion(prompt: string): Promise<unknown> {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const keys = ["label", "caption", "explanation", "quote", "visualPrompt"];
     const response = await openai.chat.completions.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [{ role: "system", content: prompt }],
       response_format: { type: "json_schema", json_schema: { name: "learning_poster", strict: true,
@@ -121,6 +125,7 @@ export async function suggestPoster(account: PosterAccount, source: PosterSource
 export async function suggestPosterGoal(account: PosterAccount, source: PosterSource, settings: Omit<PosterPlan, "items">) {
   return withPosterQuota(account, "ai_generate_text", async () => {
     const response = await new OpenAI({ apiKey: process.env.OPENAI_API_KEY }).chat.completions.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [{ role: "system", content: posterGoalPrompt(source, settings) }],
       response_format: { type: "json_schema", json_schema: { name: "poster_goal", strict: true,

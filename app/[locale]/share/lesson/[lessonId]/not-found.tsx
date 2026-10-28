@@ -1,12 +1,9 @@
 // app/[locale]/share/lesson/[lessonId]/not-found.tsx
 import Link from "next/link";
+import { getLocale } from "next-intl/server";
 
-export default async function ShareLessonNotFound({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
+export default async function ShareLessonNotFound() {
+  const locale = await getLocale();
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>

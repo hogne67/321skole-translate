@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -331,6 +332,7 @@ export async function POST(req: Request) {
     const model = pickModel();
 
     const resp = await client.responses.create({
+      store: false,
       model,
       temperature: 0.3,
       input: [
@@ -358,6 +360,6 @@ export async function POST(req: Request) {
     return json({ ok: true, text: textOut }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ ok: false, error: msg || "Unknown error" }, 500);
+    return json({ ok: false, error: msg || "Unknown error" }, (accountErrorStatus(e) ?? 500));
   }
 }

@@ -1,6 +1,8 @@
 // app/[locale]/(app)/producer/[id]/page.tsx
 "use client";
 
+import ExternalTrainingVideoNotice from "@/components/ExternalTrainingVideoNotice";
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -1046,12 +1048,6 @@ export default function ProducerLessonEditorPage() {
             aria-label={t("intro.videoTitle")}
           >
             <div style={videoThumbStyle} aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://img.youtube.com/vi/jKj6wIqcAuA/mqdefault.jpg"
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
               <div style={playCircleStyle}>
                 <span style={playTriangleStyle} />
               </div>
@@ -1084,13 +1080,7 @@ export default function ProducerLessonEditorPage() {
                 </button>
               </div>
               <div style={videoFrameShellStyle}>
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/jKj6wIqcAuA?autoplay=1&rel=0&modestbranding=1"
-                  title={t("intro.videoTitle")}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  style={videoFrameStyle}
-                />
+                <div style={videoFrameStyle}><ExternalTrainingVideoNotice href="https://www.youtube.com/watch?v=jKj6wIqcAuA" title={t("intro.videoTitle")} /></div>
               </div>
             </div>
           </div>

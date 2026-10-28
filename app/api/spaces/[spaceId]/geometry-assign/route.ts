@@ -1,3 +1,5 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 // app\api\spaces\[spaceId]\geometry-assign\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -33,7 +35,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idToken = authHeader.slice(7).trim();
     const { auth, db } = getAdmin();
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await auth.verifyIdToken(idToken, true);
     const uid = decoded.uid;
 
     const body = (await req.json()) as AssignGeometryBody;
@@ -69,6 +71,9 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
+    if (!(await getSpaceAccess(db, spaceId, uid)).canTeach) {
+      return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+    }
     const lessonRef = spaceRef.collection("lessons").doc();
     const now = new Date();
 
@@ -102,7 +107,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     return NextResponse.json(
       { ok: false, error: "Failed to assign geometry worksheet" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

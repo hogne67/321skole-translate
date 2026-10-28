@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -60,6 +61,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, studentAccessMode });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not update student access mode.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

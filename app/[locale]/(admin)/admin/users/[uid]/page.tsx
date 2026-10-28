@@ -15,6 +15,7 @@ import { useLocale } from "next-intl";
 import { auth, db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { isSuperAdmin } from "@/lib/adminAccess";
+import { authedPost } from "@/lib/authedPost";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 type AdminLevel = "moderator" | "admin" | "superadmin";
@@ -390,11 +391,16 @@ export default function AdminUserDetailPage() {
       const nextAdminLevel: AdminLevel | null =
         nextRole === "admin" && editAdminLevel ? editAdminLevel : null;
 
+      if (editDisabled !== Boolean(data?.disabled)) {
+        await authedPost(`/api/admin/users/${encodeURIComponent(uid)}/access`, {
+          action: editDisabled ? "disable" : "reactivate",
+        });
+      }
+
       await updateDoc(ref, {
         displayName: editDisplayName.trim() || null,
         role: nextRole,
         adminLevel: nextAdminLevel,
-        disabled: editDisabled,
         updatedAt: serverTimestamp(),
       });
 

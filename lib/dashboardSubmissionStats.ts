@@ -1,15 +1,10 @@
 // lib/dashboardSubmissionStats.ts
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  type DocumentData,
-  type Firestore,
-  type QueryDocumentSnapshot,
-} from "firebase/firestore";
-import { getTeacherUidFromSpaceData } from "@/lib/teacherStudentLimit";
+import { collection, getDocs, query, where, type DocumentData, type Firestore } from "firebase/firestore";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { getOwnedSpaceSnapshots, type OwnedSpaceSnapshot } from "@/lib/security/ownedSpaces.client";
 import { getSubmissionStatus, type SubmissionStatusSource } from "@/lib/submissions/status";
+import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 export type SubmissionDashboardStats = {
   total: number;
@@ -91,8 +86,7 @@ function addStatus(stats: SubmissionDashboardStats, status: unknown) {
 }
 
 function isActiveMembership(data: { archived?: unknown; active?: unknown; status?: unknown }): boolean {
-  const status = typeof data.status === "string" ? data.status.trim().toLowerCase() : "";
-  return data.archived !== true && data.active !== false && status !== "removed";
+  return isActiveSpaceMember(data);
 }
 
 function isActiveSpace(data: DocumentData): boolean {
@@ -120,36 +114,16 @@ export function summarizeSubmissionStatuses(submissions: DashboardSubmission[], 
   return stats;
 }
 
-async function getSpacesByOwnerField(
-  db: Firestore,
-  field: string,
-  teacherUid: string
-): Promise<QueryDocumentSnapshot<DocumentData>[]> {
-  try {
-    const snap = await getDocs(query(collection(db, "spaces"), where(field, "==", teacherUid)));
-    return snap.docs;
-  } catch {
-    return [];
-  }
-}
-
 async function getActiveTeacherSpaces(
   db: Firestore,
   teacherUid: string
-): Promise<QueryDocumentSnapshot<DocumentData>[]> {
-  const batches = await Promise.all([
-    getSpacesByOwnerField(db, "ownerId", teacherUid),
-    getSpacesByOwnerField(db, "ownerUid", teacherUid),
-    getSpacesByOwnerField(db, "teacherId", teacherUid),
-    getSpacesByOwnerField(db, "createdByUid", teacherUid),
-    getSpacesByOwnerField(db, "createdBy", teacherUid),
-    getSpacesByOwnerField(db, "uid", teacherUid),
-  ]);
+): Promise<OwnedSpaceSnapshot[]> {
+  const batches = [await getOwnedSpaceSnapshots(db, teacherUid)];
 
-  const byId = new Map<string, QueryDocumentSnapshot<DocumentData>>();
+  const byId = new Map<string, OwnedSpaceSnapshot>();
   for (const docSnap of batches.flat()) {
     const data = docSnap.data();
-    if (getTeacherUidFromSpaceData(data) !== teacherUid) continue;
+    if (getSpaceOwnerUid(data) !== teacherUid) continue;
     if (!isActiveSpace(data)) continue;
     byId.set(docSnap.id, docSnap);
   }
@@ -172,7 +146,7 @@ export async function getStudentDashboardStats(
   uid: string
 ): Promise<StudentDashboardStatsResult> {
   const [submissionsSnap, memberSnap] = await Promise.all([
-    getDocs(query(collection(db, "spaceSubmissions"), where("uid", "==", uid))),
+    getOwnSubmissions("spaceSubmissions", uid),
     getDocs(query(collection(db, "spaceMembers"), where("uid", "==", uid))),
   ]);
 

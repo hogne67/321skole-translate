@@ -1,4 +1,6 @@
 "use client";
+import ProtectedSpaceImage from "@/components/ProtectedSpaceImage";
+import { uploadPrivateSpaceFile } from "@/lib/spaceFiles.client";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,11 +15,11 @@ import {
   setDoc,
   type DocumentData,
 } from "firebase/firestore";
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import { writingClientIdentity } from "@/lib/security/studentSubmissionPolicy";
 import type {
   WritingActivity,
   WritingAiAction,
@@ -252,14 +254,7 @@ function sectionWordCount(sectionId: string, sectionDrafts: SectionDrafts): numb
   return countWords(safeString(sectionDrafts[sectionId]));
 }
 
-function safeStorageName(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "image";
-}
+
 
 async function cropImageToPrintFormat(file: File): Promise<Blob> {
   const objectUrl = URL.createObjectURL(file);
@@ -421,6 +416,7 @@ export default function StudentWritingActivityPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
+  const [submissionBinding, setSubmissionBinding] = useState<{ id: string; data: Record<string, unknown> } | null>(null);
   const [studentDisplayName, setStudentDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -477,10 +473,11 @@ export default function StudentWritingActivityPage() {
   }
 
   function writingSubmissionId(identityId = activeStudentIdentityId()) {
-    return `${spaceId}_${activityId}_${identityId}`;
+    return submissionBinding?.id ?? `${spaceId}_${activityId}_${identityId}`;
   }
 
-  function applySubmissionData(data: WritingSubmissionDoc) {
+  function applySubmissionData(data: WritingSubmissionDoc, id: string) {
+    setSubmissionBinding({ id, data: data as Record<string, unknown> });
     setAnswersByFieldId(data.answersByFieldId ?? {});
     setSectionDrafts(data.sectionDrafts ?? {});
     setAiUsage(Array.isArray(data.aiUsage) ? data.aiUsage : []);
@@ -495,11 +492,8 @@ export default function StudentWritingActivityPage() {
   function baseSubmissionPayload(status: string) {
     const activeParticipantId = activeStudentIdentityId();
     return {
-      activityId,
-      spaceId,
-      uid,
-      studentUid: activeParticipantId,
-      participantId: activeParticipantId,
+      ...writingClientIdentity(submissionBinding?.data ?? null, { kind: "writingActivities", spaceId, activityId,
+        submissionId: writingSubmissionId(), uid: uid ?? "", participantId: activeParticipantId }),
       displayName: studentDisplayName,
       answersByFieldId,
       sectionDrafts,
@@ -544,12 +538,13 @@ export default function StudentWritingActivityPage() {
 
     const canonicalId = `${spaceId}_${activityId}_${activeParticipantId}`;
     const legacyOwnId = `${spaceId}_${activityId}_${uid}`;
+    setSubmissionBinding(null);
     const ids = Array.from(new Set([canonicalId, legacyOwnId]));
     const snaps = new Map<string, WritingSubmissionDoc | null>();
 
     const applyBest = () => {
       const data = snaps.get(canonicalId) ?? snaps.get(legacyOwnId);
-      if (data) applySubmissionData(data);
+      if (data) applySubmissionData(data, snaps.get(canonicalId) ? canonicalId : legacyOwnId);
     };
 
     const unsubs = ids.map((submissionId) => {
@@ -704,26 +699,12 @@ export default function StudentWritingActivityPage() {
     setErr(null);
 
     try {
-      const user = await resolveUser();
+      await resolveUser();
       if (!file.type.startsWith("image/")) throw new Error(t("printProduct.errors.imageOnly"));
       if (file.size > 8 * 1024 * 1024) throw new Error(t("printProduct.errors.tooLarge"));
       const croppedImage = await cropImageToPrintFormat(file);
 
-      const fileRef = storageRef(
-        storage,
-        `covers/${user.uid}/writing-print-${spaceId}/${activityId}/${Date.now()}-${safeStorageName(file.name)}.webp`
-      );
-      await uploadBytes(fileRef, croppedImage, {
-        contentType: "image/webp",
-        cacheControl: "public,max-age=31536000",
-        customMetadata: {
-          ownerId: user.uid,
-          activityId,
-          spaceId,
-          context: "student-writing-print",
-        },
-      });
-      const imageUrl = await getDownloadURL(fileRef);
+      const { imageUrl } = await uploadPrivateSpaceFile({ spaceId, activityId, submissionId: writingSubmissionId(), purpose: "writing_image" }, croppedImage);
       await savePrintProfileData({ ...printProfile, imageUrl }, t("messages.printImageUploaded"));
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : t("printProduct.errors.uploadFailed"));
@@ -747,6 +728,7 @@ export default function StudentWritingActivityPage() {
 
       const data = await authedPost<{ imageUrl?: unknown; error?: unknown }>("/api/images/generate", {
         context: "student_writing_print",
+        submissionId: writingSubmissionId(),
         spaceId,
         activityId,
         lessonId: `writing-${spaceId}-${activityId}`,
@@ -1726,8 +1708,7 @@ export default function StudentWritingActivityPage() {
 
               <article className="writingPrintProduct mx-auto mt-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="mb-5 flex justify-end">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <ProtectedSpaceImage
                     src="/logo321ny.png"
                     alt="321 Skole"
                     className="h-8 w-auto object-contain"
@@ -1735,8 +1716,7 @@ export default function StudentWritingActivityPage() {
                 </div>
                 {printProfile.imageUrl ? (
                   <figure className="m-0 mb-6">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <ProtectedSpaceImage
                       src={printProfile.imageUrl}
                       alt=""
                       className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"

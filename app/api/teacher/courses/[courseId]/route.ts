@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -167,7 +168,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ courseId: strin
     return json({ course: serializeCourse(courseSnap.id, data) }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load course";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -249,7 +250,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ courseId: strin
     return json({ courseId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update course";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -362,6 +363,6 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ courseId: str
     return json({ error: "Unknown action" }, 400);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update publish status";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

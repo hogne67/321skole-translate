@@ -1,3 +1,5 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -59,12 +61,6 @@ function readRole(profile: unknown): Role {
     if (roles.parent === true) return "parent";
   }
   return "student";
-}
-
-function isAdminProfile(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-  if (profile.role === "admin") return true;
-  return isRecord(profile.roles) && profile.roles.admin === true;
 }
 
 function textValue(value: unknown): string {
@@ -270,25 +266,16 @@ export async function POST(
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
 
-    const [profileSnap, spaceSnap, memberSnap, activitySnap, submissionSnap] = await Promise.all([
-      db.collection("users").doc(uid).get(),
-      db.collection("spaces").doc(spaceId).get(),
-      db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get(),
+    const access = await getSpaceAccess(db, spaceId, uid);
+    if (!access.canTeach) return json({ error: "No access to this submission" }, 403);
+    const [activitySnap, submissionSnap] = await Promise.all([
       db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get(),
       db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).collection("submissions").doc(subId).get(),
     ]);
-
-    if (!spaceSnap.exists) return json({ error: "Space not found" }, 404);
     if (!activitySnap.exists) return json({ error: "Writing activity not found" }, 404);
     if (!submissionSnap.exists) return json({ error: "Submission not found" }, 404);
-
-    const profile = (profileSnap.data() ?? {}) as Record<string, unknown>;
-    const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
+    const profile = (access.profile ?? {}) as Record<string, unknown>;
     const role = readRole(profile);
-    const isOwner = safeString(space.ownerId) === uid;
-    const isAdmin = isAdminProfile(profile);
-    const canReview = isOwner || isAdmin || (role === "teacher" && memberSnap.exists);
-    if (!canReview) return json({ error: "No access to this submission" }, 403);
 
     const billing =
       profile.billing && typeof profile.billing === "object"
@@ -333,6 +320,7 @@ export async function POST(
 
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await client.responses.create({
+        store: false,
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         input: [
           { role: "system", content: buildSystemPrompt(safeString(activity.language) || "nb") },
@@ -369,6 +357,7 @@ export async function POST(
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
         { role: "system", content: buildSystemPrompt(safeString(activity.language) || "nb") },
@@ -398,6 +387,6 @@ export async function POST(
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    return json({ error: message || "Writing section feedback suggestions failed" }, 500);
+    return json({ error: message || "Writing section feedback suggestions failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

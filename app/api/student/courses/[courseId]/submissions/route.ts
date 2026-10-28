@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -144,6 +145,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
     return json({ submissionId, status: "submitted" }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save course submission";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

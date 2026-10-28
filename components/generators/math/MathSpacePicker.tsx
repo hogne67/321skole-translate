@@ -1,7 +1,8 @@
 "use client";
+import { watchOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+
 import { auth, db } from "@/lib/firebase";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import "./length/length.css";
@@ -22,7 +23,7 @@ export default function MathSpacePicker({ worksheetId, title, language, onClose,
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
-    return onSnapshot(query(collection(db, "spaces"), where("ownerId", "==", uid)), snapshot => {
+    return watchOwnedSpaceSnapshots(db, uid, snapshot => {
       setSpaces(snapshot.docs.map(doc => ({ id: doc.id, title: String(doc.data().title || doc.id) })).sort((a, b) => a.title.localeCompare(b.title)));
       setLoading(false);
     }, () => { setError(copy.failed); setLoading(false); });

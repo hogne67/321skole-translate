@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextRequest, NextResponse } from "next/server";
@@ -199,6 +200,6 @@ export async function PATCH(
     return json({ ok: true, orderId, action }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not update academy order";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

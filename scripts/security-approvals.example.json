@@ -1,0 +1,15 @@
+{
+  "projectId": "demo-security-round1b",
+  "complete": false,
+  "approvedBy": "synthetic-owner",
+  "approvedAt": "2026-10-15T00:00:00Z",
+  "assignments": [
+    {
+      "uid": "synthetic-admin",
+      "source": "profile",
+      "fields": { "role": "admin", "roles": { "admin": true }, "adminLevel": "superadmin" },
+      "approvedBy": "synthetic-owner",
+      "evidence": "synthetic-approval-001"
+    }
+  ]
+}

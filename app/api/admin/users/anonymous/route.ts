@@ -1,5 +1,6 @@
 import "server-only";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { createAnonymousDirectoryHandler, findLinkedMemberUids, type DirectoryMembership } from "@/lib/anonymousUsers";
 
 export const runtime = "nodejs";
@@ -53,7 +54,7 @@ export const GET = createAnonymousDirectoryHandler({
         id: string(member.id), spaceId, spaceTitle: string(space?.title),
         roomCode: string(space?.joinCode) || string(space?.code), displayName: string(member.displayName),
         participantId, studentCode, linkedUids,
-        active: member.archived !== true && member.active !== false && !["removed", "linked"].includes(string(member.status).toLowerCase()),
+        active: isActiveSpaceMember(member),
         anonymousAtJoin: member.isAnon === true,
       };
       for (const targetUid of new Set([string(member.uid), string(member.userId)].filter(target => uids.includes(target)))) {

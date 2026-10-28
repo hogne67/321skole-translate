@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     if (!inviteId) return json({ ok: false, error: "Missing inviteId" }, 400);
 
     const { auth, db } = getAdmin();
-    const decoded = await auth.verifyIdToken(authToken);
+    const decoded = await auth.verifyIdToken(authToken, true);
     const uid = decoded.uid;
 
     if (!uid) return json({ ok: false, error: "Unauthorized" }, 401);
@@ -87,6 +88,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 
-    return json({ ok: false, error: message || "Failed to revoke school invite" }, 500);
+    return json({ ok: false, error: message || "Failed to revoke school invite" }, (accountErrorStatus(error) ?? 500));
   }
 }

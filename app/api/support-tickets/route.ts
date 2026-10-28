@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 
@@ -82,6 +83,6 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not send support ticket";
     console.error("support ticket failed:", error);
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

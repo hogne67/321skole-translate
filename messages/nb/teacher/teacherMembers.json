@@ -67,7 +67,7 @@
         "linkCopied": "Elevlenke er kopiert.",
         "linkUnavailable": "Kunne ikke lage elevlenke fordi spacekode mangler.",
         "copyFailed": "Kunne ikke kopiere elevkoden.",
-        "updated": "Elevkode {code} er klar.",
+        "updated": "Elevkode {code} er klar. Eksisterende tilganger beholdes. Bruk «Fjern fra rommet» for å trekke tilbake tilgangen.",
         "updateFailed": "Kunne ikke oppdatere elevkode."
       }
     },
@@ -111,6 +111,19 @@
       "addDescription": "Opprett nye elever eller hent elever du allerede har i andre rom.",
       "manageTitle": "Administrer elever",
       "manageDescription": "Se elevlisten, rediger navn og administrer elevkoder og tilgang til rommet."
+    },
+    "approval": {
+      "title": "Forespørsler om deltakertilgang",
+      "description": "Godkjenn bare når du har kontrollert hvem forespørselen gjelder. Be deltakeren vise bekreftelseskoden på sin skjerm.",
+      "codeLabel": "Bekreftelseskoden fra deltakeren (6 siffer)",
+      "approve": "Godkjenn tilgang",
+      "reject": "Avslå",
+      "wrongCode": "Koden stemmer ikke. Kontroller koden på deltakerens skjerm.",
+      "expired": "Forespørselen er utløpt. Be deltakeren sende en ny.",
+      "failed": "Forespørselen kunne ikke behandles. Oppdater listen og prøv igjen.",
+      "unknown": "Ukjent deltaker",
+      "anonymous": "Ny anonym innlogging",
+      "account": "Ny personlig innlogging"
     }
   }
 }

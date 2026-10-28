@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -175,6 +176,6 @@ export async function PATCH(req: Request) {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not update partner profile" }, 500);
+    return json({ error: msg || "Could not update partner profile" }, (accountErrorStatus(e) ?? 500));
   }
 }

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -177,6 +178,6 @@ export async function GET(req: Request) {
     return json({ courses, highlightedCourseId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load student courses";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

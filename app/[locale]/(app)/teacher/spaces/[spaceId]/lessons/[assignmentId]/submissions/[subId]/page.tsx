@@ -1,5 +1,7 @@
 // app\[locale]\(app)\teacher\spaces\[spaceId]\lessons\[assignmentId]\submissions\[subId]\page.tsx
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 
 import { podcastFeedbackUpdate } from "@/lib/submissions/status";
 
@@ -402,10 +404,10 @@ function Inner() {
         if (!alive) return;
 
         const spaceData = spaceSnap.exists()
-          ? (spaceSnap.data() as { ownerId?: unknown })
+          ? spaceSnap.data()
           : null;
 
-        if (spaceData?.ownerId === user.uid) {
+        if (getSpaceOwnerUid(spaceData) === user.uid) {
           setCanTeachHere(true);
           return;
         }
@@ -426,23 +428,7 @@ function Inner() {
           staffRole?: unknown;
         };
 
-        const statusText = String(member.status ?? "").trim().toLowerCase();
-        const roleText = String(member.role ?? "").trim().toLowerCase();
-        const staffRoleText = String(member.staffRole ?? "").trim().toLowerCase();
-        const isActive =
-          member.archived !== true &&
-          member.active !== false &&
-          statusText !== "removed" &&
-          statusText !== "disabled" &&
-          statusText !== "inactive";
-
-        const isTeachingMember =
-          roleText === "teacher" ||
-          roleText === "co_teacher" ||
-          staffRoleText === "co_teacher" ||
-          staffRoleText === "substitute";
-
-        setCanTeachHere(isActive && isTeachingMember);
+        setCanTeachHere(isSpaceTeachingMember(member));
       } catch {
         if (alive) setCanTeachHere(false);
       }
@@ -838,10 +824,13 @@ function Inner() {
   function submissionIndexBasePayload(): Record<string, unknown> {
     const currentSub = sub ?? ({} as SubmissionDoc);
     const authInfo = readAuth(currentSub);
+    const storedIdentity = currentSub as Record<string, unknown>;
     return {
       spaceId: spaceId ?? null,
       assignmentId: assignmentId ?? null,
-      uid: authInfo.uid || currentSub.uid || null,
+      uid: currentSub.uid || authInfo.uid || null,
+      ...(typeof storedIdentity.participantId === "string" ? { participantId: storedIdentity.participantId } : {}),
+      ...(typeof storedIdentity.studentUid === "string" ? { studentUid: storedIdentity.studentUid } : {}),
       isAnon: authInfo.isAnon,
       title: assignment?.title ?? lesson?.title ?? null,
       level: assignment?.level ?? lesson?.level ?? null,

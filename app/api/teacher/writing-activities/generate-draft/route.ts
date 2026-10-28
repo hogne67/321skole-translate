@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import OpenAI from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
@@ -347,6 +348,7 @@ export async function POST(req: Request) {
     ].join("\n");
 
     const response = await client.responses.create({
+      store: false,
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       temperature: 0.35,
@@ -400,6 +402,6 @@ export async function POST(req: Request) {
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("writing draft generator route error:", error);
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({ error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

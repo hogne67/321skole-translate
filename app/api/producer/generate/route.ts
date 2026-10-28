@@ -87,6 +87,7 @@ export async function POST(req: Request) {
     const WRITE_FACT_PROMPT = "Write a fact from the text. Use your own words.";
 
     const resp = await client.responses.create({
+      store: false,
       model,
       input: [
         {

@@ -1,5 +1,23 @@
 {
   "schoolAdmin": {
+    "productAnalytics": {
+      "title": "Produktanalyse er deaktivert",
+      "description": "Google Analytics og egne produktanalysehendelser er slått av for alle brukere og alle flater, også før innlogging. Det finnes ingen bryter for å aktivere analyse.",
+      "necessaryLogging": "Nødvendig drifts- og sikkerhetslogging, kvoteføring og undervisningsstatistikk beholdes. Dette er adskilt fra produktanalyse."
+    },
+    "aggregate": {
+  "description": "Oversikten viser administrative totaltall. Elevstatistikk vises bare når datagrunnlaget er stort nok, og som grove intervaller.",
+  "submissions": "Innleveringer",
+  "title": "Samlet statistikk for skolen",
+  "myTeachingSpaces": "Mine undervisningsrom",
+  "spaces": "Antall Spaces",
+  "activities": "Antall aktiviteter",
+  "suppressed": "Skjult av hensyn til personvern eller utilstrekkelig datagrunnlag.",
+  "current": "Totalt ved oppslag",
+  "teachers": "Aktive lærere",
+  "period": "Innleveringer gjelder avsluttet måned: {month}.",
+  "spacesDescription": "Skoleadministrasjonen viser samlet antall rom. Egne undervisningsrom åpner du gjennom din vanlige lærertilgang."
+},
     "nav": {
       "overview": "Start",
       "teachers": "Lærere",

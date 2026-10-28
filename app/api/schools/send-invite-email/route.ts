@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { InviteEmailError, sendSchoolInviteEmail } from "@/lib/schools/server/sendInviteEmail";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const decoded = await getAdmin().auth.verifyIdToken(token, true);
     if (decoded.firebase.sign_in_provider === "anonymous") throw new Error("Anonymous");
     uid = decoded.uid;
-  } catch { return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: 401 }); }
+  } catch (accountError) { return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: (accountErrorStatus(accountError) ?? 401) }); }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body)
     || Object.keys(body).some(key => !["schoolId", "inviteId", "locale"].includes(key))
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error) {
     const reason = error instanceof InviteEmailError ? error.reason : "send_failed";
-    const status = error instanceof InviteEmailError ? error.status : 500;
+    const status = error instanceof InviteEmailError ? error.status : (accountErrorStatus(error) ?? 500);
     return NextResponse.json({ ok: false, reason }, { status, headers: status === 429 ? { "Retry-After": "60" } : {} });
   }
 }

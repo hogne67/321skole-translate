@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { pdf } from "@react-pdf/renderer";
 import React from "react";
 import { WorksheetPdf, PdfLesson } from "@/lib/pdf/WorksheetPdf";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { SpaceFileError } from "@/lib/spaceFiles.server";
+import { pdfAccount, pdfJson, safePdfImage } from "@/lib/pdf/safeImage.server";
 
 export const runtime = "nodejs";
 
@@ -78,21 +81,28 @@ async function toNodeBuffer(x: unknown): Promise<Buffer> {
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { lesson?: PdfLesson };
+    const account = await pdfAccount(req);
+    const body = (await pdfJson(req)) as { lesson?: PdfLesson };
 
     if (!body?.lesson) {
       return NextResponse.json({ error: "Missing lesson payload" }, { status: 400 });
     }
 
+    const lesson: PdfLesson = { ...body.lesson,
+      coverImageUrl: await safePdfImage(body.lesson.coverImageUrl, account.uid),
+      logoUrl: await safePdfImage(body.lesson.logoUrl || "/logo321ny.png", account.uid),
+    };
+    await account.recheck();
     type PdfElement = Parameters<typeof pdf>[0];
 
-const element = React.createElement(WorksheetPdf, { lesson: body.lesson }) as unknown as PdfElement;
+const element = React.createElement(WorksheetPdf, { lesson }) as unknown as PdfElement;
 const instance = pdf(element);
 
 
     const out = await instance.toBuffer(); // kan være Buffer eller stream avhengig av versjon
     const buffer = await toNodeBuffer(out);
 
+    await account.recheck();
     const filename =
       (body.lesson.title || "worksheet").replaceAll(" ", "_") +
       (body.lesson.includeAnswerKey ? "_teacher" : "") +
@@ -102,16 +112,18 @@ const instance = pdf(element);
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
+        "Cache-Control": "private,no-store",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (err: unknown) {
+    if (err instanceof SpaceFileError) return NextResponse.json({ error: err.message }, { status: err.status });
     return NextResponse.json(
       {
         error: "PDF generation failed",
         details: err instanceof Error ? err.message : String(err),
       },
-      { status: 500 }
+      { status: accountErrorStatus(err) ?? 500 }
     );
   }
 }

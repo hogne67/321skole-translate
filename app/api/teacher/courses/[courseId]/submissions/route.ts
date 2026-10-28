@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -159,6 +160,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ courseId: strin
     return json({ submissions }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load course submissions";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

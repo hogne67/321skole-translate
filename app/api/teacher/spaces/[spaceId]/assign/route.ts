@@ -1,3 +1,6 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/teacher/spaces/[spaceId]/assign/route.ts
 import "server-only";
@@ -232,8 +235,7 @@ async function isSpaceOwner(
 ): Promise<boolean> {
   const snap = await db.collection("spaces").doc(spaceId).get();
   if (!snap.exists) return false;
-  const d = (snap.data() ?? {}) as Record<string, unknown>;
-  return typeof d.ownerId === "string" && d.ownerId === uid;
+  return (await getSpaceAccess(db, spaceId, uid)).owner;
 }
 
 async function isSpaceCoTeacher(
@@ -244,36 +246,9 @@ async function isSpaceCoTeacher(
   const snap = await db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get();
   if (!snap.exists) return false;
   const d = (snap.data() ?? {}) as Record<string, unknown>;
-  const status = safeString(d.status).toLowerCase();
-  const role = safeString(d.role).toLowerCase();
-  const staffRole = safeString(d.staffRole).toLowerCase();
-
-  return (
-    d.active !== false &&
-    d.archived !== true &&
-    status !== "removed" &&
-    (role === "teacher" || staffRole === "co_teacher" || staffRole === "substitute")
-  );
+  return isSpaceTeachingMember(d);
 }
 
-async function isSchoolAdminForSpace(
-  db: FirebaseFirestore.Firestore,
-  spaceId: string,
-  profile: UserProfileAccess
-): Promise<boolean> {
-  if (
-    profile.schoolRole !== "school_admin" ||
-    profile.schoolStatus !== "active" ||
-    !profile.schoolId
-  ) {
-    return false;
-  }
-
-  const snap = await db.collection("spaces").doc(spaceId).get();
-  if (!snap.exists) return false;
-  const d = (snap.data() ?? {}) as Record<string, unknown>;
-  return typeof d.schoolId === "string" && d.schoolId === profile.schoolId;
-}
 
 async function loadSourceLesson(params: {
   db: FirebaseFirestore.Firestore;
@@ -346,14 +321,9 @@ export async function POST(
       loadUserProfileAccess(db, uid),
       isSpaceOwner(db, spaceId, uid),
     ]);
-    const [coTeacher, schoolAdminForSpace] = owner
-      ? [false, false]
-      : await Promise.all([
-          isSpaceCoTeacher(db, spaceId, uid),
-          isSchoolAdminForSpace(db, spaceId, profile),
-        ]);
+    const coTeacher = !owner && await isSpaceCoTeacher(db, spaceId, uid);
 
-    if (!profile.isAdmin && !owner && !coTeacher && !schoolAdminForSpace) {
+    if (!profile.isAdmin && !owner && !coTeacher) {
       return json({ error: "No access (owner/admin required)" }, 403);
     }
 
@@ -521,6 +491,6 @@ export async function POST(
     return json({ assignmentId: result.assignmentId, quota: result.quota }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Assign failed" }, 500);
+    return json({ error: msg || "Assign failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

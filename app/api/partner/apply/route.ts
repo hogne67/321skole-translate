@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -220,6 +221,6 @@ export async function POST(req: Request) {
     return json({ ok: true, id: applicationRef.id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Partner application failed" }, 500);
+    return json({ error: msg || "Partner application failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

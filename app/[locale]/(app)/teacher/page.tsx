@@ -1,6 +1,8 @@
 // app/[locale]/(app)/teacher/page.tsx
 "use client";
 
+import { PLANNER_PAUSED } from "@/lib/planner/availability";
+
 import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import Link from "next/link";
 import Image from "next/image";
@@ -1778,7 +1780,7 @@ export default function TeacherPage() {
 
 
 
-      {locale === "nb" ? (
+      {!PLANNER_PAUSED && locale === "nb" ? (
         <section
           style={{
             marginTop: isMobile ? 18 : 24,

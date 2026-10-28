@@ -1,5 +1,8 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/teacher/ai-feedback/route.ts
 import "server-only";
+import { SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
+import { getSpaceAccess, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -1486,18 +1489,22 @@ export async function POST(req: Request) {
     // This is the UI/feedback language, not necessarily the language of the task/content.
     const locale = normalizeLocale(safeString(body.locale || "no"));
 
-    if (!spaceId || !assignmentId || !subId) {
+    if (!spaceId || !assignmentId || !subId || [spaceId, assignmentId, subId].some(id => id.includes("/"))) {
       return json({ error: "Missing spaceId/assignmentId/subId" }, 400);
     }
 
     const { auth, db } = getAdmin();
-    const decoded = await auth.verifyIdToken(token);
+    let decoded;
+    try { decoded = await auth.verifyIdToken(token, true); }
+    catch (accountError) { return json({ error: "Unauthorized" }, (accountErrorStatus(accountError) ?? 401)); }
     if (needsEmailVerification(decoded)) {
       return emailVerificationRequiredResponse();
     }
 
     const uid = decoded.uid;
     if (!uid) return json({ error: "Unauthorized" }, 401);
+    const audit = (decision: "allow" | "deny", reason: string) =>
+      console.info("security.space_access", { operation: "ai_feedback", decision, reason, uid, spaceId, assignmentId, subId });
 
     const profileSnap = await db.collection("users").doc(uid).get();
     const profile = profileSnap.exists ? profileSnap.data() : null;
@@ -1506,7 +1513,14 @@ export async function POST(req: Request) {
     const isTeacherish = role === "teacher" || role === "creator" || role === "admin";
 
     if (!isTeacherish) {
+      audit("deny", "role");
       return json({ error: "Not allowed (role)" }, 403);
+    }
+
+    const access = await getSpaceAccess(db, spaceId, uid);
+    if (!access.canTeach) {
+      audit("deny", "space_access");
+      return json({ error: "No access to this space" }, 403);
     }
 
     const featureStatus = await getServerFeatureStatusFromProfile({
@@ -1549,9 +1563,47 @@ export async function POST(req: Request) {
     const subSnap = await subRef.get();
     if (!subSnap.exists) return json({ error: "Submission not found" }, 404);
     const subDoc = (subSnap.data() || {}) as Record<string, unknown>;
+    if (!submissionBelongsToPath(subDoc, spaceId, assignmentId)) {
+      audit("deny", "submission_scope");
+      return json({ error: "Submission does not belong to this assignment" }, 403);
+    }
+    const indexSnap = await db.collection("spaceSubmissions").doc(subId).get();
+    if (indexSnap.exists && !submissionBelongsToPath(indexSnap.data()!, spaceId, assignmentId)) {
+      audit("deny", "index_scope");
+      return json({ error: "Submission index belongs to another assignment" }, 403);
+    }
+
+    const identityKeys = ["uid", "participantId", "studentUid"] as const;
+    const sameIdentity = (left: Record<string, unknown>, right: Record<string, unknown>) =>
+      identityKeys.every(key => (left[key] ?? "") === (right[key] ?? ""));
+    const validIndex = (data: Record<string, unknown>, source: Record<string, unknown>) =>
+      submissionBelongsToPath(data, spaceId, assignmentId)
+      && !("activityId" in data && !("assignmentId" in data))
+      && sameIdentity(data, source);
+    if (indexSnap.exists && !validIndex(indexSnap.data()!, subDoc)) {
+      audit("deny", "index_identity");
+      return json({ error: "Submission index identity mismatch" }, 403);
+    }
+    // Keep review and index atomic, including when the index did not exist before this request.
+    async function saveFeedback(payload: Record<string, unknown>) {
+      await db.runTransaction(async tx => {
+        const indexRef = db.collection("spaceSubmissions").doc(subId);
+        const [current, index] = await Promise.all([tx.get(subRef), tx.get(indexRef)]);
+        const source = current.data();
+        if (!source || !submissionBelongsToPath(source, spaceId, assignmentId) || !sameIdentity(source, subDoc)
+          || (index.exists && !validIndex(index.data()!, source))) {
+          throw new SubmissionWriteError("Submission identity changed during review");
+        }
+        const binding = Object.fromEntries(identityKeys.filter(key => key in source).map(key => [key, source[key]]));
+        tx.set(subRef, payload, { merge: true });
+        tx.set(indexRef, { ...binding, spaceId, assignmentId, ...payload }, { merge: true });
+      });
+    }
 
     const aRef = db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId);
     const aSnap = await aRef.get();
+    if (!aSnap.exists) return json({ error: "Assignment not found" }, 404);
+    audit("allow", "submission_access");
     const assignment = (aSnap.exists ? aSnap.data() || {} : {}) as Record<string, unknown>;
 
     let lesson: Record<string, unknown> = {};
@@ -1624,6 +1676,7 @@ export async function POST(req: Request) {
       });
 
       const resp = await client.responses.create({
+        store: false,
         model,
         temperature: 0.3,
         input: [
@@ -1645,10 +1698,7 @@ export async function POST(req: Request) {
         updatedAt: FieldValue.serverTimestamp(),
       };
 
-      const batch = db.batch();
-      batch.set(subRef, payload, { merge: true });
-      batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
-      await batch.commit();
+      await saveFeedback(payload);
 
       await consumeServerFeature({
         db,
@@ -1676,6 +1726,7 @@ export async function POST(req: Request) {
       });
 
       const resp = await client.responses.create({
+        store: false,
         model,
         temperature: 0.3,
         input: [
@@ -1697,10 +1748,7 @@ export async function POST(req: Request) {
         updatedAt: FieldValue.serverTimestamp(),
       };
 
-      const batch = db.batch();
-      batch.set(subRef, payload, { merge: true });
-      batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
-      await batch.commit();
+      await saveFeedback(payload);
 
       await consumeServerFeature({
         db,
@@ -1854,6 +1902,7 @@ export async function POST(req: Request) {
       });
 
     const resp = await client.responses.create({
+      store: false,
       model,
       temperature: 0.3,
       input: [
@@ -1875,10 +1924,7 @@ export async function POST(req: Request) {
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    const batch = db.batch();
-    batch.set(subRef, payload, { merge: true });
-    batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
-    await batch.commit();
+    await saveFeedback(payload);
 
     await consumeServerFeature({
       db,
@@ -1889,6 +1935,6 @@ export async function POST(req: Request) {
     return json({ text: textOut }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Unknown error" }, 500);
+    return json({ error: msg || "Unknown error" }, e instanceof SubmissionWriteError ? e.status : (accountErrorStatus(e) ?? 500));
   }
 }

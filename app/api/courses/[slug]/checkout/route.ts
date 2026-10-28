@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextRequest, NextResponse } from "next/server";
@@ -244,6 +245,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     return json({ url: session.url, orderId: orderRef.id }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not start course checkout";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

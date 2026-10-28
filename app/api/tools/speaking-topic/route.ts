@@ -86,6 +86,7 @@ export async function POST(req: Request) {
       `}`;
 
     const response = await client.responses.create({
+      store: false,
       model: "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       input: [

@@ -1,3 +1,5 @@
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { getOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
 // lib/contentFeed.ts
 import {
   collection,
@@ -12,6 +14,8 @@ import {
 import type { Firestore } from "firebase/firestore";
 import type { AppMode } from "@/lib/mode";
 import { getTextTypeSearchTerms, normalizeTextTypeValue } from "@/lib/textTypes";
+import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 const MY_CONTENT_QUERY_LIMIT = 250;
 const MY_SPACE_QUERY_LIMIT = 250;
@@ -654,13 +658,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
   const results: ContentItem[] = [];
 
   try {
-    const qy = query(
-      collection(db, "submissions"),
-      where("uid", "==", uid),
-      orderBy("updatedAt", "desc"),
-      limit(MY_CONTENT_QUERY_LIMIT)
-    );
-    const snap = await getDocs(qy);
+    const snap = await getOwnSubmissions("submissions", uid, MY_CONTENT_QUERY_LIMIT);
 
     const submissionRows: Array<{
       id: string;
@@ -882,14 +880,7 @@ async function fetchMySpaceSubmissions(db: Firestore, uid: string, locale: strin
   const results: ContentItem[] = [];
 
   try {
-    const qy = query(
-      collection(db, "spaceSubmissions"),
-      where("uid", "==", uid),
-      orderBy("updatedAt", "desc"),
-      limit(MY_SPACE_QUERY_LIMIT)
-    );
-
-    const snap = await getDocs(qy);
+    const snap = await getOwnSubmissions("spaceSubmissions", uid, MY_SPACE_QUERY_LIMIT);
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
@@ -955,15 +946,7 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode
     return undefined;
   };
 
-  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => {
-    const a = d.ownerUid;
-    const b = d.ownerId;
-    const c = d.createdBy;
-    if (typeof a === "string" && a) return a;
-    if (typeof b === "string" && b) return b;
-    if (typeof c === "string" && c) return c;
-    return undefined;
-  };
+  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => getSpaceOwnerUid(d) ?? undefined;
 
   const chunkSize = 10;
 
@@ -1011,17 +994,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
     return undefined;
   };
 
-  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => {
-    const a = d.ownerUid;
-    const b = d.ownerId;
-    const c = d.createdBy;
-    const c2 = d.createdAtBy;
-    if (typeof a === "string" && a) return a;
-    if (typeof b === "string" && b) return b;
-    if (typeof c === "string" && c) return c;
-    if (typeof c2 === "string" && c2) return c2;
-    return undefined;
-  };
+  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => getSpaceOwnerUid(d) ?? undefined;
 
   const pushDoc = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
     const d = docSnap.data();
@@ -1040,34 +1013,9 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
     });
   };
 
-  async function runSpaceQuery(field: string) {
-    try {
-      const qy = query(
-        collection(db, "spaces"),
-        where(field, "==", uid),
-        orderBy("updatedAt", "desc"),
-        limit(80)
-      );
-      const snap = await getDocs(qy);
-      snap.forEach((s) => pushDoc(s as unknown as { id: string; data: () => Record<string, unknown> }));
-      return;
-    } catch {
-      // ignore
-    }
-
-    try {
-      const qy2 = query(collection(db, "spaces"), where(field, "==", uid), limit(200));
-      const snap2 = await getDocs(qy2);
-      snap2.forEach((s) => pushDoc(s as unknown as { id: string; data: () => Record<string, unknown> }));
-    } catch {
-      // ignore
-    }
+  if (mode !== "student") {
+    try { for (const row of await getOwnedSpaceSnapshots(db, uid)) pushDoc(row); } catch { /* Authenticated discovery fails closed. */ }
   }
-
-  await runSpaceQuery("ownerUid");
-  await runSpaceQuery("ownerId");
-  await runSpaceQuery("createdBy");
-  await runSpaceQuery("createdAtBy");
 
   try {
     const qy = query(collection(db, "spaceMembers"), where("uid", "==", uid), limit(400));
@@ -1078,7 +1026,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
       const sid = typeof d.spaceId === "string" ? d.spaceId : "";
-      if (sid) spaceIds.push(sid);
+      if (sid && isActiveSpaceMember(d) && docSnap.id === `${sid}_${uid}`) spaceIds.push(sid);
     });
 
     const memberSpaces = await fetchSpacesByIds(db, spaceIds, mode, locale);

@@ -7,7 +7,7 @@ import {
   initializeFirestore,
   type Firestore,
 } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getStorage, connectStorageEmulator, type FirebaseStorage } from "firebase/storage";
 
 type FirebaseConfig = {
   apiKey?: string;
@@ -114,9 +114,16 @@ const USE_EMULATORS =
 declare global {
   var __FIRESTORE_EMULATOR_CONNECTED__: boolean | undefined;
   var __AUTH_EMULATOR_CONNECTED__: boolean | undefined;
+  var __STORAGE_EMULATOR_CONNECTED__: boolean | undefined;
 }
 
 if (USE_EMULATORS) {
+  if (!firebaseConfig.projectId?.startsWith("demo-")) {
+    throw new Error("Isolated emulator mode requires a demo- Firebase project.");
+  }
+  for (const host of [process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST, process.env.NEXT_PUBLIC_AUTH_EMULATOR_HOST, process.env.NEXT_PUBLIC_STORAGE_EMULATOR_HOST]) {
+    if (host && !["localhost", "127.0.0.1"].includes(host)) throw new Error("Local emulator mode requires loopback hosts.");
+  }
   // ---- Firestore emulator ----
   const fsHost = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST ?? "127.0.0.1";
   const fsPort = Number(process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT ?? "8080");
@@ -145,6 +152,12 @@ if (USE_EMULATORS) {
     } catch (e: unknown) {
       console.warn("[firebase] connectAuthEmulator warning:", e);
     }
+  }
+  if (!globalThis.__STORAGE_EMULATOR_CONNECTED__) {
+    const storageHost = process.env.NEXT_PUBLIC_STORAGE_EMULATOR_HOST ?? "127.0.0.1";
+    const storagePort = Number(process.env.NEXT_PUBLIC_STORAGE_EMULATOR_PORT ?? "9199");
+    connectStorageEmulator(storage, storageHost, storagePort);
+    globalThis.__STORAGE_EMULATOR_CONNECTED__ = true;
   }
 }
 

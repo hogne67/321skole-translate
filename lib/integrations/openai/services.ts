@@ -1,4 +1,5 @@
 import "server-only";
+import { isGloballyEnabled } from "@/lib/security/accountAccess.server";
 import { createHash } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import type { AdapterFactory } from "oidc-provider";
@@ -32,8 +33,12 @@ export function firebaseOAuthServices(config: Pick<IntegrationConfig, "allowedUi
       throw error;
     }
     const profile = await db.collection("users").doc(uid).get();
-    if (user.disabled || !profile.exists || profile.data()?.disabled === true) return undefined;
-    return { uid: user.uid, tokensValidAfter: user.tokensValidAfterTime ? Date.parse(user.tokensValidAfterTime) / 1000 : 0 };
+    const data = profile.data();
+    if (user.disabled || !profile.exists || !isGloballyEnabled(data)) return undefined;
+    const cutoff = data?.authRevokedBefore;
+    if (cutoff !== undefined && (typeof cutoff !== "number" || !Number.isFinite(cutoff) || cutoff < 0)) return undefined;
+    return { uid: user.uid, tokensValidAfter: Math.max(user.tokensValidAfterTime ? Date.parse(user.tokensValidAfterTime) / 1000 : 0,
+      typeof cutoff === "number" ? Math.floor(cutoff) + 1 : 0) };
   };
   return {
     adapter: firestoreAdapter(db), getIdentity,
@@ -44,6 +49,7 @@ export function firebaseOAuthServices(config: Pick<IntegrationConfig, "allowedUi
       if (decoded.firebase.sign_in_provider === "anonymous") throw new IntegrationError("A registered account is required.", 403);
       const identity = await getIdentity(decoded.uid);
       if (!identity) throw new IntegrationError("Account is not enabled for this private prototype.", 403);
+      if (decoded.auth_time < identity.tokensValidAfter) throw new IntegrationError("Sign in again after access revocation.", 401);
       return { ...identity, authTime: decoded.auth_time };
     },
     async saveBinding(grantId, binding) {

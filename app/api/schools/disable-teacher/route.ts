@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     const { auth } = getAdmin();
-    const decoded = await auth.verifyIdToken(authToken);
+    const decoded = await auth.verifyIdToken(authToken, true);
     const uid = decoded.uid;
 
     if (!uid) {
@@ -66,6 +67,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 
-    return json({ ok: false, error: message || "Failed to disable school teacher" }, 500);
+    return json({ ok: false, error: message || "Failed to disable school teacher" }, (accountErrorStatus(error) ?? 500));
   }
 }

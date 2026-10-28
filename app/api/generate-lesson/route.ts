@@ -241,6 +241,7 @@ export async function POST(req: Request) {
       (closedOnly ? `- Do not create any open tasks\n` : "");
 
     const r = await client.responses.create({
+      store: false,
       model: "gpt-4o-mini",
       text: { format: { type: "json_object" } },
       input: [

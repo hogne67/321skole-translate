@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/admin/trash/restore/route.ts
 import "server-only";
 
@@ -60,6 +61,6 @@ export async function POST(req: Request) {
     return json({ ok: true, id }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Restore failed" }, 500);
+    return json({ error: msg || "Restore failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

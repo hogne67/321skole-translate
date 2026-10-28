@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/producer/save-math-worksheet/route.ts
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -315,7 +316,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { ok: false, error: message },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }

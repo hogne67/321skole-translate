@@ -1,5 +1,6 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/lessons/[assignmentId]/page.tsx
 "use client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -532,7 +533,7 @@ export default function TeacherSpaceAssignedTaskPage() {
         ? t("meta.myContent")
         : dash;
 
-  const ownerId = space?.ownerId ?? null;
+  const ownerId = getSpaceOwnerUid(space);
   const isOwner = Boolean(uidNow && ownerId && uidNow === ownerId);
   void isOwner;
 

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -67,7 +68,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load poll";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }
 
@@ -107,6 +108,6 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ sessionId: st
     return json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not start poll";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

@@ -1,8 +1,8 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAdminApp } from "@/lib/firebaseAdmin";
+import { getAdminApp, getAdmin } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
 import {
   syncFromCheckoutSession,
@@ -26,7 +26,7 @@ async function verifyAdmin(req: NextRequest): Promise<{ uid: string }> {
     throw new Error("Missing bearer token");
   }
 
-  const decoded = await getAuth(getAdminApp()).verifyIdToken(token);
+  const decoded = await getAdmin().auth.verifyIdToken(token);
   const db = getFirestore(getAdminApp());
 
   const snap = await db.collection(USER_COLLECTION).doc(decoded.uid).get();
@@ -341,7 +341,7 @@ export async function POST(req: NextRequest) {
       {
         error: message,
       },
-      { status: 500 }
+      { status: (accountErrorStatus(error) ?? 500) }
     );
   }
 }

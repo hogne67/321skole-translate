@@ -1,4 +1,4 @@
-import * as cheerio from "cheerio";
+import { SchoolCalendarImportError, SCHOOL_CALENDAR_URL_DISABLED } from "./schoolCalendarImportPolicy";
 import { inflateRawSync } from "node:zlib";
 
 export type ImportedSchoolCalendarEvent = {
@@ -60,41 +60,8 @@ export async function importSchoolCalendarFromUrl(input: {
   schoolYear: string;
   aiReader?: SchoolCalendarAiReader;
 }): Promise<ImportedSchoolCalendar> {
-  const url = normalizeImportUrl(input.url);
-  const response = await fetch(url, {
-    headers: {
-      Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "321Planner/1.0 school-calendar-reader",
-    },
-    signal: AbortSignal.timeout(15_000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Skolerutesiden svarte med status ${response.status}.`);
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
-    throw new Error("Lenken peker ikke til en HTML-side vi kan lese trygt ennå.");
-  }
-
-  const html = await response.text();
-  if (html.length > 5_000_000) throw new Error("Skolerutesiden var uventet stor.");
-
-  const $ = cheerio.load(html);
-  $("script, style, svg, noscript").remove();
-  const sourceTitle = normalizeText($("title").first().text()) || new URL(url).hostname;
-  const structuredLines = extractStructuredLines($);
-  const fullText = normalizeText(structuredLines.join("\n") || $("body").text());
-
-  return importSchoolCalendarFromText({
-    sourceUrl: url,
-    sourceTitle,
-    schoolYear: input.schoolYear,
-    text: fullText,
-    structuredLines,
-    aiReader: input.aiReader,
-  });
+  void input;
+  throw new SchoolCalendarImportError(403, SCHOOL_CALENDAR_URL_DISABLED);
 }
 
 export async function importSchoolCalendarFromText(input: {
@@ -106,8 +73,8 @@ export async function importSchoolCalendarFromText(input: {
   aiReader?: SchoolCalendarAiReader;
 }): Promise<ImportedSchoolCalendar> {
   const fullText = normalizeText(input.text);
-  if (!fullText) throw new Error("Fant ikke lesbar tekst i skoleruten.");
-  if (fullText.length > 1_000_000) throw new Error("Skoleruteteksten var uventet stor.");
+  if (!fullText) throw new SchoolCalendarImportError(422, "Fant ikke lesbar tekst i skoleruten.");
+  if (fullText.length > 1_000_000) throw new SchoolCalendarImportError(413, "Skoleruteteksten var uventet stor.");
 
   const structuredLines = input.structuredLines?.length ? input.structuredLines : splitUsefulLines(fullText);
   const schoolYearLines = selectSchoolYearLines(structuredLines, input.schoolYear);
@@ -133,7 +100,8 @@ export async function importSchoolCalendarFromText(input: {
         text: schoolYearText || fullText,
         lines: sourceLines,
       }).catch((error) => {
-        notes.push(`AI-lesing av skoleruten feilet: ${error instanceof Error ? error.message : "ukjent feil"}.`);
+        void error;
+        notes.push("AI-lesing av skoleruten feilet. Kontroller dokumentet eller prøv igjen senere.");
         return null;
       })
     : null;
@@ -168,43 +136,64 @@ export async function importSchoolCalendarFromText(input: {
 }
 
 export function extractTextFromDocx(buffer: Buffer): string {
+  const contentTypes = readZipEntry(buffer, "[Content_Types].xml");
   const documentXml = readZipEntry(buffer, "word/document.xml");
-  if (!documentXml) throw new Error("Fant ikke hovedteksten i Word-dokumentet.");
+  if (!contentTypes.includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml") ||
+    !/<w:document\b/.test(documentXml) || /<!DOCTYPE|<!ENTITY/i.test(documentXml + contentTypes)) {
+    throw new SchoolCalendarImportError(415, "Filen er ikke et gyldig støttet DOCX-dokument.");
+  }
   return xmlText(documentXml);
 }
 
 function readZipEntry(buffer: Buffer, targetName: string): string {
+  const invalid = (): never => { throw new SchoolCalendarImportError(415, "Word-dokumentet kunne ikke leses trygt."); };
   const endOffset = findEndOfCentralDirectory(buffer);
-  if (endOffset < 0) return "";
+  if (endOffset < 0 || buffer.readUInt16LE(endOffset + 4) !== 0 || buffer.readUInt16LE(endOffset + 6) !== 0 ||
+    endOffset + 22 + buffer.readUInt16LE(endOffset + 20) !== buffer.length) return invalid();
 
   const centralDirectorySize = buffer.readUInt32LE(endOffset + 12);
   const centralDirectoryOffset = buffer.readUInt32LE(endOffset + 16);
   const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  const entryCount = buffer.readUInt16LE(endOffset + 10);
+  if (!entryCount || entryCount > 4096 || centralDirectoryEnd > endOffset || buffer.readUInt16LE(endOffset + 8) !== entryCount) return invalid();
   let offset = centralDirectoryOffset;
+  let found: string | undefined;
 
-  while (offset < centralDirectoryEnd && buffer.readUInt32LE(offset) === 0x02014b50) {
+  for (let index = 0; index < entryCount; index++) {
+    if (offset + 46 > centralDirectoryEnd || buffer.readUInt32LE(offset) !== 0x02014b50) return invalid();
+    const flags = buffer.readUInt16LE(offset + 8);
     const method = buffer.readUInt16LE(offset + 10);
     const compressedSize = buffer.readUInt32LE(offset + 20);
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
     const fileNameLength = buffer.readUInt16LE(offset + 28);
     const extraLength = buffer.readUInt16LE(offset + 30);
     const commentLength = buffer.readUInt16LE(offset + 32);
     const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const next = offset + 46 + fileNameLength + extraLength + commentLength;
+    if (next > centralDirectoryEnd) return invalid();
     const fileName = buffer.toString("utf8", offset + 46, offset + 46 + fileNameLength);
 
     if (fileName === targetName) {
+      if (found !== undefined || flags & 1 || ![0,8].includes(method) || uncompressedSize > 1024 * 1024 ||
+        localHeaderOffset + 30 > centralDirectoryOffset || buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) return invalid();
       const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
       const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
       const dataStart = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+      if (dataStart + compressedSize > centralDirectoryOffset || buffer.readUInt16LE(localHeaderOffset + 8) !== method ||
+        buffer.readUInt16LE(localHeaderOffset + 6) & 1 || buffer.toString("utf8", localHeaderOffset + 30, localHeaderOffset + 30 + localFileNameLength) !== fileName) return invalid();
       const compressed = buffer.subarray(dataStart, dataStart + compressedSize);
-      if (method === 0) return compressed.toString("utf8");
-      if (method === 8) return inflateRawSync(compressed).toString("utf8");
-      throw new Error("Word-dokumentet bruker en komprimering vi ikke kan lese ennå.");
+      let decoded: Buffer;
+      try { decoded = method === 0 ? compressed : inflateRawSync(compressed, { maxOutputLength: 1024 * 1024 }); }
+      catch { return invalid(); }
+      if (decoded.length !== uncompressedSize) return invalid();
+      found = decoded.toString("utf8");
     }
 
-    offset += 46 + fileNameLength + extraLength + commentLength;
+    offset = next;
   }
 
-  return "";
+  if (offset !== centralDirectoryEnd) return invalid();
+  return found ?? "";
 }
 
 function findEndOfCentralDirectory(buffer: Buffer): number {
@@ -518,17 +507,6 @@ function getDebugLines(lines: string[]): string[] {
     .slice(0, 40);
 }
 
-function extractStructuredLines($: cheerio.CheerioAPI): string[] {
-  const lines: string[] = [];
-  $("h1, h2, h3, h4, p, li, tr, dt, dd").each((_, element) => {
-    const line = normalizeText($(element).text());
-    if (!line || line.length < 3) return;
-    if (lines.at(-1) === line) return;
-    lines.push(line);
-  });
-  return lines.length > 0 ? lines : splitUsefulLines(normalizeText($("body").text()));
-}
-
 function selectSchoolYearLines(lines: string[], schoolYear: string): string[] {
   const [startYear, endYear] = schoolYear.split(/[/-]/).map((part) => Number(part));
   if (!startYear || !endYear) return [];
@@ -569,29 +547,6 @@ function extractCalendarRows(text: string, schoolYear: { startYear: number; endY
       const expectedYear = inferYearFromMonth(month, schoolYear);
       return expectedYear > 0 && (row.includes(String(expectedYear)) || /\d{1,2}\./.test(row));
     });
-}
-
-function normalizeImportUrl(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) throw new Error("Lim inn en lenke til kommunens skolerute først.");
-  const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("Lenken må starte med http eller https.");
-  }
-  if (isLocalHostname(url.hostname)) {
-    throw new Error("Av sikkerhetshensyn kan vi ikke hente lokale eller interne lenker.");
-  }
-  return url.toString();
-}
-
-function isLocalHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  return (
-    normalized === "localhost" ||
-    normalized === "127.0.0.1" ||
-    normalized === "::1" ||
-    normalized.endsWith(".local")
-  );
 }
 
 function selectSchoolYearText(text: string, schoolYear: string): string {

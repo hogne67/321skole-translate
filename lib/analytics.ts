@@ -2,21 +2,11 @@
 
 type AnalyticsParams = Record<string, string | number | boolean | undefined>;
 
-declare global {
-    interface Window {
-        gtag?: (
-            command: "event",
-            eventName: string,
-            params?: AnalyticsParams
-        ) => void;
-    }
-}
+import { discardProductEvent } from "@/lib/productAnalyticsPolicy";
 
-export function trackEvent(eventName: string, params?: AnalyticsParams) {
-    if (typeof window === "undefined") return;
-    if (typeof window.gtag !== "function") return;
-
-    window.gtag("event", eventName, params);
+// Compatibility facade. No gtag, SDK, network, persistence or replay.
+export function trackEvent(eventName: string, params?: AnalyticsParams): void {
+    discardProductEvent({ eventName, params });
 }
 
 export function trackSignUp(method: "email" | "google" | "feide" | "anonymous_upgrade") {

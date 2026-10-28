@@ -67,7 +67,7 @@
         "linkCopied": "Link do aluno copiado.",
         "linkUnavailable": "Não foi possível criar o link porque falta o código do space.",
         "copyFailed": "Não foi possível copiar o código.",
-        "updated": "Código do aluno {code} pronto.",
+        "updated": "O código de aluno {code} está pronto. Os acessos existentes são mantidos. Use «Remover da sala» para revogar o acesso.",
         "updateFailed": "Não foi possível atualizar o código."
       }
     },
@@ -111,6 +111,19 @@
       "addDescription": "Crie novos alunos ou adicione alunos que já tem noutras salas.",
       "manageTitle": "Gerir alunos",
       "manageDescription": "Consulte a lista de alunos, edite nomes e gira códigos de aluno e acesso à sala."
+    },
+    "approval": {
+      "title": "Pedidos de acesso de participantes",
+      "description": "Aprove apenas depois de confirmar a quem pertence o pedido. Peça ao participante que mostre o código de confirmação no seu ecrã.",
+      "codeLabel": "Código de confirmação do participante (6 dígitos)",
+      "approve": "Aprovar acesso",
+      "reject": "Recusar",
+      "wrongCode": "O código não corresponde. Verifique o código no ecrã do participante.",
+      "expired": "O pedido expirou. Peça ao participante que envie outro.",
+      "failed": "Não foi possível processar o pedido. Atualize a lista e tente novamente.",
+      "unknown": "Participante desconhecido",
+      "anonymous": "Nova sessão anónima",
+      "account": "Nova sessão pessoal"
     }
   }
 }

@@ -84,6 +84,7 @@ async function translateOnce(text: string, targetLang: string) {
     : "";
 
   const r = await client.responses.create({
+    store: false,
     model: "gpt-4o-mini",
     input: [
       {

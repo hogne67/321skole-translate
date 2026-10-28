@@ -5,13 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
+import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
   doc,
   getDoc,
   type Timestamp,
@@ -103,27 +98,7 @@ export default function StudentResultsPage() {
 
         setUid(user.uid);
 
-        // newest first
-        const q1 = query(
-          collection(db, "submissions"),
-          where("uid", "==", user.uid),
-          orderBy("updatedAt", "desc"),
-          limit(200)
-        );
-
-        let snap;
-        try {
-          snap = await getDocs(q1);
-        } catch {
-          // fallback if some docs lack updatedAt or index differs
-          const q2 = query(
-            collection(db, "submissions"),
-            where("uid", "==", user.uid),
-            orderBy("createdAt", "desc"),
-            limit(200)
-          );
-          snap = await getDocs(q2);
-        }
+        const snap = await getOwnSubmissions("submissions", user.uid);
 
         if (!alive) return;
 
@@ -141,7 +116,8 @@ export default function StudentResultsPage() {
           })
           .filter((r) => r.lessonId.trim().length > 0);
 
-        setRows(list);
+        list.sort((a, b) => (b.updatedAt?.toMillis() ?? b.createdAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? a.createdAt?.toMillis() ?? 0));
+        setRows(list.slice(0, 200));
       } catch (e: unknown) {
         if (!alive) return;
         const msg = (e as { message?: unknown })?.message;

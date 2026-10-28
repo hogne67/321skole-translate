@@ -1,5 +1,7 @@
 "use client";
 
+import ExternalTrainingVideoNotice from "@/components/ExternalTrainingVideoNotice";
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1197,12 +1199,6 @@ export default function ImageWritingProducerPage() {
           aria-label={ui.videoTitle}
         >
           <div style={videoThumbStyle}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://img.youtube.com/vi/yGAQHEUqJsU/mqdefault.jpg"
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
             <div style={playCircle} aria-hidden="true">
               <span style={playTriangle} />
             </div>
@@ -1240,13 +1236,7 @@ export default function ImageWritingProducerPage() {
               </button>
             </div>
             <div style={videoFrameShell}>
-              <iframe
-                src="https://www.youtube-nocookie.com/embed/yGAQHEUqJsU?autoplay=1&rel=0&modestbranding=1"
-                title={ui.videoTitle}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                style={videoFrame}
-              />
+              <div style={videoFrame}><ExternalTrainingVideoNotice href="https://www.youtube.com/watch?v=yGAQHEUqJsU" title={ui.videoTitle} /></div>
             </div>
           </div>
         </div>

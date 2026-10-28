@@ -104,6 +104,7 @@ ${sourceText.slice(0, 6000) || "Ikke tilgjengelig."}
 `.trim();
 
         const completion = await client.chat.completions.create({
+            store: false,
             model: "gpt-4.1-mini",
             temperature: 0.5,
             response_format: { type: "json_object" },

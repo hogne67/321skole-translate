@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -131,7 +132,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "User lookup failed";
-    const status = message.includes("Authorization") ? 401 : 500;
+    const status = message.includes("Authorization") ? 401 : (accountErrorStatus(error) ?? 500);
     return json({ error: message }, status);
   }
 }

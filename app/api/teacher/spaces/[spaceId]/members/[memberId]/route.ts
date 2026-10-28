@@ -1,3 +1,7 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { accountErrorStatus, isGloballyEnabled } from "@/lib/security/accountAccess.server";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -59,8 +63,7 @@ async function canManageSpaceMembers(params: {
   const spaceSnap = await db.collection("spaces").doc(spaceId).get();
   if (!spaceSnap.exists) return false;
 
-  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-  return safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid;
+  return (await getSpaceAccess(db, spaceId, uid)).owner;
 }
 
 async function getActiveStudentDocsForParticipant(
@@ -72,13 +75,10 @@ async function getActiveStudentDocsForParticipant(
 
   return snap.docs.filter((docSnap) => {
     const data = (docSnap.data() ?? {}) as Record<string, unknown>;
-    const status = safeString(data.status).toLowerCase();
     return (
       safeString(data.participantId) === participantId &&
       safeString(data.role) === "student" &&
-      data.archived !== true &&
-      data.active !== false &&
-      status !== "removed"
+      isActiveSpaceMember(data)
     );
   });
 }
@@ -113,13 +113,24 @@ export async function PATCH(req: Request, ctx: RouteContext) {
 
     const memberUid = safeString(member.uid) || safeString(member.userId);
     const participantId = safeString(member.participantId) || memberUid || memberId;
-    const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
-    const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
     const body = (await req.json().catch(() => ({}))) as MemberBody;
     const action = safeString(body.action);
 
     if (action === "remove") {
-      await db.runTransaction(async (tx) => {
+      const removed = await db.runTransaction(async (tx) => {
+        const currentAccess = await getSpaceAccess(db, spaceId, uid, tx);
+        const ownerUid = getSpaceOwnerUid(currentAccess.space);
+        const admin = isGloballyEnabled(currentAccess.profile) && isAdminProfile(currentAccess.profile ?? null);
+        if (!admin && !currentAccess.owner) return { error: "No access to manage members for this space" };
+        const currentMember = await tx.get(memberRef);
+        const currentIdentity = safeString(currentMember.get("participantId")) || safeString(currentMember.get("uid")) || memberId;
+        if (!currentMember.exists || currentMember.get("spaceId") !== spaceId || currentMember.get("role") !== "student" || currentIdentity !== participantId) return { error: "Member changed; retry" };
+        // Query inside the same transaction as the revocation. Include pending
+        // requests and the retained teacher identity, not just active aliases.
+        const current = await tx.get(db.collection("spaceMembers").where("spaceId", "==", spaceId));
+        const targetDocs = current.docs.filter(doc => safeString(doc.get("role")) === "student" &&
+          (safeString(doc.get("participantId")) || safeString(doc.get("uid")) || doc.id) === participantId);
+        if (!admin && targetDocs.some(target => target.id === `${spaceId}_${ownerUid}`)) return { error: "Platform administrator required for owner membership" };
         for (const targetDoc of targetDocs) {
           tx.set(
             targetDoc.ref,
@@ -129,20 +140,27 @@ export async function PATCH(req: Request, ctx: RouteContext) {
               status: "removed",
               removedAt: FieldValue.serverTimestamp(),
               removedByUid: uid,
+              approvalCode: FieldValue.delete(),
+              approvalExpiresAt: FieldValue.delete(),
               updatedAt: FieldValue.serverTimestamp(),
             },
             { merge: true }
           );
         }
+        return { removed: targetDocs.length };
       });
+      if ("error" in removed) return json({ error: removed.error }, 403);
 
       return json({
         ok: true,
         action: "remove",
         participantId,
-        removed: targetDocs.length,
+        removed: removed.removed,
       });
     }
+
+    const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
+    const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
 
     const displayName = cleanName(safeString(body.displayName));
     if (!displayName) return json({ error: "Display name is required" }, 400);
@@ -174,6 +192,6 @@ export async function PATCH(req: Request, ctx: RouteContext) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not update member.";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

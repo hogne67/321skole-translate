@@ -1,5 +1,6 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/board/display/page.tsx
 "use client";
+import ProtectedSpaceImage from "@/components/ProtectedSpaceImage";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -1743,8 +1744,7 @@ function ImageSentenceDisplay({
         {answersHidden ? <div className="mt-6 inline-flex rounded-full bg-amber-400/15 px-5 py-2 text-xl font-semibold text-amber-200">{hiddenText}</div> : null}
         <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl">
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" className="aspect-video w-full object-cover" />
+            <ProtectedSpaceImage src={imageUrl} alt="" className="aspect-video w-full object-cover" />
           ) : (
             <div className="flex aspect-video w-full items-center justify-center text-2xl text-zinc-400">{prompt}</div>
           )}

@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { collectionGroup, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -71,17 +71,15 @@ export default function MySubmissionsInSpace() {
       try {
         // NB: kan kreve index (Firestore gir link i console)
         const qy = query(
-          collectionGroup(db, "submissions"),
+          collection(db, "spaceSubmissions"),
           where("spaceId", "==", spaceId),
-          where("uid", "==", uid),
-          orderBy("updatedAt", "desc"),
-          limit(50)
+          where("uid", "==", uid)
         );
 
         const snap = await getDocs(qy);
         if (!alive) return;
 
-        const out: Row[] = snap.docs.map((d) => {
+        const out: Row[] = [...snap.docs].sort((a, b) => (b.data().updatedAt?.toMillis?.() ?? 0) - (a.data().updatedAt?.toMillis?.() ?? 0)).slice(0, 50).map((d) => {
           const data = (d.data() as unknown) as Record<string, unknown>;
           const tf = isRecord(data.teacherFeedback) ? (data.teacherFeedback as Record<string, unknown>) : null;
 

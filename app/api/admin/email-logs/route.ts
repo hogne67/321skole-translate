@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -92,7 +93,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json(
             { ok: false, error: "server_error" },
-            { status: 500 }
+            { status: (accountErrorStatus(error) ?? 500) }
         );
     }
 }

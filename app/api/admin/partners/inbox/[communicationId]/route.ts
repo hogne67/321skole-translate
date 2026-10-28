@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -98,7 +99,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return json({ ok: true, communicationId });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not mark reply reviewed" }, 500);
+    return json({ error: msg || "Could not mark reply reviewed" }, (accountErrorStatus(e) ?? 500));
   }
 }
 
@@ -177,6 +178,6 @@ export async function POST(req: Request, context: RouteContext) {
     return json({ ok: true, communicationId, responseCommunicationId: responseRef.id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Could not answer partner reply" }, 500);
+    return json({ error: msg || "Could not answer partner reply" }, (accountErrorStatus(e) ?? 500));
   }
 }

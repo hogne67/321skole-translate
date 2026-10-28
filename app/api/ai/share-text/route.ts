@@ -169,6 +169,7 @@ Return ONLY valid JSON in this exact format:
         Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}`,
       },
       body: JSON.stringify({
+        store: false,
         model: "gpt-5.3",
         input: prompt,
       }),

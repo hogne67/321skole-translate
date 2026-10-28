@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/publish/route.ts
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -112,8 +113,8 @@ export async function POST(req: Request) {
       return emailVerificationRequiredResponse();
     }
     uid = decoded.uid;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  } catch (accountError) {
+    return NextResponse.json({ error: "Invalid token" }, { status: (accountErrorStatus(accountError) ?? 401) });
   }
 
   // --- Input ---

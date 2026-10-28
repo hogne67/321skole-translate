@@ -1,3 +1,6 @@
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
@@ -54,8 +57,7 @@ async function canManageSpaceMembers(params: {
   const spaceSnap = await db.collection("spaces").doc(spaceId).get();
   if (!spaceSnap.exists) return false;
 
-  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-  return safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid;
+  return (await getSpaceAccess(db, spaceId, uid)).owner;
 }
 
 function studentCodeKey(spaceId: string, studentCode: string): string {
@@ -109,13 +111,10 @@ async function getActiveStudentDocsForParticipant(
 
   return snap.docs.filter((docSnap) => {
     const data = (docSnap.data() ?? {}) as Record<string, unknown>;
-    const status = safeString(data.status).toLowerCase();
     return (
       safeString(data.participantId) === participantId &&
       safeString(data.role) === "student" &&
-      data.archived !== true &&
-      data.active !== false &&
-      status !== "removed"
+      isActiveSpaceMember(data)
     );
   });
 }
@@ -182,6 +181,6 @@ export async function POST(req: Request, ctx: RouteContext) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Could not update student code.";
-    return json({ error: message }, 500);
+    return json({ error: message }, (accountErrorStatus(error) ?? 500));
   }
 }

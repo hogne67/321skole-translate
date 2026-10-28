@@ -1,10 +1,15 @@
+import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import "server-only";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { randomUUID, randomInt } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { getBucketLimit, getEffectivePlan, type AppRole } from "@/lib/featureAccess";
 import { isActiveTeacherPupil, teacherStudentIdentity } from "@/lib/teacherStudentIdentity";
+import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 
 const ownerFields = ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
@@ -20,25 +25,30 @@ async function access(req: Request, ctx: Context) {
   const { auth, db } = getAdmin();
   let uid: string;
   try { uid = (await auth.verifyIdToken(token, true)).uid; }
-  catch { throw new RosterError("Invalid token", 401); }
+  catch (error) { throw new RosterError("Invalid token", accountErrorStatus(error) ?? 401); }
   const { spaceId } = await ctx.params;
   const [room, requester] = await Promise.all([db.doc(`spaces/${spaceId}`).get(), db.doc(`users/${uid}`).get()]);
   if (!room.exists) throw new RosterError("Room not found", 404);
   const data = room.data()!;
-  const owner = ownerFields.map(field => text(data[field])).find(Boolean);
+  const owner = getSpaceOwnerUid(data);
   if (!owner) throw new RosterError("Room owner missing", 409);
   const admin = requester.data()?.role === "admin" || requester.data()?.roles?.admin === true;
-  if (uid !== owner && !admin) throw new RosterError("No access to manage members for this space", 403);
+  if (!admin && !(await getSpaceAccess(db, spaceId, uid)).owner) throw new RosterError("No access to manage members for this space", 403);
   // Query failures must not silently undercount licence usage.
   const owned = await Promise.all(ownerFields.map(field => db.collection("spaces").where(field, "==", owner).get()));
   const spaces = new Map(owned.flatMap(snap => snap.docs).filter(doc =>
     ownerFields.map(field => text(doc.data()[field])).find(Boolean) === owner
   ).map(doc => [doc.id, doc.data()]));
+  // Retain the conservative legacy catalogue for quota counting only.
+  // Display, import and writes require the authoritative ownership policy.
+  const authorizedSpaceIds = new Set((await Promise.all([...spaces].map(async ([id, value]) =>
+    getSpaceOwnerUid(value) === owner && (admin || (await getSpaceAccess(db, id, uid)).owner) ? id : null
+  ))).filter((id): id is string => id !== null));
   const ownerProfile = uid === owner ? requester : await db.doc(`users/${owner}`).get();
   const profile = ownerProfile.data() ?? {};
   const plan = getEffectivePlan(profile);
   const role = text(profile.role) || "teacher";
-  return { db, uid, owner, spaceId, spaces, room, limit: getBucketLimit(role as AppRole, plan, "members") };
+  return { db, uid, owner, spaceId, spaces, authorizedSpaceIds, admin, room, limit: getBucketLimit(role as AppRole, plan, "members") };
 }
 
 async function members(a: Awaited<ReturnType<typeof access>>, tx?: FirebaseFirestore.Transaction) {
@@ -64,8 +74,9 @@ export async function getTeacherPupilRoster(req: Request, ctx: Context) {
     for (const doc of await members(a)) {
       const data = doc.data();
       const id = teacherStudentIdentity(data);
-      if (!id || !isActiveTeacherPupil(data)) continue;
+      if (!id || !isActiveTeacherPupil(data) || !isActiveSpaceMember(data)) continue;
       const spaceId = text(data.spaceId);
+      if (!a.authorizedSpaceIds.has(spaceId)) continue;
       const item = roster.get(id) ?? { id, sourceMemberId: doc.id, displayName: text(data.displayName), spaces: [] };
       if (!item.spaces.some(room => room.spaceId === spaceId)) item.spaces.push({ spaceId, title: text(a.spaces.get(spaceId)?.title), displayName: text(data.displayName) });
       roster.set(id, item);
@@ -84,25 +95,27 @@ export async function createOrLinkTeacherPupil(req: Request, ctx: Context) {
     if (targetMemberId && !sourceMemberId) throw new RosterError("Select an existing pupil first.");
     const name = text(body.displayName).replace(/\s+/g, " ").slice(0, 80);
     if (!sourceMemberId && !name) throw new RosterError("Display name is required");
-    const result = await a.db.runTransaction(async tx => {
+    const result = await runCapacityTransaction(a.db, async tx => {
       // Serialise changes to this teacher's roster, including concurrent imports.
       const lock = a.db.doc(`teacherRosterLocks/${a.owner}`);
       await tx.get(lock);
       const currentRoom = await tx.get(a.room.ref);
-      if (!currentRoom.exists || ownerFields.map(field => text(currentRoom.data()?.[field])).find(Boolean) !== a.owner) throw new RosterError("Room ownership changed", 409);
+      if (!currentRoom.exists || getSpaceOwnerUid(currentRoom.data()) !== a.owner) throw new RosterError("Room ownership changed", 409);
+      const ownerMember = await tx.get(a.db.doc(`spaceMembers/${a.spaceId}_${a.owner}`));
+      if (!a.admin && !hasSpaceOwnerAccess(currentRoom.data(), a.uid, ownerMember.exists ? ownerMember.data() : null)) throw new RosterError("Room ownership revoked", 403);
       if (currentRoom.data()?.archived === true || currentRoom.data()?.status === "archived") throw new RosterError("Room is archived", 409);
       const rows = await members(a, tx);
-      const source = sourceMemberId ? rows.find(doc => doc.id === sourceMemberId && isActiveTeacherPupil(doc.data())) : undefined;
+      const source = sourceMemberId ? rows.find(doc => a.authorizedSpaceIds.has(text(doc.data().spaceId)) && doc.id === sourceMemberId && isActiveTeacherPupil(doc.data()) && isActiveSpaceMember(doc.data())) : undefined;
       if (sourceMemberId && !source) throw new RosterError("Pupil must belong to the same teacher and have an active registration.", 403);
       const identity = source ? teacherStudentIdentity(source.data()) : `teacher_pupil_${randomUUID()}`;
       const active = rows.filter(doc => isActiveTeacherPupil(doc.data()));
-      const already = active.find(doc => doc.data().spaceId === a.spaceId && teacherStudentIdentity(doc.data()) === identity);
-      const target = targetMemberId ? active.find(doc => doc.id === targetMemberId && doc.data().spaceId === a.spaceId) : undefined;
+      const already = active.find(doc => isActiveSpaceMember(doc.data()) && doc.data().spaceId === a.spaceId && teacherStudentIdentity(doc.data()) === identity);
+      const target = targetMemberId ? active.find(doc => isActiveSpaceMember(doc.data()) && doc.id === targetMemberId && doc.data().spaceId === a.spaceId) : undefined;
       if (targetMemberId && !target) throw new RosterError("Target pupil not found in this room", 404);
       if (target && already && text(already.data().participantId) !== text(target.data().participantId)) throw new RosterError("This pupil is already registered in the room. Contact admin to resolve the duplicate.", 409);
       if (!source && new Set(active.map(doc => teacherStudentIdentity(doc.data())).filter(Boolean)).size >= a.limit) throw new RosterError("Elevgrensen er nådd. Gjenbruk en eksisterende elev eller oppgrader lisensen.", 403);
       const oldIdentity = target ? teacherStudentIdentity(target.data()) : "";
-      const changed = rows.filter(doc => teacherStudentIdentity(doc.data()) === identity || (oldIdentity && teacherStudentIdentity(doc.data()) === oldIdentity));
+      const changed = rows.filter(doc => a.authorizedSpaceIds.has(text(doc.data().spaceId)) && (teacherStudentIdentity(doc.data()) === identity || (oldIdentity && teacherStudentIdentity(doc.data()) === oldIdentity)));
       // Only the licence identity changes. Room identities, names, codes and answers stay intact.
       for (const doc of changed) tx.update(doc.ref, { teacherStudentId: identity, updatedAt: FieldValue.serverTimestamp() });
       tx.set(lock, { updatedAt: FieldValue.serverTimestamp() });

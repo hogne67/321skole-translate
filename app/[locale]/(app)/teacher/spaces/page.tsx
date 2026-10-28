@@ -1,5 +1,7 @@
 // app\[locale]\(app)\teacher\spaces\page.tsx
 "use client";
+import { watchOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -9,7 +11,7 @@ import SpaceRoomCard from "@/components/SpaceRoomCard";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -240,9 +242,7 @@ function TeacherSpacesInner() {
   useEffect(() => {
     if (!user?.uid || !canUseTeacherSpaces) return;
 
-    const q = query(collection(db, "spaces"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
-
-    return onSnapshot(q, (snap) => {
+    return watchOwnedSpaceSnapshots(db, user.uid, (snap) => {
       const next: Row[] = snap.docs.map((d) => ({
         id: d.id,
         data: (d.data() as SpaceDocSafe) ?? ({} as SpaceDocSafe),
@@ -291,7 +291,7 @@ function TeacherSpacesInner() {
           const spaceSnap = await getDoc(doc(db, "spaces", id));
           if (!spaceSnap.exists()) return null;
           const data = (spaceSnap.data() as SpaceDocSafe) ?? ({} as SpaceDocSafe);
-          if (data.ownerId === user.uid || data.ownerUid === user.uid) return null;
+          if (getSpaceOwnerUid(data) === user.uid) return null;
           return { id: spaceSnap.id, data } satisfies Row;
         })
       );

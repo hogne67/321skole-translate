@@ -1,3 +1,5 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 // app/api\spaces\[spaceId]\lessons\[assignmentId]\geometry-review\[studentUid]\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -59,7 +61,7 @@ export async function POST(req: Request, context: RouteContext) {
     const idToken = authHeader.slice(7).trim();
     const { auth, db } = getAdmin();
 
-    const decoded = await auth.verifyIdToken(idToken);
+    const decoded = await auth.verifyIdToken(idToken, true);
     const reviewerUid = decoded.uid;
 
     const body = (await req.json()) as ReviewBody;
@@ -82,6 +84,9 @@ export async function POST(req: Request, context: RouteContext) {
         { status: 400 }
       );
     }
+
+    const access = await getSpaceAccess(db, spaceId, reviewerUid);
+    if (!access.canTeach) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const submissionRef = db
       .collection("spaces")
@@ -140,7 +145,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     return NextResponse.json(
       { ok: false, error: "Failed to review geometry submission" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

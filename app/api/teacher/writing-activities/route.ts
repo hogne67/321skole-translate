@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -306,6 +307,6 @@ export async function POST(req: Request) {
     return json({ activityId: result.activityId, quota: result.quota }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Create writing activity failed" }, 500);
+    return json({ error: msg || "Create writing activity failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

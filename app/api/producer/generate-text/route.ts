@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/producer/generate-text/route.ts
 import OpenAI from "openai";
 import { generateFactCheckReport } from "@/lib/lessons/server/generateFactCheckReport";
@@ -5773,6 +5774,7 @@ export async function POST(req: Request) {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const createResponse = async (prompt: string, temperature: number) => {
       const resp = await client.responses.create({
+        store: false,
         model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         text: { format: { type: "json_object" } },
         temperature,
@@ -5795,6 +5797,7 @@ export async function POST(req: Request) {
         return JSON.parse(out) as GenerateTextResult;
       } catch (error) {
         const repairResp = await client.responses.create({
+          store: false,
           model: process.env.OPENAI_MODEL || "gpt-4o-mini",
           text: { format: { type: "json_object" } },
           temperature: 0,
@@ -5888,6 +5891,6 @@ export async function POST(req: Request) {
   const message =
     err instanceof Error ? err.message : "Unknown error";
 
-  return NextResponse.json({ error: message }, { status: 500 });
+  return NextResponse.json({ error: message }, { status: (accountErrorStatus(err) ?? 500) });
 }
 }

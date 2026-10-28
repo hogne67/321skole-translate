@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -58,7 +59,7 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const { auth } = getAdmin();
-    const decoded = await auth.verifyIdToken(authToken);
+    const decoded = await auth.verifyIdToken(authToken, true);
     const uid = decoded.uid;
 
     if (!uid) {
@@ -75,9 +76,11 @@ export async function GET(req: Request, context: RouteContext) {
       .where("role", "==", "school_teacher")
       .get();
     const teachers = snapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as SchoolMemberDoc),
+      .map((doc): SchoolMemberDoc => ({
+        id: doc.id, uid: doc.id, schoolId,
+        email: doc.get("email") ?? null, displayName: doc.get("displayName") ?? null,
+        role: "school_teacher", status: doc.get("status"),
+        joinedAt: doc.get("joinedAt") ?? null, disabledAt: doc.get("disabledAt") ?? null,
       }))
       .sort(sortTeachers);
 
@@ -89,6 +92,6 @@ export async function GET(req: Request, context: RouteContext) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
 
-    return json({ ok: false, error: message || "Failed to load school teachers" }, 500);
+    return json({ ok: false, error: message || "Failed to load school teachers" }, (accountErrorStatus(error) ?? 500));
   }
 }

@@ -1,6 +1,6 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { getAdminApp } from "@/lib/firebaseAdmin";
+import { getAdmin } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
 import {
   syncFromCheckoutSession,
@@ -20,7 +20,7 @@ async function verifyUser(req: NextRequest): Promise<{ uid: string }> {
   const token = readBearerToken(req);
   if (!token) throw new Error("Missing bearer token");
 
-  const decoded = await getAuth(getAdminApp()).verifyIdToken(token);
+  const decoded = await getAdmin().auth.verifyIdToken(token);
   return { uid: decoded.uid };
 }
 
@@ -52,6 +52,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not sync checkout";
     console.error("billing checkout sync failed:", error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: (accountErrorStatus(error) ?? 500) });
   }
 }

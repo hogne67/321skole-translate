@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app\api\math\geometry\save-attempt\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { ok: false, error: "Failed to save attempt" },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }

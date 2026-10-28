@@ -1,5 +1,6 @@
-import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { fetchAuthenticatedFileBlob, uploadPrivateSpaceFile } from "@/lib/spaceFiles.client";
+import { privateSpaceFileId, privateSpaceFileUrl } from "@/lib/spaceFiles";
 
 export type StudentAudioActivityType = "audio_reading" | "podcast" | string;
 
@@ -71,11 +72,45 @@ export async function resolveStudentAudioForPlayback(
   asset: StudentAudioAsset | null
 ): Promise<StudentAudioAsset | null> {
   if (!asset) return null;
-  if (asset.audioDataUrl) return asset;
-  if (!asset.storagePath) return asset;
-
-  const audioDataUrl = await getDownloadURL(storageRef(storage, asset.storagePath));
+  const user = auth.currentUser;
+  const blob = await readStudentAudioBlob(asset);
+  const audioDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error || new Error("Could not read student audio"));
+    reader.readAsDataURL(blob);
+  });
+  if (asset.storagePath && auth.currentUser !== user) throw new Error("Audio session changed");
   return { ...asset, audioDataUrl };
+}
+
+/** One transport for playback, segment downloads and full exports. Stored files
+ * always use current authorization, even if an earlier preview is in memory. */
+export async function readStudentAudioBlob(asset: StudentAudioAsset): Promise<Blob> {
+  if (asset.storagePath) {
+    const id = privateSpaceFileId(asset.storagePath);
+    if (id) return fetchAuthenticatedFileBlob(privateSpaceFileUrl(id));
+    const parts = asset.storagePath.split("/");
+    if (parts.length !== 8 || parts.some(part => !part || part === "." || part === ".." || part.includes("\\"))
+      || parts[0] !== "spaces" || parts[2] !== "assignments" || parts[4] !== "submissions" || parts[6] !== "audio") {
+      throw new Error("Invalid student audio reference");
+    }
+    return fetchAuthenticatedFileBlob("/api/teacher/audio-url", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storagePath: asset.storagePath, mode: "bytes" }) });
+  }
+  if (!asset.audioDataUrl?.startsWith("data:audio/")) throw new Error("Missing student audio");
+  const response = await fetch(asset.audioDataUrl);
+  if (!response.ok) throw new Error("Audio could not be read");
+  const blob = await response.blob();
+  if (blob.size === 0 || blob.size > 25 * 1024 * 1024) throw new Error("Invalid audio size");
+  return blob;
+}
+
+export function studentAudioFilename(asset: StudentAudioAsset, label = "321skole-opptak") {
+  const extensions: Record<string, string> = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/wav": "wav",
+    "audio/mp4": "m4a", "audio/x-m4a": "m4a", "audio/mpeg": "mp3" };
+  const name = label.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 100) || "321skole-opptak";
+  return `${name}.${extensions[asset.mimeType.split(";")[0].toLowerCase()] || "webm"}`;
 }
 
 export function stripStudentAudioPlaybackUrl(
@@ -84,14 +119,6 @@ export function stripStudentAudioPlaybackUrl(
   const { audioDataUrl: _audioDataUrl, ...stored } = asset;
   void _audioDataUrl;
   return stored;
-}
-
-function extensionForMimeType(mimeType: string) {
-  const clean = mimeType.toLowerCase();
-  if (clean.includes("mp4") || clean.includes("m4a")) return "m4a";
-  if (clean.includes("ogg")) return "ogg";
-  if (clean.includes("wav")) return "wav";
-  return "webm";
 }
 
 function storageContentType(mimeType: string) {
@@ -133,37 +160,14 @@ export async function uploadStudentAudioAsset({
     throw new Error("Audio recording is too large.");
   }
 
-  const extension = extensionForMimeType(mimeType);
-  const safeActivityType = String(activityType).replace(/[^a-z0-9_-]/gi, "_");
-  const safeAssetId = assetId ? `-${String(assetId).replace(/[^a-z0-9_-]/gi, "_")}` : "";
-  const path = [
-    "spaces",
-    spaceId,
-    "assignments",
-    assignmentId,
-    "submissions",
-    uid,
-    "audio",
-    `${submissionId}-${safeActivityType}${safeAssetId}.${extension}`,
-  ].join("/");
-
-  await uploadBytes(storageRef(storage, path), blob, {
-    contentType: mimeType,
-    cacheControl: "private,max-age=0,no-store",
-    customMetadata: {
-      spaceId,
-      assignmentId,
-      submissionId,
-      uid,
-      activityType,
-      recordedAt: String(asset.recordedAt),
-    },
-  });
+  if (!auth.currentUser || !uid) throw new Error("Sign in to upload audio");
+  const saved = await uploadPrivateSpaceFile({ spaceId, activityId: assignmentId, submissionId,
+    purpose: activityType === "podcast" ? "podcast" : "audio_reading", ...(assetId ? { segmentId: assetId } : {}) }, new Blob([blob], { type: mimeType }));
 
   return {
     version: 1,
     activityType,
-    storagePath: path,
+    storagePath: saved.storagePath,
     mimeType,
     durationSeconds: asset.durationSeconds,
     sizeBytes: blob.size,
@@ -178,5 +182,12 @@ export async function deleteStudentAudioAsset(
   asset: StudentAudioAsset | null
 ): Promise<void> {
   if (!asset?.storagePath) return;
-  await deleteObject(storageRef(storage, asset.storagePath));
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in to delete student audio");
+  const id = privateSpaceFileId(asset.storagePath);
+  const response = await fetch(id ? privateSpaceFileUrl(id) : "/api/teacher/audio-url", { method: id ? "DELETE" : "POST",
+    headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ storagePath: asset.storagePath, mode: "delete" }),
+  });
+  if (!response.ok) throw new Error("Could not delete student audio");
 }

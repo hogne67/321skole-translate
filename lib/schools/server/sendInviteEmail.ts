@@ -29,10 +29,13 @@ export async function sendSchoolInviteEmail(input: { uid: string; schoolId: stri
   const schoolRef = deps.db.collection("schools").doc(input.schoolId);
   const inviteRef = deps.db.collection("schoolInvites").doc(input.inviteId);
   const data = await deps.db.runTransaction(async tx => {
-    const [member, school, invite] = await Promise.all([
+    const [member, school, invite, profile] = await Promise.all([
       tx.get(schoolRef.collection("members").doc(input.uid)), tx.get(schoolRef), tx.get(inviteRef),
+      tx.get(deps.db.collection("users").doc(input.uid)),
     ]);
     if (member.get("role") !== "school_admin" || member.get("status") !== "active") throw new InviteEmailError("forbidden", 403);
+    if (profile.get("disabled") === true || profile.get("schoolId") !== input.schoolId
+      || profile.get("schoolRole") !== "school_admin" || profile.get("schoolStatus") !== "active") throw new InviteEmailError("forbidden", 403);
     if (!school.exists) throw new InviteEmailError("school_not_found", 404);
     if (school.get("status") !== "active") throw new InviteEmailError("school_not_active");
     if (!invite.exists || invite.get("schoolId") !== input.schoolId) throw new InviteEmailError("invite_not_found", 404);

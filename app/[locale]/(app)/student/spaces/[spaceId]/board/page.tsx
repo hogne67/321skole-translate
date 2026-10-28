@@ -1,5 +1,6 @@
 // app/[locale]/(app)/student/spaces/[spaceId]/board/page.tsx
 "use client";
+import ProtectedSpaceImage from "@/components/ProtectedSpaceImage";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -938,8 +939,7 @@ export default function StudentBoardPage() {
                     {mode === "image" ? (
                       <div className="mt-7">
                         {imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={imageUrl} alt="" className="aspect-video w-full rounded-2xl border object-cover shadow-sm" />
+                          <ProtectedSpaceImage src={imageUrl} alt="" className="aspect-video w-full rounded-2xl border object-cover shadow-sm" />
                         ) : (
                           <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed bg-slate-50 text-sm text-slate-500">
                             {t("image.noImage")}

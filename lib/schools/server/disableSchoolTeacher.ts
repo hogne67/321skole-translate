@@ -12,7 +12,7 @@ export type DisableSchoolTeacherInput = {
 
 export type DisableSchoolTeacherResult = {
   ok: boolean;
-  reason?: "member_not_found" | "not_school_teacher";
+  reason?: "member_not_found" | "not_school_teacher" | "already_school_member";
   schoolId?: string;
   uid?: string;
 };
@@ -26,6 +26,10 @@ export async function disableSchoolTeacher(
 
   return db.runTransaction(async (transaction) => {
     const memberSnapshot = await transaction.get(memberRef);
+    const profileSnapshot = await transaction.get(profileRef);
+    if (profileSnapshot.get("schoolId") && profileSnapshot.get("schoolId") !== input.schoolId) {
+      return { ok: false, reason: "already_school_member", schoolId: input.schoolId, uid: input.targetUid };
+    }
 
     if (!memberSnapshot.exists) {
       return {

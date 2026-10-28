@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/quota/route.ts
 import "server-only";
 
@@ -270,7 +271,7 @@ export async function GET(req: Request) {
     return json(out, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Quota GET failed" }, 500);
+    return json({ error: msg || "Quota GET failed" }, (accountErrorStatus(e) ?? 500));
   }
 }
 
@@ -368,6 +369,6 @@ export async function POST(req: Request) {
     return json(out.info, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Quota POST failed" }, 500);
+    return json({ error: msg || "Quota POST failed" }, (accountErrorStatus(e) ?? 500));
   }
 }

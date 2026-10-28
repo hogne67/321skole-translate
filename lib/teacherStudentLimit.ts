@@ -1,3 +1,5 @@
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { getOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
 // lib/teacherStudentLimit.ts
 
 import {
@@ -15,15 +17,6 @@ import {
 } from "firebase/firestore";
 import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { teacherStudentIdentity } from "@/lib/teacherStudentIdentity";
-
-type SpaceOwnerFields = {
-  ownerUid?: unknown;
-  ownerId?: unknown;
-  teacherId?: unknown;
-  createdBy?: unknown;
-  createdByUid?: unknown;
-  uid?: unknown;
-};
 
 type SpaceTitleFields = {
   title?: unknown;
@@ -63,60 +56,11 @@ function asBoolean(value: unknown): boolean {
 }
 
 export function getTeacherUidFromSpaceData(data: DocumentData | undefined): string | null {
-  if (!data || typeof data !== "object") return null;
-
-  const d = data as SpaceOwnerFields;
-
-  return (
-    asNonEmptyString(d.ownerId) ||
-    asNonEmptyString(d.ownerUid) ||
-    asNonEmptyString(d.teacherId) ||
-    asNonEmptyString(d.createdByUid) ||
-    asNonEmptyString(d.createdBy) ||
-    asNonEmptyString(d.uid) ||
-    null
-  );
-}
-
-async function getSpaceIdsByOwnerField(
-  db: Firestore,
-  field: string,
-  teacherUid: string
-): Promise<string[]> {
-  try {
-    const qy = query(collection(db, "spaces"), where(field, "==", teacherUid));
-    const snap = await getDocs(qy);
-    return snap.docs.filter(item => getTeacherUidFromSpaceData(item.data()) === teacherUid).map((item) => item.id);
-  } catch {
-    return [];
-  }
+  return getSpaceOwnerUid(data);
 }
 
 export async function getTeacherSpaceIds(db: Firestore, teacherUid: string): Promise<string[]> {
-  const all = await Promise.all([
-    getSpaceIdsByOwnerField(db, "ownerId", teacherUid),
-    getSpaceIdsByOwnerField(db, "ownerUid", teacherUid),
-    getSpaceIdsByOwnerField(db, "teacherId", teacherUid),
-    getSpaceIdsByOwnerField(db, "createdByUid", teacherUid),
-    getSpaceIdsByOwnerField(db, "createdBy", teacherUid),
-    getSpaceIdsByOwnerField(db, "uid", teacherUid),
-  ]);
-
-  return Array.from(new Set(all.flat().filter(Boolean)));
-}
-
-async function querySpacesByOwnerField(
-  db: Firestore,
-  field: string,
-  teacherUid: string
-): Promise<QueryDocumentSnapshot<DocumentData>[]> {
-  try {
-    const qy = query(collection(db, "spaces"), where(field, "==", teacherUid));
-    const snap = await getDocs(qy);
-    return snap.docs.filter(item => getTeacherUidFromSpaceData(item.data()) === teacherUid);
-  } catch {
-    return [];
-  }
+  try { return (await getOwnedSpaceSnapshots(db, teacherUid)).map(row => row.id); } catch { return []; }
 }
 
 async function getTeacherSpacesMap(
@@ -125,14 +69,7 @@ async function getTeacherSpacesMap(
 ): Promise<Map<string, TeacherStudentSpaceInfo>> {
   const map = new Map<string, TeacherStudentSpaceInfo>();
 
-  const all = await Promise.all([
-    querySpacesByOwnerField(db, "ownerId", teacherUid),
-    querySpacesByOwnerField(db, "ownerUid", teacherUid),
-    querySpacesByOwnerField(db, "teacherId", teacherUid),
-    querySpacesByOwnerField(db, "createdByUid", teacherUid),
-    querySpacesByOwnerField(db, "createdBy", teacherUid),
-    querySpacesByOwnerField(db, "uid", teacherUid),
-  ]);
+  const all = [await getOwnedSpaceSnapshots(db, teacherUid)];
 
   for (const snapDoc of all.flat()) {
     const data = snapDoc.data() as SpaceTitleFields;

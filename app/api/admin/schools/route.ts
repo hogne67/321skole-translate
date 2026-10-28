@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -162,7 +163,7 @@ export async function GET(req: Request) {
     return json({ ok: true, schools });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = message.includes("Authorization") || message === "Unauthorized" ? 401 : 500;
+    const status = message.includes("Authorization") || message === "Unauthorized" ? 401 : (accountErrorStatus(error) ?? 500);
 
     return json({ ok: false, error: message || "Failed to load schools" }, status);
   }
@@ -223,7 +224,7 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     if (error instanceof SchoolAdministratorError) return json({ ok: false, error: error.message }, error.status);
     const message = error instanceof Error ? error.message : String(error);
-    const status = message.includes("Authorization") || message === "Unauthorized" ? 401 : 500;
+    const status = message.includes("Authorization") || message === "Unauthorized" ? 401 : (accountErrorStatus(error) ?? 500);
 
     return json({ ok: false, error: message || "Failed to create school" }, status);
   }

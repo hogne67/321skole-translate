@@ -10,6 +10,7 @@ export async function generateFactCheckReport(content: string, language: string)
   // Research facts first. The final assessment then compares task keys with the
   // evidence without a search response conflating distractors with author claims.
   const research = await client.responses.create({
+    store: false,
     model,
     tools: [{ type: "web_search" }],
     tool_choice: "required",
@@ -34,6 +35,7 @@ export async function generateFactCheckReport(content: string, language: string)
     }
   }
   const response = await client.responses.create({
+    store: false,
     model,
     max_output_tokens: 5000,
     input: [

@@ -1,3 +1,4 @@
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/unpublish/route.ts
 export const runtime = "nodejs";
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
       uid = decoded.uid;
     } catch (err: unknown) {
       console.error("unpublish: verifyIdToken failed", toErrorString(err));
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token" }, { status: (accountErrorStatus(err) ?? 401) });
     }
 
     // --- Input ---
@@ -151,7 +152,7 @@ export async function POST(req: Request) {
     console.error("unpublish: fatal", err instanceof Error ? err.stack || err.message : String(err));
     return NextResponse.json(
       { error: toErrorString(err) },
-      { status: 500 }
+      { status: (accountErrorStatus(err) ?? 500) }
     );
   }
 }
