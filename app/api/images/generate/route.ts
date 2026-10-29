@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
     const openai = new OpenAI({ apiKey });
 
     const imageResult = await openai.images.generate({
-      model: "gpt-image-1",
+      model: "gpt-image-2.5-flare",
       prompt,
       size: "1536x1024",
       quality: "medium",

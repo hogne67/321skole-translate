@@ -158,7 +158,7 @@ function imageDependencies(account: PosterAccount): ImageDependencies {
   const bucket = account.storage.bucket(bucketName);
   return {
     createSheet: async prompt => {
-      const result = await new OpenAI({ apiKey: process.env.OPENAI_API_KEY }).images.generate({ model: "gpt-image-1", prompt,
+      const result = await new OpenAI({ apiKey: process.env.OPENAI_API_KEY }).images.generate({ model: "gpt-image-2.5-flare", prompt,
         size: "1536x1024", quality: "medium", output_format: "webp", n: 1 });
       const b64 = result.data?.[0]?.b64_json;
       if (!b64) throw new PosterError("generation_failed", 502);
