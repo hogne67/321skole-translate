@@ -27,7 +27,7 @@ const documents: DocumentSource[] = [
       facts.teacherAi, facts.aiLearningSupport, facts.retention,
     ], links: [{ href: "/school/privacy#data-categories", label: ["Datakategorier og dataflyt", "Data categories and flows", "Categorias e fluxos"] }, { href: "/school/data-rights", label: ["Oppbevaring og rettigheter", "Retention and rights", "Retenção e direitos"] }] },
   { id: "storage", icon: "storage", title: ["4. Lagring, leverandører og overføringer", "4. Storage, providers and transfers", "4. Armazenamento, fornecedores e transferências"], request: ["Lagringssted, underleverandører og internasjonale overføringer.", "Storage, sub-processors and international transfers.", "Armazenamento, suboperadores e transferências internacionais."], summary: facts.database,
-    points: [facts.providersStatus, facts.transfers,
+    points: [facts.backupStatus, facts.providersStatus, facts.backupRetention, facts.recoveryStatus, facts.transfers,
       ["Google dokumenterer USA for Firebase Authentication. Vercel, OpenAI, Resend, Stripe og øvrige relevante tjenester har egne roller og avtale-/konfigurasjonsavklaringer. Ikke alle tjenester er underdatabehandlere for elevdata.", "Google documents US processing for Firebase Authentication. Vercel, OpenAI, Resend, Stripe and others have separate roles and pending contracts/settings. Not all services are sub-processors of student data.", "Google documenta EUA para Firebase Authentication. Vercel, OpenAI, Resend, Stripe e outros têm papéis próprios e pendências. Nem todos são suboperadores de dados de alunos."],
       ["Leverandørbilaget skal bekrefte juridisk enhet, avtaleversjon, land, datatyper, supporttilgang, overføringsgrunnlag og relevante tiltak. Oppgitt EU-lagring er ikke en generell EU-only-garanti.", "The annex must confirm entities, contract versions, countries, data, support access, transfer bases and safeguards. Reported EU storage is not a general EU-only guarantee.", "O anexo deve confirmar entidades, versões, países, dados, suporte, fundamentos e medidas. Armazenamento informado na UE não é garantia geral de UE exclusiva."],
     ], links: [{ href: "/school/subprocessors", label: ["Leverandør- og overføringsoversikt", "Provider and transfer inventory", "Lista de fornecedores e transferências"] }, { href: "/school/dpa#annex-c", label: ["Bilag C", "Annex C", "Anexo C"] }] },
@@ -53,7 +53,7 @@ export function municipalityReportUi(locale: string) {
     recipient: label(["Mottaker", "Recipient", "Destinatário"]),
     recipientPlaceholder: label(["Kommune eller skoleeier", "Municipality or school owner", "Município ou mantenedora"]),
     noteLabel: label(["Kort merknad", "Short note", "Nota breve"]),
-    analyticsTitle: label(["Google Analytics – lokal kandidat og produksjonskontroll", "Google Analytics – local candidate and production verification", "Google Analytics – candidato local e verificação em produção"]),
+    analyticsTitle: label(["Google Analytics – deaktivert i publisert løsning", "Google Analytics – disabled in the published service", "Google Analytics – desativado no serviço publicado"]),
     analyticsPlan: t(locale, facts.analyticsPlan),
     defaultNote: "",
     updated: revisionLabel(locale),
@@ -81,7 +81,7 @@ export function municipalityReportUi(locale: string) {
 const reportIntroduction = [
   { title: ["Informasjon for skoler og skoleeiere", "Information for schools and school owners", "Informações para escolas e mantenedoras"] as Translated, paragraphs: [facts.generalOverview] },
   { title: ["Internkontroll og dokumentert fremdrift", "Internal control and documented progress", "Controles internos e progresso documentado"] as Translated, paragraphs: [facts.internalControl, facts.securityStatus] },
-  { title: ["Avklaringer før oppstart", "Clarifications before starting", "Definições antes do início"] as Translated, paragraphs: [facts.analyticsPlan, facts.retention] },
+  { title: ["Analyse og oppbevaring", "Analytics and retention", "Análise e retenção"] as Translated, paragraphs: [facts.analyticsPlan, facts.retention] },
 ];
 
 export function municipalityReportIntroduction(locale: string) {
