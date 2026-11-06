@@ -1,6 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { accountErrorStatus, assertActiveProfile, isGloballyEnabled } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import type { Auth } from "firebase-admin/auth";
@@ -57,6 +57,19 @@ function isTeacherProfile(profile: Record<string, unknown> | null): boolean {
   }
   const roles = profile.roles;
   return isRecord(roles) && (roles.teacher === true || roles.creator === true || roles.admin === true);
+}
+
+function hasActiveSchoolAssignment(
+  schoolId: string,
+  uid: string,
+  profile: Record<string, unknown> | undefined,
+  member: Record<string, unknown> | undefined,
+): boolean {
+  const role = member?.role;
+  return isGloballyEnabled(profile) && profile?.schoolId === schoolId && profile?.schoolStatus === "active"
+    && (role === "school_teacher" || role === "school_admin") && profile?.schoolRole === role
+    && member?.uid === uid && (member.schoolId === undefined || member.schoolId === schoolId)
+    && member.status === "active";
 }
 
 async function canManageSpaceStaff(params: {
@@ -120,7 +133,7 @@ export async function POST(
     if (!token) return json({ error: "Missing Authorization Bearer token" }, 401);
 
     const { spaceId } = await ctx.params;
-    if (!spaceId) return json({ error: "Missing spaceId" }, 400);
+    if (!spaceId || spaceId.includes("/")) return json({ error: "Invalid spaceId" }, 400);
 
     const body = (await req.json().catch(() => ({}))) as InviteBody;
     const email = normalizeEmail(body.email);
@@ -130,29 +143,38 @@ export async function POST(
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
-    const requesterSnap = await db.collection("users").doc(uid).get();
-    const requesterProfile = requesterSnap.exists
-      ? ((requesterSnap.data() ?? {}) as Record<string, unknown>)
-      : null;
-
-    const canManage = await canManageSpaceStaff({
-      db,
-      uid,
-      spaceId,
-      profile: requesterProfile,
-    });
-    if (!canManage) return json({ error: "No access to manage staff for this space" }, 403);
+    const current = await getSpaceAccess(db, spaceId, uid);
+    if (!current.exists || (!current.owner && !isAdminProfile(current.profile ?? null))) {
+      return json({ error: "No access to manage staff for this space" }, 403);
+    }
 
     const invited = await findUserByEmail({ auth, db, email });
     if (!invited) return json({ error: "No registered user found with this email" }, 404);
     if (invited.uid === uid) return json({ error: "You already own this access" }, 400);
-    if (!isTeacherProfile(invited.profile)) {
-      return json({ error: "The invited user must have teacher access first" }, 409);
-    }
+    const result = await db.runTransaction(async (tx) => {
+      const access = await getSpaceAccess(db, spaceId, uid, tx);
+      assertActiveProfile(access.profile, decoded);
+      const platformAdmin = isAdminProfile(access.profile ?? null);
+      if (!access.exists || (!access.owner && !platformAdmin)) return "room";
 
-    const docId = `${spaceId}_${invited.uid}`;
-    await db.collection("spaceMembers").doc(docId).set(
-      {
+      const profile = (await tx.get(db.doc(`users/${invited.uid}`))).data();
+      if (!isGloballyEnabled(profile) || !isTeacherProfile(profile ?? null)) return "teacher";
+
+      const schoolId = access.space?.schoolId;
+      if (schoolId != null) {
+        if (typeof schoolId !== "string" || !schoolId || schoolId.trim() !== schoolId || schoolId.includes("/")) return "school";
+        const [school, invitee] = await Promise.all([
+          tx.get(db.doc(`schools/${schoolId}`)),
+          tx.get(db.doc(`schools/${schoolId}/members/${invited.uid}`)),
+        ]);
+        if (school.get("status") !== "active" || !hasActiveSchoolAssignment(schoolId, invited.uid, profile, invitee.data())) return "school";
+        if (!platformAdmin) {
+          const owner = await tx.get(db.doc(`schools/${schoolId}/members/${uid}`));
+          if (!hasActiveSchoolAssignment(schoolId, uid, access.profile, owner.data())) return "school";
+        }
+      }
+
+      tx.set(db.doc(`spaceMembers/${spaceId}_${invited.uid}`), {
         spaceId,
         uid: invited.uid,
         userId: invited.uid,
@@ -167,9 +189,12 @@ export async function POST(
         invitedAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+      }, { merge: true });
+      return "created";
+    });
+    if (result === "room") return json({ error: "No access to manage staff for this space" }, 403);
+    if (result === "school") return json({ error: "School rooms require active teacher access at the same school" }, 403);
+    if (result === "teacher") return json({ error: "The invited user must have teacher access first" }, 409);
 
     return json({
       ok: true,

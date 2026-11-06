@@ -534,6 +534,27 @@ service cloud.firestore {
     return owner is string && docId == resource.data.spaceId + "_" + owner;
   }
 
+  function safeSchoolMembershipUpdate() {
+    let changed = request.resource.data.diff(resource.data).affectedKeys();
+    let names = ["displayName", "studentName", "updatedAt", "nameUpdatedAt", "nameUpdatedByUid"];
+    return changed.hasOnly(names) || (
+      resource.data.get("role", "") == "student"
+      && !isOwnerMembership()
+      && changed.hasOnly(names.concat(["status", "active", "archived", "removedAt", "removedBy"]))
+      && request.resource.data.get("status", "") == "removed"
+      && request.resource.data.get("active", true) == false
+      && request.resource.data.get("archived", false) == true
+      && request.resource.data.get("removedBy", "") == myUid()
+      && request.resource.data.get("removedAt", null) == request.time
+    ) || (
+      isAdmin() && isOwnerMembership()
+      && changed.hasOnly(["status", "active", "archived"])
+      && request.resource.data.get("status", "") == "active"
+      && request.resource.data.get("active", false) == true
+      && request.resource.data.get("archived", true) == false
+    );
+  }
+
   allow read: if accountEnabled() && (isAdmin()
     || (signedIn() && docUidFromId() == myUid())
     || (resource != null
@@ -565,6 +586,8 @@ service cloud.firestore {
     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherStudentId'])
     && displayNameOk()
     && (isSpaceOwner(resource.data.spaceId) || isAdmin())
+    // A school member's identity, role and active access can only be granted by the server.
+    && (spaceData(resource.data.spaceId).get("schoolId", null) == null || safeSchoolMembershipUpdate())
     && (isAdmin() || !isOwnerMembership()
       || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName", "studentName", "updatedAt", "nameUpdatedAt", "nameUpdatedByUid"])));
 
