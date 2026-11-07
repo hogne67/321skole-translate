@@ -2,6 +2,7 @@
 "use client";
 import { watchOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { isCurrentSpaceSubstitute } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -215,6 +216,8 @@ function TeacherSpacesInner() {
   const t = useTranslations("spaces");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const substituteText = useTranslations("schoolAdmin.substitutes");
+  const [substituteRooms, setSubstituteRooms] = useState<{ id: string; title: string }[]>([]);
   const spacesGuide = getSpacesGuide(locale);
 
   const { user, profile, loading } = useUserProfile();
@@ -257,6 +260,11 @@ function TeacherSpacesInner() {
     const qy = query(collection(db, "spaceMembers"), where("uid", "==", user.uid));
 
     return onSnapshot(qy, async (snap) => {
+      setSubstituteRooms(snap.docs.flatMap(member => {
+        const data = member.data();
+        if (!isCurrentSpaceSubstitute(data) || typeof data.spaceId !== "string" || member.id !== `${data.spaceId}_${user.uid}`) return [];
+        return [{ id: data.spaceId, title: typeof data.substituteRoomTitle === "string" ? data.substituteRoomTitle : "" }];
+      }));
       const staffSpaceIds = snap.docs
         .filter((memberSnap) => {
           const data = memberSnap.data() as {
@@ -433,6 +441,14 @@ function TeacherSpacesInner() {
 
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      {substituteRooms.length ? <section className="rounded-2xl border border-slate-300 bg-white p-4">
+        <h2 className="font-semibold">{substituteText("myRooms")}</h2>
+        <ul className="mt-2 space-y-1">{substituteRooms.map(room => <li key={room.id}>
+          <Link className="underline" href={`/${locale}/teacher/spaces/${encodeURIComponent(room.id)}/substitute`}>
+            {room.title || substituteText("room")}
+          </Link>
+        </li>)}</ul>
+      </section> : null}
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">

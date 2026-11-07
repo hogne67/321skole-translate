@@ -112,7 +112,7 @@ service cloud.firestore {
     function isActiveSpaceMemberData(data) {
       let status = data.get("status", "");
       return isMap(data)
-        && data.get("role", "") != "school_admin"
+        && !(data.get("role", "") in ["school_admin", "substitute"])
         && status is string && status.lower().matches('[ \\t\\r\\n]*active[ \\t\\r\\n]*')
         && data.get("active", true) == true
         && data.get("archived", false) == false;
@@ -555,7 +555,8 @@ service cloud.firestore {
     );
   }
 
-  allow read: if accountEnabled() && (isAdmin()
+  function canReadMember() {
+    return accountEnabled() && (isAdmin()
     || (signedIn() && docUidFromId() == myUid())
     || (resource != null
         && ("uid" in resource.data)
@@ -569,6 +570,25 @@ service cloud.firestore {
         && ("spaceId" in resource.data)
         && (resource.data.spaceId is string)
         && (isSpaceOwner(resource.data.spaceId) || isSpaceCoTeacher(resource.data.spaceId))));
+  }
+
+  function ownSubstituteGetCurrent() {
+    let data = resource == null ? {} : resource.data;
+    let own = data.get("uid", "") == myUid()
+      || docId == data.get("spaceId", "") + "_" + myUid();
+    return !own || (
+      data.get("status", "") == "substitute"
+      && data.get("active", false) == true && data.get("archived", true) == false
+      && data.get("substituteExpiresAt", null) is timestamp
+      && data.substituteExpiresAt > request.time
+    );
+  }
+
+  // Lists retain the existing metadata access. Only own substitute document gets
+  // add the service-time gate used by the vikar API with the user's ID token.
+  allow get: if canReadMember() && (resource == null
+    || resource.data.get("role", "") != "substitute" || ownSubstituteGetCurrent());
+  allow list: if canReadMember();
 
   // Pupil identities, personal codes and access links are created by validated server endpoints.
   allow create: if accountEnabled() && (signedIn()
@@ -581,6 +601,7 @@ service cloud.firestore {
     && spaceData(request.resource.data.spaceId).kind == "family");
   allow update: if accountEnabled() && (signedIn()
     && resource != null
+    && resource.data.get("role", "") != "substitute" && request.resource.data.get("role", "") != "substitute"
     && (resource.data.spaceId is string)
     && request.resource.data.spaceId == resource.data.spaceId
     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['teacherStudentId'])

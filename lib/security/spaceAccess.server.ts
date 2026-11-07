@@ -1,7 +1,7 @@
 import "server-only";
 import { isGloballyEnabled } from "./accountAccess.server";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
-import { isActiveSpaceMember, isSpaceTeachingMember } from "./spaceAccess";
+import { isActiveSpaceMember, isCurrentSpaceSubstitute, isSchoolSpace, isSpaceTeachingMember } from "./spaceAccess";
 import { hasSpaceOwnerAccess } from "./spaceOwnership";
 
 export async function getActiveSpaceMembership(db: Firestore, spaceId: string, uid: string) {
@@ -28,9 +28,20 @@ export async function getSpaceAccess(db: Firestore, spaceId: string, uid: string
   const active = enabled && isActiveSpaceMember(member);
   const admin = enabled && (profile?.role === "admin" || profile?.roles?.admin === true);
   const owner = enabled && hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
+  const schoolId = member?.substituteSchoolId;
+  let substitute = false;
+  if (enabled && isCurrentSpaceSubstitute(member) && member?.uid === uid && member?.spaceId === spaceId &&
+      typeof schoolId === "string" && !!schoolId && !schoolId.includes("/") && isSchoolSpace(space, schoolId) &&
+      profile?.role === "teacher" && profile.schoolId === schoolId && profile.schoolRole === "school_teacher" &&
+      profile.schoolStatus === "active") {
+    const [school, assignment] = await Promise.all([read(`schools/${schoolId}`), read(`schools/${schoolId}/members/${uid}`)]);
+    substitute = school.get("status") === "active" && assignment.get("uid") === uid &&
+      (assignment.get("schoolId") === undefined || assignment.get("schoolId") === schoolId) && assignment.get("role") === "school_teacher" &&
+      assignment.get("status") === "active" && isCurrentSpaceSubstitute(member);
+  }
   // School administration does not grant access to teaching or pupil content.
   const canTeach = !!space && enabled && (admin || owner || isSpaceTeachingMember(member));
-  return { exists: !!space, space, profile, member, active, owner, canTeach,
+  return { exists: !!space, space, profile, member, active, owner, canTeach, substitute,
     canRead: !!space && (canTeach || active), participantId: active && typeof member?.participantId === "string" ? member.participantId : uid };
 }
 

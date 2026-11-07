@@ -1,5 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { isCurrentSpaceSubstitute } from "@/lib/security/spaceAccess";
 import { accountErrorStatus, assertActiveProfile, isGloballyEnabled } from "@/lib/security/accountAccess.server";
 import "server-only";
 
@@ -70,21 +71,6 @@ function hasActiveSchoolAssignment(
     && (role === "school_teacher" || role === "school_admin") && profile?.schoolRole === role
     && member?.uid === uid && (member.schoolId === undefined || member.schoolId === schoolId)
     && member.status === "active";
-}
-
-async function canManageSpaceStaff(params: {
-  db: Firestore;
-  uid: string;
-  spaceId: string;
-  profile: Record<string, unknown> | null;
-}): Promise<boolean> {
-  const { db, uid, spaceId, profile } = params;
-  if (isAdminProfile(profile)) return true;
-
-  const spaceSnap = await db.collection("spaces").doc(spaceId).get();
-  if (!spaceSnap.exists) return false;
-
-  return (await getSpaceAccess(db, spaceId, uid)).owner;
 }
 
 async function findUserByEmail(params: {
@@ -174,7 +160,10 @@ export async function POST(
         }
       }
 
-      tx.set(db.doc(`spaceMembers/${spaceId}_${invited.uid}`), {
+      const target = db.doc(`spaceMembers/${spaceId}_${invited.uid}`);
+      const prior = (await tx.get(target)).data();
+      if (isCurrentSpaceSubstitute(prior)) return "substitute";
+      tx.set(target, {
         spaceId,
         uid: invited.uid,
         userId: invited.uid,
@@ -189,12 +178,18 @@ export async function POST(
         invitedAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+        ...(prior?.role === "substitute" ? {
+          substituteSchoolId: FieldValue.delete(), substituteGrantId: FieldValue.delete(),
+          substituteExpiresAt: FieldValue.delete(), substituteGrantedByUid: FieldValue.delete(),
+          substituteRoomTitle: FieldValue.delete(),
+        } : {}),
       }, { merge: true });
       return "created";
     });
     if (result === "room") return json({ error: "No access to manage staff for this space" }, 403);
     if (result === "school") return json({ error: "School rooms require active teacher access at the same school" }, 403);
     if (result === "teacher") return json({ error: "The invited user must have teacher access first" }, 409);
+    if (result === "substitute") return json({ error: "The school administrator must first revoke the substitute access" }, 409);
 
     return json({
       ok: true,
@@ -229,32 +224,27 @@ export async function DELETE(
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
-    const requesterSnap = await db.collection("users").doc(uid).get();
-    const requesterProfile = requesterSnap.exists
-      ? ((requesterSnap.data() ?? {}) as Record<string, unknown>)
-      : null;
-
-    const canManage = await canManageSpaceStaff({
-      db,
-      uid,
-      spaceId,
-      profile: requesterProfile,
-    });
-    if (!canManage) return json({ error: "No access to manage staff for this space" }, 403);
-
-    const ownerUid = getSpaceOwnerUid((await db.doc(`spaces/${spaceId}`).get()).data());
-    if (targetUid === ownerUid && !isAdminProfile(requesterProfile)) return json({ error: "Platform administrator required for owner membership" }, 403);
-    await db.collection("spaceMembers").doc(`${spaceId}_${targetUid}`).set(
-      {
+    const removed = await db.runTransaction(async tx => {
+      const access = await getSpaceAccess(db, spaceId, uid, tx);
+      assertActiveProfile(access.profile, decoded);
+      const admin = isAdminProfile(access.profile ?? null);
+      if (!admin && !access.owner) return "forbidden";
+      if (targetUid === getSpaceOwnerUid(access.space) && !admin) return "owner";
+      const target = db.doc(`spaceMembers/${spaceId}_${targetUid}`);
+      if ((await tx.get(target)).get("role") === "substitute") return "substitute";
+      tx.set(target, {
         archived: true,
         active: false,
         status: "removed",
         removedByUid: uid,
         removedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+      }, { merge: true });
+      return "removed";
+    });
+    if (removed === "forbidden") return json({ error: "No access to manage staff for this space" }, 403);
+    if (removed === "owner") return json({ error: "Platform administrator required for owner membership" }, 403);
+    if (removed === "substitute") return json({ error: "The school administrator manages substitute access" }, 409);
 
     return json({ ok: true });
   } catch (error: unknown) {

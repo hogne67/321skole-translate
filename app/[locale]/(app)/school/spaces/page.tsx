@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import SchoolNav from "@/components/school/SchoolNav";
+import SpaceSubstitutes from "@/components/school/SpaceSubstitutes";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { canAccessSchoolAdmin } from "@/lib/schools/access";
 
@@ -46,5 +47,6 @@ export default function SchoolSpacesPage() {
         <p className="mt-3 text-3xl font-semibold">{result.count ?? t("spaces.loading")}</p>}
       <Link className="mt-4 inline-block underline" href={`/${locale}/teacher/spaces`}>{t("aggregate.myTeachingSpaces")}</Link>
     </section>
+    <SpaceSubstitutes key={`${schoolId}:${user.uid}`} user={user} schoolId={schoolId} />
   </main>;
 }
