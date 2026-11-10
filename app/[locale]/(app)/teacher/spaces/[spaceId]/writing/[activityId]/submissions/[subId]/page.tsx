@@ -323,15 +323,32 @@ export default function TeacherWritingSubmissionDetailPage() {
   useEffect(() => {
     if (!spaceId) return;
     let active = true;
-    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
-      setSpace(snap.exists() ? (snap.data() as SpaceDocLite) : null);
-      setSchoolWritingDisabled(true);
-      if (!snap.exists() || !auth.currentUser) return;
+    let roomExists = false;
+    const refreshPolicy = () => {
+      if (!roomExists || !auth.currentUser) {
+        setSchoolWritingDisabled(true);
+        return;
+      }
       void readEffectiveSpaceAiPolicy(spaceId, auth.currentUser).then((policy) => {
         if (active) setSchoolWritingDisabled(policy.writingDisabled);
       }).catch(() => { if (active) setSchoolWritingDisabled(true); });
+    };
+    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      roomExists = snap.exists();
+      setSpace(snap.exists() ? (snap.data() as SpaceDocLite) : null);
+      refreshPolicy();
     });
-    return () => { active = false; unsubscribe(); };
+    const onVisible = () => { if (document.visibilityState === "visible") refreshPolicy(); };
+    window.addEventListener("focus", refreshPolicy);
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = window.setInterval(refreshPolicy, 60_000);
+    return () => {
+      active = false;
+      unsubscribe();
+      window.removeEventListener("focus", refreshPolicy);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(interval);
+    };
   }, [spaceId]);
 
   useEffect(() => {

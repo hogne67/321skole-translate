@@ -448,14 +448,31 @@ export default function StudentWritingActivityPage() {
   useEffect(() => {
     setWritingAiDisabled(null);
     let active = true;
-    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
-      setWritingAiDisabled(true);
-      if (!snap.exists() || !auth.currentUser) return;
+    let roomExists = false;
+    const refreshPolicy = () => {
+      if (!roomExists || !auth.currentUser) {
+        setWritingAiDisabled(true);
+        return;
+      }
       void readEffectiveSpaceAiPolicy(spaceId, auth.currentUser).then((policy) => {
         if (active) setWritingAiDisabled(policy.writingDisabled);
       }).catch(() => { if (active) setWritingAiDisabled(true); });
+    };
+    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      roomExists = snap.exists();
+      refreshPolicy();
     }, () => setWritingAiDisabled(true));
-    return () => { active = false; unsubscribe(); };
+    const onVisible = () => { if (document.visibilityState === "visible") refreshPolicy(); };
+    window.addEventListener("focus", refreshPolicy);
+    document.addEventListener("visibilitychange", onVisible);
+    const interval = window.setInterval(refreshPolicy, 60_000);
+    return () => {
+      active = false;
+      unsubscribe();
+      window.removeEventListener("focus", refreshPolicy);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(interval);
+    };
   }, [spaceId]);
 
   useEffect(() => {
