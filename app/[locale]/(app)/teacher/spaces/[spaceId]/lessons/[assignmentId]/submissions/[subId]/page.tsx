@@ -49,6 +49,7 @@ import {
   safeTasksArray,
 } from "@/lib/submissions/helpers";
 import AiFeedbackPanel from "@/components/teacher/submissions/AiFeedbackPanel";
+import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
 import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
 import StandardSubmissionView from "@/components/teacher/submissions/StandardSubmissionView";
 import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/PodcastWorkshopSubmissionView";
@@ -295,6 +296,9 @@ function Inner() {
   const role = useMemo(() => readRole(profile), [profile]);
   const isGlobalTeacherLike = role === "teacher" || role === "creator" || role === "admin";
   const [canTeachHere, setCanTeachHere] = useState(false);
+  const [lessonAiPolicy, setLessonAiPolicy] = useState<{ spaceId: string; uid: string; disabled: boolean } | null>(null);
+  const currentLessonAiPolicy =
+    lessonAiPolicy && lessonAiPolicy.spaceId === spaceId && lessonAiPolicy.uid === user?.uid ? lessonAiPolicy : null;
   const canOperate = Boolean(user?.uid) && (isGlobalTeacherLike || canTeachHere);
 
   const {
@@ -437,6 +441,14 @@ function Inner() {
     return () => {
       alive = false;
     };
+  }, [spaceId, user?.uid]);
+
+  useEffect(() => {
+    const uid = user?.uid;
+    if (!spaceId || !uid) return;
+    return onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      setLessonAiPolicy(snap.exists() ? { spaceId, uid, disabled: isLessonAiFeedbackDisabled(snap.data()) } : null);
+    }, () => setLessonAiPolicy(null));
   }, [spaceId, user?.uid]);
 
   const geometryWorksheet = useMemo(() => {
@@ -1129,6 +1141,7 @@ function Inner() {
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
 
   const canGenerateAi =
+    currentLessonAiPolicy?.disabled === false &&
     canOperate &&
     !aiGenerating &&
     !aiSaving &&
@@ -1545,7 +1558,12 @@ function Inner() {
         </div>
 
         <div className="rightCol">
-          <AiFeedbackPanel
+          {currentLessonAiPolicy?.disabled && (
+            <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-700 shadow-md" role="status">
+              {t("ai.disabledForSpace")}
+            </div>
+          )}
+          {currentLessonAiPolicy?.disabled === false && <AiFeedbackPanel
             aiText={aiText}
             setAiText={setAiText}
             aiGenerating={aiGenerating}
@@ -1558,6 +1576,7 @@ function Inner() {
             aiFeedbackRemaining={aiFeedbackRemaining}
             usageLoading={usageLoading}
             onGenerate={async () => {
+              if (!canGenerateAi) return;
               setAiGenerating(true);
               setAiMsg(null);
 
@@ -1625,7 +1644,7 @@ function Inner() {
               setTimeout(() => setAiMsg(null), 1500);
             }}
             t={tAny}
-          />
+          />}
 
           <StudentAudioReadingPanel
             audioReading={sub.audioReading}

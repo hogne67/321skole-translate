@@ -133,6 +133,7 @@
       "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
     },
     "ai": {
+      "disabledForSpace": "KI-forslag er slått av for Lessons-besvarelser i dette rommet.",
       "title": "Generer forslag fra AI",
       "generateButton": "Generer AI-tilbakemelding",
       "generating": "Genererer…",

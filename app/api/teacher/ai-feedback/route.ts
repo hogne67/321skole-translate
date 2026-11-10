@@ -3,6 +3,7 @@ import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 import { SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import { getSpaceAccess, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
+import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -1476,8 +1477,6 @@ function buildImageWritingUserContent(args: {
 
 export async function POST(req: Request) {
   try {
-    requireEnv();
-
     const token = getBearerToken(req);
     if (!token) return json({ error: "Missing Authorization bearer token" }, 401);
 
@@ -1522,6 +1521,11 @@ export async function POST(req: Request) {
       audit("deny", "space_access");
       return json({ error: "No access to this space" }, 403);
     }
+    if (isLessonAiFeedbackDisabled(access.space ?? null)) {
+      audit("deny", "lesson_ai_feedback_disabled");
+      return json({ error: "AI feedback is disabled for this space", code: "lesson_ai_feedback_disabled" }, 403);
+    }
+    requireEnv();
 
     const featureStatus = await getServerFeatureStatusFromProfile({
       db,

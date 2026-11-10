@@ -152,6 +152,7 @@
       "label": "Due date"
     },
     "administration": {
+      "disableLessonAiFeedback": "Turn off AI feedback suggestions for Lessons submissions in this Space",
       "title": "Manage space",
       "accessTitle": "Room access",
       "acceptNewStudents": "Allow new students to join",

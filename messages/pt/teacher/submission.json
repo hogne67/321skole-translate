@@ -133,6 +133,7 @@
       "rulesHint": "(Regras: apenas professor/dono/admin pode alterar)"
     },
     "ai": {
+      "disabledForSpace": "As sugestões de feedback por IA estão desativadas para entregas do Lessons neste espaço.",
       "title": "Gerar sugestão com IA",
       "generateButton": "Gerar feedback com IA",
       "generating": "Gerando…",

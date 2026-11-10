@@ -584,7 +584,8 @@ function Inner() {
         </div>
       )}
 
-      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space} canControl={canControlSpace} />
+      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space}
+        canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} />
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

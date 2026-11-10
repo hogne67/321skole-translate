@@ -7,14 +7,16 @@ import { ChevronDown, Settings2 } from "lucide-react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
+import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
 import type { SpaceDoc } from "@/lib/spacesClient";
 
 const actionClass = "inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 no-underline transition hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50";
 
-export default function SpaceAdministration({ spaceId, space, canControl }: {
+export default function SpaceAdministration({ spaceId, space, canControl, canSetLessonAiFeedbackPolicy }: {
   spaceId: string;
   space: SpaceDoc;
   canControl: boolean;
+  canSetLessonAiFeedbackPolicy: boolean;
 }) {
   const t = useTranslations("spaces");
   const detail = useTranslations("spaceDetail");
@@ -28,6 +30,7 @@ export default function SpaceAdministration({ spaceId, space, canControl }: {
   const [qrBusy, setQrBusy] = useState(false);
   const code = space.joinCode || space.code || "";
   const basePath = `/${locale}/teacher/spaces/${spaceId}`;
+  const lessonAiFeedbackDisabled = isLessonAiFeedbackDisabled(space);
 
   function cancelEditing() {
     setEditing(false);
@@ -35,7 +38,7 @@ export default function SpaceAdministration({ spaceId, space, canControl }: {
     setFeedback(null);
   }
 
-  async function save(fields: Partial<Pick<SpaceDoc, "title">>) {
+  async function save(fields: Partial<Pick<SpaceDoc, "title" | "lessonAiFeedbackDisabled">>) {
     if (!canControl || busy) return false;
     setBusy(true);
     setError(null);
@@ -123,6 +126,14 @@ export default function SpaceAdministration({ spaceId, space, canControl }: {
               </div>
             )}
           </div>
+        ) : null}
+
+        {canSetLessonAiFeedbackPolicy ? (
+          <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-900">
+            <input type="checkbox" checked={lessonAiFeedbackDisabled} disabled={busy}
+              onChange={(event) => void save({ lessonAiFeedbackDisabled: event.target.checked })} />
+            {detail("administration.disableLessonAiFeedback")}
+          </label>
         ) : null}
 
         <div className="space-y-3">

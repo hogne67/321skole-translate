@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 
 export type SpaceDoc = {
+  lessonAiFeedbackDisabled?: boolean;
   // Both explicit owner fields must agree; single-field legacy rooms remain readable.
   ownerUid?: string;
   joinCode?: string;

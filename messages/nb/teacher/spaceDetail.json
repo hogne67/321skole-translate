@@ -152,6 +152,7 @@
       "label": "Frist"
     },
     "administration": {
+      "disableLessonAiFeedback": "Slå av KI-forslag på Lessons-besvarelser i dette rommet",
       "title": "Administrer space",
       "accessTitle": "Tilgang til rommet",
       "acceptNewStudents": "Tillat nye elever å bli med",

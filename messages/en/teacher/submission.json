@@ -155,6 +155,7 @@
       "rulesHint": "(Rules: only teacher/owner/admin can change)"
     },
     "ai": {
+      "disabledForSpace": "AI feedback suggestions are turned off for Lessons submissions in this Space.",
       "title": "Generate suggestion from AI",
       "generateButton": "Generate AI feedback",
       "generating": "Generating…",
