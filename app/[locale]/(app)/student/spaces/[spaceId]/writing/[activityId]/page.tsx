@@ -20,7 +20,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { writingClientIdentity } from "@/lib/security/studentSubmissionPolicy";
-import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
+import { readEffectiveSpaceAiPolicy } from "@/lib/security/spaceAiPolicy.client";
 import type {
   WritingActivity,
   WritingAiAction,
@@ -447,9 +447,15 @@ export default function StudentWritingActivityPage() {
 
   useEffect(() => {
     setWritingAiDisabled(null);
-    return onSnapshot(doc(db, "spaces", spaceId), (snap) => {
-      setWritingAiDisabled(snap.exists() ? isWritingAiDisabled(snap.data()) : true);
+    let active = true;
+    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      setWritingAiDisabled(true);
+      if (!snap.exists() || !auth.currentUser) return;
+      void readEffectiveSpaceAiPolicy(spaceId, auth.currentUser).then((policy) => {
+        if (active) setWritingAiDisabled(policy.writingDisabled);
+      }).catch(() => { if (active) setWritingAiDisabled(true); });
     }, () => setWritingAiDisabled(true));
+    return () => { active = false; unsubscribe(); };
   }, [spaceId]);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwner
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
+import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 import { validateStoredStudentSubmission, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import "server-only";
 
@@ -293,7 +294,7 @@ export async function POST(
     if (!isOwner && !isAdmin && !hasMemberAccess) {
       return json({ error: "No access to this space" }, 403);
     }
-    if (isWritingAiDisabled(space)) {
+    if (isWritingAiDisabled(space) || await isSpaceAiDisabled(db, space, "writing")) {
       return json({ error: "Writing AI is disabled for this space", code: "writing_ai_disabled" }, 403);
     }
     if (!process.env.OPENAI_API_KEY) {

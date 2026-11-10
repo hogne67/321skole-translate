@@ -2,6 +2,7 @@ import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwner
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
+import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
@@ -188,7 +189,8 @@ export async function POST(req: NextRequest) {
       return studentWritingAccess.response;
     }
     if (body.context === "student_writing_print") {
-      if (!studentWritingAccess?.ok || isWritingAiDisabled(studentWritingAccess.space)) {
+      if (!studentWritingAccess?.ok || isWritingAiDisabled(studentWritingAccess.space)
+        || await isSpaceAiDisabled(db, studentWritingAccess.space, "writing")) {
         return NextResponse.json({ error: "Writing AI is disabled for this space", code: "writing_ai_disabled" }, { status: 403 });
       }
     }

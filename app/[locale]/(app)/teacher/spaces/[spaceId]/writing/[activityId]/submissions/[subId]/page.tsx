@@ -10,6 +10,7 @@ import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedba
 import { auth, db } from "@/lib/firebase";
 import { authedPost } from "@/lib/authedPost";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
+import { readEffectiveSpaceAiPolicy } from "@/lib/security/spaceAiPolicy.client";
 import { upgradeWritingActivityForRuntime } from "@/lib/writingStation";
 import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, updateDoc } from "firebase/firestore";
 import type {
@@ -294,7 +295,8 @@ export default function TeacherWritingSubmissionDetailPage() {
   const subId = params.subId;
 
   const [space, setSpace] = useState<SpaceDocLite | null>(null);
-  const writingAiDisabled = !space || isWritingAiDisabled(space);
+  const [schoolWritingDisabled, setSchoolWritingDisabled] = useState(true);
+  const writingAiDisabled = !space || isWritingAiDisabled(space) || schoolWritingDisabled;
   const [activity, setActivity] = useState<WritingActivity | null>(null);
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
   const [member, setMember] = useState<SpaceMemberDoc | null>(null);
@@ -320,9 +322,16 @@ export default function TeacherWritingSubmissionDetailPage() {
 
   useEffect(() => {
     if (!spaceId) return;
-    return onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+    let active = true;
+    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
       setSpace(snap.exists() ? (snap.data() as SpaceDocLite) : null);
+      setSchoolWritingDisabled(true);
+      if (!snap.exists() || !auth.currentUser) return;
+      void readEffectiveSpaceAiPolicy(spaceId, auth.currentUser).then((policy) => {
+        if (active) setSchoolWritingDisabled(policy.writingDisabled);
+      }).catch(() => { if (active) setSchoolWritingDisabled(true); });
     });
+    return () => { active = false; unsubscribe(); };
   }, [spaceId]);
 
   useEffect(() => {

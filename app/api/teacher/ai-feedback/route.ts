@@ -4,6 +4,7 @@ import "server-only";
 import { SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import { getSpaceAccess, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
+import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -1521,7 +1522,7 @@ export async function POST(req: Request) {
       audit("deny", "space_access");
       return json({ error: "No access to this space" }, 403);
     }
-    if (isLessonAiFeedbackDisabled(access.space ?? null)) {
+    if (isLessonAiFeedbackDisabled(access.space ?? null) || await isSpaceAiDisabled(db, access.space ?? null, "lessonFeedback")) {
       audit("deny", "lesson_ai_feedback_disabled");
       return json({ error: "AI feedback is disabled for this space", code: "lesson_ai_feedback_disabled" }, 403);
     }

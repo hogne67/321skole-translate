@@ -49,7 +49,7 @@ import {
   safeTasksArray,
 } from "@/lib/submissions/helpers";
 import AiFeedbackPanel from "@/components/teacher/submissions/AiFeedbackPanel";
-import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
+import { readEffectiveSpaceAiPolicy } from "@/lib/security/spaceAiPolicy.client";
 import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
 import StandardSubmissionView from "@/components/teacher/submissions/StandardSubmissionView";
 import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/PodcastWorkshopSubmissionView";
@@ -445,11 +445,17 @@ function Inner() {
 
   useEffect(() => {
     const uid = user?.uid;
-    if (!spaceId || !uid) return;
-    return onSnapshot(doc(db, "spaces", spaceId), (snap) => {
-      setLessonAiPolicy(snap.exists() ? { spaceId, uid, disabled: isLessonAiFeedbackDisabled(snap.data()) } : null);
+    if (!spaceId || !uid || !user) return;
+    let active = true;
+    const unsubscribe = onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      setLessonAiPolicy(null);
+      if (!snap.exists()) return;
+      void readEffectiveSpaceAiPolicy(spaceId, user).then((policy) => {
+        if (active) setLessonAiPolicy({ spaceId, uid, disabled: policy.lessonFeedbackDisabled });
+      }).catch(() => { if (active) setLessonAiPolicy({ spaceId, uid, disabled: true }); });
     }, () => setLessonAiPolicy(null));
-  }, [spaceId, user?.uid]);
+    return () => { active = false; unsubscribe(); };
+  }, [spaceId, user]);
 
   const geometryWorksheet = useMemo(() => {
     return isMathWorksheet(lesson?.mathWorksheet) ? lesson.mathWorksheet : null;

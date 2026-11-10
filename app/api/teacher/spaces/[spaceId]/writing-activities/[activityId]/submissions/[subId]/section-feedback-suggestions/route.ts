@@ -1,6 +1,7 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
+import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -265,7 +266,7 @@ export async function POST(
 
     const access = await getSpaceAccess(db, spaceId, uid);
     if (!access.canTeach) return json({ error: "No access to this submission" }, 403);
-    if (isWritingAiDisabled(access.space ?? null)) {
+    if (isWritingAiDisabled(access.space ?? null) || await isSpaceAiDisabled(db, access.space ?? null, "writing")) {
       return json({ error: "Writing AI is disabled for this space", code: "writing_ai_disabled" }, 403);
     }
     if (!process.env.OPENAI_API_KEY) {

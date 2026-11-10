@@ -21,6 +21,8 @@ type Room = {
 };
 type SchoolResponse = { ok?: boolean; error?: string; school?: { name?: string | null }; members?: Member[] };
 type SpacesResponse = { ok?: boolean; error?: string; rooms?: Room[]; nextCursor?: string | null };
+type Policy = { lessonFeedbackDisabled: boolean; writingDisabled: boolean; version: number };
+type PolicyResponse = { ok?: boolean; error?: string; policy?: Policy; canEdit?: boolean };
 
 async function request<T>(url: string, token: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal });
@@ -40,6 +42,11 @@ export default function AdminSchoolSpacesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [canEditPolicy, setCanEditPolicy] = useState(false);
+  const [draft, setDraft] = useState({ lessonFeedbackDisabled: false, writingDisabled: false });
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,15 +60,21 @@ export default function AdminSchoolSpacesPage() {
         if (!user) throw new Error("Du må være innlogget som plattformadministrator.");
         const token = await getIdToken(user, true);
         const base = `/api/admin/schools/${encodeURIComponent(schoolId)}`;
-        const [school, spaces] = await Promise.all([
+        const [school, spaces, schoolPolicy] = await Promise.all([
           request<SchoolResponse>(base, token, controller.signal),
           request<SpacesResponse>(`${base}/spaces`, token, controller.signal),
+          request<PolicyResponse>(`${base}/ai-policy`, token, controller.signal),
         ]);
         if (controller.signal.aborted) return;
         setSchoolName(school.school?.name || schoolId);
         setMembers(school.members || []);
         setRooms(spaces.rooms || []);
         setNextCursor(spaces.nextCursor || null);
+        if (schoolPolicy.policy) {
+          setPolicy(schoolPolicy.policy);
+          setCanEditPolicy(schoolPolicy.canEdit === true);
+          setDraft({ lessonFeedbackDisabled: schoolPolicy.policy.lessonFeedbackDisabled, writingDisabled: schoolPolicy.policy.writingDisabled });
+        }
       } catch (cause) {
         if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Kunne ikke hente rom.");
       } finally {
@@ -108,16 +121,59 @@ export default function AdminSchoolSpacesPage() {
     }
   }
 
+  async function savePolicy() {
+    if (!policy || saving) return;
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Du må være innlogget som plattformadministrator.");
+      const token = await getIdToken(user, true);
+      const url = `/api/admin/schools/${encodeURIComponent(schoolId)}/ai-policy`;
+      const response = await fetch(url, {
+        method: "PATCH", cache: "no-store",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...draft, expectedVersion: policy.version }),
+      });
+      const data = await response.json() as PolicyResponse;
+      if (!response.ok || !data.ok || !data.policy) throw new Error(data.error || `HTTP ${response.status}`);
+      setPolicy(data.policy);
+      setSaveMessage("Skolens KI-sperrer er lagret.");
+    } catch (cause) {
+      setSaveMessage(cause instanceof Error ? cause.message : "Kunne ikke lagre skolens KI-sperrer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <AdminSection eyebrow="Skoler" title={`Spaces · ${schoolName || schoolId}`}
-        description="Rom som er knyttet til denne skolen. Oversikten viser lærer og status for romstyrte KI-sperrer."
+        description="Rom som er knyttet til denne skolen. Oversikten viser lærer og effektiv status for KI-sperrer."
         actionHref={`/${locale}/admin/schools/${encodeURIComponent(schoolId)}`} actionLabel="Til skolen" />
 
       <AdminCard className="p-4 text-sm text-slate-700">
-        Bare rom med bekreftet skolekobling vises. Åpne et rom for å endre KI-valgene som plattformadministrator.
+        Bare rom med bekreftet skolekobling vises. Skolens KI-sperrer gjelder også nye rom; åpne et rom for egne romvalg.
         Rom uten skolekobling må avklares separat.
       </AdminCard>
+
+      {policy ? <AdminCard className="p-4">
+        <h2 className="text-lg font-semibold text-slate-900">KI-valg for hele skolen</h2>
+        <p className="mt-1 text-sm text-slate-600">En skolesperre gjelder alle skolens rom, også framtidige. Rom kan i tillegg ha egne sperrer.</p>
+        <div className="mt-4 flex flex-col gap-3 text-sm text-slate-800">
+          <label className="flex items-center gap-3"><input type="checkbox" checked={draft.lessonFeedbackDisabled} disabled={!canEditPolicy}
+            onChange={(event) => setDraft((current) => ({ ...current, lessonFeedbackDisabled: event.target.checked }))} />
+            Sperr KI-forslag til Lessons-besvarelser i hele skolen</label>
+          <label className="flex items-center gap-3"><input type="checkbox" checked={draft.writingDisabled} disabled={!canEditPolicy}
+            onChange={(event) => setDraft((current) => ({ ...current, writingDisabled: event.target.checked }))} />
+            Sperr KI-hjelp til skriveaktiviteter i hele skolen</label>
+        </div>
+        <button type="button" onClick={() => void savePolicy()} disabled={!canEditPolicy || saving || (draft.lessonFeedbackDisabled === policy.lessonFeedbackDisabled && draft.writingDisabled === policy.writingDisabled)}
+          className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          {saving ? "Lagrer …" : "Lagre for hele skolen"}
+        </button>
+        {saveMessage ? <p role="status" className="mt-2 text-sm text-slate-700">{saveMessage}</p> : null}
+      </AdminCard> : null}
 
       {error ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p> : null}
       {loading ? <p role="status" className="text-sm text-slate-600">Henter rom …</p> : null}
@@ -138,7 +194,7 @@ export default function AdminSchoolSpacesPage() {
                   <div>
                     <p className="font-semibold text-slate-900">{room.title}</p>
                     <p className="text-sm text-slate-600">
-                      {room.archived ? "Arkivert" : room.isOpen ? "Åpent" : "Lukket"} · Lessons KI-sperre: {room.lessonAiFeedbackDisabled ? "på" : "av"} · Skrive-KI-sperre: {room.writingAiDisabled ? "på" : "av"}
+                      {room.archived ? "Arkivert" : room.isOpen ? "Åpent" : "Lukket"} · Lessons KI-sperre: {policy?.lessonFeedbackDisabled ? "på (skole)" : room.lessonAiFeedbackDisabled ? "på (rom)" : "av"} · Skrive-KI-sperre: {policy?.writingDisabled ? "på (skole)" : room.writingAiDisabled ? "på (rom)" : "av"}
                     </p>
                   </div>
                   <Link className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
