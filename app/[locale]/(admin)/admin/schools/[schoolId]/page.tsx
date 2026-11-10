@@ -312,6 +312,7 @@ export default function AdminSchoolDetailPage() {
 
       {!loading && school ? (
         <>
+          <div><a className="adminShortcut" href={`/${locale}/admin/schools/${encodeURIComponent(schoolId)}/spaces`}>Vis skolens Spaces</a></div>
           {canManageAdmins ? (
             <div><a className="adminShortcut" href="#school-administrators">{adminCopy.add}</a></div>
           ) : null}
