@@ -84,6 +84,7 @@
       "empty": "No fixed helper words in this part yet."
     },
     "ai": {
+      "roomDisabled": "AI help is turned off for writing activities in this Space. You can still write and submit.",
       "working": "Working…",
       "responseTitle": "AI support",
       "mainAction": "Get AI help",

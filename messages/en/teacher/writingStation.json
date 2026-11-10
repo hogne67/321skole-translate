@@ -124,6 +124,7 @@
       }
     },
     "sectionAi": {
+      "roomDisabled": "AI suggestions are turned off for writing activities in this Space. You can still give feedback yourself.",
       "planButton": "Get AI feedback suggestions",
       "draftingButton": "Get AI writing suggestions",
       "revisionButton": "Get AI check suggestions",

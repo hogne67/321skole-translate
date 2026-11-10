@@ -124,6 +124,7 @@
       }
     },
     "sectionAi": {
+      "roomDisabled": "KI-forslag er slått av for skriveaktiviteter i dette rommet. Du kan fortsatt gi tilbakemelding selv.",
       "planButton": "Få vurderingsforslag fra KI",
       "draftingButton": "Få skriveforslag fra KI",
       "revisionButton": "Få kontrollforslag fra KI",

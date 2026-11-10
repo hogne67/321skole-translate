@@ -1,6 +1,7 @@
 import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
@@ -46,6 +47,7 @@ type StudentWritingAccess =
       ok: true;
       ownerUid: string;
       activity: Record<string, unknown>;
+      space: Record<string, unknown>;
     }
   | {
       ok: false;
@@ -184,6 +186,11 @@ export async function POST(req: NextRequest) {
 
     if (studentWritingAccess?.ok === false) {
       return studentWritingAccess.response;
+    }
+    if (body.context === "student_writing_print") {
+      if (!studentWritingAccess?.ok || isWritingAiDisabled(studentWritingAccess.space)) {
+        return NextResponse.json({ error: "Writing AI is disabled for this space", code: "writing_ai_disabled" }, { status: 403 });
+      }
     }
 
     if (needsEmailVerification(decoded) && !studentWritingAccess?.ok) {
@@ -398,5 +405,5 @@ async function verifyStudentWritingAccess(
     return { ok: false, response: NextResponse.json({ error: "AI is disabled for this activity." }, { status: 403 }) };
   }
 
-  return { ok: true, ownerUid, activity };
+  return { ok: true, ownerUid, activity, space };
 }

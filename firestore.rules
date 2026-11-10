@@ -831,6 +831,8 @@ service cloud.firestore {
     && requestedSchoolIdOk()
     && (!("lessonAiFeedbackDisabled" in request.resource.data)
       || (isAdmin() && request.resource.data.lessonAiFeedbackDisabled is bool))
+    && (!("writingAiDisabled" in request.resource.data)
+      || (isAdmin() && request.resource.data.writingAiDisabled is bool))
     && (
       isAdmin()
       || (
@@ -853,7 +855,9 @@ service cloud.firestore {
   allow update: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId))
     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["schoolId", "ownerId", "ownerUid"])
     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["lessonAiFeedbackDisabled"])
-      || (isAdmin() && request.resource.data.get("lessonAiFeedbackDisabled", false) is bool));
+      || (isAdmin() && request.resource.data.get("lessonAiFeedbackDisabled", false) is bool))
+    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["writingAiDisabled"])
+      || (isAdmin() && request.resource.data.get("writingAiDisabled", false) is bool));
   // Deleting only the parent leaves children/members behind and permits recreation
   // with another schoolId. Space removal requires a separate controlled process.
   allow delete: if false;

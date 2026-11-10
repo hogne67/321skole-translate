@@ -20,6 +20,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { writingClientIdentity } from "@/lib/security/studentSubmissionPolicy";
+import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import type {
   WritingActivity,
   WritingAiAction,
@@ -423,6 +424,7 @@ export default function StudentWritingActivityPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [activity, setActivity] = useState<WritingActivity | null>(null);
+  const [writingAiDisabled, setWritingAiDisabled] = useState<boolean | null>(null);
   const [answersByFieldId, setAnswersByFieldId] = useState<AnswersByFieldId>({});
   const [sectionDrafts, setSectionDrafts] = useState<SectionDrafts>({});
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
@@ -442,6 +444,13 @@ export default function StudentWritingActivityPage() {
   const [savingPrintProfile, setSavingPrintProfile] = useState(false);
   const [printImageBusy, setPrintImageBusy] = useState<"upload" | "ai" | null>(null);
   const [sourceDraft, setSourceDraft] = useState<Omit<SourceEntry, "id">>(EMPTY_SOURCE_DRAFT);
+
+  useEffect(() => {
+    setWritingAiDisabled(null);
+    return onSnapshot(doc(db, "spaces", spaceId), (snap) => {
+      setWritingAiDisabled(snap.exists() ? isWritingAiDisabled(snap.data()) : true);
+    }, () => setWritingAiDisabled(true));
+  }, [spaceId]);
 
   useEffect(() => {
     let alive = true;
@@ -715,7 +724,7 @@ export default function StudentWritingActivityPage() {
   }
 
   async function generatePrintImage() {
-    if (!activity || printImageBusy === "ai") return;
+    if (!activity || printImageBusy === "ai" || writingAiDisabled !== false) return;
 
     setPrintImageBusy("ai");
     setMsg(null);
@@ -850,7 +859,7 @@ export default function StudentWritingActivityPage() {
   }
 
   async function requestAiSupport(section: WritingSectionTemplate, action: WritingAiAction) {
-    if (!activity) return;
+    if (!activity || writingAiDisabled !== false) return;
 
     const sectionText = sectionTextForAi(section, answersByFieldId, sectionDrafts);
 
@@ -967,6 +976,11 @@ export default function StudentWritingActivityPage() {
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 pb-28">
       <SpacePupilIdentity spaceId={spaceId} />
+      {writingAiDisabled === true ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" role="status">
+          {t("ai.roomDisabled")}
+        </p>
+      ) : null}
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
         <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
           {t("actions.back")}
@@ -1088,7 +1102,7 @@ export default function StudentWritingActivityPage() {
           const supportWords = defaultSupportWords(section);
           const aiUses = aiUsage.filter((item) => item.sectionId === section.id).length;
           const aiMax = section.aiPolicy?.maxUses ?? 2;
-          const aiAvailable = !!section.aiPolicy?.enabled && activity.aiPolicy?.enabled !== false;
+          const aiAvailable = writingAiDisabled === false && !!section.aiPolicy?.enabled && activity.aiPolicy?.enabled !== false;
           const aiAction = preferredAction(section);
           const supportOpen = supportOpenBySection[section.id] === true;
           const sectionTeacherFeedback = sectionFeedback?.[section.id];
@@ -1600,7 +1614,7 @@ export default function StudentWritingActivityPage() {
                   <button
                     type="button"
                     onClick={() => void generatePrintImage()}
-                    disabled={Boolean(printImageBusy) || printProfile.aiImageGenerated === true}
+                    disabled={writingAiDisabled !== false || Boolean(printImageBusy) || printProfile.aiImageGenerated === true}
                     className="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-400 disabled:opacity-60"
                   >
                     {printImageBusy === "ai"

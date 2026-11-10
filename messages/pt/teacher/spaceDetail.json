@@ -153,6 +153,7 @@
     },
     "administration": {
       "disableLessonAiFeedback": "Desativar sugestões de feedback por IA para entregas do Lessons neste espaço",
+      "disableWritingAi": "Desativar a ajuda e as sugestões de IA para atividades de escrita neste espaço",
       "title": "Administrar Space",
       "accessTitle": "Acesso à sala",
       "acceptNewStudents": "Permitir a entrada de novos alunos",

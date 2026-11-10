@@ -11,6 +11,7 @@ import {
 
 export type SpaceDoc = {
   lessonAiFeedbackDisabled?: boolean;
+  writingAiDisabled?: boolean;
   // Both explicit owner fields must agree; single-field legacy rooms remain readable.
   ownerUid?: string;
   joinCode?: string;

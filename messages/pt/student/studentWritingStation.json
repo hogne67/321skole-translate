@@ -84,6 +84,7 @@
       "empty": "Ainda não há palavras de apoio fixas nesta parte."
     },
     "ai": {
+      "roomDisabled": "A ajuda de IA está desativada para atividades de escrita neste espaço. Você ainda pode escrever e entregar.",
       "working": "Processando…",
       "responseTitle": "Apoio de IA",
       "mainAction": "Obter ajuda de IA",

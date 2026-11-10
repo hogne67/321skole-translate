@@ -124,6 +124,7 @@
       }
     },
     "sectionAi": {
+      "roomDisabled": "As sugestões de IA estão desativadas para atividades de escrita neste espaço. Você ainda pode dar feedback manualmente.",
       "planButton": "Obter sugestões de IA",
       "draftingButton": "Obter sugestões de escrita da IA",
       "revisionButton": "Obter sugestões de revisão da IA",

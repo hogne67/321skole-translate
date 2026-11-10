@@ -153,6 +153,7 @@
     },
     "administration": {
       "disableLessonAiFeedback": "Turn off AI feedback suggestions for Lessons submissions in this Space",
+      "disableWritingAi": "Turn off AI help and AI suggestions for writing activities in this Space",
       "title": "Manage space",
       "accessTitle": "Room access",
       "acceptNewStudents": "Allow new students to join",

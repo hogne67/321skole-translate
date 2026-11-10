@@ -84,6 +84,7 @@
       "empty": "Ingen faste hjelpeord i denne delen ennå."
     },
     "ai": {
+      "roomDisabled": "KI-hjelp er slått av for skriveaktiviteter i dette rommet. Du kan fortsatt skrive og levere.",
       "working": "Jobber…",
       "responseTitle": "KI-støtte",
       "mainAction": "Få KI-hjelp",

@@ -1,5 +1,6 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import "server-only";
 
 import { NextResponse } from "next/server";
@@ -248,10 +249,6 @@ export async function POST(
   ctx: { params: Promise<{ spaceId: string; activityId: string; subId: string }> }
 ) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return json({ error: "OPENAI_API_KEY is not configured" }, 500);
-    }
-
     const token = getBearerToken(req);
     if (!token) return json({ error: "Missing Authorization Bearer token" }, 401);
 
@@ -268,6 +265,12 @@ export async function POST(
 
     const access = await getSpaceAccess(db, spaceId, uid);
     if (!access.canTeach) return json({ error: "No access to this submission" }, 403);
+    if (isWritingAiDisabled(access.space ?? null)) {
+      return json({ error: "Writing AI is disabled for this space", code: "writing_ai_disabled" }, 403);
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return json({ error: "OPENAI_API_KEY is not configured" }, 500);
+    }
     const [activitySnap, submissionSnap] = await Promise.all([
       db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get(),
       db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).collection("submissions").doc(subId).get(),

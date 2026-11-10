@@ -9,6 +9,7 @@ import AuthGate from "@/components/AuthGate";
 import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
 import { auth, db } from "@/lib/firebase";
 import { authedPost } from "@/lib/authedPost";
+import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import { upgradeWritingActivityForRuntime } from "@/lib/writingStation";
 import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, updateDoc } from "firebase/firestore";
 import type {
@@ -22,6 +23,7 @@ import type {
 
 type SpaceDocLite = {
   title?: string;
+  writingAiDisabled?: unknown;
 };
 
 type SpaceMemberDoc = {
@@ -292,6 +294,7 @@ export default function TeacherWritingSubmissionDetailPage() {
   const subId = params.subId;
 
   const [space, setSpace] = useState<SpaceDocLite | null>(null);
+  const writingAiDisabled = !space || isWritingAiDisabled(space);
   const [activity, setActivity] = useState<WritingActivity | null>(null);
   const [submission, setSubmission] = useState<SubmissionData | null>(null);
   const [member, setMember] = useState<SpaceMemberDoc | null>(null);
@@ -517,7 +520,7 @@ export default function TeacherWritingSubmissionDetailPage() {
   }
 
   async function suggestSectionFeedback(phase: "planning" | "drafting" | "revision") {
-    if (!submission || !activity) return;
+    if (!submission || !activity || writingAiDisabled) return;
 
     if (phase === "planning") {
       setSuggestingPlanningFeedback(true);
@@ -567,7 +570,7 @@ export default function TeacherWritingSubmissionDetailPage() {
   }
 
   async function suggestOverallFeedback() {
-    if (!submission || !activity || !finalText.trim()) return;
+    if (!submission || !activity || !finalText.trim() || writingAiDisabled) return;
 
     setSuggestingOverallFeedback(true);
     setFeedbackMsg(null);
@@ -600,6 +603,11 @@ export default function TeacherWritingSubmissionDetailPage() {
   return (
     <AuthGate requireRole="teacher">
       <main className="mx-auto w-full max-w-6xl space-y-4">
+        {space && writingAiDisabled ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" role="status">
+            {t("sectionAi.roomDisabled")}
+          </p>
+        ) : null}
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
           <Link href={listHref} className="text-sm font-semibold text-emerald-900 underline">
             {t("actions.backToSubmissions")}
@@ -662,7 +670,7 @@ export default function TeacherWritingSubmissionDetailPage() {
                   </div>
                   <button
                     type="button"
-                    disabled={suggestingPlanningFeedback || planningRooms.length === 0}
+                    disabled={writingAiDisabled || suggestingPlanningFeedback || planningRooms.length === 0}
                     onClick={() => void suggestSectionFeedback("planning")}
                     className="mt-2 rounded-full border border-purple-200 bg-white px-3 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 disabled:opacity-60"
                   >
@@ -827,7 +835,7 @@ export default function TeacherWritingSubmissionDetailPage() {
                       </div>
                       <button
                         type="button"
-                        disabled={suggestingOverallFeedback || !finalText.trim()}
+                        disabled={writingAiDisabled || suggestingOverallFeedback || !finalText.trim()}
                         onClick={() => void suggestOverallFeedback()}
                         className="mt-2 rounded-full border border-purple-200 bg-white px-3 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 disabled:opacity-60"
                       >
@@ -954,7 +962,7 @@ export default function TeacherWritingSubmissionDetailPage() {
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      disabled={processAiBusy || processRoomsEmpty}
+                      disabled={writingAiDisabled || processAiBusy || processRoomsEmpty}
                       onClick={() => void suggestSectionFeedback(processAiPhase)}
                       className="rounded-full border border-purple-200 bg-white px-3 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 disabled:opacity-60"
                     >

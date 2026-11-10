@@ -153,6 +153,7 @@
     },
     "administration": {
       "disableLessonAiFeedback": "Slå av KI-forslag på Lessons-besvarelser i dette rommet",
+      "disableWritingAi": "Slå av KI-hjelp og KI-forslag for skriveaktiviteter i dette rommet",
       "title": "Administrer space",
       "accessTitle": "Tilgang til rommet",
       "acceptNewStudents": "Tillat nye elever å bli med",
