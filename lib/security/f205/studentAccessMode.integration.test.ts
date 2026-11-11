@@ -132,6 +132,17 @@ test("activation API permits separate individual account", async () => {
   assert.equal((await admin.doc(`users/${user.uid}`).get()).get("studentAccessMode"), "self_study");
 });
 
+test("email student activates self-study only after verification", async () => {
+  const user = (await createUserWithEmailAndPassword(auth, `verify-${nonce}@synthetic.invalid`, "Synthetic-Test-Password-15!")).user;
+  await admin.doc(`users/${user.uid}`).set({ role: "student", studentAccessMode: "space_only" });
+  const before = await accessRequest(await user.getIdToken(), "self_study");
+  assert.equal(before.status, 403);
+  assert.equal((await admin.doc(`users/${user.uid}`).get()).get("studentAccessMode"), "space_only");
+  await getAdminAuth(app).updateUser(user.uid, { emailVerified: true });
+  const after = await accessRequest(await user.getIdToken(true), "self_study");
+  assert.equal(after.status, 200);
+});
+
 test("activation API rejects an active school student", async () => {
   const user = (await createUserWithEmailAndPassword(auth, `school-student-${nonce}@synthetic.invalid`, "Synthetic-Test-Password-13!")).user;
   await getAdminAuth(app).updateUser(user.uid, { emailVerified: true });
@@ -156,8 +167,14 @@ test("real emulator token retains linked Feide identity after password sign-in",
 
 test("server checks live Auth when a token predates Feide linking", async () => {
   const user = (await createUserWithEmailAndPassword(auth, `prelink-${nonce}@synthetic.invalid`, "Synthetic-Test-Password-14!")).user;
-  const oldToken = await getAdminAuth(app).verifyIdToken(await user.getIdToken());
+  await getAdminAuth(app).updateUser(user.uid, { emailVerified: true });
+  await admin.doc(`users/${user.uid}`).set({ role: "student", studentAccessMode: "space_only" });
+  const oldTokenString = await user.getIdToken(true);
+  const oldToken = await getAdminAuth(app).verifyIdToken(oldTokenString);
   assert.equal(getEffectiveStudentModeForToken({ role: "student", studentAccessMode: "self_study" }, oldToken), "self_study");
   await linkWithCredential(user, oidc(`prelink-${nonce}`));
   assert.equal(await getEffectiveStudentModeForAccount({ role: "student", studentAccessMode: "self_study" }, oldToken), "space_only");
+  const response = await accessRequest(oldTokenString, "self_study");
+  assert.equal(response.status, 403);
+  assert.equal((await admin.doc(`users/${user.uid}`).get()).get("studentAccessMode"), "space_only");
 });
