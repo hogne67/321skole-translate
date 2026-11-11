@@ -237,7 +237,7 @@ export function schoolTrustContent(locale: string) {
     ]),
     feideTitle: t(locale, ["Feide og delte opplysninger", "Feide and shared information", "Feide e dados compartilhados"]),
     feideText: t(locale, facts.feide),
-    feidePoints: paragraphs(locale, [facts.feideData, facts.feideFields,
+    feidePoints: paragraphs(locale, [facts.feideData, facts.feideFields, facts.feideStudyBoundary,
       ["Godkjenning av Feide-innlogging erstatter ikke skoleavtale, behandlingsgrunnlag eller personvern-/risikovurdering. Feide gir ikke automatisk skoleadministratorrettigheter.", "Feide approval does not replace a school contract, legal basis or privacy/risk assessment, and does not automatically confer school administration.", "Aprovação Feide não substitui contrato, base legal ou avaliação de privacidade/risco, nem concede administração automaticamente."],
     ]),
     footerTitle: t(locale, ["Videre vurdering – område for område","Further assessment – area by area","Avaliação posterior – área por área"]),
