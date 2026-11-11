@@ -34,3 +34,15 @@ test("broken school binding or malformed policy never enables AI", async () => {
   assert.equal(await isSpaceAiDisabled(db, { schoolId: "other/school" }, "writing"), true);
   assert.equal(await isSpaceAiDisabled(db, undefined, "writing"), true);
 });
+
+test("partial stored school policy does not enable unspecified AI features", async () => {
+  const db = database({ school: { aiPolicy: { lessonFeedbackDisabled: false, version: 1 } } });
+  assert.deepEqual(readSchoolAiPolicy({ aiPolicy: { lessonFeedbackDisabled: false, version: 1 } }), {
+    lessonFeedbackDisabled: true, writingDisabled: true, version: 1,
+  });
+  assert.equal(await isSpaceAiDisabled(db, { schoolId: "school" }, "writing"), true);
+  assert.equal(await isSpaceAiDisabled(db, { schoolId: "school" }, "lessonFeedback"), true);
+  assert.deepEqual(readSchoolAiPolicy({ aiPolicy: {
+    lessonFeedbackDisabled: false, writingDisabled: false, version: "1",
+  } }), { lessonFeedbackDisabled: true, writingDisabled: true, version: 0 });
+});

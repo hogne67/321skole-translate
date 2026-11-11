@@ -17,9 +17,13 @@ export function readSchoolAiPolicy(school: Record<string, unknown> | undefined):
   const policy = raw as Record<string, unknown>;
   const version = Number.isSafeInteger(policy.version) && (policy.version as number) >= 0 ? policy.version as number : 0;
   // Unknown stored values restrict AI until an administrator resolves the policy.
+  if (typeof policy.lessonFeedbackDisabled !== "boolean" || typeof policy.writingDisabled !== "boolean"
+    || !Number.isSafeInteger(policy.version) || (policy.version as number) < 0) {
+    return { lessonFeedbackDisabled: true, writingDisabled: true, version };
+  }
   return {
-    lessonFeedbackDisabled: policy.lessonFeedbackDisabled === false ? false : policy.lessonFeedbackDisabled === undefined ? false : true,
-    writingDisabled: policy.writingDisabled === false ? false : policy.writingDisabled === undefined ? false : true,
+    lessonFeedbackDisabled: policy.lessonFeedbackDisabled,
+    writingDisabled: policy.writingDisabled,
     version,
   };
 }
