@@ -1,6 +1,7 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import OpenAI from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredWebResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
@@ -130,7 +131,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     uid: decoded.uid,
     role,
     plan,
-    studentAccessMode: typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+    studentAccessMode: await getEffectiveStudentModeForAccount({ role, studentAccessMode: data?.studentAccessMode,
+      schoolId: data?.schoolId, schoolStatus: data?.schoolStatus }, decoded),
   };
 }
 

@@ -4,6 +4,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { getAdmin } from "../../firebaseAdmin";
 import { getFeatureDecisionFromProfile } from "../../featureAccess";
+import { getEffectiveStudentModeForAccount, type ProviderLookup } from "../../studentAccessMode.server";
 import { normalizeCreateLessonInput } from "../input";
 import { LessonError } from "../validation";
 
@@ -14,7 +15,7 @@ export async function createLessonForUser(
   authContext: LessonAuthContext,
   input: unknown,
   db: Firestore = getAdmin().db,
-  options: { idempotencyKey?: string } = {},
+  options: { idempotencyKey?: string; lookupProviders?: ProviderLookup } = {},
 ): Promise<{ id: string; title?: string }> {
   const uid = authContext?.uid;
   if (!uid || authContext.firebase?.sign_in_provider === "anonymous") {
@@ -29,7 +30,7 @@ export async function createLessonForUser(
     role: profile.role, plan: profile.plan, billing: profile.billing,
     partnerAccess: profile.partnerAccess, partnerStatus: profile.partnerStatus,
     schoolId: profile.schoolId, schoolRole: profile.schoolRole, schoolStatus: profile.schoolStatus,
-    studentAccessMode: profile.studentAccessMode, feature: "producer_create_lesson",
+    studentAccessMode: await getEffectiveStudentModeForAccount(profile, authContext, options.lookupProviders), feature: "producer_create_lesson",
   });
   if (!decision.allowed) throw new LessonError("Account is not allowed to create lessons.", 403);
   // Check eligibility, not remaining generation quota: generation already consumes it.

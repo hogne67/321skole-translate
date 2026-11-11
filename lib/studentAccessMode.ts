@@ -15,21 +15,38 @@ export function normalizeStudentAccessMode(value: unknown): StudentAccessMode | 
   return null;
 }
 
+export function hasFeideIdentity(token: {
+  firebase?: { sign_in_provider?: unknown; identities?: unknown };
+} | null | undefined): boolean {
+  const firebase = token?.firebase;
+  if (firebase?.sign_in_provider === "oidc.feide") return true;
+  const identities = firebase?.identities;
+  return typeof identities === "object" && identities !== null
+    && Object.hasOwn(identities, "oidc.feide");
+}
+
+export function getEffectiveStudentModeForToken(input: {
+  role?: unknown;
+  studentAccessMode?: unknown;
+  schoolId?: unknown;
+  schoolStatus?: unknown;
+}, token: Parameters<typeof hasFeideIdentity>[0]): string | null {
+  if (input.role === "student" && (hasFeideIdentity(token)
+    || (typeof input.schoolId === "string" && input.schoolId.trim().length > 0 && input.schoolStatus === "active"))) {
+    return "space_only";
+  }
+  return typeof input.studentAccessMode === "string" ? input.studentAccessMode : null;
+}
+
 export function getStudentAccessMode(
   profile: StudentAccessProfile | null | undefined,
   opts?: {
     isAnonymous?: boolean;
+    isFeideLinked?: boolean;
     defaultMode?: StudentAccessMode;
   }
 ): StudentAccessMode {
   if (opts?.isAnonymous) return "space_only";
-
-  const explicit = normalizeStudentAccessMode(profile?.studentAccessMode);
-  if (explicit) return explicit;
-
-  if (profile?.role === "student" && profile.onboardingComplete !== true) {
-    return "space_only";
-  }
 
   const isSchoolStudent =
     profile?.role === "student" &&
@@ -39,7 +56,14 @@ export function getStudentAccessMode(
     profile.schoolRole !== "school_teacher" &&
     profile.schoolRole !== "school_admin";
 
-  if (isSchoolStudent) return "space_only";
+  if (isSchoolStudent || (profile?.role === "student" && opts?.isFeideLinked)) return "space_only";
+
+  const explicit = normalizeStudentAccessMode(profile?.studentAccessMode);
+  if (explicit) return explicit;
+
+  if (profile?.role === "student" && profile.onboardingComplete !== true) {
+    return "space_only";
+  }
 
   return opts?.defaultMode ?? "self_study";
 }
@@ -48,6 +72,7 @@ export function isSpaceOnlyStudent(
   profile: StudentAccessProfile | null | undefined,
   opts?: {
     isAnonymous?: boolean;
+    isFeideLinked?: boolean;
     defaultMode?: StudentAccessMode;
   }
 ): boolean {

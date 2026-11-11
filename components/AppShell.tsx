@@ -68,9 +68,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous, guestRole);
   const studentAccessMode = getStudentAccessMode(profile, {
     isAnonymous: !!user?.isAnonymous && role === "student",
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide"),
   });
   const hideStudentLibraryEntry = isSpaceOnlyStudent(profile, {
     isAnonymous: !!user?.isAnonymous && role === "student",
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide"),
   });
 
   useEffect(() => {

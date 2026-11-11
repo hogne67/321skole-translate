@@ -127,7 +127,8 @@ export default function StudentBrowsePage() {
     return lessons.filter((l) => !openedIds.has(l.id));
   }, [lessons, hideOpened, openedIds]);
 
-  if (isSpaceOnlyStudent(profile, { isAnonymous: !!user?.isAnonymous })) {
+  if (isSpaceOnlyStudent(profile, { isAnonymous: !!user?.isAnonymous,
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide") })) {
     return <StudentSelfStudyPrompt isAnonymous={!!user?.isAnonymous} />;
   }
 

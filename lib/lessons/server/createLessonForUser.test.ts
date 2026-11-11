@@ -56,7 +56,7 @@ test("authorization denies missing identity, anonymous, missing/disabled profile
 test("existing supported roles can save without consuming or rechecking generation usage", async () => {
   for (const role of ["teacher", "creator", "student", "parent", "admin"]) {
     const store = fakeDb({ role, plan: "free" });
-    await createLessonForUser(context("bob"), input, store.db);
+    await createLessonForUser(context("bob"), input, store.db, { lookupProviders: async () => [] });
     assert.equal(store.writes[0].ownerId, "bob");
   }
 });

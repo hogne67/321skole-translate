@@ -372,7 +372,8 @@ export function getBucketLimitFromProfile(input: {
   });
 
   return getBucketLimit(role, plan, input.bucket, {
-    studentAccessMode: input.studentAccessMode,
+    studentAccessMode: role === "student" && input.schoolId?.trim() && input.schoolStatus === "active"
+      ? "space_only" : input.studentAccessMode,
   });
 }
 
@@ -437,7 +438,8 @@ export function getFeatureLimitFromProfile(input: {
 
   const bucket = getQuotaBucket(input.feature);
   return getBucketLimit(role, effectivePlan, bucket, {
-    studentAccessMode: input.studentAccessMode,
+    studentAccessMode: role === "student" && input.schoolId?.trim() && input.schoolStatus === "active"
+      ? "space_only" : input.studentAccessMode,
   });
 }
 

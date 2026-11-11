@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { sendVerificationEmail } from "@/lib/auth";
+import { authedPost } from "@/lib/authedPost";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import GeoSearchSelect from "@/components/geo/GeoSearchSelect";
 import { COUNTRIES } from "@/lib/geo/countries";
@@ -132,6 +133,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const [roleTouched, setRoleTouched] = useState(false);
   const [studentAccessMode, setStudentAccessMode] = useState<StudentAccessMode | "">("");
   const [studentAccessTouched, setStudentAccessTouched] = useState(false);
+  const isFeideLinked = auth.currentUser?.providerData.some((provider) => provider.providerId === "oidc.feide") === true;
+  const selectedStudentAccessMode = isFeideLinked ? "space_only" : studentAccessMode;
 
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("NO");
@@ -178,7 +181,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const countryOk = !!country.trim();
   const municipalityOk = !!municipality.trim();
   const roleOk = !!role;
-  const studentAccessOk = role !== "student" || !!studentAccessMode;
+  const studentAccessOk = role !== "student" || !!selectedStudentAccessMode;
   const canSubmit = roleOk && studentAccessOk && nameOk && countryOk && municipalityOk;
   const showRoleHint = roleTouched && !roleOk;
 
@@ -285,7 +288,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     }
 
     if (currentStep === 2) {
-      if (role === "student" && !studentAccessMode) {
+      if (role === "student" && !selectedStudentAccessMode) {
         setStudentAccessTouched(true);
         setErr(
           safeT(
@@ -367,7 +370,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
       return;
     }
 
-    if (role === "student" && !studentAccessMode) {
+    if (role === "student" && !selectedStudentAccessMode) {
       setStep(2);
       setStudentAccessTouched(true);
       setErr(
@@ -414,7 +417,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
         displayName: name,
         locale,
         role,
-        studentAccessMode: role === "student" ? studentAccessMode : undefined,
+        studentAccessMode: role === "student" ? "space_only" : undefined,
         org: stripUndefined({
           country: c,
           municipality: m,
@@ -430,6 +433,10 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       if (auth.currentUser) {
         await maybeSendVerification(auth.currentUser, locale);
+        if (role === "student" && selectedStudentAccessMode === "self_study"
+          && (auth.currentUser.emailVerified || !isEmailPasswordUser(auth.currentUser))) {
+          await authedPost("/api/student/access-mode", { studentAccessMode: "self_study" });
+        }
       }
 
       const finalNext = normalizeNext(nextUrl, locale, role);
@@ -864,15 +871,15 @@ export default function OnboardingClient({ nextUrl }: Props) {
                     <button
                       type="button"
                       className="role-card"
-                      aria-pressed={studentAccessMode === "space_only"}
+                      aria-pressed={selectedStudentAccessMode === "space_only"}
                       onClick={() => {
                         setStudentAccessMode("space_only");
                         setStudentAccessTouched(true);
                         setErr(null);
                       }}
-                      style={studentAccessCard(studentAccessMode === "space_only")}
+                      style={studentAccessCard(selectedStudentAccessMode === "space_only")}
                     >
-                      <span style={selectedBadge(studentAccessMode === "space_only")}>✓</span>
+                      <span style={selectedBadge(selectedStudentAccessMode === "space_only")}>✓</span>
                       <div style={roleTitle}>
                         {safeT("fields.studentAccess.spaceOnlyTitle", "I have a code or link from a teacher")}
                       </div>
@@ -884,7 +891,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                       </div>
                     </button>
 
-                    <button
+                    {!isFeideLinked ? <button
                       type="button"
                       className="role-card"
                       aria-pressed={studentAccessMode === "self_study"}
@@ -905,7 +912,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                           "Open the library, tools and your own practice activities."
                         )}
                       </div>
-                    </button>
+                    </button> : null}
                   </div>
 
                   {studentAccessTouched && !studentAccessMode ? (

@@ -54,6 +54,7 @@ export default function ToolsPage() {
   const role = profile?.role === "student" || isGuestPreview ? "student" : profile?.role;
   const spaceOnlyStudent = role === "student" && isSpaceOnlyStudent(profile, {
     isAnonymous: isGuestPreview,
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide"),
   });
   const visiblePremiumTools =
     !PLANNER_PAUSED && locale === "nb"

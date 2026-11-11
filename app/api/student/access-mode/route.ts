@@ -46,6 +46,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only student accounts can change student access mode." }, { status: 403 });
     }
 
+    if (studentAccessMode === "self_study") {
+      const linkedProviders = (await auth.getUser(uid)).providerData.map((provider) => provider.providerId);
+      const activeSchoolAccount = typeof userData?.schoolId === "string"
+        && userData.schoolId.trim().length > 0 && userData.schoolStatus === "active";
+      if (linkedProviders.includes("oidc.feide") || activeSchoolAccount) {
+        return NextResponse.json({ error: "Self-study requires a separate individual account." }, { status: 403 });
+      }
+    }
+
     await userRef.set(
       {
         role: "student",

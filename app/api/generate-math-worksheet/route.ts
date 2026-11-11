@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { buildHint, buildFormula } from "@/lib/math/geometry/displayOptions";
 import { formatFigureMeta, formatNumber } from "@/lib/math/geometry/measurements";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import {
   getFeatureStatusAdmin,
   consumeFeatureAdmin,
@@ -966,8 +967,8 @@ async function getRequestUserContext(
     uid,
     role,
     plan,
-    studentAccessMode:
-      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+    studentAccessMode: await getEffectiveStudentModeForAccount({ role, studentAccessMode: data?.studentAccessMode,
+      schoolId: data?.schoolId, schoolStatus: data?.schoolStatus }, decoded),
   };
 }
 

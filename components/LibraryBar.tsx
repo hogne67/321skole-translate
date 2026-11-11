@@ -72,6 +72,7 @@ export default function LibraryBar() {
   const role: Role = user?.isAnonymous ? guestRole : safeRole(roleStr);
   const studentAccessMode = getStudentAccessMode(profile, {
     isAnonymous: !!user?.isAnonymous && role === "student",
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide"),
   });
 
   useEffect(() => {

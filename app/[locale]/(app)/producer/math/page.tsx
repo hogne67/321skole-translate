@@ -10,7 +10,8 @@ export default function MathGeneratorsPage() {
   const locale = useLocale();
   const { user, profile, loading } = useUserProfile();
   const isGuest = Boolean(user?.isAnonymous);
-  if ((profile?.role === "student" || isGuest) && isSpaceOnlyStudent(profile, { isAnonymous: isGuest })) return <StudentSelfStudyPrompt isAnonymous={isGuest} nextHref={`/${locale}/producer/math`} />;
+  if ((profile?.role === "student" || isGuest) && isSpaceOnlyStudent(profile, { isAnonymous: isGuest,
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide") })) return <StudentSelfStudyPrompt isAnonymous={isGuest} nextHref={`/${locale}/producer/math`} />;
   if (loading) return null;
   return <MathGeneratorOverview locale={locale} isGuest={isGuest} />;
 }

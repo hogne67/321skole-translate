@@ -1,6 +1,7 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import {
   consumeFeatureAdmin,
   getFeatureStatusAdmin,
@@ -843,8 +844,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     uid,
     role,
     plan,
-    studentAccessMode:
-      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+    studentAccessMode: await getEffectiveStudentModeForAccount({ role, studentAccessMode: data?.studentAccessMode,
+      schoolId: data?.schoolId, schoolStatus: data?.schoolStatus }, decoded),
     devAuthFallback,
   };
 }
@@ -855,6 +856,9 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role === "student" && user.studentAccessMode === "space_only") {
+      return NextResponse.json({ ok: false, error: "Individual generator access requires a separate account." }, { status: 403 });
     }
 
     const body = (await req.json()) as GenerateArithmeticWorksheetRequest;

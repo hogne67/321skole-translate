@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { useState } from "react";
 import { authedPost } from "@/lib/authedPost";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 function copyForLocale(locale: string) {
   if (locale === "pt") {
@@ -18,6 +19,7 @@ function copyForLocale(locale: string) {
       login: "Entrar para estudar por conta propria",
       spaces: "Abrir Spaces",
       error: "Nao foi possivel ativar o estudo individual agora.",
+      separate: "Para estudo individual, use uma conta pessoal separada da conta escolar.",
     };
   }
 
@@ -32,6 +34,7 @@ function copyForLocale(locale: string) {
       login: "Log in to study on your own",
       spaces: "Open Spaces",
       error: "Could not turn on self study right now.",
+      separate: "For self study, use a separate personal account from your school account.",
     };
   }
 
@@ -45,6 +48,7 @@ function copyForLocale(locale: string) {
     login: "Logg inn for å studere på egenhånd",
     spaces: "Åpne Spaces",
     error: "Kunne ikke åpne egenstudie akkurat nå.",
+    separate: "For egenstudie må du bruke en egen privat konto, adskilt fra skolekontoen.",
   };
 }
 
@@ -61,6 +65,9 @@ export default function StudentSelfStudyPrompt({
   const copy = copyForLocale(locale);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user, profile, loading } = useUserProfile();
+  const separateAccountRequired = user?.providerData.some((provider) => provider.providerId === "oidc.feide")
+    || (typeof profile?.schoolId === "string" && profile.schoolId.trim().length > 0 && profile.schoolStatus === "active");
 
   const currentPath = nextHref || pathname || `/${locale}/student`;
   const loginHref = `/${locale}/login?next=${encodeURIComponent(currentPath)}`;
@@ -88,7 +95,7 @@ export default function StudentSelfStudyPrompt({
           {copy.badge}
         </div>
         <h1 className="mt-4 text-2xl font-black text-slate-950">{copy.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">{copy.body}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{separateAccountRequired ? copy.separate : copy.body}</p>
 
         {error ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
@@ -104,7 +111,7 @@ export default function StudentSelfStudyPrompt({
             >
               {copy.login}
             </Link>
-          ) : (
+          ) : loading || separateAccountRequired ? null : (
             <button
               type="button"
               onClick={activateSelfStudy}

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomInt } from "node:crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
@@ -131,7 +132,10 @@ export async function POST(req: NextRequest) {
       const profile = await profileRef.get();
       if (!profile.data()?.role || profile.data()?.role === "student") await profileRef.set({
         role: "student", roles: { student: true },
-        studentAccessMode: profile.data()?.studentAccessMode === "self_study" ? "self_study" : "space_only",
+        studentAccessMode: await getEffectiveStudentModeForAccount({ role: "student",
+          studentAccessMode: profile.data()?.studentAccessMode,
+          schoolId: profile.data()?.schoolId, schoolStatus: profile.data()?.schoolStatus }, decoded) === "self_study"
+          ? "self_study" : "space_only",
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
     }

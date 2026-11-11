@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { generateFactCheckReport } from "@/lib/lessons/server/generateFactCheckReport";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import {
   getFeatureStatusAdmin,
 } from "@/lib/featureGuardAdmin";
@@ -133,8 +134,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     uid,
     role: data?.role ?? "anonymous",
     plan,
-    studentAccessMode:
-      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+    studentAccessMode: await getEffectiveStudentModeForAccount({ role: data?.role ?? "anonymous",
+      studentAccessMode: data?.studentAccessMode, schoolId: data?.schoolId, schoolStatus: data?.schoolStatus }, decoded),
   };
 }
 

@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 import sharp from "sharp";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import {
   getBucketLimit,
   getEffectivePlan,
@@ -220,8 +221,8 @@ export async function POST(req: NextRequest) {
     });
 
     const imageLimit = getBucketLimit(role, plan, "image_generation", {
-      studentAccessMode:
-        typeof quotaUserData?.studentAccessMode === "string" ? quotaUserData.studentAccessMode : null,
+      studentAccessMode: await getEffectiveStudentModeForAccount({ role, studentAccessMode: quotaUserData?.studentAccessMode,
+        schoolId: quotaUserData?.schoolId, schoolStatus: quotaUserData?.schoolStatus }, decoded),
     });
     if (imageLimit <= 0) {
       return NextResponse.json(

@@ -162,7 +162,8 @@ function roleRequestCopy(locale: string) {
 
 export function DashboardIntro(props: Props) {
   const locale = useLocale();
-  const { profile } = useUserProfile();
+  const { user, profile } = useUserProfile();
+  const isFeideLinked = user?.providerData.some((provider) => provider.providerId === "oidc.feide") === true;
   const [roleRequestOpen, setRoleRequestOpen] = useState(false);
   const [requestedRole, setRequestedRole] = useState<RequestedRole>("teacher");
   const [requestNote, setRequestNote] = useState("");
@@ -177,6 +178,7 @@ export function DashboardIntro(props: Props) {
   const roleLabel = getRoleLabel(role, props) || props.roleFallback;
   const studentAccessMode = getStudentAccessMode(profile, {
     isAnonymous: props.userIsAnon,
+    isFeideLinked,
   });
   const copy = useMemo(() => roleRequestCopy(locale), [locale]);
   const roleOptions = useMemo(
@@ -185,13 +187,15 @@ export function DashboardIntro(props: Props) {
         .filter((option) => option !== role)
         .map((value) => ({ value: value as RequestedRole, label: getRoleLabel(value, props) || value }));
 
-      if (role === "student" && studentAccessMode !== "self_study") {
+      if (role === "student" && studentAccessMode !== "self_study"
+        && !isFeideLinked
+        && !(typeof profile?.schoolId === "string" && profile.schoolId.trim() && profile.schoolStatus === "active")) {
         return [{ value: "student_self_study" as const, label: copy.selfStudyRole }, ...base];
       }
 
       return base;
     },
-    [copy.selfStudyRole, props, role, studentAccessMode]
+    [copy.selfStudyRole, props, role, studentAccessMode, isFeideLinked, profile?.schoolId, profile?.schoolStatus]
   );
 
   const helloText =

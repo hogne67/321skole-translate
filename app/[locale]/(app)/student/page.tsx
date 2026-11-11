@@ -370,7 +370,7 @@ export default function StudentDashboard() {
   const locale = useLocale();
   const t = useTranslations("dashboard");
 
-  const { profile } = useUserProfile();
+  const { user, profile } = useUserProfile();
 
   const [isAnon, setIsAnon] = useState(true);
   const [uid, setUid] = useState<string | undefined>(undefined);
@@ -491,7 +491,8 @@ export default function StudentDashboard() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
 
-  const studentAccessMode = getStudentAccessMode(profile, { isAnonymous: isAnon });
+  const studentAccessMode = getStudentAccessMode(profile, { isAnonymous: isAnon,
+    isFeideLinked: user?.providerData.some((provider) => provider.providerId === "oidc.feide") });
   const isSpaceOnly = studentAccessMode === "space_only";
   const needsOnboarding = !isAnon && profile?.onboardingComplete !== true;
 

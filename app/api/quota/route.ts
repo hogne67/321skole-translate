@@ -4,6 +4,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import {
   getQuotaBucket,
   getBucketLimit,
@@ -222,6 +223,7 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
     schoolStatus,
   });
 
+  studentAccessMode = (await getEffectiveStudentModeForAccount({ role, studentAccessMode, schoolId, schoolStatus }, decoded)) ?? "";
   return { role, plan, billing, studentAccessMode };
 }
 
