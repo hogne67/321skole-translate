@@ -204,16 +204,16 @@ service cloud.firestore {
     }
 
     function requestedSchoolIdOk() {
-      return !("schoolId" in request.resource.data)
-        || request.resource.data.schoolId == null
-        || (
-          (isTeacher() || isAdmin())
-          && hasActiveSchoolProfile()
+      return (isTeacher() || isAdmin()) && myUser().get("schoolStatus", "") == "active"
+        ? (
+          hasActiveSchoolProfile()
+          && ("schoolId" in request.resource.data)
           && nonEmptyString(request.resource.data.schoolId)
           && !request.resource.data.schoolId.matches('.*[/].*')
           && request.resource.data.schoolId == myUser().schoolId
           && activeSchoolSpaceCreator(request.resource.data.schoolId)
-        );
+        )
+        : (!("schoolId" in request.resource.data) || request.resource.data.schoolId == null);
     }
 
     function activeSchoolSpaceCreator(schoolId) {

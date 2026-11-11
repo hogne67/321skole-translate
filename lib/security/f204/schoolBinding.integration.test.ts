@@ -166,6 +166,24 @@ for (const row of creationCases) test(`F204 creation SDK and API: ${row.name}`, 
     assert.equal((await db.collection("spaceJoinCodes").get()).empty, true);
   }
 });
+test("active school account cannot create an unbound room through the SDK or API", async () => {
+  const client = sdk("owner");
+  await denied(setDoc(doc(client, "spaces/unboundNull"), room("owner", null)), "active school owner, null schoolId");
+  const withoutField = room("owner");
+  delete (withoutField as { schoolId?: unknown }).schoolId;
+  await denied(setDoc(doc(client, "spaces/unboundMissing"), withoutField), "active school owner, missing schoolId");
+  for (const body of [{ title: "Synthetic null room", schoolId: null }, { title: "Synthetic omitted room" }]) {
+    const response = await createSpace(await request("owner", body));
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal((await db.doc(`spaces/${payload.spaceId}`).get()).get("schoolId"), "schoolA");
+  }
+});
+test("API does not silently create a private room when school membership is missing", async () => {
+  await db.doc(`schools/schoolA/members/${uid("owner")}`).delete();
+  const response = await createSpace(await request("owner", { title: "Synthetic unbound attempt", schoolId: null }));
+  assert.equal(response.status, 403);
+});
 test("F204 parent can create and use private family Space without school membership", async () => {
   const client = sdk("parent");
   await setDoc(doc(client, "spaces/family"), { ownerId: uid("parent"), title: "Synthetic family", isOpen: false, kind: "family" });

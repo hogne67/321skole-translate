@@ -31,17 +31,23 @@ export async function POST(req: Request) {
         const profile = await tx.get(profileRef);
         const data = profile.data();
         if (data?.disabled === true || !(data?.role === "teacher" || data?.role === "admin" || data?.roles?.admin === true)) return "forbidden";
-        if (body.schoolId != null) {
-          if (body.schoolId !== data?.schoolId || data?.schoolStatus !== "active") return "forbidden";
+        // A school account cannot opt out of school controls by omitting schoolId.
+        const activeSchool = data?.schoolStatus === "active";
+        const profileSchoolId = data?.schoolId;
+        if (activeSchool && (typeof profileSchoolId !== "string" || !profileSchoolId || profileSchoolId.trim() !== profileSchoolId || profileSchoolId.includes("/"))) return "forbidden";
+        const schoolId = activeSchool ? profileSchoolId as string : body.schoolId ?? null;
+        if (body.schoolId != null && body.schoolId !== schoolId) return "forbidden";
+        if (schoolId != null) {
+          if (schoolId !== data?.schoolId || data?.schoolStatus !== "active") return "forbidden";
           // Read the authoritative school and assignment in this transaction;
           // a stale profile alone must never confer school affiliation.
           const [school, member] = await Promise.all([
-            tx.get(db.doc(`schools/${body.schoolId}`)),
-            tx.get(db.doc(`schools/${body.schoolId}/members/${uid}`)),
+            tx.get(db.doc(`schools/${schoolId}`)),
+            tx.get(db.doc(`schools/${schoolId}/members/${uid}`)),
           ]);
           const seatLimit = school.get("teacherSeatLimit");
           if (school.get("status") !== "active" || !Number.isInteger(seatLimit) || seatLimit <= 0
-            || member.get("uid") !== uid || (member.get("schoolId") !== undefined && member.get("schoolId") !== body.schoolId)
+            || member.get("uid") !== uid || (member.get("schoolId") !== undefined && member.get("schoolId") !== schoolId)
             || member.get("status") !== "active" || !["school_teacher", "school_admin"].includes(member.get("role"))
             || member.get("role") !== data?.schoolRole) return "forbidden";
         }
@@ -53,7 +59,7 @@ export async function POST(req: Request) {
         const now = FieldValue.serverTimestamp();
         tx.create(claimRef, { spaceId: spaceRef.id });
         tx.create(spaceRef, { ownerId: uid, ownerUid: uid, createdBy: uid, code, joinCode: code,
-          title: body.title.trim(), isOpen: body.isOpen !== false, allowRoomCodeOnly: false, schoolId: body.schoolId ?? null,
+          title: body.title.trim(), isOpen: body.isOpen !== false, allowRoomCodeOnly: false, schoolId,
           activeLessonId: null, activeLessonTitle: null, activeLessonUpdatedAt: null,
           activeGoalId: null, activeGoalTitle: null, createdAt: now, updatedAt: now });
         return "created";
