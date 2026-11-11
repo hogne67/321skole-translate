@@ -133,8 +133,10 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const [roleTouched, setRoleTouched] = useState(false);
   const [studentAccessMode, setStudentAccessMode] = useState<StudentAccessMode | "">("");
   const [studentAccessTouched, setStudentAccessTouched] = useState(false);
+  const [isActiveSchoolAccount, setIsActiveSchoolAccount] = useState(false);
   const isFeideLinked = auth.currentUser?.providerData.some((provider) => provider.providerId === "oidc.feide") === true;
-  const selectedStudentAccessMode = isFeideLinked ? "space_only" : studentAccessMode;
+  const schoolAccountLimited = isFeideLinked || isActiveSchoolAccount;
+  const selectedStudentAccessMode = schoolAccountLimited ? "space_only" : studentAccessMode;
 
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("NO");
@@ -213,6 +215,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
         if (snap.exists()) {
           const p = (snap.data() ?? {}) as Record<string, unknown>;
+          setIsActiveSchoolAccount(typeof p.schoolId === "string" && p.schoolId.trim().length > 0
+            && p.schoolStatus === "active");
 
           if (p.onboardingComplete === true) {
             router.replace(normalizeNext(nextUrl, locale, isRole(p.role) ? p.role : ""));
@@ -254,6 +258,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
             setStep(1);
           }
         } else {
+          setIsActiveSchoolAccount(false);
           setDisplayName(authName);
           setRole("");
           setRoleTouched(false);
@@ -266,6 +271,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
           setStep(1);
         }
       } catch {
+        setIsActiveSchoolAccount(false);
         setDisplayName((u.displayName || "").trim());
       } finally {
         setLoading(false);
@@ -891,7 +897,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                       </div>
                     </button>
 
-                    {!isFeideLinked ? <button
+                    {!schoolAccountLimited ? <button
                       type="button"
                       className="role-card"
                       aria-pressed={studentAccessMode === "self_study"}
