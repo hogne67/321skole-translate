@@ -177,7 +177,7 @@ async function fetchPublishedLessonByEitherIdOrField(lessonId: string): Promise<
     if (!isPermissionDenied(e)) throw e;
   }
 
-  const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), limit(1));
+  const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), where("visibility", "==", "public"), where("isActive", "==", true), limit(1));
   const qsnap = await getDocs(q);
   if (qsnap.empty) return { via: "none", data: null };
 

@@ -147,6 +147,7 @@ function CourseSessionsContent() {
   useEffect(() => {
     const qy = query(
       collection(db, "published_lessons"),
+      where("visibility", "==", "public"),
       where("isActive", "==", true),
       orderBy("createdAt", "desc"),
       limit(300)

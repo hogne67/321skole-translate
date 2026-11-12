@@ -64,7 +64,7 @@ export default function StudentBrowsePage() {
         const user: User = await ensureAnonymousUser();
 
         // 1) published library
-        const qPub = query(collection(db, "published_lessons"), where("isActive", "==", true));
+        const qPub = query(collection(db, "published_lessons"), where("visibility", "==", "public"), where("isActive", "==", true));
         const pubSnap = await getDocs(qPub);
 
         // 2) user's submissions (to mark already opened/hented)

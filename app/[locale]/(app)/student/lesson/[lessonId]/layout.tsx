@@ -60,6 +60,7 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
   return {
     title,
     description,
+    robots: lesson.visibility === "unlisted" ? { index: false, follow: false } : undefined,
     alternates: {
       canonical: url,
     },

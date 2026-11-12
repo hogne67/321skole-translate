@@ -53,15 +53,15 @@ function questionFrom(raw: unknown): PublicQuestion | null {
 
 function coerceQuiz(id: string, raw: unknown): PublicQuiz | null {
   const data = isRecord(raw) ? raw : {};
-  const visibility = asString(data.publishVisibility || data.visibility, "public").toLowerCase();
+  const visibility = asString(data.visibility, "").toLowerCase();
   const lessonType = asString(data.lessonType || data.contentType || data.textType || data.texttype).toLowerCase();
   const quiz = isRecord(data.quiz) ? data.quiz : {};
   const signedBy = isRecord(data.signedBy) ? data.signedBy : {};
   const isQuiz = lessonType === "quiz" || Array.isArray(quiz.questions);
 
   if (!isQuiz) return null;
-  if (data.isActive === false) return null;
-  if (visibility === "private") return null;
+  if (data.isActive !== true) return null;
+  if (visibility !== "public" && visibility !== "unlisted") return null;
 
   const questions = (Array.isArray(quiz.questions) ? quiz.questions : Array.isArray(data.tasks) ? data.tasks : [])
     .map(questionFrom)
@@ -84,7 +84,7 @@ async function loadQuiz(id: string): Promise<PublicQuiz | null> {
   const direct = await db.collection("published_lessons").doc(id).get();
   if (direct.exists) return coerceQuiz(direct.id, direct.data());
 
-  const byLessonId = await db.collection("published_lessons").where("lessonId", "==", id).limit(1).get();
+  const byLessonId = await db.collection("published_lessons").where("lessonId", "==", id).where("visibility", "==", "public").limit(1).get();
   if (byLessonId.empty) return null;
   const doc = byLessonId.docs[0];
   return coerceQuiz(doc.id, doc.data());

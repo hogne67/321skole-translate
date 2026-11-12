@@ -53,7 +53,7 @@ test("all own lessons and saved library references are listed, newest addition f
   f.records.set("lessons/other", { ownerId: "admin", sourceText: "Privat" });
   f.records.set("lessons/no-text", { ownerId: "fred", title: "Ingen lesetekst" });
   f.records.set("lessons/legacy-no-date", { ownerId: "fred", title: "Uten dato", text: "Eldre tekst." });
-  f.records.set("published_lessons/library", { ownerId: "someone", title: "Ny nedlasting av gammel tekst", sourceText: "Bibliotektekst.", createdAt: 2, isActive: true,
+  f.records.set("published_lessons/library", { ownerId: "someone", title: "Ny nedlasting av gammel tekst", sourceText: "Bibliotektekst.", createdAt: 2, isActive: true, visibility: "public",
     level: "B1", language: "en", tasks: [{ answer: "never return this" }] });
   f.records.set("practiceSubmissions/fred_library", { uid: "fred", publishedLessonId: "library", kind: "practice", createdAt: 400, answers: { answer: "never read this" } });
   f.records.set("submissions/fred_library", { uid: "fred", lessonId: "library", source: "library", createdAt: 400 });
@@ -78,7 +78,7 @@ test("download date wins over an original creation date; archived and inactive s
   f.records.set("lessons/new", { ownerId: "fred", sourceText: "Ny", createdAt: 400 });
   for (const id of ["active", "inactive", "deleted", "archived", "space"]) {
     f.records.set(`practiceSubmissions/${id}`, { uid: "fred", publishedLessonId: id, createdAt: 600, ...(id === "archived" ? { archived: true } : {}), ...(id === "space" ? { spaceId: "room" } : {}) });
-    f.records.set(`published_lessons/${id}`, { sourceText: "Tekst", isActive: id !== "inactive", ...(id === "deleted" ? { deletedAt: true } : {}) });
+    f.records.set(`published_lessons/${id}`, { sourceText: "Tekst", isActive: id !== "inactive", visibility: "public", ...(id === "deleted" ? { deletedAt: true } : {}) });
   }
   const list = await listPosterLessons(f.db, "fred");
   assert.deepEqual(list.map(item => item.id), ["saved:practice:active", "copy", "new"]);
@@ -93,13 +93,13 @@ test("only reading texts are offered from own and saved content, and excluded ty
   for (const [index, metadata] of excluded.entries()) {
     const id = `excluded-${index}`;
     f.records.set(`lessons/${id}`, { ownerId: "fred", sourceText: "Oppgavetekst.", ...metadata });
-    f.records.set(`published_lessons/${id}`, { isActive: true, sourceText: "Oppgavetekst.", ...metadata });
+    f.records.set(`published_lessons/${id}`, { isActive: true, visibility: "public", sourceText: "Oppgavetekst.", ...metadata });
     f.records.set(`practiceSubmissions/${id}`, { uid: "fred", publishedLessonId: id });
     await assert.rejects(readSource(f.db, "fred", { lessonId: id }), /invalid_source/);
     await assert.rejects(readSource(f.db, "fred", { lessonId: `saved:practice:${id}` }), /invalid_source/);
   }
   f.records.set("lessons/reading", { ownerId: "fred", title: "Quiz og matematikk", sourceText: "Vi snakker om quiz og matematikk.", lessonType: "reading", tasks: [{ type: "writing" }] });
-  f.records.set("published_lessons/reading", { isActive: true, sourceText: "En vanlig lesetekst.", textType: "Hverdagsfortelling" });
+  f.records.set("published_lessons/reading", { isActive: true, visibility: "public", sourceText: "En vanlig lesetekst.", textType: "Hverdagsfortelling" });
   f.records.set("practiceSubmissions/reading", { uid: "fred", publishedLessonId: "reading" });
   assert.deepEqual((await listPosterLessons(f.db, "fred")).map(item => item.id).sort(), ["reading", "saved:practice:reading"]);
 });
@@ -107,7 +107,7 @@ test("only reading texts are offered from own and saved content, and excluded ty
 test("saved library text is loaded through the authenticated account's reference; poster ownership stays with that account", async () => {
   const f = fixture();
   f.records.set("practiceSubmissions/fred_saved", { uid: "fred", publishedLessonId: "published", sourceText: "A forged snapshot", answers: { answer: "A private answer" } });
-  f.records.set("published_lessons/published", { ownerId: "author", title: "Fra biblioteket", sourceText: "Jeg drikker vann.", status: "published" });
+  f.records.set("published_lessons/published", { ownerId: "author", title: "Fra biblioteket", sourceText: "Jeg drikker vann.", status: "published", isActive: true, visibility: "public" });
   const source = await readSource(f.db, "fred", { lessonId: "saved:practice:fred_saved" });
   assert.equal(source.text, "Jeg drikker vann.");
   assert.equal(source.lessonId, "saved:practice:fred_saved");
@@ -129,8 +129,10 @@ test("another account's saved reference, forged private source and invalid selec
   await assert.rejects(readSavedPosterLesson(f.db, "fred", "saved:practice:forged"), /source_not_found/);
   await assert.rejects(readSavedPosterLesson(f.db, "fred", "saved:practice:../private"), /invalid_input/);
   f.records.set("submissions/legacy", { uid: "fred", publishedLessonId: "public", source: "library", createdAt: 1 });
-  f.records.set("published_lessons/public", { sourceText: "Public text", status: "unlisted" });
+  f.records.set("published_lessons/public", { sourceText: "Public text", status: "unlisted", isActive: true, visibility: "unlisted" });
   assert.equal((await readSavedPosterLesson(f.db, "fred", "saved:legacy:legacy")).sourceText, "Public text");
   f.records.set("practiceSubmissions/feide:fred_public", { uid: "fred", publishedLessonId: "public" });
   assert.equal((await readSavedPosterLesson(f.db, "fred", "saved:practice:feide:fred_public")).sourceText, "Public text");
+  f.records.set("published_lessons/public", { ownerId: "author", sourceText: "Private now", isActive: true, visibility: "private" });
+  await assert.rejects(readSavedPosterLesson(f.db, "fred", "saved:legacy:legacy"), /source_not_found/);
 });

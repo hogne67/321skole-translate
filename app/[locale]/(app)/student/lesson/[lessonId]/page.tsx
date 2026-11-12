@@ -562,6 +562,7 @@ async function findActivePublishedReplacement(rawData: PublishedLessonDoc) {
     query(
       collection(db, "published_lessons"),
       where("lessonId", "==", sourceLessonId),
+      where("visibility", "==", "public"),
       where("isActive", "==", true),
       limit(1)
     )

@@ -544,6 +544,7 @@ export default function LessonsLandingPage() {
 
     const qy = query(
       collection(db, "published_lessons"),
+      where("visibility", "==", "public"),
       where("isActive", "==", true),
       limit(300)
     );

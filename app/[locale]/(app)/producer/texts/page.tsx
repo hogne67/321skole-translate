@@ -102,7 +102,7 @@ function displayTextType(value: unknown, locale: string): string {
 }
 
 function pickVisibility(v: unknown): PublishVisibility {
-  return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+  return v === "unlisted" || v === "private" || v === "public" ? v : "unlisted";
 }
 
 function getErrorMessage(err: unknown): string {
@@ -344,6 +344,7 @@ export default function ProducerTextsPage() {
       if (nextPublished) {
         const publishObj = isRecord(data.publish) ? data.publish : undefined;
         const vis = pickVisibility(publishObj?.visibility);
+        if (vis === "public" && !window.confirm("Publish this lesson publicly in the library?")) return;
 
         const resp = await authedPost<{ publishedId?: string; publishedLessonId?: string; id?: string }>(
           "/api/publish",
@@ -551,6 +552,7 @@ export default function ProducerTextsPage() {
               const isPublished = (l.status ?? "draft") === "published";
               const busy = !!busyById[l.id];
               const tt = displayTextType(coerceTextType(l), locale);
+              const nextVisibility = pickVisibility(l.publish?.visibility);
 
               return (
                 <div key={l.id} style={listCard}>
@@ -581,9 +583,9 @@ export default function ProducerTextsPage() {
                         onClick={() => setPublished(l.id, true)}
                         disabled={busy}
                         style={{ ...btnSuccess, opacity: busy ? 0.7 : 1, cursor: busy ? "not-allowed" : "pointer" }}
-                        title="Publish (adds/updates published snapshot)"
+                        title={nextVisibility === "public" ? "Publish publicly in the library" : nextVisibility === "private" ? "Publish privately" : "Publish with an unlisted share link"}
                       >
-                        {busy ? "Working…" : "Publish"}
+                        {busy ? "Working…" : nextVisibility === "public" ? "Publish publicly" : nextVisibility === "private" ? "Publish privately" : "Publish unlisted"}
                       </button>
                     )}
 

@@ -851,7 +851,7 @@ function TeacherBoardIndexInner() {
   useEffect(() => {
     if (!canUse && !isGuestPreview) return;
 
-    const libraryQuery = query(collection(db, "published_lessons"), where("lessonType", "==", "quiz"), where("isActive", "==", true), limit(80));
+    const libraryQuery = query(collection(db, "published_lessons"), where("lessonType", "==", "quiz"), where("visibility", "==", "public"), where("isActive", "==", true), limit(80));
     getDocs(libraryQuery)
       .then((snap) => {
         const next = snap.docs

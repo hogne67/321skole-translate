@@ -125,9 +125,9 @@ async function getPublishedLessonCount(): Promise<number> {
       const visibility = String(data.visibility ?? "");
       const type = String(data.type ?? data.textType ?? "");
       const archived = Boolean(data.archived);
-      const isActive = data.isActive !== false;
+      const isActive = data.isActive === true;
 
-      if (visibility === "private") continue;
+      if (visibility !== "public") continue;
       if (type === "reading_test") continue;
       if (archived) continue;
       if (!isActive) continue;
@@ -184,9 +184,9 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
       const visibility = String(data.visibility ?? "");
       const type = String(data.type ?? data.textType ?? "");
       const archived = Boolean(data.archived);
-      const isActive = data.isActive !== false;
+      const isActive = data.isActive === true;
 
-      if (visibility === "private" || type === "reading_test" || archived || !isActive) {
+      if (visibility !== "public" || type === "reading_test" || archived || !isActive) {
         continue;
       }
 

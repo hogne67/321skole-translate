@@ -1,4 +1,5 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { assertAssignmentFallback, PublicationAccessError } from "@/lib/security/publicationAccess.server";
 import { getActiveSpaceMembership } from "@/lib/security/spaceAccess.server";
 import { validateStoredStudentSubmission, validateStoredSubmissionIndex, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import "server-only";
@@ -113,7 +114,8 @@ function buildPrompt(args: {
 
 async function readPodcastConfigForAssignment(
   db: FirebaseFirestore.Firestore,
-  assignment: FirebaseFirestore.DocumentData
+  assignment: FirebaseFirestore.DocumentData,
+  uid: string
 ) {
   const directConfig = readPodcastWorkshopConfig(
     assignment.podcastWorkshopConfig,
@@ -130,6 +132,7 @@ async function readPodcastConfigForAssignment(
   if (!sourceSnap.exists) return { config: null, source: assignment };
 
   const source = sourceSnap.data() ?? {};
+  assertAssignmentFallback(source, sourceType, uid);
   return {
     config: readPodcastWorkshopConfig(
       source.podcastWorkshopConfig,
@@ -171,7 +174,7 @@ export async function POST(req: Request, ctx: RouteParams) {
     if (!membership.ok) return json({ error: "Not a member of this space." }, 403);
 
     const assignment = assignmentSnap.data() ?? {};
-    const { config, source } = await readPodcastConfigForAssignment(db, assignment);
+    const { config, source } = await readPodcastConfigForAssignment(db, assignment, uid);
     if (!config) return json({ error: "Podcast workshop config missing." }, 404);
     if (config.aiSupport === "off" || config.aiUsageLimit <= 0) {
       return json({ error: "AI support is disabled for this podcast workshop." }, 403);
@@ -268,6 +271,6 @@ export async function POST(req: Request, ctx: RouteParams) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Podcast AI support failed.";
-    return json({ error: message }, error instanceof SubmissionWriteError ? error.status : (accountErrorStatus(error) ?? 500));
+    return json({ error: message }, error instanceof PublicationAccessError ? error.status : error instanceof SubmissionWriteError ? error.status : (accountErrorStatus(error) ?? 500));
   }
 }

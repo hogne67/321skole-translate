@@ -87,6 +87,9 @@ export async function POST(req: Request) {
         ownerId: typeof item.ownerId === "string" ? item.ownerId : "",
         lessonId: id,
         isActive: true,
+        visibility: "public",
+        publishVisibility: "public",
+        showInLibrary: true,
         publish: { state: "published", visibility: "public" },
         moderation: {
           ...moderation,

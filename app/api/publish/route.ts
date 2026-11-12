@@ -1,4 +1,5 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { assertPublishedBinding, PublicationAccessError } from "@/lib/security/publicationAccess.server";
 // app/api/publish/route.ts
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -18,10 +19,6 @@ function bool(v: unknown) {
 
 function isVisibility(v: unknown): v is Visibility {
   return v === "public" || v === "unlisted" || v === "private";
-}
-
-function pickVisibility(v: unknown): Visibility {
-  return isVisibility(v) ? v : "public";
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -122,7 +119,10 @@ export async function POST(req: Request) {
   const idRaw = body.id ?? body.lessonId;
   const draftId = typeof idRaw === "string" ? idRaw : undefined;
 
-  const visibility = pickVisibility(body.visibility);
+  const visibility = body.visibility;
+  if (!isVisibility(visibility)) {
+    return NextResponse.json({ error: "Explicit visibility is required." }, { status: 400 });
+  }
   const showInLibrary = visibility === "public" ? body.showInLibrary !== false : false;
 
   if (!draftId) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
@@ -209,7 +209,7 @@ export async function POST(req: Request) {
     (typeof draft.sourcePublishedQuizId === "string" && draft.sourcePublishedQuizId.trim().length > 0);
 
   // Ikke-admin kan kun publisere egne utkast
-  if (!isAdmin && ownerId && ownerId !== uid) {
+  if (!isAdmin && ownerId !== uid) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
       uid,
@@ -323,6 +323,7 @@ export async function POST(req: Request) {
     // Publish metadata
     visibility,
     publishVisibility: visibility,
+    publish: { ...(isRecord(draft.publish) ? draft.publish : {}), state: "published", visibility },
     showInLibrary: effectiveShowInLibrary,
     status: "published",
     publishedAt: now,
@@ -337,25 +338,27 @@ export async function POST(req: Request) {
     },
   };
 
-  await publishedRef.set(publishedDoc, { merge: true });
-
-  await draftSnap.ref.set(
-    {
-      status: "published",
-      activePublishedId: publishedId,
-      publishedLessonId: publishedId,
-      publishVisibility: visibility,
-      showInLibrary: effectiveShowInLibrary,
-      publish: {
-        visibility,
-        state: "published",
-      },
-      publishedAt: now,
-      updatedAt: now,
-    },
-    { merge: true }
-  );
-
+  try {
+    await db.runTransaction(async tx => {
+      const [currentDraft, currentPublished] = await Promise.all([tx.get(draftSnap.ref), tx.get(publishedRef)]);
+      if (!currentDraft.exists || !currentDraft.updateTime?.isEqual(draftSnap.updateTime!)) throw new PublicationAccessError("Draft changed; try again", 409);
+      assertPublishedBinding(currentPublished.data(), effectiveOwnerId, draftId);
+      tx.set(publishedRef, publishedDoc, { merge: true });
+      tx.set(draftSnap.ref, {
+        status: "published",
+        activePublishedId: publishedId,
+        publishedLessonId: publishedId,
+        publishVisibility: visibility,
+        showInLibrary: effectiveShowInLibrary,
+        publish: { visibility, state: "published" },
+        publishedAt: now,
+        updatedAt: now,
+      }, { merge: true });
+    });
+  } catch (error) {
+    if (error instanceof PublicationAccessError) return NextResponse.json({ error: error.message }, { status: error.status });
+    throw error;
+  }
   await db.collection("auditEvents").add({
     type: "PUBLISH_SUCCESS",
     uid,

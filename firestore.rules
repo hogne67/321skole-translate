@@ -674,18 +674,32 @@ service cloud.firestore {
     ========================= */
     match /published_lessons/{id} {
   function pubIsActive() {
-    return resource != null
-      && (
-        (("isActive" in resource.data) && resource.data.isActive == true)
-        || (("status" in resource.data) && (resource.data.status == "published" || resource.data.status == "unlisted"))
-        || (("published" in resource.data) && resource.data.published == true)
-      );
+    return resource != null && resource.data.get("isActive", false) == true;
   }
 
-  allow read: if (pubIsActive() || accountEnabled()) && (pubIsActive() || isAdmin());
+  function pubIsOwner() {
+    return signedIn() && resource != null
+      && ("ownerId" in resource.data)
+      && resource.data.ownerId == myUid();
+  }
 
-  allow update: if accountEnabled() && (signedIn()
-    && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+  function pubIsPublic() {
+    return pubIsActive() && ("visibility" in resource.data)
+      && resource.data.visibility == "public";
+  }
+
+  function pubIsUnlisted() {
+    return pubIsActive() && ("visibility" in resource.data)
+      && resource.data.visibility == "unlisted";
+  }
+
+  allow get: if pubIsPublic() || pubIsUnlisted()
+    || (accountEnabled() && (isAdmin() || pubIsOwner()));
+  allow list: if pubIsPublic()
+    || (accountEnabled() && (isAdmin() || pubIsOwner()));
+
+  allow update: if accountEnabled() && (pubIsPublic() || pubIsUnlisted()) && (signedIn()
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
       "ratingCount",
       "ratingSum",
       "ratingAverage"
@@ -694,9 +708,17 @@ service cloud.firestore {
   allow create, delete: if false;
 
   match /ratings/{uid} {
-    allow read: if true;
+    function parentLesson() {
+      return get(/databases/$(database)/documents/published_lessons/$(id)).data;
+    }
+    function parentReadable() {
+      let parent = parentLesson();
+      return parent.get("isActive", false) == true
+        && (parent.get("visibility", "") == "public" || parent.get("visibility", "") == "unlisted");
+    }
+    allow read: if parentReadable();
 
-    allow create, update: if accountEnabled() && (signedIn()
+    allow create, update: if parentReadable() && accountEnabled() && (signedIn()
       && request.auth.uid == uid
       && request.resource.data.uid == request.auth.uid
       && request.resource.data.value is int

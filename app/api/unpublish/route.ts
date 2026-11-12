@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { assertPublishedBinding, PublicationAccessError } from "@/lib/security/publicationAccess.server";
 
 function bool(v: unknown) {
   return v === true;
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
     }
 
-    const draftLookupId = draftId || publishedId;
+    let draftLookupId = draftId || publishedId;
     const now = FieldValue.serverTimestamp();
 
     // --- Load user profile (admin check) ---
@@ -62,7 +63,16 @@ export async function POST(req: Request) {
     const userSnap = await userRef.get();
     const profile = ((userSnap.exists ? userSnap.data() : {}) ?? {}) as Record<string, unknown>;
     const roles = (profile.roles ?? {}) as Record<string, unknown>;
-    const isAdmin = bool(roles.admin);
+    const isAdmin = bool(roles.admin) || profile.role === "admin";
+    const pubRef = db.doc(`published_lessons/${publishedId}`);
+    const pubSnap = await pubRef.get();
+    if (!pubSnap.exists) return NextResponse.json({ error: "Published copy not found" }, { status: 404 });
+    const published = pubSnap.data()!;
+    if (!isAdmin && published.ownerId !== uid) return NextResponse.json({ error: "Not owner of published copy" }, { status: 403 });
+    if (typeof published.lessonId === "string" && published.lessonId) {
+      if (draftId && draftId !== published.lessonId) return NextResponse.json({ error: "Draft binding mismatch" }, { status: 403 });
+      draftLookupId = published.lessonId;
+    }
 
     // --- Load draft (lessons/{draftLookupId} primary, texts/{draftLookupId} fallback) ---
     const draftRefA = db.doc(`lessons/${draftLookupId}`);
@@ -86,7 +96,7 @@ export async function POST(req: Request) {
       const owner = draft.ownerId;
       ownerId = typeof owner === "string" ? owner : null;
 
-      if (!isAdmin && ownerId && ownerId !== uid) {
+      if (!isAdmin && ownerId !== uid) {
         await db.collection("auditEvents").add({
           type: "UNPUBLISH_BLOCKED",
           uid,
@@ -99,36 +109,34 @@ export async function POST(req: Request) {
       }
     }
 
-    const effectiveOwnerId = ownerId || uid;
+    const effectiveOwnerId = published.ownerId ?? null;
 
     // --- Update published doc ---
-    const pubRef = db.doc(`published_lessons/${publishedId}`);
-    await pubRef.set(
-      {
-        ownerId: effectiveOwnerId,
-        lessonId: draftLookupId,
+    await db.runTransaction(async tx => {
+      const current = await tx.get(pubRef);
+      const draft = draftSnap?.exists ? await tx.get(draftSnap.ref) : null;
+      if (!current.exists || !current.updateTime?.isEqual(pubSnap.updateTime!)) throw new PublicationAccessError("Published copy changed; try again", 409);
+      if (!isAdmin && current.get("ownerId") !== uid) throw new PublicationAccessError();
+      if (draft?.exists) assertPublishedBinding(current.data(), draft.get("ownerId"), draftLookupId);
+      tx.update(pubRef, {
         isActive: false,
         status: "draft",
         updatedAt: now,
         unpublishedAt: now,
         unpublishedBy: { uid, isAdmin },
-      },
-      { merge: true }
-    );
+      });
 
-    if (draftSnap?.exists) {
-      await draftSnap.ref.set(
-        {
+      if (draft?.exists && (!draft.get("activePublishedId") || draft.get("activePublishedId") === publishedId)) {
+        tx.set(draft.ref, {
           status: "draft",
           activePublishedId: null,
           publish: {
             state: "draft",
           },
           updatedAt: now,
-        },
-        { merge: true }
-      );
-    }
+        }, { merge: true });
+      }
+    });
 
     // --- Audit ---
     await db.collection("auditEvents").add({
@@ -152,7 +160,7 @@ export async function POST(req: Request) {
     console.error("unpublish: fatal", err instanceof Error ? err.stack || err.message : String(err));
     return NextResponse.json(
       { error: toErrorString(err) },
-      { status: (accountErrorStatus(err) ?? 500) }
+      { status: err instanceof PublicationAccessError ? err.status : (accountErrorStatus(err) ?? 500) }
     );
   }
 }

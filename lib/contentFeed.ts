@@ -3,6 +3,8 @@ import { getOwnedSpaceSnapshots } from "@/lib/security/ownedSpaces.client";
 // lib/contentFeed.ts
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -458,10 +460,14 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
 
   const fetchFrom = async (colName: "lessons" | "published_lessons", chunk: string[]) => {
     try {
-      const qy = query(collection(db, colName), where(documentId(), "in", chunk));
-      const snap = await getDocs(qy);
+      const snaps = colName === "published_lessons"
+        ? await Promise.all(chunk.map(async id => {
+            try { return await getDoc(doc(db, colName, id)); } catch { return null; }
+          }))
+        : (await getDocs(query(collection(db, colName), where(documentId(), "in", chunk)))).docs;
 
-      snap.forEach((docSnap) => {
+      snaps.forEach((docSnap) => {
+        if (!docSnap?.exists()) return;
         const d = docSnap.data() as Record<string, unknown>;
         const title = pickTitle(d);
         const activePublishedId =

@@ -1,5 +1,6 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
+import { assertPublishedBinding, PublicationAccessError } from "@/lib/security/publicationAccess.server";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -56,13 +57,17 @@ export async function POST(req: Request) {
     const isAdmin = user.role === "admin" || roles.admin === true;
     const ownerId = safeString(data.ownerId || data.uid);
 
-    if (ownerId && ownerId !== uid && !isAdmin) return json({ error: "Not allowed" }, 403);
+    if (ownerId !== uid && !isAdmin) return json({ error: "Not allowed" }, 403);
     if (!isQuizDraft(data)) return json({ error: "Only quizzes can be shared this way" }, 400);
 
     const activePublishedId = safeString(data.activePublishedId);
     if (activePublishedId) {
       const activeSnap = await db.collection("published_lessons").doc(activePublishedId).get();
-      if (activeSnap.exists) return json({ ok: true, publishedId: activePublishedId, publishedLessonId: activePublishedId });
+      if (activeSnap.exists) {
+        assertPublishedBinding(activeSnap.data(), ownerId || uid, lessonId);
+        const active = activeSnap.data()!;
+        if (active.isActive === true && (active.visibility === "public" || active.visibility === "unlisted")) return json({ ok: true, publishedId: activePublishedId, publishedLessonId: activePublishedId });
+      }
     }
 
     const now = FieldValue.serverTimestamp();
@@ -89,6 +94,7 @@ export async function POST(req: Request) {
         isActive: true,
         visibility: "unlisted",
         publishVisibility: "unlisted",
+        publish: { ...(isRecord(data.publish) ? data.publish : {}), state: "published", visibility: "unlisted" },
         showInLibrary: false,
         publishedAt: now,
         updatedAt: now,
@@ -126,6 +132,6 @@ export async function POST(req: Request) {
     return json({ ok: true, publishedId, publishedLessonId: publishedId, lessonId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not prepare quiz sharing";
-    return json({ error: message }, (accountErrorStatus(error) ?? 500));
+    return json({ error: message }, error instanceof PublicationAccessError ? error.status : (accountErrorStatus(error) ?? 500));
   }
 }

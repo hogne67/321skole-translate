@@ -97,13 +97,15 @@ export const getPublishedLessonByEitherIdOrField = cache(
 
     if (directSnap.exists) {
       const lesson = coercePublishedLesson(directSnap.id, directSnap.data());
-      if (lesson.isActive === false) return null;
+      if (lesson.isActive !== true || (lesson.visibility !== "public" && lesson.visibility !== "unlisted")) return null;
       return lesson;
     }
 
     const querySnap = await db
       .collection("published_lessons")
       .where("lessonId", "==", lessonId)
+      .where("visibility", "==", "public")
+      .where("isActive", "==", true)
       .limit(1)
       .get();
 
@@ -112,7 +114,7 @@ export const getPublishedLessonByEitherIdOrField = cache(
     const docSnap = querySnap.docs[0];
     const lesson = coercePublishedLesson(docSnap.id, docSnap.data());
 
-    if (lesson.isActive === false) return null;
+    if (lesson.isActive !== true) return null;
 
     return lesson;
   }

@@ -1,6 +1,7 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app/api/teacher/ai-feedback/route.ts
 import "server-only";
+import { assertAssignmentFallback, PublicationAccessError } from "@/lib/security/publicationAccess.server";
 import { SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
 import { getSpaceAccess, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
@@ -1628,6 +1629,7 @@ export async function POST(req: Request) {
           : db.collection("lessons").doc(sourceId);
 
       const lessonSnap = await lessonRef.get();
+      assertAssignmentFallback(lessonSnap.data(), sourceType, uid, role === "admin");
       lesson = (lessonSnap.exists ? lessonSnap.data() || {} : {}) as Record<string, unknown>;
     }
 
@@ -1940,6 +1942,6 @@ export async function POST(req: Request) {
     return json({ text: textOut }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Unknown error" }, e instanceof SubmissionWriteError ? e.status : (accountErrorStatus(e) ?? 500));
+    return json({ error: msg || "Unknown error" }, e instanceof PublicationAccessError ? e.status : e instanceof SubmissionWriteError ? e.status : (accountErrorStatus(e) ?? 500));
   }
 }

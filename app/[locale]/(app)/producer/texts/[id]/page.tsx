@@ -129,7 +129,7 @@ async function moderateLesson(input: { title: string; sourceText: string; tasks:
   return data as ModerateResult;
 }
 
-async function publishViaApi(id: string, visibility: "public" | "unlisted" | "private" = "public") {
+async function publishViaApi(id: string, visibility: "public" | "unlisted" | "private") {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
 
@@ -383,6 +383,7 @@ export default function ProducerTextDetailPage() {
       // Choose visibility based on your manual draft selection
       const visibility: "public" | "unlisted" =
         draft?.publish?.state === "unlisted" ? "unlisted" : "public";
+      if (visibility === "public" && !window.confirm("Publish this lesson publicly in the library?")) return;
 
       const result = await publishViaApi(id, visibility);
 

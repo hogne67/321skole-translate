@@ -273,7 +273,7 @@ function categoryFrom(data: Record<string, unknown>, quiz: Record<string, unknow
 
 function coerceQuiz(id: string, raw: unknown, locale: string): QuizCard | null {
   const data = isRecord(raw) ? raw : {};
-  const visibility = asString(data.publishVisibility || data.visibility, "public").toLowerCase();
+  const visibility = asString(data.visibility, "").toLowerCase();
   const lessonType = asString(data.lessonType || data.contentType || data.textType || data.texttype).toLowerCase();
   const quiz = isRecord(data.quiz) ? data.quiz : {};
   const isQuiz = lessonType === "quiz" || Array.isArray(quiz.questions);
@@ -325,6 +325,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
   const snap = await db
     .collection("published_lessons")
     .where("lessonType", "==", "quiz")
+    .where("visibility", "==", "public")
     .where("isActive", "==", true)
     .limit(120)
     .get();

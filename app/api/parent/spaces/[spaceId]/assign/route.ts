@@ -32,7 +32,9 @@ function safeString(v: unknown): string {
 
 async function readSourceLesson(
   db: FirebaseFirestore.Firestore,
-  sourceId: string
+  sourceId: string,
+  uid: string,
+  isAdmin: boolean
 ): Promise<{
   data: Record<string, unknown> | null;
   sourceCollection: "lessons" | "published_lessons" | null;
@@ -41,9 +43,11 @@ async function readSourceLesson(
 
   if (draftSnap.exists) {
     const raw = draftSnap.data();
+    const data = isRecord(raw) ? raw : {};
+    if (!isAdmin && data.ownerId !== uid) return { data: null, sourceCollection: null };
 
     return {
-      data: isRecord(raw) ? raw : {},
+      data,
       sourceCollection: "lessons",
     };
   }
@@ -55,9 +59,13 @@ async function readSourceLesson(
 
   if (publishedSnap.exists) {
     const raw = publishedSnap.data();
+    const data = isRecord(raw) ? raw : {};
+    if (data.isActive !== true || (data.visibility !== "public" && data.visibility !== "unlisted" && !isAdmin && data.ownerId !== uid)) {
+      return { data: null, sourceCollection: null };
+    }
 
     return {
-      data: isRecord(raw) ? raw : {},
+      data,
       sourceCollection: "published_lessons",
     };
   }
@@ -162,7 +170,7 @@ export async function POST(
       );
     }
 
-    const source = await readSourceLesson(adminDb, sourceId);
+    const source = await readSourceLesson(adminDb, sourceId, uid, role === "admin");
 
     if (!source.data || !source.sourceCollection) {
       return NextResponse.json(

@@ -1,5 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { PublicationAccessError } from "@/lib/security/publicationAccess.server";
 import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/teacher/spaces/[spaceId]/assign/route.ts
@@ -264,8 +265,12 @@ async function loadSourceLesson(params: {
     if (!snap.exists) throw new Error("Source lesson not found in published_lessons");
 
     const source = pickSourceLessonData(snap.data());
+    const raw = snap.data() as Record<string, unknown> | undefined;
+    if (raw?.visibility !== "public" && raw?.visibility !== "unlisted" && !isAdmin && raw?.ownerId !== uid) {
+      throw new PublicationAccessError();
+    }
 
-    const inactive = source.isActive === false;
+    const inactive = source.isActive !== true;
     const archived =
       typeof source.status === "string" &&
       source.status.toLowerCase() === "archived";
@@ -280,8 +285,8 @@ async function loadSourceLesson(params: {
 
   const source = pickSourceLessonData(snap.data());
 
-  if (!isAdmin && source.ownerId && source.ownerId !== uid) {
-    throw new Error("No access to source lesson");
+  if (!isAdmin && source.ownerId !== uid) {
+    throw new PublicationAccessError();
   }
 
   return source;
@@ -491,6 +496,6 @@ export async function POST(
     return json({ assignmentId: result.assignmentId, quota: result.quota }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Assign failed" }, (accountErrorStatus(e) ?? 500));
+    return json({ error: msg || "Assign failed" }, e instanceof PublicationAccessError ? e.status : (accountErrorStatus(e) ?? 500));
   }
 }

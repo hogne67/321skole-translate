@@ -45,8 +45,9 @@ function savedPublishedId(data: Data | undefined, uid: string, kind: keyof typeo
   return idPattern.test(id) ? id : null;
 }
 // Mirrors the published_lessons read rule. A saved reference alone cannot grant access.
-function readablePublished(data: Data | undefined): data is Data {
-  return !!data && !data.deletedAt && (data.isActive === true || data.status === "published" || data.status === "unlisted" || data.published === true);
+function readablePublished(data: Data | undefined, uid: string): data is Data {
+  return !!data && !data.deletedAt && data.isActive === true
+    && (data.visibility === "public" || data.visibility === "unlisted" || data.ownerId === uid);
 }
 function choice(id: string, data: Data, origin: PosterLessonChoice["origin"], date: number): PosterLessonChoice | null {
   if (data.deletedAt || data.archived || !isPosterReadingLesson(data) || !(text(data.sourceText) || text(data.text))) return null;
@@ -62,7 +63,7 @@ export async function resolveSavedPosterLesson(db: Firestore, uid: string, selec
   const publishedId = savedPublishedId(saved, uid, kind);
   if (!publishedId) throw new PosterError("source_not_found", 404);
   const published = (await db.collection("published_lessons").doc(publishedId).get()).data();
-  if (!readablePublished(published)) throw new PosterError("source_not_found", 404);
+  if (!readablePublished(published, uid)) throw new PosterError("source_not_found", 404);
   return { publishedId, data: published };
 }
 export async function readSavedPosterLesson(db: Firestore, uid: string, selector: string): Promise<Data> {
@@ -98,10 +99,10 @@ export async function listPosterLessons(db: Firestore, uid: string): Promise<Pos
   const ids = [...saved.keys()];
   for (let offset = 0; offset < ids.length; offset += 50) {
     const docs = await db.getAll(...ids.slice(offset, offset + 50).map(id => db.collection("published_lessons").doc(id)),
-      { fieldMask: [...fields, "isActive", "status", "published"] });
+      { fieldMask: [...fields, "isActive", "status", "published", "visibility"] });
     for (const doc of docs) {
       const data = doc.data(); const entry = saved.get(doc.id)!;
-      if (!readablePublished(data)) continue;
+      if (!readablePublished(data, uid)) continue;
       const item = choice(entry.selector, data, "library", entry.date);
       if (item) result.push(item);
     }

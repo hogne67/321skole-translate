@@ -56,7 +56,8 @@ export async function POST(req: Request) {
     const quiz = isRecord(source.quiz) ? source.quiz : {};
     const isQuiz = lessonType === "quiz" || Array.isArray(quiz.questions);
     if (!isQuiz) return json({ ok: false, error: "Not a quiz." }, 400);
-    if (source.isActive === false) return json({ ok: false, error: "Quiz is not active." }, 400);
+    if (source.isActive !== true) return json({ ok: false, error: "Quiz is not active." }, 400);
+    if (source.visibility !== "public") return json({ ok: false, error: "Quiz is not in the public library." }, 404);
 
     const legacySourceLessonId = safeString(source.lessonId);
     const existingQueries = await Promise.all([
