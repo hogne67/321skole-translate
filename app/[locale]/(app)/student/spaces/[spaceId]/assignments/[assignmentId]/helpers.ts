@@ -1,6 +1,7 @@
 import { normalizeAudioLanguage } from "@/lib/audio/language";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
 import { sanitizeNumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import type {
@@ -87,7 +88,7 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentToLesson(a: AssignmentDoc): Lesson {

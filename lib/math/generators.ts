@@ -5,12 +5,14 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "clock", path: "clock" },
   { id: "numberLine", path: "number-line" },
   { id: "percentage", path: "percentage" },
   { id: "equations", path: "equations" },
 ] as const;
 
 const nb = {
+  clock: "Klokka og tid", clockDescription: "Les klokka, still viserne og finn tidsforskjeller.",
   numberLine: "Tallinje", numberLineDescription: "Les av, finn manglende tall og plasser heltall, desimaltall og brøk.",
   equations: "Ligninger", equationsDescription: "Finn x steg for steg, med brøk, parenteser og x på begge sider.",
   percentage: "Prosentregning", percentageDescription: "Finn prosenten, delen eller helheten. Egne oppgaver med rabatt og prosentvis økning.",
@@ -24,6 +26,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  clock: "Clocks and time", clockDescription: "Read clocks, set the hands and find elapsed time.",
   numberLine: "Number line", numberLineDescription: "Read, find missing numbers and place integers, decimals and fractions.",
   equations: "Equations", equationsDescription: "Find x step by step, with fractions, parentheses and x on both sides.",
   percentage: "Percentages", percentageDescription: "Find the percentage, part or whole. Separate tasks on discounts and percentage increases.",
@@ -36,6 +39,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  clock: "Relógios e tempo", clockDescription: "Ler relógios, acertar os ponteiros e calcular intervalos de tempo.",
   numberLine: "Reta numérica", numberLineDescription: "Ler, encontrar números em falta e colocar inteiros, decimais e frações.",
   equations: "Equações", equationsDescription: "Calcula x passo a passo, com frações, parênteses e x nos dois membros.",
   percentage: "Percentagens", percentageDescription: "Calcula a percentagem, a parte ou o total. Exercícios separados de descontos e aumentos percentuais.",

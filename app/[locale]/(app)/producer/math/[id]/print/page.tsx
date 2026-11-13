@@ -18,6 +18,8 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import ClockWorksheetView from "@/components/generators/math/clock/ClockWorksheetView";
+import { sanitizeClockWorksheet, type ClockWorksheet } from "@/lib/math/clock/worksheet";
 import NumberLineWorksheetView from "@/components/generators/math/number-line/NumberLineWorksheetView";
 import { sanitizeNumberLineWorksheet, type NumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
@@ -67,6 +69,7 @@ export default function MathWorksheetPrintPage() {
   const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
   const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
   const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [clockWorksheet, setClockWorksheet] = useState<ClockWorksheet | null>(null);
   const [numberLineWorksheet, setNumberLineWorksheet] = useState<NumberLineWorksheet | null>(null);
   const [comparisonWorksheet, setComparisonWorksheet] = useState<ComparisonWorksheet | null>(null);
   const [fractionWorksheet, setFractionWorksheet] = useState<FractionWorksheet | null>(null);
@@ -88,6 +91,7 @@ export default function MathWorksheetPrintPage() {
       setErr(null);
       setLoading(true);
       setLengthWorksheet(null);
+      setClockWorksheet(null);
       setNumberLineWorksheet(null);
       setComparisonWorksheet(null);
       setEquationWorksheet(null);
@@ -161,6 +165,12 @@ export default function MathWorksheetPrintPage() {
           setLesson(loadedLesson);
           setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
           setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const clock = sanitizeClockWorksheet(loadedRecord.mathWorksheet);
+        if (clock) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setClockWorksheet(clock); setLoading(false); return;
         }
         const numberLine = sanitizeNumberLineWorksheet(loadedRecord.mathWorksheet);
         if (numberLine) {
@@ -245,7 +255,7 @@ export default function MathWorksheetPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
+    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
 
     let alive = true;
     const status =
@@ -267,6 +277,7 @@ export default function MathWorksheetPrintPage() {
         console.error("PDF quota check failed:", error);
         setErr(error instanceof Error ? error.message : t("errors.invalidWorksheet"));
         setLengthWorksheet(null);
+      setClockWorksheet(null);
       setNumberLineWorksheet(null);
       setComparisonWorksheet(null);
       setEquationWorksheet(null);
@@ -281,7 +292,8 @@ export default function MathWorksheetPrintPage() {
     return () => {
       alive = false;
     };
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, numberLineWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, clockWorksheet,
+ numberLineWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
 
   const handlePrint = () => { void printMathWorksheet(); };
 
@@ -341,7 +353,7 @@ export default function MathWorksheetPrintPage() {
     return <main style={{ padding: 20 }}>{t("loading")}</main>;
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
@@ -367,7 +379,7 @@ export default function MathWorksheetPrintPage() {
     );
   }
 
-  const editorHref = mathEditorHref(locale, lessonId, numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
+  const editorHref = mathEditorHref(locale, lessonId, clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
 
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
@@ -387,6 +399,8 @@ export default function MathWorksheetPrintPage() {
               <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={printRef} />
             ) : percentageWorksheet ? (
               <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={printRef} />
+            ) : clockWorksheet ? (
+              <ClockWorksheetView worksheet={clockWorksheet} printMode printRef={printRef} />
             ) : numberLineWorksheet ? (
               <NumberLineWorksheetView worksheet={numberLineWorksheet} printMode printRef={printRef} />
             ) : comparisonWorksheet ? (

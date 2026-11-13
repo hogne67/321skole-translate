@@ -299,6 +299,7 @@ function deriveMathMeta(d: unknown): string[] {
     out.push("fractions");
   }
   if (joined.includes("percent")) out.push("percent");
+  if (joined.includes("clock")) out.push("clock");
   if (joined.includes("number_line")) out.push("number_line");
   if (joined.includes("equations")) out.push("equations");
   if (joined.includes("measurement")) out.push("measurement");

@@ -61,6 +61,8 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import ClockWorksheetView from "@/components/generators/math/clock/ClockWorksheetView";
+import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
 import NumberLineWorksheetView from "@/components/generators/math/number-line/NumberLineWorksheetView";
 import { sanitizeNumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
@@ -519,6 +521,8 @@ function Inner() {
   const isEquationAssignment = !!equationWorksheet || assignment?.contentType === "equations_worksheet";
   const isPercentageAssignment = !!percentageWorksheet || assignment?.contentType === "percentage_worksheet";
 
+  const clockWorksheet = useMemo(() => sanitizeClockWorksheet(lesson?.mathWorksheet) ?? sanitizeClockWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const isClockAssignment = !!clockWorksheet || assignment?.contentType === "clock_worksheet";
   const numberLineWorksheet = useMemo(() => sanitizeNumberLineWorksheet(lesson?.mathWorksheet) ?? sanitizeNumberLineWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const isNumberLineAssignment = !!numberLineWorksheet || assignment?.contentType === "number_line_worksheet";
 
@@ -1476,7 +1480,7 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
@@ -1506,7 +1510,7 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
+            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}
@@ -1522,7 +1526,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1552,6 +1556,8 @@ function Inner() {
                   <EquationWorksheetView worksheet={equationWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isPercentageAssignment && percentageWorksheet ? (
                   <PercentageWorksheetView worksheet={percentageWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isClockAssignment && clockWorksheet ? (
+                  <ClockWorksheetView worksheet={clockWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isNumberLineAssignment && numberLineWorksheet ? (
                   <NumberLineWorksheetView worksheet={numberLineWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isComparisonAssignment && comparisonWorksheet ? (

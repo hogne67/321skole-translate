@@ -76,6 +76,7 @@
       "openDigital": "Abrir atividade",
       "openPreview": "Abrir pré-visualização",
       "subtypes": {
+      "clock": "Relógios e tempo",
         "number_line": "Reta numérica",
         "geometry": "Geometria",
         "arithmetic": "Operações",
