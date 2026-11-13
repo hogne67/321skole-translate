@@ -33,6 +33,8 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { gradePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { gradeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import NumberLineWorksheetView from "@/components/generators/math/number-line/NumberLineWorksheetView";
+import { gradeNumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
 import { gradeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import { gradeLengthWorksheet } from "@/lib/math/length/worksheet";
@@ -446,6 +448,8 @@ export default function StudentAssignmentPage() {
     percentageWorksheet,
     isEquationAssignment,
     isPercentageAssignment,
+    numberLineWorksheet,
+    isNumberLineAssignment,
     comparisonWorksheet,
     isComparisonAssignment,
     isGeometryAssignment,
@@ -1370,6 +1374,7 @@ export default function StudentAssignmentPage() {
         const isLengthDraft = isLengthAssignment && !!lengthWorksheet;
         const isEquationDraft = isEquationAssignment && !!equationWorksheet;
         const isPercentageDraft = isPercentageAssignment && !!percentageWorksheet;
+        const isNumberLineDraft = isNumberLineAssignment && !!numberLineWorksheet;
         const isComparisonDraft = isComparisonAssignment && !!comparisonWorksheet;
         const normalizedGeometryAnswers = isGeometryDraft
           ? normalizeGeometryAnswersByTaskId(answers)
@@ -1400,22 +1405,22 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: currentDraftStatus,
 
-          taskType: isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
+          taskType: isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : null,
-          lessonType: isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
+          lessonType: isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : lesson?.lessonType ?? null,
-          contentType: isEquationDraft ? "equations_worksheet" : isPercentageDraft ? "percentage_worksheet" : isComparisonDraft ? "comparison_worksheet" : isLengthDraft ? "measurement_worksheet" : isGeometryDraft
+          contentType: isNumberLineDraft ? "number_line_worksheet" : isEquationDraft ? "equations_worksheet" : isPercentageDraft ? "percentage_worksheet" : isComparisonDraft ? "comparison_worksheet" : isLengthDraft ? "measurement_worksheet" : isGeometryDraft
             ? null
             : isArithmeticDraft
               ? "arithmetic_worksheet"
               : lesson?.contentType ?? null,
-          mathWorksheet: isEquationDraft ? equationWorksheet : isPercentageDraft ? percentageWorksheet : isComparisonDraft ? comparisonWorksheet : isGeometryDraft ? geometryWorksheet : null,
+          mathWorksheet: isNumberLineDraft ? numberLineWorksheet : isEquationDraft ? equationWorksheet : isPercentageDraft ? percentageWorksheet : isComparisonDraft ? comparisonWorksheet : isGeometryDraft ? geometryWorksheet : null,
           arithmeticWorksheet: isArithmeticDraft ? arithmeticWorksheet : null,
           measurementWorksheet: isLengthDraft ? lengthWorksheet : null,
           mathType: isArithmeticDraft ? "arithmetic" : lesson?.mathType ?? null,
@@ -1484,6 +1489,8 @@ export default function StudentAssignmentPage() {
       isPercentageAssignment,
       equationWorksheet,
       percentageWorksheet,
+      isNumberLineAssignment,
+      numberLineWorksheet,
       isComparisonAssignment,
       comparisonWorksheet,
       answers,
@@ -1639,6 +1646,9 @@ export default function StudentAssignmentPage() {
         if (isPercentageAssignment && percentageWorksheet) {
           auto = gradePercentageWorksheet(percentageWorksheet, finalAnswers);
         }
+        if (isNumberLineAssignment && numberLineWorksheet) {
+          auto = gradeNumberLineWorksheet(numberLineWorksheet, finalAnswers);
+        }
         if (isComparisonAssignment && comparisonWorksheet) {
           auto = gradeComparisonWorksheet(comparisonWorksheet, finalAnswers);
         }
@@ -1688,7 +1698,7 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: "submitted",
 
-          taskType: isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
+          taskType: isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1696,7 +1706,7 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : null,
 
-          lessonType: isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
+          lessonType: isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1704,7 +1714,7 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : lesson?.lessonType ?? null,
 
-          mathWorksheet: isEquationAssignment ? equationWorksheet : isPercentageAssignment ? percentageWorksheet : isComparisonAssignment ? comparisonWorksheet : isGeometryAssignment ? geometryWorksheet : null,
+          mathWorksheet: isNumberLineAssignment ? numberLineWorksheet : isEquationAssignment ? equationWorksheet : isPercentageAssignment ? percentageWorksheet : isComparisonAssignment ? comparisonWorksheet : isGeometryAssignment ? geometryWorksheet : null,
           fractionWorksheet: isFractionAssignment ? fractionWorksheet : null,
           arithmeticWorksheet: isArithmeticAssignment ? arithmeticWorksheet : null,
           measurementWorksheet: isLengthAssignment ? lengthWorksheet : null,
@@ -1713,7 +1723,7 @@ export default function StudentAssignmentPage() {
             : isArithmeticAssignment
               ? "arithmetic"
               : lesson?.mathType ?? null,
-          contentType: isEquationAssignment ? "equations_worksheet" : isPercentageAssignment ? "percentage_worksheet" : isComparisonAssignment ? "comparison_worksheet" : isLengthAssignment ? "measurement_worksheet" : isFractionAssignment
+          contentType: isNumberLineAssignment ? "number_line_worksheet" : isEquationAssignment ? "equations_worksheet" : isPercentageAssignment ? "percentage_worksheet" : isComparisonAssignment ? "comparison_worksheet" : isLengthAssignment ? "measurement_worksheet" : isFractionAssignment
             ? "fraction_worksheet"
             : isArithmeticAssignment
               ? "arithmetic_worksheet"
@@ -1816,6 +1826,8 @@ export default function StudentAssignmentPage() {
       isPercentageAssignment,
       equationWorksheet,
       percentageWorksheet,
+      isNumberLineAssignment,
+      numberLineWorksheet,
       isComparisonAssignment,
       comparisonWorksheet,
       assignment,
@@ -1852,7 +1864,7 @@ export default function StudentAssignmentPage() {
 
   const mainTitle = String(assignment?.title ?? lesson.title ?? t("fallback.title") ?? "Oppgave").trim();
   const metaLine = [
-    isGeometryAssignment || isFractionAssignment || isLengthAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? null : assignment?.level ?? lesson.level,
+    isGeometryAssignment || isFractionAssignment || isLengthAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? null : assignment?.level ?? lesson.level,
     assignment?.language ?? lesson.language,
   ]
     .map((x) => String(x ?? "").trim())
@@ -2090,10 +2102,10 @@ export default function StudentAssignmentPage() {
         <MathTextSupportProvider
           key={assignmentId}
           targetLang={targetLang}
-          sourceLang={equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no"}
+          sourceLang={numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no"}
           audioBusy={ttsBusy !== null || teacherFeedbackTtsBusy !== null}
           translateText={translateOne}
-          onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
+          onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
           t={tString}
         >
         {isReadingTest ? (
@@ -2176,6 +2188,12 @@ export default function StudentAssignmentPage() {
             showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
         ) : null}
 
+        {!isReadingTest && isNumberLineAssignment && numberLineWorksheet ? (
+          <NumberLineWorksheetView worksheet={numberLineWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
+
         {!isReadingTest && isComparisonAssignment && comparisonWorksheet ? (
           <ComparisonWorksheetView worksheet={comparisonWorksheet} answersByTaskId={answers}
             onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
@@ -2208,6 +2226,7 @@ export default function StudentAssignmentPage() {
         !isFractionAssignment &&
         !isArithmeticAssignment &&
         !isLengthAssignment &&
+        !isNumberLineAssignment &&
         !isComparisonAssignment &&
         !isEquationAssignment &&
         !isPercentageAssignment &&

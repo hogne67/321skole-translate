@@ -6,6 +6,7 @@ import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import type { LengthWorksheet } from "@/lib/math/length/worksheet";
 import type { PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import type { EquationWorksheet } from "@/lib/math/equations/worksheet";
+import type { NumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import type { ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 
 export type TextSize = "normal" | "large" | "xlarge";
@@ -31,7 +32,7 @@ export type Lesson = {
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -73,7 +74,7 @@ export type AssignmentDoc = {
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
 
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -138,7 +139,7 @@ export type TeacherFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations";
+    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "number_line";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;

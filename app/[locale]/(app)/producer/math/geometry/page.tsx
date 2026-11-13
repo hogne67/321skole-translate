@@ -6,9 +6,8 @@ import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBac
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import {
   getFeatureStatusFromProfile,
@@ -34,6 +33,9 @@ import type {
 } from "@/lib/math/geometry/types";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
 import { applyGeometryDisplayOptions } from "@/lib/math/geometry/displayOptions";
+import MathSpacePicker from "@/components/generators/math/MathSpacePicker";
+import { useSavedMathWorksheet } from "@/components/generators/math/useSavedMathWorksheet";
+import { useMathWorksheetSave } from "@/components/generators/math/useMathWorksheetSave";
 import GeometryGeneratorPanel from "@/components/generators/math/geometry/GeometryGeneratorPanel";
 import GeometryGeneratorPreview from "@/components/generators/math/geometry/GeometryGeneratorPreview";
 
@@ -134,7 +136,7 @@ export default function ProducerMathGeometryPage() {
 
   const { profile } = useUserProfile();
 
-  const language = initialLanguage;
+  const [language, setLanguage] = useState<WorksheetLanguage>(initialLanguage);
   // Retain legacy metadata when opening existing worksheets, not as a task setting.
   const [level, setLevel] = useState<GeometryLevel>("grade_5_7");
   const [topic, setTopic] = useState<GeometryTopic>("all");
@@ -149,8 +151,6 @@ export default function ProducerMathGeometryPage() {
   const [error, setError] = useState<string>("");
   const [hasCountedDraft, setHasCountedDraft] = useState<boolean>(false);
   const [worksheet, setWorksheet] = useState<MathWorksheet | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState<boolean>(true);
@@ -184,6 +184,7 @@ export default function ProducerMathGeometryPage() {
     async function loadEditableWorksheet() {
       if (startNew) {
         window.sessionStorage.removeItem(GEOMETRY_DRAFT_STORAGE_KEY);
+        setLanguage(initialLanguage);
         setLevel("grade_5_7");
         setTopic("all");
         setDifficulty("easy");
@@ -198,32 +199,7 @@ export default function ProducerMathGeometryPage() {
         return true;
       }
 
-      if (!editId) return false;
-
-      try {
-        const snap = await getDoc(doc(db, "lessons", editId));
-        if (!active || !snap.exists()) return true;
-
-        const data = snap.data() as { mathWorksheet?: unknown };
-        const savedWorksheet = sanitizeWorksheet(data.mathWorksheet);
-        if (!savedWorksheet) return true;
-
-        setWorksheet(savedWorksheet);
-        setLevel(savedWorksheet.level);
-        setTopic(savedWorksheet.topic);
-        setDifficulty(savedWorksheet.difficulty);
-        setTaskCount(Math.max(4, Math.min(12, savedWorksheet.tasks.length || 6)));
-        setIncludeHints(savedWorksheet.tasks.some((task) => !!task.hint));
-        setShowAnswerKey(savedWorksheet.showAnswerKey);
-        setShowFormulas(savedWorksheet.showFormulas);
-        setAnswerSpace(savedWorksheet.answerSpace ?? "medium");
-        setSelectedShapes(savedWorksheet.selectedShapes.filter(isFigureKind));
-        setHasCountedDraft(true);
-      } catch {
-        // Keep the blank generator if the saved lesson cannot be loaded.
-      }
-
-      return true;
+      return !!editId;
     }
 
     void loadEditableWorksheet().then((handledEdit) => {
@@ -389,7 +365,6 @@ export default function ProducerMathGeometryPage() {
 
     setLoading(true);
     setError("");
-    setSaved(false);
 
     try {
       const currentUser = auth.currentUser;
@@ -465,32 +440,18 @@ export default function ProducerMathGeometryPage() {
     }));
   }, [worksheet, language, level, topic, difficulty, taskCount, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes, hasCountedDraft]);
 
-  async function saveToMyContent() {
-    if (!previewWorksheet || saving) return;
-    setSaving(true);
-    setError("");
-    setSaved(false);
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error(t("saveFailed"));
-      const token = await currentUser.getIdToken();
-      const response = await fetch("/api/producer/save-math-worksheet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          worksheet: previewWorksheet,
-          source: "math-geometry-generator",
-        }),
-      });
-      const data = await response.json() as { ok?: boolean; error?: string; id?: string };
-      if (!response.ok || !data.ok || !data.id) throw new Error(data.error || t("saveFailed"));
-      setSaved(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("saveFailed"));
-    } finally {
-      setSaving(false);
-    }
-  }
+  const persistence = useMathWorksheetSave({ worksheet: previewWorksheet, endpoint: "/api/producer/save-math-worksheet", language: locale, source: "math-geometry-generator" });
+  const { saving, savedId, success } = persistence;
+  const restored = useSavedMathWorksheet(locale, (data, id) => {
+    const result = sanitizeWorksheet(data.mathWorksheet);
+    if (!result) return false;
+    setWorksheet(result); setLanguage(result.language); setLevel(result.level); setTopic(result.topic); setDifficulty(result.difficulty);
+    setTaskCount(result.tasks.length); setIncludeHints(result.tasks.some(task => !!task.hint));
+    setShowAnswerKey(result.showAnswerKey); setShowFormulas(result.showFormulas); setAnswerSpace(result.answerSpace ?? "medium");
+    setSelectedShapes(result.selectedShapes.filter(isFigureKind)); setHasCountedDraft(true);
+    persistence.rememberSaved(id, result);
+    return true;
+  });
 
   return (
     <main className="geometry-generator min-h-screen bg-slate-50 pb-12">
@@ -502,6 +463,8 @@ export default function ProducerMathGeometryPage() {
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{t("pageSubtitle")}</p>
           <GeometryGeneratorPanel
             t={t}
+            language={locale}
+            loadingSaved={restored.loading}
             topic={topic}
             difficulty={difficulty}
             taskCount={taskCount}
@@ -521,8 +484,8 @@ export default function ProducerMathGeometryPage() {
             onFormulasChange={setShowFormulas}
             onAnswerKeyChange={setShowAnswerKey}
             onGenerate={handleGenerateAndPreview}
-            onSave={saveToMyContent}
-            onPrint={() => window.print()}
+            onSave={() => { void persistence.save(); }}
+            onShare={() => { void persistence.save(true); }}
             generating={loading}
             saving={saving}
             canGenerate={!loading && !saving && !statusLoading && !featureBlocked && selectedShapes.length > 0 && !!uid}
@@ -534,10 +497,10 @@ export default function ProducerMathGeometryPage() {
           {featureBlocked ? (
             <Link href={`/${locale}/pricing`} className="mt-3 block text-sm font-semibold text-teal-700 underline">{t("seePlans")}</Link>
           ) : null}
-          {error ? <p role="alert" className="mt-4 text-sm text-red-700">{error}</p> : null}
-          {saved ? (
+          {error || persistence.error || restored.error ? <p role="alert" className="mt-4 text-sm text-red-700">{error || persistence.error || restored.error}</p> : null}
+          {success ? (
             <div role="status" className="mt-4 text-sm text-emerald-800">
-              <p>{t("savedToMyContent")}</p>
+              <p>{success}</p>
               <Link href={`/${locale}/content`} className="mt-1 inline-block underline">{t("controlPreview.openMyContent")}</Link>
             </div>
           ) : null}
@@ -546,6 +509,7 @@ export default function ProducerMathGeometryPage() {
           <GeometryGeneratorPreview worksheet={previewWorksheet} includeHints={includeHints} />
         </section>
       </div>
+      {persistence.sharing && savedId && previewWorksheet ? <MathSpacePicker worksheetId={savedId} title={previewWorksheet.title} language={previewWorksheet.language} onClose={() => persistence.setSharing(false)} onShared={persistence.shared} /> : null}
     </main>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import "./arithmeticWorksheet.css";
+
 import type { RefObject } from "react";
 import { VISUAL_DOT_LIMIT, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
 import type {
@@ -353,7 +355,7 @@ export default function ArithmeticWorksheetView({
         )}
 
         {worksheet.showAnswerKey ? (
-          <section className="mt-10 border-t-2 border-slate-300 pt-8">
+          <section className="arithmetic-answer-key mt-10 border-t-2 border-slate-300 pt-8">
             <h3 className="mb-4 text-2xl font-black text-slate-950">
               {answerKeyTitle}
             </h3>

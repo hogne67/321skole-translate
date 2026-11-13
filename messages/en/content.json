@@ -76,6 +76,7 @@
       "openDigital": "Open Task",
       "openPreview": "Open preview",
       "subtypes": {
+        "number_line": "Number line",
         "geometry": "Geometry",
         "arithmetic": "Arithmetic",
         "algebra": "Algebra",

@@ -3,15 +3,19 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createTranslator } from "next-intl";
 import { load } from "cheerio";
+import { createRequire } from "node:module";
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
 import FigureMeta from "@/components/generators/math/geometry/FigureMeta";
-import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
 import nb from "@/messages/nb/math/mathGeometry.json";
 import en from "@/messages/en/math/mathGeometry.json";
 import pt from "@/messages/pt/math/mathGeometry.json";
 import { formatFigureMeta, formatNumber, getGeometryFigureNote, getGeometryTaskPrompt } from "./measurements";
 import type { FigureSpec, MathWorksheet, MathWorksheetTask, WorksheetLanguage } from "./types";
+
+const nodeRequire = createRequire(import.meta.url);
+nodeRequire.extensions[".css"] = () => {};
+const GeometryWorksheetView = nodeRequire("../../../components/generators/math/geometry/GeometryWorksheetView").default as typeof import("@/components/generators/math/geometry/GeometryWorksheetView").default;
 
 const figures: FigureSpec[] = [
   { kind: "square", sideCm: 6 },

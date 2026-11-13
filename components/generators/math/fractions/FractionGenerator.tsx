@@ -1,50 +1,38 @@
 "use client";
-import { watchOwnedSpaceSnapshots, type OwnedSpaceSnapshot } from "@/lib/security/ownedSpaces.client";
 
 import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBackLink";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
 import { useLocale } from "next-intl";
-import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { mathEditorHref } from "@/lib/math/editor";
 
 
 import FractionGeneratorPanel from "@/components/generators/math/fractions/FractionGeneratorPanel";
 import FractionCalculationPanel from "./FractionCalculationPanel";
+import MathSpacePicker from "../MathSpacePicker";
+import { useMathWorksheetSave } from "../useMathWorksheetSave";
+import { useSavedMathWorksheet } from "../useSavedMathWorksheet";
+import { restoreFractionWorksheet } from "@/lib/math/fractions/restoreWorksheet";
 import { getCalculationCopy } from "@/lib/math/fractions/calculationCopy";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import "@/components/generators/math/fractions/fractionGenerator.css";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import type {
     FractionDifficulty,
+    FractionLevel,
     FractionCalculationSettings,
     FractionLanguage,
     FractionTopic,
     FractionVisualKind,
     FractionWorksheet,
 } from "@/lib/math/fractions/types";
-import { auth, db } from "@/lib/firebase";
+
 
 type GenerateResponse =
     | { ok: true; worksheet: FractionWorksheet }
     | { ok: false; error: string };
-
-type SaveWorksheetResponse = {
-    ok?: boolean;
-    error?: string;
-    id?: string;
-    worksheetId?: string;
-    lessonId?: string;
-};
-
-type TeacherSpaceRow = {
-    id: string;
-    title: string;
-    code: string;
-    isOpen: boolean;
-    createdAt?: unknown;
-};
 
 const emptyWorksheet: FractionWorksheet = {
     version: 1, title: "Brøk – del av helhet", language: "nb", level: "grade_2_4",
@@ -57,15 +45,16 @@ function normalizeLocale(locale: string): FractionLanguage {
 
 export default function FractionGenerator({ mode = "visual" }: { mode?: "visual" | "calculation" }) {
     const locale = useLocale();
+    const router = useRouter();
 
-    const language = normalizeLocale(locale);
+    const [language, setLanguage] = useState(() => normalizeLocale(locale));
     const copy = getFractionCopy(language);
     const calc = getCalculationCopy(language);
     const isCalculation = mode === "calculation";
     const [operation, setOperation] = useState<FractionCalculationSettings["operation"]>("addition");
     const [denominatorRelation, setDenominatorRelation] = useState<"same" | "different">("same");
     const [requireReduced, setRequireReduced] = useState(false);
-    const level = "grade_2_4";
+    const [level, setLevel] = useState<FractionLevel>("grade_2_4");
     const [topic, setTopic] = useState<FractionTopic>("mixed");
     const [denominatorMin, setDenominatorMin] = useState(2);
     const [denominatorMax, setDenominatorMax] = useState(8);
@@ -85,17 +74,6 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
 
     const printRef = useRef<HTMLDivElement | null>(null);
 
-    const [saving, setSaving] = useState(false);
-    const [savedWorksheetId, setSavedWorksheetId] = useState<string | null>(null);
-    const [success, setSuccess] = useState("");
-
-    const [sharing, setSharing] = useState(false);
-    const [shareModalOpen, setShareModalOpen] = useState(false);
-    const [assigningSpaceId, setAssigningSpaceId] = useState<string | null>(null);
-    const [teacherSpaces, setTeacherSpaces] = useState<TeacherSpaceRow[]>([]);
-    const [spacesLoading, setSpacesLoading] = useState(true);
-    const [spaceSearch, setSpaceSearch] = useState("");
-
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -104,80 +82,43 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
             ...worksheet,
             showHints: includeHints,
             showAnswerKey,
+            ...(worksheet.topic !== "calculation" ? { visualKinds: worksheet.visualKinds ?? Array.from(new Set(worksheet.tasks.map(task => task.visual))) } : {}),
             ...(worksheet.calculation ? { calculation: { ...worksheet.calculation, requireReduced }, instructions: requireReduced ? calc.reducedInstructions : calc.instructions } : {}),
         }),
         [includeHints, showAnswerKey, worksheet, requireReduced, calc.reducedInstructions, calc.instructions]
     );
 
-    useEffect(() => {
-        let unsubscribeSpaces: (() => void) | undefined;
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-            unsubscribeSpaces?.();
-            const uid = user?.uid;
-
-            if (!uid) {
-                setTeacherSpaces([]);
-                setSpacesLoading(false);
-                return;
-            }
-
-            setSpacesLoading(true);
-
-            unsubscribeSpaces = watchOwnedSpaceSnapshots(
-                db, uid,
-                (snap) => {
-                    const next: TeacherSpaceRow[] = snap.docs.map(
-                        (d: OwnedSpaceSnapshot) => {
-                            const data = (d.data() ?? {}) as Record<string, unknown>;
-
-                            return {
-                                id: d.id,
-                                title:
-                                    typeof data.title === "string" && data.title.trim()
-                                        ? data.title.trim()
-                                        : copy.untitledSpace,
-                                code:
-                                    typeof data.code === "string" && data.code.trim()
-                                        ? data.code.trim()
-                                        : "-",
-                                isOpen: data.isOpen === true,
-                                createdAt: data.createdAt,
-                            };
-                        }
-                    );
-
-                    setTeacherSpaces(next);
-                    setSpacesLoading(false);
-                },
-                () => {
-                    setTeacherSpaces([]);
-                    setSpacesLoading(false);
-                }
-            );
-
+    const persistence = useMathWorksheetSave({ worksheet: worksheetWithDisplayOptions.tasks.length ? worksheetWithDisplayOptions : null, endpoint: "/api/producer/save-fraction-worksheet", language: locale, source: isCalculation ? "math-fraction-calculation-generator" : "math-fractions-generator" });
+    const { saving, savedId: savedWorksheetId, success, sharing: shareModalOpen, setSharing: setShareModalOpen } = persistence;
+    const restored = useSavedMathWorksheet(locale, (data, id) => {
+        const result = restoreFractionWorksheet(data.fractionWorksheet ?? data.mathWorksheet);
+        if (!result) return false;
+        if ((result.topic === "calculation") !== isCalculation) {
+            router.replace(mathEditorHref(locale, id, "fractions", "", result));
+            return true;
+        }
+        setWorksheet(result); setLanguage(result.language); setLevel(result.level);
+        setTaskCount(result.tasks.length); setShowAnswerKey(result.showAnswerKey); setIncludeHints(result.showHints !== false);
+        if (result.topic !== "calculation") setTopic(result.topic);
+        const denominators = result.tasks.map(task => task.fraction.denominator);
+        setDenominatorMin(result.calculation?.denominatorMin ?? result.denominatorRange?.min ?? Math.min(...denominators));
+        setDenominatorMax(result.calculation?.denominatorMax ?? result.denominatorRange?.max ?? Math.max(...denominators));
+        setVisualKinds(result.visualKinds ?? Array.from(new Set(result.tasks.map(task => task.visual))));
+        if (result.calculation) {
+            setOperation(result.calculation.operation);
+            setDenominatorRelation(result.calculation.denominatorRelation ?? (result.calculation.denominatorMode === "fixed" ? "same" : "different"));
+            setRequireReduced(result.calculation.requireReduced);
+        }
+        const calculationCopy = getCalculationCopy(result.language);
+        persistence.rememberSaved(id, {
+            ...result,
+            showHints: result.showHints !== false,
+            showAnswerKey: result.showAnswerKey,
+            ...(result.topic !== "calculation" ? { visualKinds: result.visualKinds ?? Array.from(new Set(result.tasks.map(task => task.visual))) } : {}),
+            ...(result.calculation ? { calculation: result.calculation, instructions: result.calculation.requireReduced ? calculationCopy.reducedInstructions : calculationCopy.instructions } : {}),
         });
-        return () => {
-            unsubscribeAuth();
-            unsubscribeSpaces?.();
-        };
-    }, [copy.untitledSpace]);
-
-    const search = spaceSearch.trim().toLowerCase();
-
-    const filteredSpaces = search
-        ? teacherSpaces.filter((space) => {
-            return (
-                space.title.toLowerCase().includes(search) ||
-                space.code.toLowerCase().includes(search)
-            );
-        })
-        : teacherSpaces;
-
-
-
-    function handlePrint() {
-        if (worksheet.tasks.length) window.print();
-    }
+        return true;
+    });
 
     function toggleVisual(kind: FractionVisualKind) {
         setVisualKinds((current) => {
@@ -194,8 +135,6 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
         if (!validRange || !validDenominators || !visualKinds.length) return;
         setLoading(true);
         setError("");
-        setSuccess("");
-        setSavedWorksheetId(null);
 
         try {
             const response = await fetch(isCalculation ? "/api/generate-fraction-calculation-worksheet" : "/api/generate-fraction-worksheet", {
@@ -244,146 +183,13 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
 
             setWorksheet({
                 ...data.worksheet,
+                ...(!isCalculation ? { visualKinds: [...visualKinds] } : {}),
                 showHints: includeHints,
             });
         } catch (err) {
             setError(err instanceof Error ? err.message : copy.generateFailed);
         } finally {
             setLoading(false);
-        }
-    }
-
-    async function saveWorksheetAndGetId(): Promise<string | null> {
-        if (worksheetWithDisplayOptions.tasks.length === 0) {
-            setError(copy.generateFailed);
-            return null;
-        }
-
-        const currentUser = auth.currentUser;
-        const idToken = currentUser ? await currentUser.getIdToken() : null;
-
-        if (!idToken) {
-            setError(copy.login);
-            return null;
-        }
-
-        const response = await fetch("/api/producer/save-fraction-worksheet", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-            },
-            body: JSON.stringify({
-                worksheet: worksheetWithDisplayOptions,
-                source: isCalculation ? "math-fraction-calculation-generator" : "math-fractions-generator",
-            }),
-        });
-
-        const rawText = await response.text();
-
-        let data: SaveWorksheetResponse | null = null;
-
-        try {
-            data = rawText ? (JSON.parse(rawText) as SaveWorksheetResponse) : null;
-        } catch {
-            throw new Error(
-                `Save-ruta returnerte ikke JSON. Status ${response.status}. Svar: ${rawText.slice(
-                    0,
-                    200
-                )}`
-            );
-        }
-
-        if (!response.ok || !data?.ok) {
-            throw new Error(data?.error || copy.saveFailed);
-        }
-
-        return data.id || data.worksheetId || data.lessonId || null;
-    }
-
-    async function handleSaveToMyContent() {
-        setSaving(true);
-        setError("");
-        setSuccess("");
-
-        try {
-            const savedId = await saveWorksheetAndGetId();
-            if (!savedId) return;
-
-            setSavedWorksheetId(savedId);
-            setSuccess(copy.saved);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : copy.saveFailed);
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function handleShareToSpaces() {
-        setSharing(true);
-        setError("");
-        setSuccess("");
-
-        try {
-            const savedId = await saveWorksheetAndGetId();
-
-            if (!savedId) return;
-
-            setSavedWorksheetId(savedId);
-            setSuccess(copy.savedChooseSpace);
-            setShareModalOpen(true);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : copy.shareFailed);
-        } finally {
-            setSharing(false);
-        }
-    }
-
-    async function handleAssignToSpace(spaceId: string) {
-        if (!savedWorksheetId) {
-            setError(copy.saveFailed);
-            return;
-        }
-
-        setAssigningSpaceId(spaceId);
-        setError("");
-        setSuccess("");
-
-        try {
-            const currentUser = auth.currentUser;
-            const idToken = currentUser ? await currentUser.getIdToken() : null;
-
-            if (!idToken) {
-                setError(copy.login);
-                return;
-            }
-
-            const response = await fetch(`/api/teacher/spaces/${spaceId}/assign`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({
-                    sourceType: "myContent",
-                    sourceId: savedWorksheetId,
-                    title: worksheetWithDisplayOptions.title,
-                    level: worksheetWithDisplayOptions.level,
-                    language: worksheetWithDisplayOptions.language,
-                }),
-            });
-
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(text || copy.shareFailed);
-            }
-
-            setShareModalOpen(false);
-            setSuccess(copy.shared);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : copy.shareFailed);
-        } finally {
-            setAssigningSpaceId(null);
         }
     }
 
@@ -403,8 +209,8 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                         taskCount={taskCount} onTaskCountChange={setTaskCount}
                         requireReduced={requireReduced} onRequireReducedChange={setRequireReduced}
                         showAnswerKey={showAnswerKey} onAnswerKeyChange={setShowAnswerKey}
-                        onGenerate={handleGenerate} onSave={handleSaveToMyContent} onShare={handleShareToSpaces} onPrint={handlePrint}
-                        loading={loading} saving={saving} sharing={sharing} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange} validDenominators={validDenominators}
+                        onGenerate={handleGenerate} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }}
+                        loading={loading} saving={saving} sharing={false} loadingSaved={restored.loading} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange} validDenominators={validDenominators}
                     /> : <FractionGeneratorPanel
                         language={language} topic={topic} taskCount={taskCount}
                         denominatorMin={denominatorMin} denominatorMax={denominatorMax}
@@ -412,10 +218,10 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                         onTopicChange={setTopic} onTaskCountChange={setTaskCount}
                         onMinimumChange={setDenominatorMin} onMaximumChange={setDenominatorMax}
                         onToggleVisual={toggleVisual} onHintsChange={setIncludeHints} onAnswerKeyChange={setShowAnswerKey}
-                        onGenerate={handleGenerate} onSave={handleSaveToMyContent} onShare={handleShareToSpaces} onPrint={handlePrint}
-                        loading={loading} saving={saving} sharing={sharing} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange}
+                        onGenerate={handleGenerate} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }}
+                        loading={loading} saving={saving} sharing={false} loadingSaved={restored.loading} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange}
                     />}
-                    {error ? <p role="alert" className="mt-4 text-sm text-red-700">{error}</p> : null}
+                    {error || persistence.error || restored.error ? <p role="alert" className="mt-4 text-sm text-red-700">{error || persistence.error || restored.error}</p> : null}
                     {success ? <p role="status" className="mt-4 text-sm text-emerald-700">{success}</p> : null}
                     {savedWorksheetId ? <Link href={`/${locale}/content`} className="mt-3 inline-block text-sm font-semibold text-teal-700 underline">{copy.openContent}</Link> : null}
                 </aside>
@@ -429,87 +235,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                     )}
                 </section>
             </div>
-            {shareModalOpen ? (
-                <div
-                    className="fixed inset-0 z-50 bg-black/50 p-4"
-                    onClick={() => setShareModalOpen(false)}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={copy.selectSpace}
-                >
-                    <div
-                        className="mx-auto w-full max-w-3xl rounded-lg border border-slate-300 bg-white shadow-xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="border-b border-slate-200 p-5">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <div className="text-lg font-semibold text-slate-900">
-                                        {copy.selectSpace}
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setShareModalOpen(false)}
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
-                                    aria-label={copy.close} title={copy.close}
-                                >
-                                    <X size={18} aria-hidden="true" />
-                                </button>
-                            </div>
-
-                            <input
-                                value={spaceSearch}
-                                onChange={(e) => setSpaceSearch(e.target.value)}
-                                placeholder={copy.searchSpaces}
-                                className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
-                            />
-                        </div>
-
-                        <div className="max-h-[65vh] overflow-y-auto p-5">
-                            {spacesLoading ? (
-                                <div className="rounded-lg border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                                    {copy.loadingSpaces}
-                                </div>
-                            ) : filteredSpaces.length === 0 ? (
-                                <div className="rounded-lg border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                                    {copy.noSpaces}
-                                </div>
-                            ) : (
-                                <div className="grid gap-3">
-                                    {filteredSpaces.map((space) => (
-                                        <div
-                                            key={space.id}
-                                            className="rounded-lg border border-slate-300 bg-white p-4"
-                                        >
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                                <div>
-                                                    <div className="font-semibold text-slate-900">
-                                                        {space.title}
-                                                    </div>
-                                                    <div className="mt-1 text-sm text-slate-600">
-                                                        {copy.code}: {space.code} · {space.isOpen ? copy.open : copy.closed}
-                                                    </div>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleAssignToSpace(space.id)}
-                                                    disabled={assigningSpaceId !== null}
-                                                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-                                                >
-                                                    {assigningSpaceId === space.id ? copy.sharing : copy.shareHere}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+            {shareModalOpen && savedWorksheetId ? <MathSpacePicker worksheetId={savedWorksheetId} title={worksheet.title} language={worksheet.language} onClose={() => setShareModalOpen(false)} onShared={persistence.shared} /> : null}
         </main>
     );
 }

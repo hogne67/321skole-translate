@@ -101,6 +101,7 @@ export type FractionWorksheet = {
 
     showHints?: boolean;
     denominatorRange?: { min: number; max: number };
+    visualKinds?: FractionVisualKind[];
 
     tasks: FractionTask[];
 };

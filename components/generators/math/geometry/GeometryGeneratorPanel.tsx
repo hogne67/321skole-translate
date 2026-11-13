@@ -1,11 +1,14 @@
 "use client";
 
-import { Printer, Save } from "lucide-react";
+import MathGeneratorActions from "../MathGeneratorActions";
 import { GEOMETRY_FIGURES } from "@/lib/math/geometry/types";
 import type { Difficulty, FigureKind, GeometryAnswerSpace, GeometryTopic } from "@/lib/math/geometry/types";
 
 type Props = {
   t: (key: string) => string;
+  language: string;
+  loadingSaved?: boolean;
+  onShare: () => void;
   topic: GeometryTopic;
   difficulty: Difficulty;
   taskCount: number;
@@ -26,7 +29,6 @@ type Props = {
   onAnswerKeyChange: (value: boolean) => void;
   onGenerate: () => void;
   onSave: () => void;
-  onPrint: () => void;
   generating: boolean;
   saving: boolean;
   canGenerate: boolean;
@@ -35,7 +37,6 @@ type Props = {
 
 const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600";
 const labelClass = "mb-1.5 block text-sm font-bold text-slate-700";
-const buttonClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
 
 function shapeKey(shape: FigureKind) {
   if (shape === "triangle_right") return "triangleRight";
@@ -117,17 +118,9 @@ export default function GeometryGeneratorPanel(p: Props) {
         ))}
       </div>
 
-      <div className="grid gap-2">
-        <button type="button" onClick={p.onGenerate} disabled={!p.canGenerate} className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-950 bg-slate-950 px-3 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-          {p.generating ? t("generating") : t("generate")}
-        </button>
-        <button type="button" onClick={p.onSave} disabled={!p.hasWorksheet || p.saving || p.generating} className={buttonClass}>
-          <Save size={16} aria-hidden="true" />{p.saving ? t("saving") : t("saveToMyContent")}
-        </button>
-        <button type="button" onClick={p.onPrint} disabled={!p.hasWorksheet || p.generating} className={buttonClass}>
-          <Printer size={16} aria-hidden="true" />{t("print")}
-        </button>
-      </div>
+    <MathGeneratorActions language={p.language} generating={p.generating} saving={p.saving} loading={p.loadingSaved} canGenerate={p.canGenerate} hasWorksheet={p.hasWorksheet}
+      onGenerate={p.onGenerate} onSave={p.onSave} onShare={p.onShare} />
+
     </div>
   );
 }

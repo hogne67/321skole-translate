@@ -1,0 +1,206 @@
+@media print {
+  .arithmetic-print-root {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+  }
+
+  .arithmetic-print-root * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    visibility: visible !important;
+  }
+
+  .arithmetic-print-card {
+    padding: 0 !important;
+  }
+
+  .arithmetic-brandbar {
+    margin-bottom: 10px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .arithmetic-brandlogo {
+    height: 34px !important;
+  }
+
+  .arithmetic-brandtitle {
+    font-size: 14px !important;
+    line-height: 1.1 !important;
+  }
+
+  .arithmetic-brandsite {
+    font-size: 9px !important;
+  }
+
+  .arithmetic-title-wrap {
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .arithmetic-title {
+    font-size: 18px !important;
+    line-height: 1.15 !important;
+  }
+
+  .arithmetic-instructions {
+    margin-top: 4px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  .arithmetic-identity-grid {
+    margin-top: 10px !important;
+    gap: 6px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .arithmetic-identity-box {
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .arithmetic-identity-box:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .arithmetic-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    border-radius: 0 !important;
+  }
+
+  .arithmetic-grid-task {
+    min-height: 24px !important;
+    grid-template-columns: 20px 58px 28px 1fr !important;
+    font-size: 10.5px !important;
+    line-height: 1.1 !important;
+  }
+
+  .arithmetic-grid-index {
+    padding: 4px 3px !important;
+    font-size: 9px !important;
+  }
+
+  .arithmetic-grid-expression {
+    padding: 4px 3px 4px 6px !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+
+  .arithmetic-grid-answer {
+    min-height: 24px !important;
+  }
+
+  .arithmetic-vertical-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 14px 18px !important;
+  }
+
+  .arithmetic-vertical-task {
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    min-height: 74px !important;
+  }
+
+  .arithmetic-vertical-head {
+    margin-bottom: 4px !important;
+    gap: 6px !important;
+  }
+
+  .arithmetic-vertical-index {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8px !important;
+  }
+
+  .arithmetic-vertical-expression {
+    display: none !important;
+  }
+
+  .arithmetic-vertical-stack {
+    gap: 2px !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+  }
+
+  .arithmetic-vertical-line {
+    padding-bottom: 3px !important;
+    border-bottom-width: 1.5px !important;
+  }
+
+  .arithmetic-vertical-answer {
+    height: 24px !important;
+  }
+
+  .arithmetic-visual-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px 16px !important;
+  }
+
+  .arithmetic-visual-task {
+    border-radius: 10px !important;
+    padding: 8px !important;
+  }
+
+  .arithmetic-visual-head {
+    margin-bottom: 5px !important;
+    gap: 8px !important;
+  }
+
+  .arithmetic-visual-index {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8px !important;
+  }
+
+  .arithmetic-visual-expression {
+    font-size: 14px !important;
+    line-height: 1.1 !important;
+  }
+
+  .arithmetic-visual-model {
+    gap: 4px !important;
+    border-radius: 8px !important;
+    padding: 6px !important;
+  }
+
+  .arithmetic-visual-group {
+    border-radius: 7px !important;
+    min-height: 26px !important;
+    padding: 5px !important;
+  }
+
+  .arithmetic-visual-symbol {
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+
+  .arithmetic-dot-grid {
+    grid-template-columns: repeat(10, 7px) !important;
+    gap: 3px !important;
+  }
+
+  .arithmetic-dot {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .arithmetic-visual-answer {
+    margin-top: 5px !important;
+    min-height: 25px !important;
+    border-radius: 7px !important;
+    padding: 5px 6px !important;
+    font-size: 10px !important;
+  }
+
+  .arithmetic-grid-task, .arithmetic-vertical-task, .arithmetic-visual-task, .arithmetic-answer-key > div > div { break-inside: avoid; }
+  .arithmetic-answer-key { break-before: page; margin-top: 0 !important; }
+}

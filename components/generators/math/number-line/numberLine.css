@@ -1,0 +1,27 @@
+.number-line-sheet .number-line-tasks { grid-template-columns: minmax(0, 1fr); }
+.number-line-task { padding: 14px 0; break-inside: avoid; }
+.number-line-heading { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
+.number-line-heading .number-line-prompt { flex: 1; min-width: 0; }
+.number-line-graphic { position: relative; margin: 8px 0 0; color: #334155; }
+.number-line-graphic svg { display: block; width: 100%; height: auto; overflow: visible; }
+.number-line-graphic text { fill: currentColor; font-family: Arial, sans-serif; }
+.number-line-marker, .number-line-selection { color: #0f766e; }
+.number-line-mark-button { position: absolute; top: 40%; transform: translate(-50%, -50%); width: 36px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+.number-line-mark-button:hover { background: #0f766e20; }
+.number-line-mark-button:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.number-line-mark-button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #0f766e; }
+.number-line-answer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.number-line-answer input { width: 100px; min-height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; }
+.number-line-answer input:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.number-line-answer small { flex: 1 1 220px; color: #475569; }
+@media print {
+  .number-line-sheet .number-line-tasks { grid-template-columns: minmax(0, 1fr); }
+  .number-line-sheet .number-line-task { padding: 2mm 0; break-inside: avoid; page-break-inside: avoid; }
+  .number-line-heading { font-size: 10pt; }
+  .number-line-graphic { max-width: 140mm; margin: 0 auto; }
+  .number-line-sheet .length-identity { grid-template-columns: 2fr 1fr 1fr; }
+  .number-line-sheet .length-identity span:last-child { grid-column: auto; }
+  .number-line-answer { font-size: 9pt; }
+  .number-line-answer .length-answer-space { display: inline-block; height: 4mm; }
+  .number-line-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

@@ -3,8 +3,6 @@ import test from "node:test";
 import { createRequire } from "node:module";
 import { renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
-import FractionGeneratorPanel from "@/components/generators/math/fractions/FractionGeneratorPanel";
-import FractionCalculationPanel from "@/components/generators/math/fractions/FractionCalculationPanel";
 import { generateWorksheet, normalizeRequest } from "./generateWorksheet";
 import { generateCalculationWorksheet, normalizeCalculationRequest } from "./generateCalculationWorksheet";
 import { getFractionCopy } from "./uiCopy";
@@ -12,6 +10,8 @@ import { getFractionCopy } from "./uiCopy";
 // Styles are checked in the browser; Node markup tests only need the component.
 const nodeRequire = createRequire(import.meta.url);
 nodeRequire.extensions[".css"] = () => {};
+const FractionGeneratorPanel = nodeRequire("../../../components/generators/math/fractions/FractionGeneratorPanel").default as typeof import("@/components/generators/math/fractions/FractionGeneratorPanel").default;
+const FractionCalculationPanel = nodeRequire("../../../components/generators/math/fractions/FractionCalculationPanel").default as typeof import("@/components/generators/math/fractions/FractionCalculationPanel").default;
 const View = nodeRequire("../../../components/generators/math/fractions/FractionWorksheetView").default as typeof import("@/components/generators/math/fractions/FractionWorksheetView").default;
 
 test("the generator offers task, part and model controls instead of grade and difficulty", () => {
@@ -19,7 +19,7 @@ test("the generator offers task, part and model controls instead of grade and di
     language="nb" topic="mixed" taskCount={6} denominatorMin={2} denominatorMax={8}
     visualKinds={["bar"]} includeHints showAnswerKey={false} loading={false} saving={false} sharing={false} hasWorksheet={false} validRange
     onTopicChange={() => {}} onTaskCountChange={() => {}} onMinimumChange={() => {}} onMaximumChange={() => {}}
-    onToggleVisual={() => {}} onHintsChange={() => {}} onAnswerKeyChange={() => {}} onGenerate={() => {}} onSave={() => {}} onShare={() => {}} onPrint={() => {}}
+    onToggleVisual={() => {}} onHintsChange={() => {}} onAnswerKeyChange={() => {}} onGenerate={() => {}} onSave={() => {}} onShare={() => {}}
   />));
   assert.equal($("select").length, 1);
   assert.equal($("input[type='checkbox']").length, 5);

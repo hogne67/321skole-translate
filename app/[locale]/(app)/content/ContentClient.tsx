@@ -1,6 +1,8 @@
 // app\[locale]\(app)\content\ContentClient.tsx
 "use client";
 
+import { mathEditorHref } from "@/lib/math/editor";
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -339,6 +341,7 @@ function getMathSubtype(it: ContentItem): string | null {
   if (all.has("equations") || all.has("equations_worksheet") || all.has("math_equations")) return "equations";
   if (all.has("measurement")) return "measurement";
   if (all.has("percentage") || all.has("percentage_worksheet")) return "percentage";
+  if (all.has("number_line") || all.has("number_line_worksheet") || all.has("math_number_line")) return "number_line";
   if (all.has("comparison") || all.has("comparison_worksheet")) return "comparison";
   if (
     all.has("math") ||
@@ -499,7 +502,7 @@ export default function ContentClient() {
       return readingTestPlayHref(it.activePublishedId || it.id);
     }
     const mathSubtype = getMathSubtype(it);
-    if (mathSubtype === "measurement" || mathSubtype === "comparison" || mathSubtype === "percentage" || mathSubtype === "equations") {
+    if (mathSubtype === "number_line" || mathSubtype === "measurement" || mathSubtype === "comparison" || mathSubtype === "percentage" || mathSubtype === "equations") {
       return `/${locale}/producer/math/${it.id}/preview`;
     }
     if (mathSubtype === "geometry") {
@@ -531,24 +534,8 @@ export default function ContentClient() {
     if (isImageWritingLesson(it)) {
       return `/${locale}/producer/image-writing?edit=${it.id}`;
     }
-    if (getMathSubtype(it) === "geometry") {
-      return `/${locale}/producer/math/geometry?edit=${it.id}`;
-    }
-    if (getMathSubtype(it) === "arithmetic") {
-      return `/${locale}/producer/math/arithmetic`;
-    }
-    if (getMathSubtype(it) === "measurement") {
-      return `/${locale}/producer/math/measurement`;
-    }
-    if (getMathSubtype(it) === "equations") {
-      return `/${locale}/producer/math/equations`;
-    }
-    if (getMathSubtype(it) === "percentage") {
-      return `/${locale}/producer/math/percentage`;
-    }
-    if (getMathSubtype(it) === "comparison") {
-      return `/${locale}/producer/math/comparison`;
-    }
+    const subtype = getMathSubtype(it);
+    if (subtype && subtype !== "math") return mathEditorHref(locale, it.id, subtype, it.source);
     return `/${locale}/producer/${it.id}`;
   }
 
@@ -1456,6 +1443,8 @@ export default function ContentClient() {
       "measurement",
       "comparison",
       "comparison_worksheet",
+      "number_line",
+      "number_line_worksheet",
       "percentage",
       "percentage_worksheet",
       "reading_test",
@@ -1858,7 +1847,7 @@ export default function ContentClient() {
     if (isMathArchive) {
       return [
         ...restoreAction,
-        ...(isStudent && !isDeleted && mathSubtype !== "comparison" && mathSubtype !== "percentage" && mathSubtype !== "equations"
+        ...(isStudent && !isDeleted && mathSubtype !== "number_line" && mathSubtype !== "comparison" && mathSubtype !== "percentage" && mathSubtype !== "equations"
           ? [
             {
               key: "openMath",
@@ -1874,7 +1863,7 @@ export default function ContentClient() {
           disabled: busy,
           onClick: () => router.push(itemOpenHref(ls)),
         },
-        ...(canEdit && mathSubtype === "geometry"
+        ...(canEdit && !!mathSubtype && mathSubtype !== "math"
           ? [
             {
               key: "edit",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer, Save, Share2 } from "lucide-react";
+import MathGeneratorActions from "../MathGeneratorActions";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import type { FractionLanguage, FractionTopic, FractionVisualKind } from "@/lib/math/fractions/types";
 
@@ -23,7 +23,7 @@ type Props = {
   onGenerate: () => void;
   onSave: () => void;
   onShare: () => void;
-  onPrint: () => void;
+  loadingSaved?: boolean;
   loading: boolean;
   saving: boolean;
   sharing: boolean;
@@ -33,11 +33,9 @@ type Props = {
 
 const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600";
 const labelClass = "mb-1.5 block text-sm font-bold text-slate-700";
-const buttonClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function FractionGeneratorPanel(p: Props) {
   const copy = getFractionCopy(p.language);
-  const busy = p.loading || p.saving || p.sharing;
   return <div className="mt-6 grid gap-5">
     <label>
       <span className={labelClass}>{copy.taskType}</span>
@@ -88,20 +86,8 @@ export default function FractionGeneratorPanel(p: Props) {
         <input type="checkbox" checked={p.showAnswerKey} onChange={(e) => p.onAnswerKeyChange(e.target.checked)} />{copy.answerKey}
       </label>
     </div>
-    <div className="grid gap-2">
-      <button type="button" disabled={busy || !p.validRange || !p.visualKinds.length} onClick={p.onGenerate}
-        className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-950 bg-slate-950 px-3 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-        {p.loading ? copy.generating : copy.generate}
-      </button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onSave} className={buttonClass}>
-        <Save size={16} aria-hidden="true" />{p.saving ? copy.saving : copy.save}
-      </button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onShare} className={buttonClass}>
-        <Share2 size={16} aria-hidden="true" />{p.sharing ? copy.sharing : copy.share}
-      </button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onPrint} className={buttonClass}>
-        <Printer size={16} aria-hidden="true" />{copy.print}
-      </button>
-    </div>
+    <MathGeneratorActions language={p.language} generating={p.loading} saving={p.saving || p.sharing} loading={p.loadingSaved} canGenerate={p.validRange && p.visualKinds.length > 0} hasWorksheet={p.hasWorksheet}
+      onGenerate={p.onGenerate} onSave={p.onSave} onShare={p.onShare} />
+
   </div>;
 }

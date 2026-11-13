@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer, Save, Share2 } from "lucide-react";
+import MathGeneratorActions from "../MathGeneratorActions";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import { getCalculationCopy } from "@/lib/math/fractions/calculationCopy";
 import { FRACTION_CALCULATION_OPERATIONS } from "@/lib/math/fractions/calculationOperations";
@@ -14,14 +14,14 @@ type Props = Omit<FractionCalculationSettings, "denominatorMode" | "denominatorR
   onMinimumChange: (value: number) => void; onMaximumChange: (value: number) => void;
   onTaskCountChange: (value: number) => void; onRequireReducedChange: (value: boolean) => void;
   onAnswerKeyChange: (value: boolean) => void;
-  onGenerate: () => void; onSave: () => void; onShare: () => void; onPrint: () => void;
+  onGenerate: () => void; onSave: () => void; onShare: () => void;
+  loadingSaved?: boolean;
   loading: boolean; saving: boolean; sharing: boolean; hasWorksheet: boolean; validRange: boolean; validDenominators: boolean;
 };
 const field = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600";
 const label = "mb-1.5 block text-sm font-bold text-slate-700";
-const button = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50";
 export default function FractionCalculationPanel(p: Props) {
-  const copy = getFractionCopy(p.language), calc = getCalculationCopy(p.language), busy = p.loading || p.saving || p.sharing;
+  const copy = getFractionCopy(p.language), calc = getCalculationCopy(p.language);
   return <div className="mt-6 grid gap-5">
     <label><span className={label}>{calc.operation}</span><select className={field} value={p.operation} onChange={e => p.onOperationChange(e.target.value as Props["operation"])}>
       {([...FRACTION_CALCULATION_OPERATIONS, "mixed"] as const).map(operation => <option key={operation} value={operation}>{calc[operation]}</option>)}
@@ -42,11 +42,8 @@ export default function FractionCalculationPanel(p: Props) {
       <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={p.requireReduced} onChange={e => p.onRequireReducedChange(e.target.checked)} />{calc.requireReduced}</label>
       <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={p.showAnswerKey} onChange={e => p.onAnswerKeyChange(e.target.checked)} />{copy.answerKey}</label>
     </div>
-    <div className="grid gap-2">
-      <button type="button" disabled={busy || !p.validRange || !p.validDenominators} onClick={p.onGenerate} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-3 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50">{p.loading ? copy.generating : copy.generate}</button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onSave} className={button}><Save size={16} aria-hidden="true" />{p.saving ? copy.saving : copy.save}</button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onShare} className={button}><Share2 size={16} aria-hidden="true" />{p.sharing ? copy.sharing : copy.share}</button>
-      <button type="button" disabled={busy || !p.hasWorksheet} onClick={p.onPrint} className={button}><Printer size={16} aria-hidden="true" />{copy.print}</button>
-    </div>
+    <MathGeneratorActions language={p.language} generating={p.loading} saving={p.saving || p.sharing} loading={p.loadingSaved} canGenerate={p.validRange && p.validDenominators} hasWorksheet={p.hasWorksheet}
+      onGenerate={p.onGenerate} onSave={p.onSave} onShare={p.onShare} />
+
   </div>;
 }

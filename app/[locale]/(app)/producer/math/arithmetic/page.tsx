@@ -1,5 +1,10 @@
 "use client";
 
+import MathGeneratorActions from "@/components/generators/math/MathGeneratorActions";
+import MathSpacePicker from "@/components/generators/math/MathSpacePicker";
+import { useSavedMathWorksheet } from "@/components/generators/math/useSavedMathWorksheet";
+import { useMathWorksheetSave } from "@/components/generators/math/useMathWorksheetSave";
+import { sanitizeArithmeticWorksheet } from "@/lib/math/arithmetic/sanitize";
 import MathGeneratorBackLink from "@/components/generators/math/MathGeneratorBackLink";
 
 import { useMemo, useRef, useState } from "react";
@@ -33,14 +38,6 @@ type GenerateResponse =
   | { ok: true; worksheet: ArithmeticWorksheet }
   | { ok: false; error: string };
 
-type SaveResponse = {
-  ok?: boolean;
-  error?: string;
-  id?: string;
-  worksheetId?: string;
-  lessonId?: string;
-};
-
 const MIXED_OPERATION_OPTIONS: ArithmeticConcreteOperation[] = [
   "addition",
   "subtraction",
@@ -68,10 +65,10 @@ function defaultTaskCount(layout: ArithmeticLayout) {
 export default function ProducerMathArithmeticPage() {
   const locale = useLocale();
   const printRef = useRef<HTMLDivElement | null>(null);
-  const language = normalizeLocale(locale);
-  const level: ArithmeticLevel = "grade_3_4";
+  const [language, setLanguage] = useState(() => normalizeLocale(locale));
+  const [level, setLevel] = useState<ArithmeticLevel>("grade_3_4");
   const [operation, setOperation] = useState<ArithmeticOperation>("addition");
-  const difficulty: ArithmeticDifficulty = "easy";
+  const [difficulty, setDifficulty] = useState<ArithmeticDifficulty>("easy");
   const [taskType, setTaskType] = useState<ArithmeticTaskType>("standard");
   const [layout, setLayout] = useState<ArithmeticLayout>("grid");
   const [taskCount, setTaskCount] = useState(defaultTaskCount("grid"));
@@ -90,10 +87,25 @@ export default function ProducerMathArithmeticPage() {
   >(MIXED_OPERATION_OPTIONS);
   const [worksheet, setWorksheet] = useState<ArithmeticWorksheet | null>(null);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  const displayedWorksheet = worksheet ? { ...worksheet, showAnswerKey } : null;
+  const persistence = useMathWorksheetSave({ worksheet: displayedWorksheet, endpoint: "/api/producer/save-arithmetic-worksheet", language: locale, source: "math-arithmetic-generator" });
+  const { savedId, success } = persistence;
+  const restored = useSavedMathWorksheet(locale, (data, id) => {
+    const result = sanitizeArithmeticWorksheet(data.arithmeticWorksheet ?? data.mathWorksheet);
+    if (!result) return false;
+    setWorksheet(result); setLanguage(result.language); setLevel(result.level); setDifficulty(result.difficulty);
+    setOperation(result.operation); setLayout(result.layout); setTaskCount(result.tasks.length); setShowAnswerKey(result.showAnswerKey);
+    const config = result.generatorConfig;
+    setTaskType(config?.taskType ?? (result.tasks.some(task => !!task.unknownPosition) ? "missing_number" : "standard"));
+    setOperandA(config?.operandA ?? { min: Math.min(...result.tasks.map(task => task.left)), max: Math.max(...result.tasks.map(task => task.left)) });
+    setOperandB(config?.operandB ?? { min: Math.min(...result.tasks.map(task => task.right)), max: Math.max(...result.tasks.map(task => task.right)) });
+    setRules({ ...DEFAULT_RULES, ...config?.rules });
+    setMixedOperations(config?.mixedOperations ?? Array.from(new Set(result.tasks.map(task => task.operation))));
+    persistence.rememberSaved(id, result);
+    return true;
+  });
 
   const copy = UI_COPY[language];
   const taskMax = maxTaskCount(layout);
@@ -256,8 +268,6 @@ export default function ProducerMathArithmeticPage() {
   async function handleGenerate() {
     setLoading(true);
     setError("");
-    setSuccess("");
-    setSavedId(null);
 
     try {
       const currentUser = auth.currentUser;
@@ -297,70 +307,11 @@ export default function ProducerMathArithmeticPage() {
       }
 
       setWorksheet(data.worksheet);
-      setSuccess(copy.generated);
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.generateError);
     } finally {
       setLoading(false);
     }
-  }
-
-  async function saveWorksheetAndGetId() {
-    if (!worksheet) return null;
-
-    const currentUser = auth.currentUser;
-    const idToken = currentUser ? await currentUser.getIdToken() : null;
-
-    if (!idToken) {
-      throw new Error(copy.loginError);
-    }
-
-    const response = await fetch("/api/producer/save-arithmetic-worksheet", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        worksheet,
-        source: "math-arithmetic-generator",
-      }),
-    });
-
-    const text = await response.text();
-    const data = text ? (JSON.parse(text) as SaveResponse) : {};
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || copy.saveError);
-    }
-
-    return data.id || data.worksheetId || data.lessonId || null;
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const id = await saveWorksheetAndGetId();
-      if (!id) {
-        setError(copy.notSaved);
-        return;
-      }
-
-      setSavedId(id);
-      setSuccess(copy.saved);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : copy.saveError);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handlePrint() {
-    if (!worksheet) return;
-    window.print();
   }
 
   const previewCopy = worksheet ? UI_COPY[worksheet.language] : copy;
@@ -662,9 +613,9 @@ export default function ProducerMathArithmeticPage() {
               {showAnswerKey ? `✓ ${copy.answerKey}` : copy.answerKey}
             </button>
 
-            {error ? (
+            {error || persistence.error || restored.error ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                {error}
+                {error || persistence.error || restored.error}
               </div>
             ) : null}
 
@@ -674,33 +625,8 @@ export default function ProducerMathArithmeticPage() {
               </div>
             ) : null}
 
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={loading}
-              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:opacity-50"
-            >
-              {loading ? copy.generating : copy.generate}
-            </button>
-
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !worksheet}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                {saving ? copy.saving : copy.save}
-              </button>
-              <button
-                type="button"
-                onClick={handlePrint}
-                disabled={!worksheet}
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                {copy.print}
-              </button>
-            </div>
+            <MathGeneratorActions language={locale} generating={loading} saving={persistence.saving} loading={restored.loading} hasWorksheet={!!worksheet}
+              onGenerate={() => { void handleGenerate(); }} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }} />
 
             {savedId ? (
               <Link
@@ -716,7 +642,7 @@ export default function ProducerMathArithmeticPage() {
         <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           {worksheet ? (
             <ArithmeticWorksheetView
-              worksheet={worksheet}
+              worksheet={displayedWorksheet!}
               printRef={printRef}
               t={(key) => copyValue(previewCopy.worksheet, key)}
               tBrand={(key) => copyValue(previewCopy.brand, key)}
@@ -736,6 +662,7 @@ export default function ProducerMathArithmeticPage() {
         </section>
       </div>
 
+      {persistence.sharing && savedId && worksheet ? <MathSpacePicker worksheetId={savedId} title={worksheet.title} language={worksheet.language} onClose={() => persistence.setSharing(false)} onShared={persistence.shared} /> : null}
       <style jsx global>{`
         @page {
           size: A4;
@@ -780,205 +707,6 @@ export default function ProducerMathArithmeticPage() {
           .arithmetic-print-root {
             position: absolute !important;
             inset: 0 auto auto 0 !important;
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            visibility: visible !important;
-          }
-
-          .arithmetic-print-root * {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            visibility: visible !important;
-          }
-
-          .arithmetic-print-card {
-            padding: 0 !important;
-          }
-
-          .arithmetic-brandbar {
-            margin-bottom: 10px !important;
-            padding-bottom: 8px !important;
-          }
-
-          .arithmetic-brandlogo {
-            height: 34px !important;
-          }
-
-          .arithmetic-brandtitle {
-            font-size: 14px !important;
-            line-height: 1.1 !important;
-          }
-
-          .arithmetic-brandsite {
-            font-size: 9px !important;
-          }
-
-          .arithmetic-title-wrap {
-            margin-bottom: 12px !important;
-            padding-bottom: 10px !important;
-          }
-
-          .arithmetic-title {
-            font-size: 18px !important;
-            line-height: 1.15 !important;
-          }
-
-          .arithmetic-instructions {
-            margin-top: 4px !important;
-            font-size: 10px !important;
-            line-height: 1.35 !important;
-          }
-
-          .arithmetic-identity-grid {
-            margin-top: 10px !important;
-            gap: 6px !important;
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-          }
-
-          .arithmetic-identity-box {
-            border-radius: 8px !important;
-            padding: 6px 8px !important;
-            font-size: 10px !important;
-          }
-
-          .arithmetic-identity-box:last-child {
-            grid-column: 1 / -1 !important;
-          }
-
-          .arithmetic-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            border-radius: 0 !important;
-          }
-
-          .arithmetic-grid-task {
-            min-height: 24px !important;
-            grid-template-columns: 20px 58px 28px 1fr !important;
-            font-size: 10.5px !important;
-            line-height: 1.1 !important;
-          }
-
-          .arithmetic-grid-index {
-            padding: 4px 3px !important;
-            font-size: 9px !important;
-          }
-
-          .arithmetic-grid-expression {
-            padding: 4px 3px 4px 6px !important;
-            text-align: right !important;
-            white-space: nowrap !important;
-          }
-
-          .arithmetic-grid-answer {
-            min-height: 24px !important;
-          }
-
-          .arithmetic-vertical-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            gap: 14px 18px !important;
-          }
-
-          .arithmetic-vertical-task {
-            border: 0 !important;
-            border-radius: 0 !important;
-            padding: 0 !important;
-            min-height: 74px !important;
-          }
-
-          .arithmetic-vertical-head {
-            margin-bottom: 4px !important;
-            gap: 6px !important;
-          }
-
-          .arithmetic-vertical-index {
-            width: 18px !important;
-            height: 18px !important;
-            font-size: 8px !important;
-          }
-
-          .arithmetic-vertical-expression {
-            display: none !important;
-          }
-
-          .arithmetic-vertical-stack {
-            gap: 2px !important;
-            font-size: 18px !important;
-            line-height: 1 !important;
-          }
-
-          .arithmetic-vertical-line {
-            padding-bottom: 3px !important;
-            border-bottom-width: 1.5px !important;
-          }
-
-          .arithmetic-vertical-answer {
-            height: 24px !important;
-          }
-
-          .arithmetic-visual-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 8px 16px !important;
-          }
-
-          .arithmetic-visual-task {
-            border-radius: 10px !important;
-            padding: 8px !important;
-          }
-
-          .arithmetic-visual-head {
-            margin-bottom: 5px !important;
-            gap: 8px !important;
-          }
-
-          .arithmetic-visual-index {
-            width: 18px !important;
-            height: 18px !important;
-            font-size: 8px !important;
-          }
-
-          .arithmetic-visual-expression {
-            font-size: 14px !important;
-            line-height: 1.1 !important;
-          }
-
-          .arithmetic-visual-model {
-            gap: 4px !important;
-            border-radius: 8px !important;
-            padding: 6px !important;
-          }
-
-          .arithmetic-visual-group {
-            border-radius: 7px !important;
-            min-height: 26px !important;
-            padding: 5px !important;
-          }
-
-          .arithmetic-visual-symbol {
-            font-size: 13px !important;
-            line-height: 1 !important;
-          }
-
-          .arithmetic-dot-grid {
-            grid-template-columns: repeat(10, 7px) !important;
-            gap: 3px !important;
-          }
-
-          .arithmetic-dot {
-            width: 7px !important;
-            height: 7px !important;
-          }
-
-          .arithmetic-visual-answer {
-            margin-top: 5px !important;
-            min-height: 25px !important;
-            border-radius: 7px !important;
-            padding: 5px 6px !important;
-            font-size: 10px !important;
           }
         }
       `}</style>

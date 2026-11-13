@@ -1,0 +1,8 @@
+.math-generator-actions { display: grid; gap: 8px; margin-top: 20px; }
+.math-generator-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #334155; font-size: 13px; font-weight: 700; }
+.math-generator-actions .math-generator-primary { border-color: #020617; background: #020617; color: white; }
+.math-generator-actions button:hover { background: #f8fafc; }
+.math-generator-actions .math-generator-primary:hover { background: #1e293b; }
+.math-generator-actions button:focus-visible { outline: 2px solid #0d9488; outline-offset: 2px; }
+.math-generator-actions button:disabled { opacity: .45; cursor: not-allowed; }
+@media print { .math-generator-actions { display: none !important; } }

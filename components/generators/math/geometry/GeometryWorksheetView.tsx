@@ -1,6 +1,7 @@
 // components/generators/math/geometry/GeometryWorksheetView.tsx
 "use client";
 
+import "./geometryWorksheet.css";
 import type { RefObject } from "react";
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
 import FigureMeta from "@/components/generators/math/geometry/FigureMeta";
@@ -81,7 +82,7 @@ export default function GeometryWorksheetView({
   return (
     <div
       ref={printRef}
-      className="print-root mx-auto max-w-[820px] bg-white text-slate-900 print:max-w-none"
+      className="geometry-worksheet print-root mx-auto max-w-[820px] bg-white text-slate-900 print:max-w-none"
     >
       <div className="print-card">
         <div className="print-brandbar">
@@ -195,8 +196,7 @@ export default function GeometryWorksheetView({
             </div>
 
             {worksheet.showAnswerKey ? (
-              <section className="mt-10 border-t-2 border-slate-300 pt-8">
-                <div className="print-page-break" />
+              <section className="geometry-answer-key mt-10 border-t-2 border-slate-300 pt-8">
                 <div className="mb-6">
                   <h3 className="text-2xl font-bold text-slate-900">
                     {t("answerKeyTitle")}

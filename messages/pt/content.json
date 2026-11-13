@@ -76,6 +76,7 @@
       "openDigital": "Abrir atividade",
       "openPreview": "Abrir pré-visualização",
       "subtypes": {
+        "number_line": "Reta numérica",
         "geometry": "Geometria",
         "arithmetic": "Operações",
         "algebra": "Álgebra",

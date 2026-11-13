@@ -1,6 +1,7 @@
 // app/[locale]/(app)/producer/math/[id]/print/page.tsx
 "use client";
 
+import { mathEditorHref } from "@/lib/math/editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -17,6 +18,8 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import NumberLineWorksheetView from "@/components/generators/math/number-line/NumberLineWorksheetView";
+import { sanitizeNumberLineWorksheet, type NumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import ComparisonWorksheetView from "@/components/generators/math/comparison/ComparisonWorksheetView";
 import { sanitizeComparisonWorksheet, type ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import { sanitizeLengthWorksheet, type LengthWorksheet } from "@/lib/math/length/worksheet";
@@ -28,6 +31,7 @@ import type {
 } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
+import { printMathWorksheet } from "@/lib/math/printWorksheet";
 import { logUsageEvent } from "@/lib/usageClient";
 
 function uidNow() {
@@ -63,6 +67,7 @@ export default function MathWorksheetPrintPage() {
   const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
   const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
   const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [numberLineWorksheet, setNumberLineWorksheet] = useState<NumberLineWorksheet | null>(null);
   const [comparisonWorksheet, setComparisonWorksheet] = useState<ComparisonWorksheet | null>(null);
   const [fractionWorksheet, setFractionWorksheet] = useState<FractionWorksheet | null>(null);
   const [arithmeticWorksheet, setArithmeticWorksheet] =
@@ -83,6 +88,7 @@ export default function MathWorksheetPrintPage() {
       setErr(null);
       setLoading(true);
       setLengthWorksheet(null);
+      setNumberLineWorksheet(null);
       setComparisonWorksheet(null);
       setEquationWorksheet(null);
       setPercentageWorksheet(null);
@@ -155,6 +161,12 @@ export default function MathWorksheetPrintPage() {
           setLesson(loadedLesson);
           setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
           setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const numberLine = sanitizeNumberLineWorksheet(loadedRecord.mathWorksheet);
+        if (numberLine) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setNumberLineWorksheet(numberLine); setLoading(false); return;
         }
         const comparison = sanitizeComparisonWorksheet(loadedRecord.mathWorksheet);
         if (comparison) {
@@ -233,7 +245,7 @@ export default function MathWorksheetPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
+    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
 
     let alive = true;
     const status =
@@ -255,6 +267,7 @@ export default function MathWorksheetPrintPage() {
         console.error("PDF quota check failed:", error);
         setErr(error instanceof Error ? error.message : t("errors.invalidWorksheet"));
         setLengthWorksheet(null);
+      setNumberLineWorksheet(null);
       setComparisonWorksheet(null);
       setEquationWorksheet(null);
       setPercentageWorksheet(null);
@@ -268,343 +281,9 @@ export default function MathWorksheetPrintPage() {
     return () => {
       alive = false;
     };
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, numberLineWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
 
-  const handlePrint = useCallback(() => {
-    if (fractionWorksheet || arithmeticWorksheet || lengthWorksheet || comparisonWorksheet || equationWorksheet || percentageWorksheet) {
-      window.print();
-      return;
-    }
-
-    const content = printRef.current;
-    if (!content || !worksheet) return;
-
-    const printWindow = window.open("", "_blank", "width=1000,height=1400");
-    if (!printWindow) return;
-
-    const styles = `
-      <style>
-        @page {
-          size: A4;
-          margin: 15mm;
-        }
-
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: #fff;
-          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-          color: #111827;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-
-        .print-root {
-          max-width: 980px;
-          margin: 0 auto;
-          padding: 0;
-        }
-
-        .print-card {
-          background: #fff;
-        }
-
-        .print-brandbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .print-brandleft {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-
-        .print-brandlogo {
-          width: 64px;
-          height: auto;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-
-        .print-brandtext {
-          min-width: 0;
-        }
-
-        .print-brandtitle {
-          font-size: 20px;
-          font-weight: 800;
-          line-height: 1.1;
-          color: #0f172a;
-        }
-
-        .print-brandsite {
-          margin-top: 2px;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .print-title-wrap {
-          margin-bottom: 24px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 16px;
-        }
-
-        .print-top-row {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .print-title {
-          font-size: 24px;
-          line-height: 1.2;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-instructions {
-          margin-top: 8px;
-          font-size: 14px;
-          color: #475569;
-        }
-
-        .print-badge {
-          flex-shrink: 0;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 8px 12px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-        }
-
-        .print-meta-grid {
-          margin-top: 20px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .print-meta-box {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-task-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .print-task {
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 20px;
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .print-task-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .print-task-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 9999px;
-          background: #0f172a;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .print-task-prompt {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-task-grid {
-          display: grid;
-          gap: 16px;
-        }
-
-        .print-figure-box {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          background: #f8fafc;
-          border-radius: 16px;
-          padding: 12px;
-          min-height: 150px;
-        }
-
-        .print-answer-box {
-          border: 1.5px dashed #94a3b8;
-          border-radius: 16px;
-          background: #fff;
-          padding: 12px;
-        }
-
-        .print-answer-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-        }
-
-        .print-formula,
-        .print-hint,
-        .print-answer-key,
-        .print-explanation {
-          margin-top: 12px;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-formula {
-          background: #eff6ff;
-          border: 1px solid #bfdbfe;
-        }
-
-        .print-hint {
-          background: #f5edcc;
-          border: 1px solid #e2d9b9;
-        }
-
-        .print-answer-key {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-        }
-
-        .print-explanation {
-          background: #f8fafc;
-          border: 1px solid #cbd5e1;
-        }
-
-        .print-strong {
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .print-pre {
-          white-space: pre-line;
-        }
-
-        .print-page-break {
-          break-before: page;
-          page-break-before: always;
-          height: 0;
-          margin: 0;
-          padding: 0;
-        }
-
-        .figure-meta-text {
-          font-size: 12px;
-          color: #475569;
-          text-align: center;
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        svg {
-          max-width: 100%;
-          height: auto;
-        }
-
-        @media (min-width: 640px) {
-          .print-top-row {
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: space-between;
-          }
-
-          .print-meta-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .print-task-grid {
-            grid-template-columns: 220px minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .print-brandbar {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        }
-      </style>
-    `;
-
-    printWindow.document.open();
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${worksheet.title}</title>
-          ${styles}
-        </head>
-        <body>
-          ${content.outerHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-
-    const images = Array.from(printWindow.document.images);
-    const doPrint = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
-
-    if (images.length === 0) {
-      doPrint();
-      return;
-    }
-
-    let loaded = 0;
-    const done = () => {
-      loaded += 1;
-      if (loaded >= images.length) {
-        doPrint();
-      }
-    };
-
-    images.forEach((img) => {
-      if (img.complete) {
-        done();
-      } else {
-        img.onload = done;
-        img.onerror = done;
-      }
-    });
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet]);
+  const handlePrint = () => { void printMathWorksheet(); };
 
   const tView = useCallback(
     (key: string) => {
@@ -662,7 +341,7 @@ export default function MathWorksheetPrintPage() {
     return <main style={{ padding: 20 }}>{t("loading")}</main>;
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
@@ -688,12 +367,14 @@ export default function MathWorksheetPrintPage() {
     );
   }
 
+  const editorHref = mathEditorHref(locale, lessonId, numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
+
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
           <Link
-            href={equationWorksheet ? `/${locale}/producer/math/equations` : percentageWorksheet ? `/${locale}/producer/math/percentage` : comparisonWorksheet ? `/${locale}/producer/math/comparison` : `/${locale}/producer/${lessonId}`}
+            href={editorHref}
             className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
           >
             {t("backToEditor")}
@@ -706,6 +387,8 @@ export default function MathWorksheetPrintPage() {
               <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={printRef} />
             ) : percentageWorksheet ? (
               <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={printRef} />
+            ) : numberLineWorksheet ? (
+              <NumberLineWorksheetView worksheet={numberLineWorksheet} printMode printRef={printRef} />
             ) : comparisonWorksheet ? (
               <ComparisonWorksheetView worksheet={comparisonWorksheet} printMode printRef={printRef} />
             ) : lengthWorksheet ? (
@@ -730,7 +413,7 @@ export default function MathWorksheetPrintPage() {
             ) : worksheet ? (
               <GeometryWorksheetView
                 worksheet={worksheet}
-                answerSpace="medium"
+                answerSpace={worksheet.answerSpace ?? "medium"}
                 includeHints={true}
                 t={tView}
                 tBrand={tBrand}
@@ -761,7 +444,7 @@ export default function MathWorksheetPrintPage() {
       <style jsx global>{`
         @page {
           size: A4;
-          margin: 14mm;
+          margin: 12mm;
         }
 
         .print-root,
@@ -803,263 +486,6 @@ export default function MathWorksheetPrintPage() {
 
         }
 
-        .print-root {
-          max-width: 980px;
-          margin: 0 auto;
-          padding: 0;
-        }
-
-        .print-card {
-          background: #fff;
-        }
-
-        .print-brandbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .print-brandleft {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-
-        .print-brandlogo {
-          width: 64px;
-          height: auto;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-
-        .print-brandtext {
-          min-width: 0;
-        }
-
-        .print-brandtitle {
-          font-size: 20px;
-          font-weight: 800;
-          line-height: 1.1;
-          color: #0f172a;
-        }
-
-        .print-brandsite {
-          margin-top: 2px;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .print-title-wrap {
-          margin-bottom: 24px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 16px;
-        }
-
-        .print-top-row {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .print-title {
-          font-size: 24px;
-          line-height: 1.2;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-instructions {
-          margin-top: 8px;
-          font-size: 14px;
-          color: #475569;
-        }
-
-        .print-badge {
-          flex-shrink: 0;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 8px 12px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-        }
-
-        .print-meta-grid {
-          margin-top: 20px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .print-meta-box {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-task-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .print-task {
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 20px;
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .print-task-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .print-task-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 9999px;
-          background: #0f172a;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .print-task-prompt {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-task-grid {
-          display: grid;
-          gap: 16px;
-        }
-
-        .print-figure-box {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          background: #f8fafc;
-          border-radius: 16px;
-          padding: 12px;
-          min-height: 150px;
-        }
-
-        .print-answer-box {
-          border: 1.5px dashed #94a3b8;
-          border-radius: 16px;
-          background: #fff;
-          padding: 12px;
-        }
-
-        .print-answer-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-        }
-
-        .print-formula,
-        .print-hint,
-        .print-answer-key,
-        .print-explanation {
-          margin-top: 12px;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-formula {
-          background: #eff6ff;
-          border: 1px solid #bfdbfe;
-        }
-
-        .print-hint {
-          background: #fffbeb;
-          border: 1px solid #eddb9f;
-        }
-
-        .print-answer-key {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-        }
-
-        .print-explanation {
-          background: #f8fafc;
-          border: 1px solid #cbd5e1;
-        }
-
-        .print-strong {
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .print-pre {
-          white-space: pre-line;
-        }
-
-        .print-page-break {
-          break-before: page;
-          page-break-before: always;
-          height: 0;
-          margin: 0;
-          padding: 0;
-        }
-
-        .figure-meta-text {
-          font-size: 12px;
-          color: #475569;
-          text-align: center;
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        svg {
-          max-width: 100%;
-          height: auto;
-        }
-
-        @media (min-width: 640px) {
-          .print-top-row {
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: space-between;
-          }
-
-          .print-meta-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .print-task-grid {
-            grid-template-columns: 220px minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .print-brandbar {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        }
       `}</style>
     </main>
   );

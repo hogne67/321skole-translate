@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { Printer, Save, Share2 } from "lucide-react";
-import { auth } from "@/lib/firebase";
 import MathSpacePicker from "../MathSpacePicker";
+import MathGeneratorActions from "../MathGeneratorActions";
+import { useMathWorksheetSave } from "../useMathWorksheetSave";
+import { useSavedMathWorksheet } from "../useSavedMathWorksheet";
 import { DEFAULT_MEASUREMENT_SETTINGS, getMeasurementCopy, measurementPairs, normalizeMeasurementSettings, sanitizeMeasurementWorksheet, type MeasurementSettings, type MeasurementWorksheet } from "@/lib/math/measurement/worksheet";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import LengthWorksheetView from "./LengthWorksheetView";
@@ -19,14 +20,22 @@ export default function MeasurementGenerator() {
   const [worksheet, setWorksheet] = useState<MeasurementWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [language, setLanguage] = useState(locale);
+  const persistence = useMathWorksheetSave({ worksheet: worksheet ? { ...worksheet, showAnswerKey } : null, endpoint: "/api/producer/save-measurement-worksheet", language: locale });
+  const { savedId, sharing, setSharing, success } = persistence;
+  const restored = useSavedMathWorksheet(locale, (data, id) => {
+    const result = sanitizeMeasurementWorksheet(data.measurementWorksheet ?? data.lengthWorksheet ?? data.mathWorksheet);
+    if (!result) return false;
+    setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+
+    persistence.rememberSaved(id, result);
+    return true;
+  });
   function change(next: Partial<MeasurementSettings>) { setSettings(current => ({ ...current, ...next })); }
   function changeCategory(category: MeasurementCategory) {
     setSettings(current => ({ ...current, category, units: getMeasurementDefaults(category).units }));
-    setWorksheet(null); setSavedId(null); setError(""); setSuccess("");
+    setWorksheet(null); setError("");
   }
   let validation = "";
   let limited = false;
@@ -40,32 +49,13 @@ export default function MeasurementGenerator() {
     validation = message === "INVALID_UNITS" ? copy.invalidUnits : message === "INVALID_COUNT" ? copy.invalidCount : copy.invalidRange;
   }
   async function generate() {
-    setBusy(true); setError(""); setSuccess("");
+    setBusy(true); setError("");
     try {
-      const response = await fetch("/api/generate-measurement-worksheet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settings, language: locale, showAnswerKey }) });
+      const response = await fetch("/api/generate-measurement-worksheet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settings, language, showAnswerKey }) });
       const data = await response.json();
       const result = sanitizeMeasurementWorksheet(data.worksheet);
       if (!response.ok || !result) throw new Error(copy.failed);
-      setWorksheet(result); setSavedId(null);
-    } catch (error) { setError(error instanceof Error ? error.message : copy.failed); }
-    finally { setBusy(false); }
-  }
-  async function save(share = false) {
-    if (!worksheet) return;
-    setBusy(true); setError(""); setSuccess("");
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error(copy.login);
-      let id = savedId;
-      if (!id) {
-        const response = await fetch("/api/producer/save-measurement-worksheet", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ worksheet: { ...worksheet, showAnswerKey } }) });
-        const data = await response.json();
-        if (!response.ok || !data.ok || typeof data.id !== "string") throw new Error(copy.failed);
-        id = data.id;
-        setSavedId(id);
-      }
-      setSuccess(copy.saved);
-      if (share) setSharing(true);
+      setWorksheet(result);
     } catch (error) { setError(error instanceof Error ? error.message : copy.failed); }
     finally { setBusy(false); }
   }
@@ -76,16 +66,13 @@ export default function MeasurementGenerator() {
       <label className="length-field">{copy.count}<input type="number" min={1} max={100} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => change({ taskCount: e.target.valueAsNumber })} /></label>
       <fieldset><legend>{copy.range}</legend><div className="length-range">{(["minimum", "maximum"] as const).map(key => <label key={key}>{copy[key]}<input type="number" min={0} max={100000} step={settings.allowDecimals ? "0.01" : "1"} value={Number.isNaN(settings[key]) ? "" : settings[key]} onChange={e => change({ [key]: e.target.valueAsNumber })} /></label>)}</div></fieldset>
       <label className="length-toggle"><input type="checkbox" checked={settings.allowDecimals} onChange={e => change({ allowDecimals: e.target.checked })} />{copy.decimals}</label>
-      <label className="length-toggle"><input type="checkbox" checked={showAnswerKey} onChange={e => { setShowAnswerKey(e.target.checked); setSavedId(null); }} />{copy.key}</label>
+      <label className="length-toggle"><input type="checkbox" checked={showAnswerKey} onChange={e => { setShowAnswerKey(e.target.checked); }} />{copy.key}</label>
       {validation ? <p className="length-error" role="status">{validation}</p> : limited ? <p>{copy.limitedPairs}</p> : null}
-      <div className="length-actions"><button type="button" className="length-primary" disabled={busy || !!validation} onClick={() => { void generate(); }}>{busy ? copy.busy : copy.generate}</button>
-        <button type="button" disabled={busy || !worksheet} onClick={() => { void save(); }}><Save size={15} aria-hidden="true" />{copy.save}</button>
-        <button type="button" disabled={busy || !worksheet} onClick={() => { void save(true); }}><Share2 size={15} aria-hidden="true" />{copy.share}</button>
-        <button type="button" disabled={busy || !worksheet} onClick={() => window.print()}><Printer size={15} aria-hidden="true" />{copy.print}</button>
-      </div>
-      {error ? <p className="length-error" role="alert">{error}</p> : null}{success ? <p className="length-success" role="status">{success}</p> : null}
+      <MathGeneratorActions language={locale} generating={busy} saving={persistence.saving} loading={restored.loading} canGenerate={!validation} hasWorksheet={!!worksheet}
+        onGenerate={() => { void generate(); }} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }} />
+      {error || persistence.error || restored.error ? <p className="length-error" role="alert">{error || persistence.error || restored.error}</p> : null}{success ? <p className="length-success" role="status">{success}</p> : null}
       {savedId ? <Link href={`/${locale}/content`}>{copy.openContent}</Link> : null}
     </aside>
     <section className="length-preview" aria-label={copy.worksheet}>{worksheet ? <LengthWorksheetView worksheet={{ ...worksheet, showAnswerKey }} printMode /> : <div className="length-empty"><h2>{copy.empty}</h2></div>}</section>
-  </div>{sharing && savedId && worksheet ? <MathSpacePicker worksheetId={savedId} title={worksheet.title} language={locale} onClose={() => setSharing(false)} onShared={() => { setSharing(false); setSuccess(copy.shared); }} /> : null}</main>;
+  </div>{sharing && savedId && worksheet ? <MathSpacePicker worksheetId={savedId} title={worksheet.title} language={worksheet.language} onClose={() => setSharing(false)} onShared={persistence.shared} /> : null}</main>;
 }
