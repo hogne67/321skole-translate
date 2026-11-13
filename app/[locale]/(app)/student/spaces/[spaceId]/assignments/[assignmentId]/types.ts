@@ -6,6 +6,7 @@ import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import type { LengthWorksheet } from "@/lib/math/length/worksheet";
 import type { PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import type { EquationWorksheet } from "@/lib/math/equations/worksheet";
+import type { StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import type { ClockWorksheet } from "@/lib/math/clock/worksheet";
 import type { NumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import type { ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
@@ -33,7 +34,7 @@ export type Lesson = {
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -75,7 +76,7 @@ export type AssignmentDoc = {
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
 
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -140,7 +141,7 @@ export type TeacherFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "clock" | "number_line";
+    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "statistics" | "clock" | "number_line";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;

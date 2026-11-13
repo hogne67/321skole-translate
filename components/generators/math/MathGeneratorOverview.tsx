@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getMathGeneratorCopy, MATH_GENERATORS } from "@/lib/math/generators";
 
 function TaskSample({ id }: { id: typeof MATH_GENERATORS[number]["id"] }) {
+  if (id === "statistics") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M15 8V67H166" fill="none" stroke="#334155" strokeWidth="2" /><path d="M35 67V38H60V67M80 67V16H105V67M125 67V29H150V67" fill="#ccfbf1" stroke="#0f766e" strokeWidth="2" /></svg>;
   if (id === "clock") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><circle cx="52" cy="40" r="32" fill="#ecfdf5" stroke="#0f766e" strokeWidth="2" /><path d="M52 16V20M76 40H72M52 64V60M28 40H32M52 40L42 30M52 40V19" fill="none" stroke="#334155" strokeWidth="3" strokeLinecap="round" /><circle cx="52" cy="40" r="3" fill="#334155" /><text x="98" y="47" fontSize="22" fontWeight="600" fill="#0f766e">10:00</text></svg>;
   if (id === "numberLine") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M10 44H170M20 35V53M55 35V53M90 35V53M125 35V53M160 35V53" stroke="#334155" strokeWidth="2" /><path d="M90 38L84 25H96Z" fill="#0f766e" /><text x="20" y="70" textAnchor="middle" fontSize="15">0</text><text x="160" y="70" textAnchor="middle" fontSize="15">10</text><text x="90" y="20" textAnchor="middle" fontSize="15" fill="#0f766e">A</text></svg>;
   if (id === "equations") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-xl font-bold text-slate-900"><span>2x + 3 = 11</span></div>;

@@ -2,6 +2,7 @@ import { safeTasksArray } from "./helpers";
 import { sanitizeLengthWorksheet } from "@/lib/math/length/worksheet";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
 import { sanitizeNumberLineWorksheet } from "@/lib/math/number-line/worksheet";
 import { sanitizeComparisonWorksheet } from "@/lib/math/comparison/worksheet";
@@ -212,6 +213,8 @@ export function getAssignmentDerivedState(
     const percentageWorksheet = sanitizePercentageWorksheet(lesson?.mathWorksheet);
     const isEquationAssignment = !!equationWorksheet || [lesson?.contentType, assignment?.contentType].includes("equations_worksheet");
     const isPercentageAssignment = !!percentageWorksheet || [lesson?.contentType, assignment?.contentType].includes("percentage_worksheet");
+    const statisticsWorksheet = sanitizeStatisticsWorksheet(lesson?.mathWorksheet);
+    const isStatisticsAssignment = !!statisticsWorksheet || [lesson?.contentType, assignment?.contentType].includes("statistics_worksheet");
     const clockWorksheet = sanitizeClockWorksheet(lesson?.mathWorksheet);
     const isClockAssignment = !!clockWorksheet || [lesson?.contentType, assignment?.contentType].includes("clock_worksheet");
     const numberLineWorksheet = sanitizeNumberLineWorksheet(lesson?.mathWorksheet);
@@ -220,6 +223,8 @@ export function getAssignmentDerivedState(
     const isComparisonAssignment = !!comparisonWorksheet || [lesson?.contentType, assignment?.contentType].includes("comparison_worksheet");
     const isLengthAssignment = !!lengthWorksheet || [lesson?.contentType, assignment?.contentType].some(type => type === "length_worksheet" || type === "measurement_worksheet");
     return {
+        statisticsWorksheet,
+        isStatisticsAssignment,
         clockWorksheet,
         isClockAssignment,
         numberLineWorksheet,

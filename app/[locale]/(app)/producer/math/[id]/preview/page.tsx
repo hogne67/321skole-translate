@@ -16,6 +16,8 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import StatisticsWorksheetView from "@/components/generators/math/statistics/StatisticsWorksheetView";
+import { sanitizeStatisticsWorksheet, type StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import ClockWorksheetView from "@/components/generators/math/clock/ClockWorksheetView";
 import { sanitizeClockWorksheet, type ClockWorksheet } from "@/lib/math/clock/worksheet";
 import NumberLineWorksheetView from "@/components/generators/math/number-line/NumberLineWorksheetView";
@@ -99,6 +101,7 @@ export default function MathWorksheetPreviewPage() {
   const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
   const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
   const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [statisticsWorksheet, setStatisticsWorksheet] = useState<StatisticsWorksheet | null>(null);
   const [clockWorksheet, setClockWorksheet] = useState<ClockWorksheet | null>(null);
   const [numberLineWorksheet, setNumberLineWorksheet] = useState<NumberLineWorksheet | null>(null);
   const [comparisonWorksheet, setComparisonWorksheet] = useState<ComparisonWorksheet | null>(null);
@@ -124,6 +127,7 @@ export default function MathWorksheetPreviewPage() {
       setErr(null);
       setLoading(true);
       setLengthWorksheet(null);
+      setStatisticsWorksheet(null);
       setClockWorksheet(null);
       setNumberLineWorksheet(null);
       setComparisonWorksheet(null);
@@ -233,6 +237,12 @@ export default function MathWorksheetPreviewPage() {
           setLesson(loadedLesson);
           setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
           setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const statistics = sanitizeStatisticsWorksheet(loadedRecord.mathWorksheet);
+        if (statistics) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setStatisticsWorksheet(statistics); setLoading(false); return;
         }
         const clock = sanitizeClockWorksheet(loadedRecord.mathWorksheet);
         if (clock) {
@@ -412,7 +422,7 @@ export default function MathWorksheetPreviewPage() {
     [tPrint]
   );
 
-  const editorHref = mathEditorHref(locale, lessonId, clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
+  const editorHref = mathEditorHref(locale, lessonId, statisticsWorksheet ? "statistics" : clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
 
   if (loading) {
     return (
@@ -422,7 +432,7 @@ export default function MathWorksheetPreviewPage() {
     );
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main className="mx-auto min-h-screen max-w-4xl bg-slate-50 px-4 py-8">
         <h1 className="text-2xl font-black text-slate-950">
@@ -459,6 +469,7 @@ export default function MathWorksheetPreviewPage() {
                   arithmeticWorksheet?.title ||
                   lengthWorksheet?.title ||
                   equationWorksheet?.title || percentageWorksheet?.title ||
+                  statisticsWorksheet?.title ||
                   clockWorksheet?.title ||
                   numberLineWorksheet?.title ||
                   comparisonWorksheet?.title ||
@@ -483,6 +494,8 @@ export default function MathWorksheetPreviewPage() {
               <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={previewRef} />
             ) : percentageWorksheet ? (
               <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={previewRef} />
+            ) : statisticsWorksheet ? (
+              <StatisticsWorksheetView worksheet={statisticsWorksheet} printMode printRef={previewRef} />
             ) : clockWorksheet ? (
               <ClockWorksheetView worksheet={clockWorksheet} printMode printRef={previewRef} />
             ) : numberLineWorksheet ? (

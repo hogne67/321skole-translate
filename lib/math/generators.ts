@@ -5,6 +5,7 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "statistics", path: "statistics" },
   { id: "clock", path: "clock" },
   { id: "numberLine", path: "number-line" },
   { id: "percentage", path: "percentage" },
@@ -12,6 +13,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  statistics: "Statistikk og diagram", statisticsDescription: "Les og lag diagrammer og frekvenstabeller. Finn sentralmål og variasjonsbredde.",
   clock: "Klokka og tid", clockDescription: "Les klokka, still viserne og finn tidsforskjeller.",
   numberLine: "Tallinje", numberLineDescription: "Les av, finn manglende tall og plasser heltall, desimaltall og brøk.",
   equations: "Ligninger", equationsDescription: "Finn x steg for steg, med brøk, parenteser og x på begge sider.",
@@ -26,6 +28,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  statistics: "Statistics and charts", statisticsDescription: "Read and create charts and frequency tables. Find averages and range.",
   clock: "Clocks and time", clockDescription: "Read clocks, set the hands and find elapsed time.",
   numberLine: "Number line", numberLineDescription: "Read, find missing numbers and place integers, decimals and fractions.",
   equations: "Equations", equationsDescription: "Find x step by step, with fractions, parentheses and x on both sides.",
@@ -39,6 +42,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  statistics: "Estatística e gráficos", statisticsDescription: "Ler e criar gráficos e tabelas de frequências. Calcular medidas de localização e amplitude.",
   clock: "Relógios e tempo", clockDescription: "Ler relógios, acertar os ponteiros e calcular intervalos de tempo.",
   numberLine: "Reta numérica", numberLineDescription: "Ler, encontrar números em falta e colocar inteiros, decimais e frações.",
   equations: "Equações", equationsDescription: "Calcula x passo a passo, com frações, parênteses e x nos dois membros.",

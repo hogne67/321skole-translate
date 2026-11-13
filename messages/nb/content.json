@@ -76,6 +76,7 @@
       "openDigital": "Åpne oppgave",
       "openPreview": "Åpne preview",
       "subtypes": {
+      "statistics": "Statistikk og diagram",
       "clock": "Klokka og tid",
         "number_line": "Tallinje",
         "geometry": "Geometri",
