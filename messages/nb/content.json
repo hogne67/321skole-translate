@@ -76,6 +76,7 @@
       "openDigital": "Åpne oppgave",
       "openPreview": "Åpne preview",
       "subtypes": {
+      "coordinates": "Koordinatsystem og speiling",
       "statistics": "Statistikk og diagram",
       "clock": "Klokka og tid",
         "number_line": "Tallinje",

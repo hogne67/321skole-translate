@@ -8,12 +8,12 @@ import TeacherFeedbackBox from "@/app/[locale]/(app)/student/spaces/[spaceId]/as
 import { normalizeAudioLanguage } from "@/lib/audio/language";
 import { LANGUAGES } from "@/lib/languages";
 
-test("math overview links to all eleven generators in every locale", () => {
+test("math overview links to all twelve generators in every locale", () => {
   for (const locale of ["nb", "en", "pt"]) {
     const $ = load(renderToStaticMarkup(<MathGeneratorOverview locale={locale} />));
     assert.equal($("h1").length, 1);
-    assert.equal($("a").length, 11);
-    for (const path of ["arithmetic", "geometry?new=1", "fractions", "fraction-calculation", "measurement", "comparison", "percentage", "equations", "number-line", "clock", "statistics"]) assert.equal($(`a[href='/${locale}/producer/math/${path}']`).length, 1);
+    assert.equal($("a").length, 12);
+    for (const path of ["arithmetic", "geometry?new=1", "fractions", "fraction-calculation", "measurement", "comparison", "percentage", "equations", "number-line", "clock", "statistics", "coordinates"]) assert.equal($(`a[href='/${locale}/producer/math/${path}']`).length, 1);
   }
 });
 test("anonymous overview preserves login destinations", () => {
