@@ -61,9 +61,11 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import FactorizationWorksheetView from "@/components/generators/math/factorization/FactorizationWorksheetView";
 import PlaceValueWorksheetView from "@/components/generators/math/place-value/PlaceValueWorksheetView";
 import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
+import { sanitizeFactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
@@ -529,9 +531,11 @@ function Inner() {
   const isEquationAssignment = !!equationWorksheet || assignment?.contentType === "equations_worksheet";
   const isPercentageAssignment = !!percentageWorksheet || assignment?.contentType === "percentage_worksheet";
 
+  const factorizationWorksheet = useMemo(() => sanitizeFactorizationWorksheet(lesson?.mathWorksheet) ?? sanitizeFactorizationWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const placeValueWorksheet = useMemo(() => sanitizePlaceValueWorksheet(lesson?.mathWorksheet) ?? sanitizePlaceValueWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const wordProblemsWorksheet = useMemo(() => sanitizeWordProblemsWorksheet(lesson?.mathWorksheet) ?? sanitizeWordProblemsWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const coordinatesWorksheet = useMemo(() => sanitizeCoordinatesWorksheet(lesson?.mathWorksheet) ?? sanitizeCoordinatesWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const isFactorizationAssignment = !!factorizationWorksheet || assignment?.contentType === "factorization_worksheet";
   const isPlaceValueAssignment = !!placeValueWorksheet || assignment?.contentType === "place_value_worksheet";
   const isWordProblemsAssignment = !!wordProblemsWorksheet || assignment?.contentType === "word_problems_worksheet";
   const isCoordinatesAssignment = !!coordinatesWorksheet || assignment?.contentType === "coordinates_worksheet";
@@ -1496,7 +1500,7 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
@@ -1526,7 +1530,7 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
+            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}
@@ -1542,7 +1546,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1572,6 +1576,8 @@ function Inner() {
                   <EquationWorksheetView worksheet={equationWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isPercentageAssignment && percentageWorksheet ? (
                   <PercentageWorksheetView worksheet={percentageWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isFactorizationAssignment && factorizationWorksheet ? (
+                  <FactorizationWorksheetView worksheet={factorizationWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isPlaceValueAssignment && placeValueWorksheet ? (
                   <PlaceValueWorksheetView worksheet={placeValueWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isWordProblemsAssignment && wordProblemsWorksheet ? (

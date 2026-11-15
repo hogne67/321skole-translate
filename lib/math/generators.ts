@@ -5,6 +5,7 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "factorization", path: "factorization" },
   { id: "placeValue", path: "place-value" },
   { id: "wordProblems", path: "word-problems" },
   { id: "coordinates", path: "coordinates" },
@@ -16,6 +17,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  factorization: "Faktorisering", factorizationDescription: "Finn faktorpar og manglende faktorer, primtallsfaktoriser og bygg faktortrær.",
   placeValue: "Tallforståelse og utvidet form", placeValueDescription: "Del opp og sett sammen tall, finn sifferverdier og bruk plassverditabell.",
   wordProblems: "Tekstoppgaver", wordProblemsDescription: "De fire regneartene i ett eller to steg, med hverdagstekster og plass til utregning.",
   coordinates: "Koordinatsystem og speiling", coordinatesDescription: "Les og plasser punkter, tegn figurer og speil om x- eller y-aksen.",
@@ -34,6 +36,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  factorization: "Factorisation", factorizationDescription: "Find factor pairs and missing factors, prime-factorise and build factor trees.",
   placeValue: "Place value and expanded form", placeValueDescription: "Partition and compose numbers, find digit values and use a place-value table.",
   wordProblems: "Word problems", wordProblemsDescription: "Everyday stories using the four operations in one or two steps, with space for working.",
   coordinates: "Coordinates and reflection", coordinatesDescription: "Read and plot points, draw shapes and reflect in the x- or y-axis.",
@@ -51,6 +54,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  factorization: "Fatorização", factorizationDescription: "Descobrir pares de fatores e fatores em falta, decompor em primos e construir árvores de fatores.",
   placeValue: "Valor posicional e forma decomposta", placeValueDescription: "Decompor e compor números, descobrir valores de algarismos e usar um quadro de valor posicional.",
   wordProblems: "Problemas matemáticos", wordProblemsDescription: "As quatro operações num ou em dois passos, com situações do quotidiano e espaço para cálculos.",
   coordinates: "Coordenadas e reflexão", coordinatesDescription: "Ler e marcar pontos, desenhar figuras e refletir nos eixos x ou y.",

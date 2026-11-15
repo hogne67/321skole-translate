@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getMathGeneratorCopy, MATH_GENERATORS } from "@/lib/math/generators";
 
 function TaskSample({ id }: { id: typeof MATH_GENERATORS[number]["id"] }) {
+  if (id === "factorization") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-lg font-bold text-slate-900"><span>36 = 2 × 2 × 3 × 3</span></div>;
   if (id === "placeValue") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-lg font-bold text-slate-900"><span>342 = 300 + 40 + 2</span></div>;
   if (id === "wordProblems") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><rect x="12" y="8" width="145" height="65" rx="5" fill="#f0fdfa" stroke="#0f766e" /><path d="M26 24H140M26 35H120M26 46H88" stroke="#94a3b8" strokeWidth="3" /><text x="27" y="65" fontSize="16" fill="#0f766e">+ − × ÷</text></svg>;
   if (id === "coordinates") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M40 5V75M10 40H165M65 10V72M90 10V72M115 10V72M140 10V72M10 20H165M10 60H165" fill="none" stroke="#cbd5e1" /><path d="M40 5V75M10 40H165" fill="none" stroke="#334155" strokeWidth="2" /><circle cx="90" cy="20" r="4" fill="#0f766e" /><circle cx="90" cy="60" r="4" fill="white" stroke="#0f766e" strokeWidth="2" /><text x="99" y="16" fontSize="15" fill="#0f766e">A</text></svg>;

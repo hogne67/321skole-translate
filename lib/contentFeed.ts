@@ -299,6 +299,7 @@ function deriveMathMeta(d: unknown): string[] {
     out.push("fractions");
   }
   if (joined.includes("percent")) out.push("percent");
+  if (joined.includes("factorization")) out.push("factorization");
   if (joined.includes("place_value")) out.push("place_value");
   if (joined.includes("word_problems")) out.push("word_problems");
   if (joined.includes("coordinates")) out.push("coordinates");

@@ -1,6 +1,7 @@
 import { normalizeAudioLanguage } from "@/lib/audio/language";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeFactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
@@ -92,7 +93,7 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeFactorizationWorksheet(a.mathWorksheet) || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentToLesson(a: AssignmentDoc): Lesson {

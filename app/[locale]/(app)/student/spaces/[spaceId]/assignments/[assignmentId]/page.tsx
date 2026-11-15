@@ -33,9 +33,11 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { gradePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { gradeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import FactorizationWorksheetView from "@/components/generators/math/factorization/FactorizationWorksheetView";
 import PlaceValueWorksheetView from "@/components/generators/math/place-value/PlaceValueWorksheetView";
 import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
+import { gradeFactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import { gradePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { gradeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { gradeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
@@ -458,12 +460,14 @@ export default function StudentAssignmentPage() {
     percentageWorksheet,
     isEquationAssignment,
     isPercentageAssignment,
+    factorizationWorksheet,
     placeValueWorksheet,
     wordProblemsWorksheet,
     coordinatesWorksheet,
     statisticsWorksheet,
     clockWorksheet,
     numberLineWorksheet,
+    isFactorizationAssignment,
     isPlaceValueAssignment,
     isWordProblemsAssignment,
     isCoordinatesAssignment,
@@ -1394,6 +1398,7 @@ export default function StudentAssignmentPage() {
         const isLengthDraft = isLengthAssignment && !!lengthWorksheet;
         const isEquationDraft = isEquationAssignment && !!equationWorksheet;
         const isPercentageDraft = isPercentageAssignment && !!percentageWorksheet;
+        const isFactorizationDraft = isFactorizationAssignment && !!factorizationWorksheet;
         const isPlaceValueDraft = isPlaceValueAssignment && !!placeValueWorksheet;
         const isWordProblemsDraft = isWordProblemsAssignment && !!wordProblemsWorksheet;
         const isCoordinatesDraft = isCoordinatesAssignment && !!coordinatesWorksheet;
@@ -1430,22 +1435,22 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: currentDraftStatus,
 
-          taskType: isPlaceValueDraft ? "math_place_value" : isWordProblemsDraft ? "math_word_problems" : isCoordinatesDraft ? "math_coordinates" : isStatisticsDraft ? "math_statistics" : isClockDraft ? "math_clock" : isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
+          taskType: isFactorizationDraft ? "math_factorization" : isPlaceValueDraft ? "math_place_value" : isWordProblemsDraft ? "math_word_problems" : isCoordinatesDraft ? "math_coordinates" : isStatisticsDraft ? "math_statistics" : isClockDraft ? "math_clock" : isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : null,
-          lessonType: isPlaceValueDraft ? "math_place_value" : isWordProblemsDraft ? "math_word_problems" : isCoordinatesDraft ? "math_coordinates" : isStatisticsDraft ? "math_statistics" : isClockDraft ? "math_clock" : isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
+          lessonType: isFactorizationDraft ? "math_factorization" : isPlaceValueDraft ? "math_place_value" : isWordProblemsDraft ? "math_word_problems" : isCoordinatesDraft ? "math_coordinates" : isStatisticsDraft ? "math_statistics" : isClockDraft ? "math_clock" : isNumberLineDraft ? "math_number_line" : isEquationDraft ? "math_equations" : isPercentageDraft ? "math_percentage" : isComparisonDraft ? "math_comparison" : isLengthDraft ? "math_measurement" : isGeometryDraft
             ? "math_geometry"
             : isArithmeticDraft
               ? "math_arithmetic"
               : lesson?.lessonType ?? null,
-          contentType: isPlaceValueDraft ? "place_value_worksheet" : isWordProblemsDraft ? "word_problems_worksheet" : isCoordinatesDraft ? "coordinates_worksheet" : isStatisticsDraft ? "statistics_worksheet" : isClockDraft ? "clock_worksheet" : isNumberLineDraft ? "number_line_worksheet" : isEquationDraft ? "equations_worksheet" : isPercentageDraft ? "percentage_worksheet" : isComparisonDraft ? "comparison_worksheet" : isLengthDraft ? "measurement_worksheet" : isGeometryDraft
+          contentType: isFactorizationDraft ? "factorization_worksheet" : isPlaceValueDraft ? "place_value_worksheet" : isWordProblemsDraft ? "word_problems_worksheet" : isCoordinatesDraft ? "coordinates_worksheet" : isStatisticsDraft ? "statistics_worksheet" : isClockDraft ? "clock_worksheet" : isNumberLineDraft ? "number_line_worksheet" : isEquationDraft ? "equations_worksheet" : isPercentageDraft ? "percentage_worksheet" : isComparisonDraft ? "comparison_worksheet" : isLengthDraft ? "measurement_worksheet" : isGeometryDraft
             ? null
             : isArithmeticDraft
               ? "arithmetic_worksheet"
               : lesson?.contentType ?? null,
-          mathWorksheet: isPlaceValueDraft ? placeValueWorksheet : isWordProblemsDraft ? wordProblemsWorksheet : isCoordinatesDraft ? coordinatesWorksheet : isStatisticsDraft ? statisticsWorksheet : isClockDraft ? clockWorksheet : isNumberLineDraft ? numberLineWorksheet : isEquationDraft ? equationWorksheet : isPercentageDraft ? percentageWorksheet : isComparisonDraft ? comparisonWorksheet : isGeometryDraft ? geometryWorksheet : null,
+          mathWorksheet: isFactorizationDraft ? factorizationWorksheet : isPlaceValueDraft ? placeValueWorksheet : isWordProblemsDraft ? wordProblemsWorksheet : isCoordinatesDraft ? coordinatesWorksheet : isStatisticsDraft ? statisticsWorksheet : isClockDraft ? clockWorksheet : isNumberLineDraft ? numberLineWorksheet : isEquationDraft ? equationWorksheet : isPercentageDraft ? percentageWorksheet : isComparisonDraft ? comparisonWorksheet : isGeometryDraft ? geometryWorksheet : null,
           arithmeticWorksheet: isArithmeticDraft ? arithmeticWorksheet : null,
           measurementWorksheet: isLengthDraft ? lengthWorksheet : null,
           mathType: isArithmeticDraft ? "arithmetic" : lesson?.mathType ?? null,
@@ -1514,12 +1519,14 @@ export default function StudentAssignmentPage() {
       isPercentageAssignment,
       equationWorksheet,
       percentageWorksheet,
+      isFactorizationAssignment,
       isPlaceValueAssignment,
       isWordProblemsAssignment,
       isCoordinatesAssignment,
       isStatisticsAssignment,
       isClockAssignment,
       isNumberLineAssignment,
+      factorizationWorksheet,
       placeValueWorksheet,
       wordProblemsWorksheet,
       coordinatesWorksheet,
@@ -1681,6 +1688,9 @@ export default function StudentAssignmentPage() {
         if (isPercentageAssignment && percentageWorksheet) {
           auto = gradePercentageWorksheet(percentageWorksheet, finalAnswers);
         }
+        if (isFactorizationAssignment && factorizationWorksheet) {
+          auto = gradeFactorizationWorksheet(factorizationWorksheet, finalAnswers);
+        }
         if (isPlaceValueAssignment && placeValueWorksheet) {
           auto = gradePlaceValueWorksheet(placeValueWorksheet, finalAnswers);
         }
@@ -1748,7 +1758,7 @@ export default function StudentAssignmentPage() {
           isAnon,
           status: "submitted",
 
-          taskType: isPlaceValueAssignment ? "math_place_value" : isWordProblemsAssignment ? "math_word_problems" : isCoordinatesAssignment ? "math_coordinates" : isStatisticsAssignment ? "math_statistics" : isClockAssignment ? "math_clock" : isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
+          taskType: isFactorizationAssignment ? "math_factorization" : isPlaceValueAssignment ? "math_place_value" : isWordProblemsAssignment ? "math_word_problems" : isCoordinatesAssignment ? "math_coordinates" : isStatisticsAssignment ? "math_statistics" : isClockAssignment ? "math_clock" : isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1756,7 +1766,7 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : null,
 
-          lessonType: isPlaceValueAssignment ? "math_place_value" : isWordProblemsAssignment ? "math_word_problems" : isCoordinatesAssignment ? "math_coordinates" : isStatisticsAssignment ? "math_statistics" : isClockAssignment ? "math_clock" : isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
+          lessonType: isFactorizationAssignment ? "math_factorization" : isPlaceValueAssignment ? "math_place_value" : isWordProblemsAssignment ? "math_word_problems" : isCoordinatesAssignment ? "math_coordinates" : isStatisticsAssignment ? "math_statistics" : isClockAssignment ? "math_clock" : isNumberLineAssignment ? "math_number_line" : isEquationAssignment ? "math_equations" : isPercentageAssignment ? "math_percentage" : isComparisonAssignment ? "math_comparison" : isLengthAssignment ? "math_measurement" : isGeometryAssignment
             ? "math_geometry"
             : isFractionAssignment
               ? "math_fractions"
@@ -1764,7 +1774,7 @@ export default function StudentAssignmentPage() {
                 ? "math_arithmetic"
                 : lesson?.lessonType ?? null,
 
-          mathWorksheet: isPlaceValueAssignment ? placeValueWorksheet : isWordProblemsAssignment ? wordProblemsWorksheet : isCoordinatesAssignment ? coordinatesWorksheet : isStatisticsAssignment ? statisticsWorksheet : isClockAssignment ? clockWorksheet : isNumberLineAssignment ? numberLineWorksheet : isEquationAssignment ? equationWorksheet : isPercentageAssignment ? percentageWorksheet : isComparisonAssignment ? comparisonWorksheet : isGeometryAssignment ? geometryWorksheet : null,
+          mathWorksheet: isFactorizationAssignment ? factorizationWorksheet : isPlaceValueAssignment ? placeValueWorksheet : isWordProblemsAssignment ? wordProblemsWorksheet : isCoordinatesAssignment ? coordinatesWorksheet : isStatisticsAssignment ? statisticsWorksheet : isClockAssignment ? clockWorksheet : isNumberLineAssignment ? numberLineWorksheet : isEquationAssignment ? equationWorksheet : isPercentageAssignment ? percentageWorksheet : isComparisonAssignment ? comparisonWorksheet : isGeometryAssignment ? geometryWorksheet : null,
           fractionWorksheet: isFractionAssignment ? fractionWorksheet : null,
           arithmeticWorksheet: isArithmeticAssignment ? arithmeticWorksheet : null,
           measurementWorksheet: isLengthAssignment ? lengthWorksheet : null,
@@ -1773,7 +1783,7 @@ export default function StudentAssignmentPage() {
             : isArithmeticAssignment
               ? "arithmetic"
               : lesson?.mathType ?? null,
-          contentType: isPlaceValueAssignment ? "place_value_worksheet" : isWordProblemsAssignment ? "word_problems_worksheet" : isCoordinatesAssignment ? "coordinates_worksheet" : isStatisticsAssignment ? "statistics_worksheet" : isClockAssignment ? "clock_worksheet" : isNumberLineAssignment ? "number_line_worksheet" : isEquationAssignment ? "equations_worksheet" : isPercentageAssignment ? "percentage_worksheet" : isComparisonAssignment ? "comparison_worksheet" : isLengthAssignment ? "measurement_worksheet" : isFractionAssignment
+          contentType: isFactorizationAssignment ? "factorization_worksheet" : isPlaceValueAssignment ? "place_value_worksheet" : isWordProblemsAssignment ? "word_problems_worksheet" : isCoordinatesAssignment ? "coordinates_worksheet" : isStatisticsAssignment ? "statistics_worksheet" : isClockAssignment ? "clock_worksheet" : isNumberLineAssignment ? "number_line_worksheet" : isEquationAssignment ? "equations_worksheet" : isPercentageAssignment ? "percentage_worksheet" : isComparisonAssignment ? "comparison_worksheet" : isLengthAssignment ? "measurement_worksheet" : isFractionAssignment
             ? "fraction_worksheet"
             : isArithmeticAssignment
               ? "arithmetic_worksheet"
@@ -1876,12 +1886,14 @@ export default function StudentAssignmentPage() {
       isPercentageAssignment,
       equationWorksheet,
       percentageWorksheet,
+      isFactorizationAssignment,
       isPlaceValueAssignment,
       isWordProblemsAssignment,
       isCoordinatesAssignment,
       isStatisticsAssignment,
       isClockAssignment,
       isNumberLineAssignment,
+      factorizationWorksheet,
       placeValueWorksheet,
       wordProblemsWorksheet,
       coordinatesWorksheet,
@@ -1924,7 +1936,7 @@ export default function StudentAssignmentPage() {
 
   const mainTitle = String(assignment?.title ?? lesson.title ?? t("fallback.title") ?? "Oppgave").trim();
   const metaLine = [
-    isGeometryAssignment || isFractionAssignment || isLengthAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? null : assignment?.level ?? lesson.level,
+    isGeometryAssignment || isFractionAssignment || isLengthAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? null : assignment?.level ?? lesson.level,
     assignment?.language ?? lesson.language,
   ]
     .map((x) => String(x ?? "").trim())
@@ -2162,10 +2174,10 @@ export default function StudentAssignmentPage() {
         <MathTextSupportProvider
           key={assignmentId}
           targetLang={targetLang}
-          sourceLang={placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no"}
+          sourceLang={factorizationWorksheet?.language ?? placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no"}
           audioBusy={ttsBusy !== null || teacherFeedbackTtsBusy !== null}
           translateText={translateOne}
-          onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
+          onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, factorizationWorksheet?.language ?? placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
           t={tString}
         >
         {isReadingTest ? (
@@ -2248,6 +2260,11 @@ export default function StudentAssignmentPage() {
             showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
         ) : null}
 
+        {!isReadingTest && isFactorizationAssignment && factorizationWorksheet ? (
+          <FactorizationWorksheetView worksheet={factorizationWorksheet} answersByTaskId={answers}
+            onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
+            showAutoCheck={submitted || ["submitted", "reviewed", "approved", "needs_work"].includes(normalizeStatus(liveStatus ?? ""))} />
+        ) : null}
         {!isReadingTest && isPlaceValueAssignment && placeValueWorksheet ? (
           <PlaceValueWorksheetView worksheet={placeValueWorksheet} answersByTaskId={answers}
             onAnswerChange={(taskId, value) => setAnswer(taskId, value)} readOnly={lock || submitted}
@@ -2316,7 +2333,7 @@ export default function StudentAssignmentPage() {
         !isFractionAssignment &&
         !isArithmeticAssignment &&
         !isLengthAssignment &&
-        !isPlaceValueAssignment && !isWordProblemsAssignment && !isCoordinatesAssignment &&
+        !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isCoordinatesAssignment &&
         !isStatisticsAssignment &&
         !isClockAssignment &&
         !isNumberLineAssignment &&

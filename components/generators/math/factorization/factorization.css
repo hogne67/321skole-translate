@@ -1,0 +1,46 @@
+.factorization-sheet .factorization-tasks { grid-template-columns: minmax(0, 1fr); }
+.factorization-task { padding: 22px 0; break-inside: avoid; }
+.factorization-heading { display: flex; gap: 14px; align-items: baseline; line-height: 1.6; }
+.factorization-heading strong { flex: 1; min-width: 0; font-size: 17px; overflow-wrap: anywhere; }
+.factorization-hint { color: #475569; font-size: 13px; line-height: 1.6; margin: 10px 0; }
+.factorization-answer { display: flex; align-items: baseline; gap: 10px; margin: 20px 0 0 30px; }
+.factorization-answer label { display: grid; gap: 6px; width: 100%; font-size: 14px; }
+.factorization-answer input { width: 100%; min-width: 0; padding: 9px; border: 1px solid #94a3b8; border-radius: 6px; min-height: 42px; font: inherit; background: white; color: #0f172a; }
+.factorization-answer-space { width: 80%; height: 30px; border-bottom: 1px dashed #94a3b8; }
+.factor-pairs { display: grid; gap: 10px; margin: 16px 0 0 30px; }
+.factor-pair-row { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.factor-pair-index { width: 20px; color: #64748b; font-size: 12px; }
+.factor-pair-row input { min-width: 0; width: 85px; min-height: 38px; text-align: center; padding: 6px; border: 1px solid #94a3b8; border-radius: 5px; background: white; color: #0f172a; }
+.factor-pair-blank { width: 75px; height: 26px; border-bottom: 1px dashed #94a3b8; }
+.factor-tree-diagram { display: block; width: 100%; max-width: 560px; height: auto; margin: 16px auto; }
+.factor-tree-scroll { max-width: 100%; overflow-x: auto; }
+.factor-tree-scroll:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.factor-tree-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 10px; }
+.factor-tree-field { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px; background: #f8fafc; border-radius: 6px; }
+.factor-tree-field label { display: flex; align-items: center; gap: 6px; }
+.factor-tree-field label span { min-width: 15px; font-weight: 650; }
+.factor-tree-field input { min-width: 0; width: 70px; min-height: 36px; border: 1px solid #94a3b8; border-radius: 5px; padding: 5px; text-align: center; background: white; color: #0f172a; }
+.factor-tree-field button { min-height: 34px; padding: 5px 8px; border: 1px solid #94a3b8; border-radius: 5px; background: white; font-size: 12px; color: #0f172a; }
+.factor-tree-field button:disabled { opacity: .5; }
+.factorization-sheet input:focus-visible, .factor-tree-field button:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.factor-tree-paper-space { height: 70px; }
+.factorization-key > .factorization-key-item { display: block; padding: 14px 0; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; break-inside: avoid; }
+.factorization-key-item p { margin-top: 10px; }
+@media (max-width: 620px) { .factor-pairs, .factorization-answer { margin-left: 0; } .factor-pair-row { gap: 7px; } .factor-pair-row input, .factor-pair-blank { width: 65px; } }
+@media print {
+  .factorization-task { padding: 3mm 0; }
+  .factorization-heading { gap: 3mm; line-height: 1.4; }
+  .factorization-heading strong { font-size: 10pt; }
+  .factorization-hint { margin: 2mm 0; font-size: 8pt; line-height: 1.4; }
+  .factor-pairs { gap: 1mm; margin: 2mm 0 0 6mm; }
+  .factor-pair-row { gap: 2mm; min-height: 4mm; font-size: 10pt; }
+  .factor-pair-index { width: 5mm; font-size: 8pt; }
+  .factor-pair-blank { width: 20mm; height: 4mm; }
+  .factorization-answer { margin: 3mm 0 0 6mm; font-size: 10pt; }
+  .factorization-answer-space { height: 6mm; }
+  .factor-tree-scroll { overflow: visible; }
+  .factor-tree-diagram { min-width: 0 !important; max-width: 100mm; margin: 2mm auto; }
+  .factorization-key .factor-tree-diagram { max-width: 150mm; }
+  .factor-tree-paper-space { height: 18mm; }
+  .factorization-key > .factorization-key-item { padding: 3mm 0; font-size: 10pt; }
+}

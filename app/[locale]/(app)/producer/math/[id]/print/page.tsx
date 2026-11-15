@@ -18,9 +18,11 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import FactorizationWorksheetView from "@/components/generators/math/factorization/FactorizationWorksheetView";
 import PlaceValueWorksheetView from "@/components/generators/math/place-value/PlaceValueWorksheetView";
 import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
+import { sanitizeFactorizationWorksheet, type FactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import { sanitizePlaceValueWorksheet, type PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet, type WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet, type CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
@@ -77,6 +79,7 @@ export default function MathWorksheetPrintPage() {
   const [lengthWorksheet, setLengthWorksheet] = useState<LengthWorksheet | null>(null);
   const [equationWorksheet, setEquationWorksheet] = useState<EquationWorksheet | null>(null);
   const [percentageWorksheet, setPercentageWorksheet] = useState<PercentageWorksheet | null>(null);
+  const [factorizationWorksheet, setFactorizationWorksheet] = useState<FactorizationWorksheet | null>(null);
   const [placeValueWorksheet, setPlaceValueWorksheet] = useState<PlaceValueWorksheet | null>(null);
   const [wordProblemsWorksheet, setWordProblemsWorksheet] = useState<WordProblemsWorksheet | null>(null);
   const [coordinatesWorksheet, setCoordinatesWorksheet] = useState<CoordinatesWorksheet | null>(null);
@@ -103,6 +106,7 @@ export default function MathWorksheetPrintPage() {
       setErr(null);
       setLoading(true);
       setLengthWorksheet(null);
+      setFactorizationWorksheet(null);
       setPlaceValueWorksheet(null);
       setWordProblemsWorksheet(null);
       setCoordinatesWorksheet(null);
@@ -181,6 +185,12 @@ export default function MathWorksheetPrintPage() {
           setLesson(loadedLesson);
           setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
           setPercentageWorksheet(percentage); setLoading(false); return;
+        }
+        const factorization = sanitizeFactorizationWorksheet(loadedRecord.mathWorksheet);
+        if (factorization) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setFactorizationWorksheet(factorization); setLoading(false); return;
         }
         const placeValue = sanitizePlaceValueWorksheet(loadedRecord.mathWorksheet);
         if (placeValue) {
@@ -295,7 +305,7 @@ export default function MathWorksheetPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
+    if (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !factorizationWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet) return;
 
     let alive = true;
     const status =
@@ -317,6 +327,7 @@ export default function MathWorksheetPrintPage() {
         console.error("PDF quota check failed:", error);
         setErr(error instanceof Error ? error.message : t("errors.invalidWorksheet"));
         setLengthWorksheet(null);
+      setFactorizationWorksheet(null);
       setPlaceValueWorksheet(null);
       setWordProblemsWorksheet(null);
       setCoordinatesWorksheet(null);
@@ -336,7 +347,7 @@ export default function MathWorksheetPrintPage() {
     return () => {
       alive = false;
     };
-  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, placeValueWorksheet, wordProblemsWorksheet, coordinatesWorksheet, statisticsWorksheet, clockWorksheet,
+  }, [worksheet, fractionWorksheet, arithmeticWorksheet, lengthWorksheet, factorizationWorksheet, placeValueWorksheet, wordProblemsWorksheet, coordinatesWorksheet, statisticsWorksheet, clockWorksheet,
  numberLineWorksheet, comparisonWorksheet, equationWorksheet, percentageWorksheet, lesson, lessonId, t]);
 
   const handlePrint = () => { void printMathWorksheet(); };
@@ -397,7 +408,7 @@ export default function MathWorksheetPrintPage() {
     return <main style={{ padding: 20 }}>{t("loading")}</main>;
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !factorizationWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
@@ -423,7 +434,7 @@ export default function MathWorksheetPrintPage() {
     );
   }
 
-  const editorHref = mathEditorHref(locale, lessonId, placeValueWorksheet ? "place_value" : wordProblemsWorksheet ? "word_problems" : coordinatesWorksheet ? "coordinates" : statisticsWorksheet ? "statistics" : clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
+  const editorHref = mathEditorHref(locale, lessonId, factorizationWorksheet ? "factorization" : placeValueWorksheet ? "place_value" : wordProblemsWorksheet ? "word_problems" : coordinatesWorksheet ? "coordinates" : statisticsWorksheet ? "statistics" : clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
 
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
@@ -443,6 +454,8 @@ export default function MathWorksheetPrintPage() {
               <EquationWorksheetView worksheet={equationWorksheet} printMode printRef={printRef} />
             ) : percentageWorksheet ? (
               <PercentageWorksheetView worksheet={percentageWorksheet} printMode printRef={printRef} />
+            ) : factorizationWorksheet ? (
+              <FactorizationWorksheetView worksheet={factorizationWorksheet} printMode printRef={printRef} />
             ) : placeValueWorksheet ? (
               <PlaceValueWorksheetView worksheet={placeValueWorksheet} printMode printRef={printRef} />
             ) : wordProblemsWorksheet ? (
