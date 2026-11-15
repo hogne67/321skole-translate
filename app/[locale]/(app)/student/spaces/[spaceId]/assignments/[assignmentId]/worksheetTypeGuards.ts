@@ -37,6 +37,7 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
         typeof v.title === "string" &&
         v.kind !== "length" &&
         v.kind !== "measurement" &&
+        v.kind !== "powers" &&
         v.kind !== "factorization" &&
         v.kind !== "place_value" &&
         v.kind !== "word_problems" &&

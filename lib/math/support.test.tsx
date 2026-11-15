@@ -12,8 +12,8 @@ test("math overview links to all fifteen generators in every locale", () => {
   for (const locale of ["nb", "en", "pt"]) {
     const $ = load(renderToStaticMarkup(<MathGeneratorOverview locale={locale} />));
     assert.equal($("h1").length, 1);
-    assert.equal($("a").length, 15);
-    for (const path of ["arithmetic", "geometry?new=1", "fractions", "fraction-calculation", "measurement", "comparison", "percentage", "equations", "number-line", "clock", "statistics", "coordinates", "word-problems", "place-value", "factorization"]) assert.equal($(`a[href='/${locale}/producer/math/${path}']`).length, 1);
+    assert.equal($("a").length, 16);
+    for (const path of ["arithmetic", "geometry?new=1", "fractions", "fraction-calculation", "measurement", "comparison", "percentage", "equations", "number-line", "clock", "statistics", "coordinates", "word-problems", "place-value", "factorization", "powers"]) assert.equal($(`a[href='/${locale}/producer/math/${path}']`).length, 1);
   }
 });
 test("anonymous overview preserves login destinations", () => {

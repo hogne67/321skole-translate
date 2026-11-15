@@ -2,6 +2,7 @@ import { safeTasksArray } from "./helpers";
 import { sanitizeLengthWorksheet } from "@/lib/math/length/worksheet";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizePowersWorksheet } from "@/lib/math/powers/worksheet";
 import { sanitizeFactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
@@ -217,10 +218,12 @@ export function getAssignmentDerivedState(
     const percentageWorksheet = sanitizePercentageWorksheet(lesson?.mathWorksheet);
     const isEquationAssignment = !!equationWorksheet || [lesson?.contentType, assignment?.contentType].includes("equations_worksheet");
     const isPercentageAssignment = !!percentageWorksheet || [lesson?.contentType, assignment?.contentType].includes("percentage_worksheet");
+    const powersWorksheet = sanitizePowersWorksheet(lesson?.mathWorksheet);
     const factorizationWorksheet = sanitizeFactorizationWorksheet(lesson?.mathWorksheet);
     const placeValueWorksheet = sanitizePlaceValueWorksheet(lesson?.mathWorksheet);
     const wordProblemsWorksheet = sanitizeWordProblemsWorksheet(lesson?.mathWorksheet);
     const coordinatesWorksheet = sanitizeCoordinatesWorksheet(lesson?.mathWorksheet);
+    const isPowersAssignment = !!powersWorksheet || [lesson?.contentType, assignment?.contentType].includes("powers_worksheet");
     const isFactorizationAssignment = !!factorizationWorksheet || [lesson?.contentType, assignment?.contentType].includes("factorization_worksheet");
     const isPlaceValueAssignment = !!placeValueWorksheet || [lesson?.contentType, assignment?.contentType].includes("place_value_worksheet");
     const isWordProblemsAssignment = !!wordProblemsWorksheet || [lesson?.contentType, assignment?.contentType].includes("word_problems_worksheet");
@@ -235,10 +238,12 @@ export function getAssignmentDerivedState(
     const isComparisonAssignment = !!comparisonWorksheet || [lesson?.contentType, assignment?.contentType].includes("comparison_worksheet");
     const isLengthAssignment = !!lengthWorksheet || [lesson?.contentType, assignment?.contentType].some(type => type === "length_worksheet" || type === "measurement_worksheet");
     return {
+        powersWorksheet,
         factorizationWorksheet,
         placeValueWorksheet,
         wordProblemsWorksheet,
         coordinatesWorksheet,
+        isPowersAssignment,
         isFactorizationAssignment,
         isPlaceValueAssignment,
         isWordProblemsAssignment,

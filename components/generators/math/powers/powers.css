@@ -1,0 +1,33 @@
+.powers-sheet .powers-tasks { grid-template-columns: minmax(0, 1fr); }
+.powers-task { padding: 20px 0; break-inside: avoid; }
+.powers-heading { display: flex; gap: 14px; align-items: baseline; line-height: 1.6; }
+.powers-heading strong { flex: 1; min-width: 0; font-size: 17px; overflow-wrap: anywhere; }
+.powers-hint { color: #475569; font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.powers-control-help { color: #475569; font-size: 12px; line-height: 1.5; }
+.powers-answer { display: flex; align-items: center; gap: 12px; margin: 16px 0 0 30px; }
+.powers-value-field { display: grid; gap: 6px; width: 100%; font-size: 14px; }
+.powers-answer input { min-width: 0; min-height: 42px; padding: 8px; border: 1px solid #94a3b8; border-radius: 6px; font: inherit; background: white; color: #0f172a; }
+.powers-value-field input { width: 100%; }
+.powers-power-answer { display: inline-flex; align-items: flex-start; gap: 5px; min-height: 65px; }
+.powers-power-answer label { display: flex; flex-direction: column; gap: 4px; }
+.powers-power-answer label span { font-size: 11px; color: #475569; }
+.powers-base-field { margin-top: 20px; }
+.powers-base-field input { width: 80px; text-align: center; }
+.powers-exponent-field input { width: 65px; text-align: center; }
+.powers-answer input:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.powers-base-blank { width: 40px; height: 40px; margin-top: 15px; border: 1px dashed #94a3b8; }
+.powers-exponent-blank { width: 26px; height: 26px; border: 1px dashed #94a3b8; }
+.powers-answer-space { width: 80%; height: 30px; border-bottom: 1px dashed #94a3b8; }
+.powers-sheet .powers-key > div { display: block; padding: 10px 0; border-bottom: 1px solid #e2e8f0; break-inside: avoid; overflow-wrap: anywhere; }
+@media (max-width: 620px) { .powers-answer { margin-left: 0; } }
+@media print {
+  .powers-task { padding: 2mm 0; }
+  .powers-heading { gap: 3mm; line-height: 1.4; }
+  .powers-heading strong { font-size: 10pt; }
+  .powers-hint { margin: 1.5mm 0; font-size: 8pt; line-height: 1.4; }
+  .powers-answer { margin: 2mm 0 0 6mm; gap: 3mm; font-size: 10pt; }
+  .powers-power-answer { min-height: 11mm; gap: 1mm; }
+  .powers-base-blank { width: 8mm; height: 8mm; margin-top: 3mm; }
+  .powers-exponent-blank { width: 5mm; height: 5mm; }
+  .powers-answer-space { height: 6mm; }
+}
