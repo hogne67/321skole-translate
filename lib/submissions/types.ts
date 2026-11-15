@@ -5,6 +5,7 @@ import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import type { LengthWorksheet } from "@/lib/math/length/worksheet";
 import type { PercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import type { EquationWorksheet } from "@/lib/math/equations/worksheet";
+import type { PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import type { WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import type { CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import type { StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
@@ -55,7 +56,7 @@ export type AiFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "fraction" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "word_problems" | "coordinates" | "statistics" | "clock" | "number_line";
+    type: "mcq" | "truefalse" | "fraction" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "place_value" | "word_problems" | "coordinates" | "statistics" | "clock" | "number_line";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;
@@ -103,7 +104,7 @@ export type SubmissionDoc = {
     taskType?: string | null;
     lessonType?: string | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -153,7 +154,7 @@ export type AssignmentDoc = {
     coverImageUrl?: string;
     learningPosterAttachments?: unknown;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -183,7 +184,7 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;

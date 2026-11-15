@@ -5,6 +5,7 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "placeValue", path: "place-value" },
   { id: "wordProblems", path: "word-problems" },
   { id: "coordinates", path: "coordinates" },
   { id: "statistics", path: "statistics" },
@@ -15,6 +16,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  placeValue: "Tallforståelse og utvidet form", placeValueDescription: "Del opp og sett sammen tall, finn sifferverdier og bruk plassverditabell.",
   wordProblems: "Tekstoppgaver", wordProblemsDescription: "De fire regneartene i ett eller to steg, med hverdagstekster og plass til utregning.",
   coordinates: "Koordinatsystem og speiling", coordinatesDescription: "Les og plasser punkter, tegn figurer og speil om x- eller y-aksen.",
   statistics: "Statistikk og diagram", statisticsDescription: "Les og lag diagrammer og frekvenstabeller. Finn sentralmål og variasjonsbredde.",
@@ -32,6 +34,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  placeValue: "Place value and expanded form", placeValueDescription: "Partition and compose numbers, find digit values and use a place-value table.",
   wordProblems: "Word problems", wordProblemsDescription: "Everyday stories using the four operations in one or two steps, with space for working.",
   coordinates: "Coordinates and reflection", coordinatesDescription: "Read and plot points, draw shapes and reflect in the x- or y-axis.",
   statistics: "Statistics and charts", statisticsDescription: "Read and create charts and frequency tables. Find averages and range.",
@@ -48,6 +51,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  placeValue: "Valor posicional e forma decomposta", placeValueDescription: "Decompor e compor números, descobrir valores de algarismos e usar um quadro de valor posicional.",
   wordProblems: "Problemas matemáticos", wordProblemsDescription: "As quatro operações num ou em dois passos, com situações do quotidiano e espaço para cálculos.",
   coordinates: "Coordenadas e reflexão", coordinatesDescription: "Ler e marcar pontos, desenhar figuras e refletir nos eixos x ou y.",
   statistics: "Estatística e gráficos", statisticsDescription: "Ler e criar gráficos e tabelas de frequências. Calcular medidas de localização e amplitude.",

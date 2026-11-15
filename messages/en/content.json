@@ -76,6 +76,7 @@
       "openDigital": "Open Task",
       "openPreview": "Open preview",
       "subtypes": {
+      "place_value": "Place value and expanded form",
       "word_problems": "Word problems",
       "coordinates": "Coordinates and reflection",
       "statistics": "Statistics and charts",

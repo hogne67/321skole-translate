@@ -1,0 +1,37 @@
+.place-value-sheet .place-value-tasks { grid-template-columns: minmax(0, 1fr); }
+.place-value-task { padding: 20px 0; break-inside: avoid; }
+.place-value-heading { display: flex; gap: 14px; align-items: baseline; line-height: 1.6; }
+.place-value-heading strong { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 16px; }
+.place-value-marked-number { margin: 10px 0 12px 32px; font-size: 24px; font-weight: 650; white-space: pre-wrap; }
+.place-value-marked-number mark { background: #fef08a; color: #0f172a; border: 1px solid #854d0e; border-radius: 3px; padding: 1px 4px; text-decoration: underline; text-underline-offset: 4px; print-color-adjust: exact; }
+.place-value-table-scroll { max-width: 100%; overflow-x: auto; margin: 12px 0; }
+.place-value-table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 300px; }
+.place-value-table th, .place-value-table td { border: 1px solid #94a3b8; text-align: center; padding: 6px 3px; }
+.place-value-table th { background: #f0fdfa; color: #134e4a; font-size: 11px; overflow-wrap: anywhere; font-weight: 600; }
+.place-value-table td { height: 36px; }
+.place-value-table .place-value-decimal-boundary { border-left: 3px solid #0f766e; }
+.place-value-table input { display: block; width: 100%; min-width: 0; text-align: center; padding: 3px; background: white; color: #0f172a; font-size: 17px; }
+.place-value-cell-space { display: block; height: 22px; }
+.place-value-answer { margin: 14px 0 0 32px; display: flex; align-items: baseline; gap: 8px; }
+.place-value-answer label { display: grid; gap: 6px; width: 100%; font-size: 13px; }
+.place-value-answer input { width: 100%; min-width: 0; border: 1px solid #94a3b8; border-radius: 6px; padding: 8px; min-height: 40px; background: white; color: #0f172a; font: inherit; }
+.place-value-answer-space { width: 80%; height: 26px; border-bottom: 1px dashed #94a3b8; }
+.place-value-hint { color: #475569; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
+.place-value-table-scroll:focus-visible, .place-value-table input:focus-visible, .place-value-answer input:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.place-value-key > .place-value-key-item { display: block; padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; break-inside: avoid; overflow-wrap: anywhere; }
+@media (max-width: 620px) { .place-value-table { min-width: 360px; } .place-value-heading strong { font-size: 14px; } .place-value-answer { margin-left: 0; } }
+@media print {
+  .place-value-task { padding: 3mm 0; }
+  .place-value-heading { gap: 3mm; line-height: 1.4; }
+  .place-value-heading strong { font-size: 10pt; }
+  .place-value-marked-number { margin: 2mm 0 2mm 6mm; font-size: 14pt; }
+  .place-value-table-scroll { margin: 2mm 0; overflow: visible; }
+  .place-value-table { min-width: 0; }
+  .place-value-table th { font-size: 7pt; padding: 1mm; }
+  .place-value-table td { padding: 1mm; height: 7mm; }
+  .place-value-cell-space { height: 5mm; }
+  .place-value-answer { margin: 2mm 0 0 6mm; font-size: 10pt; }
+  .place-value-answer-space { height: 5mm; }
+  .place-value-hint { font-size: 8pt; margin: 0 0 2mm; }
+  .place-value-key > .place-value-key-item { font-size: 10pt; padding: 3mm 0; }
+}
