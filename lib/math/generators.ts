@@ -5,6 +5,7 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "algebra", path: "algebra" },
   { id: "powers", path: "powers" },
   { id: "factorization", path: "factorization" },
   { id: "placeValue", path: "place-value" },
@@ -18,6 +19,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  algebra: "Forenkling av algebraiske uttrykk", algebraDescription: "Trekk sammen like ledd, forenkle produkter og øv på blandede uttrykk.",
   powers: "Potensregning", powersDescription: "Skriv og regn med potenser, gjentatt multiplikasjon og potensregler.",
   factorization: "Faktorisering", factorizationDescription: "Finn faktorpar og manglende faktorer, primtallsfaktoriser og bygg faktortrær.",
   placeValue: "Tallforståelse og utvidet form", placeValueDescription: "Del opp og sett sammen tall, finn sifferverdier og bruk plassverditabell.",
@@ -38,6 +40,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  algebra: "Simplifying algebraic expressions", algebraDescription: "Collect like terms, simplify products and practise mixed expressions.",
   powers: "Powers and exponents", powersDescription: "Write and calculate powers, repeated multiplication and exponent rules.",
   factorization: "Factorisation", factorizationDescription: "Find factor pairs and missing factors, prime-factorise and build factor trees.",
   placeValue: "Place value and expanded form", placeValueDescription: "Partition and compose numbers, find digit values and use a place-value table.",
@@ -57,6 +60,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  algebra: "Simplificação de expressões algébricas", algebraDescription: "Reduzir termos semelhantes, simplificar produtos e praticar expressões mistas.",
   powers: "Potências", powersDescription: "Escrever e calcular potências, multiplicação repetida e regras das potências.",
   factorization: "Fatorização", factorizationDescription: "Descobrir pares de fatores e fatores em falta, decompor em primos e construir árvores de fatores.",
   placeValue: "Valor posicional e forma decomposta", placeValueDescription: "Decompor e compor números, descobrir valores de algarismos e usar um quadro de valor posicional.",

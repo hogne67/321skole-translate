@@ -76,6 +76,7 @@
       "openDigital": "Abrir atividade",
       "openPreview": "Abrir pré-visualização",
       "subtypes": {
+      "algebra": "Simplificação de expressões algébricas",
       "powers": "Potências",
       "factorization": "Fatorização",
       "place_value": "Valor posicional e forma decomposta",

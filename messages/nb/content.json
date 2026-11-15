@@ -76,6 +76,7 @@
       "openDigital": "Åpne oppgave",
       "openPreview": "Åpne preview",
       "subtypes": {
+      "algebra": "Forenkling av algebraiske uttrykk",
       "powers": "Potensregning",
       "factorization": "Faktorisering",
       "place_value": "Tallforståelse og utvidet form",

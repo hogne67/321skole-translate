@@ -1,0 +1,32 @@
+.algebra-sheet .algebra-tasks { grid-template-columns: minmax(0, 1fr); }
+.algebra-sheet.length-paper .algebra-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.algebra-sheet.length-paper .algebra-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.algebra-key h2 { grid-column: 1 / -1; }
+.algebra-task { padding: 20px 0; break-inside: avoid; }
+.algebra-heading { display: flex; gap: 14px; align-items: baseline; line-height: 1.6; }
+.algebra-heading strong { flex: 1; min-width: 0; font-size: 17px; overflow-wrap: anywhere; }
+.algebra-hint { color: #475569; font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.algebra-answer { display: flex; align-items: center; gap: 12px; margin: 16px 0 0 30px; }
+.algebra-input { width: 100%; min-width: 0; }
+.algebra-input label { display: block; font-size: 14px; margin-bottom: 6px; }
+.algebra-input input { width: 100%; min-width: 0; min-height: 42px; padding: 9px; border: 1px solid #94a3b8; border-radius: 6px; font: inherit; background: white; color: #0f172a; }
+.algebra-symbols { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.algebra-symbols button { min-width: 38px; min-height: 36px; padding: 5px 10px; border: 1px solid #94a3b8; border-radius: 5px; background: #f8fafc; font: inherit; color: #0f172a; }
+.algebra-input input:focus-visible, .algebra-symbols button:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.algebra-input small { color: #475569; font-size: 11px; line-height: 1.5; display: block; }
+.algebra-input-preview { margin: 8px 0; overflow-wrap: anywhere; line-height: 1.6; }
+.algebra-input-preview span { font-size: 11px; color: #475569; }
+.algebra-input-preview output { font-size: 17px; }
+.algebra-readonly-help { display: none; }
+.algebra-answer-space { width: 85%; height: 34px; border-bottom: 1px dashed #94a3b8; }
+.algebra-sheet .algebra-key > div { display: block; padding: 10px 0; border-bottom: 1px solid #e2e8f0; break-inside: avoid; overflow-wrap: anywhere; }
+@media (max-width: 620px) { .algebra-answer { margin-left: 0; } .algebra-sheet.length-paper .algebra-tasks, .algebra-sheet.length-paper .algebra-key { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  .algebra-sheet.length-paper .algebra-tasks, .algebra-sheet.length-paper .algebra-key { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8mm; }
+  .algebra-task { padding: 3mm 0; }
+  .algebra-heading { gap: 3mm; line-height: 1.4; }
+  .algebra-heading strong { font-size: 10pt; }
+  .algebra-hint { margin: 2mm 0; font-size: 8pt; line-height: 1.4; }
+  .algebra-answer { margin: 3mm 0 0 6mm; gap: 3mm; font-size: 10pt; }
+  .algebra-answer-space { height: 8mm; }
+}
