@@ -21,6 +21,10 @@
     "premium": {
       "title": "Premium generators",
       "items": {
+        "assessments": {
+          "title": "Assessments and tests",
+          "description": "Find reading tests and other tools for assessment, digitally and on paper."
+        },
         "mathematics": {
           "title": "Mathematics",
           "description": "Arithmetic, geometry, fractions, unit conversion and number comparisons."

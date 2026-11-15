@@ -21,6 +21,10 @@
     "premium": {
       "title": "Premium-generatorer",
       "items": {
+        "assessments": {
+          "title": "Kartlegging og prøver",
+          "description": "Finn leseprøver og andre verktøy til kartlegging, digitalt og på papir."
+        },
         "mathematics": {
           "title": "Matematikk",
           "description": "Regnearter, geometri, brøk, omregning av enheter og sammenligning av tall."

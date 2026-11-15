@@ -30,6 +30,8 @@ import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
 import { getOrigin } from "@/lib/url";
 import { getTextTypeLabel, normalizeTextTypeKey } from "@/lib/textTypes";
+import { getListeningCopy } from "@/lib/listeningTests/copy";
+import { listeningEditHref } from "@/lib/listeningTests/persistence";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "poster" | "submission" | "space";
@@ -216,6 +218,10 @@ function isDeletedItem(it: ContentItem): boolean {
 
 function isReadingTestLesson(it: ContentItem) {
   return it.type === "lesson" && (it.meta ?? []).includes("reading_test");
+}
+
+function isListeningTestLesson(it: ContentItem) {
+  return it.type === "lesson" && (it.lessonType === "listening_test" || (it.meta ?? []).includes("listening_test"));
 }
 
 function isImageWritingLesson(it: ContentItem) {
@@ -499,6 +505,7 @@ export default function ContentClient() {
   }
 
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isListeningTestLesson(it)) return listeningEditHref(locale, it.id);
     if (isPodcastWorkshopLesson(it)) {
       return `/${locale}/tools/podcast-workshop?activityId=${encodeURIComponent(it.id)}`;
     }
@@ -526,6 +533,7 @@ export default function ContentClient() {
   }
 
   function lessonEditHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isListeningTestLesson(it)) return listeningEditHref(locale, it.id);
     if (isPodcastWorkshopLesson(it)) {
       return `/${locale}/tools/podcast-workshop?activityId=${encodeURIComponent(it.id)}`;
     }
@@ -600,6 +608,7 @@ export default function ContentClient() {
       if (isLibraryLessonCopy(it)) return safeMsg("cardTypes.fromLibrary", "Fra bibliotek");
       if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
+      if (isListeningTestLesson(it)) return getListeningCopy(locale).studentTitle;
       if (isQuizLesson(it)) return safeMsg("cardTypes.quiz", "Quiz");
       if (isAudioReadingLesson(it)) return safeMsg("cardTypes.audioReading", "Lydlesing");
       if (isPodcastWorkshopLesson(it)) return safeMsg("cardTypes.podcastWorkshop", "Podcastverksted");
@@ -608,7 +617,7 @@ export default function ContentClient() {
     }
 
     return safeMsg("cardTypes.content", "Innhold");
-  }, [safeMsg, t]);
+  }, [safeMsg, t, locale]);
 
   function parentChildProgressLabel(status: string | null) {
     const s = String(status ?? "").trim().toLowerCase();
@@ -1433,6 +1442,7 @@ export default function ContentClient() {
   }
 
   function cleanMetaForCard(it: ContentItem): string {
+    if (isListeningTestLesson(it)) return `${getListeningCopy(locale).studentTitle} · Beta · ${it.type === "lesson" ? it.level ?? "" : ""}`;
     const meta = it.meta?.filter(Boolean) ?? [];
     const hasLessonTitle = meta.some((m) => typeof m === "string" && m.startsWith("Lesson: "));
     const mathUiTags = new Set([
@@ -1825,6 +1835,15 @@ export default function ContentClient() {
           },
         ]
         : [];
+
+    if (isListeningTestLesson(ls)) {
+      return [
+        ...restoreAction,
+        {key:"open",label:t("actions.open"),disabled:busy||isDeleted,onClick:()=>router.push(editHref)},
+        ...(canEdit?[{key:"edit",label:t("actions.edit"),disabled:busy,onClick:()=>router.push(editHref)}]:[]),
+        ...(!isDeleted?[{key:"delete",label:t("actions.delete"),danger:true,disabled:busy||!canDelete,onClick:()=>deleteLessonSoft(ls.id,titleForCard(ls))}]:[]),
+      ];
+    }
 
     if (isPodcastWorkshop) {
       return [
@@ -2565,6 +2584,8 @@ export default function ContentClient() {
                   pill = <StatusPill label={t("pills.library")} variant="gray" />;
                 } else if (isReadingTestLesson(it)) {
                   pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
+                } else if (isListeningTestLesson(it)) {
+                  pill = <StatusPill label="Beta" variant="amber" />;
                 } else if (sharingPill) {
                   pill = sharingPill;
                 } else if (isImageWritingLesson(it)) {

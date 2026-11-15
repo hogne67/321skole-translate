@@ -1,0 +1,68 @@
+.reading-test-print-preview { margin: 18px 0; color: #0f172a; }
+.reading-test-print-root { position: fixed; left: -100000px; top: 0; width: 182mm; visibility: hidden; pointer-events: none; }
+.reading-test-print-root .reading-test-print-sheet { width: 100%; max-width: none; margin: 0; padding: 0; }
+.reading-test-print-root .reading-test-questions-new-page { margin: 0; padding: 0; border: 0; }
+.reading-test-print-root .reading-test-sheet-line { min-width: 65mm; }
+.reading-test-print-root .reading-test-sheet-line-short { min-width: 28mm; }
+.reading-test-print-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid #94a3b8; border-radius: 10px; background: white; color: #0f172a; font-size: 14px; font-weight: 700; cursor: pointer; }
+.reading-test-print-button:hover { background: #f1f5f9; }
+.reading-test-print-button:focus-visible, .reading-test-print-toolbar select:focus-visible { outline: 2px solid #0369a1; outline-offset: 3px; }
+.reading-test-print-button:disabled { opacity: .55; cursor: not-allowed; }
+.reading-test-print-primary { background: #075985; border-color: #075985; color: white; }
+.reading-test-print-primary:hover { background: #0c4a6e; }
+.reading-test-print-help { margin: 8px 0; font-size: 13px; color: #475569; }
+.reading-test-print-panel { margin-top: 12px; padding: 16px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 14px; }
+.reading-test-print-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 18px; }
+.reading-test-print-toolbar > div { flex: 1 1 350px; }
+.reading-test-print-toolbar h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.reading-test-print-toolbar p { margin: 6px 0 0; color: #475569; font-size: 13px; line-height: 1.6; }
+.reading-test-print-toolbar label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; }
+.reading-test-print-toolbar select { min-height: 40px; max-width: 100%; border: 1px solid #94a3b8; border-radius: 8px; background: white; padding: 8px; }
+.reading-test-print-toolbar .reading-test-print-layout-help { flex: 1 1 100%; margin: 0; }
+.reading-test-print-sheet { box-sizing: border-box; width: 100%; max-width: 210mm; margin: 0 auto; padding: 16mm; background: white; color: #111827; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.5; overflow-wrap: anywhere; }
+.reading-test-sheet-header { padding-bottom: 6mm; border-bottom: 1px solid #64748b; margin-bottom: 6mm; }
+.reading-test-sheet-brand { margin: 0 0 2mm; font-size: 9pt; font-weight: 700; color: #475569; }
+.reading-test-sheet-kind { margin: 0 0 3mm; font-size: 9pt; }
+.reading-test-print-sheet h2 { margin: 0 0 5mm; font-size: 20pt; font-weight: 700; line-height: 1.2; }
+.reading-test-print-sheet h3 { margin: 0 0 3mm; font-size: 12pt; font-weight: 700; }
+.reading-test-sheet-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 5mm 10mm; padding-top: 3mm; font-size: 10pt; }
+.reading-test-sheet-identity > span { display: flex; align-items: baseline; gap: 2mm; }
+.reading-test-sheet-line { display: inline-block; min-width: 65mm; border-bottom: 1px solid #64748b; }
+.reading-test-sheet-line-short { min-width: 28mm; }
+.reading-test-sheet-source { margin-bottom: 7mm; }
+.reading-test-sheet-source p { margin: 0 0 3mm; white-space: pre-line; orphans: 3; widows: 3; }
+.reading-test-sheet-instructions, .reading-test-sheet-note { margin: 0 0 4mm; font-size: 10pt; }
+.reading-test-sheet-task-list { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.reading-test-sheet-options { list-style: none; padding: 0; margin: 0; }
+.reading-test-sheet-task { break-inside: avoid; page-break-inside: avoid; }
+.reading-test-sheet-task > td { padding: 0 0 5mm; vertical-align: top; }
+.reading-test-sheet-prompt { margin: 0 0 2mm; font-weight: 700; }
+.reading-test-sheet-options { padding-left: 6mm; }
+.reading-test-sheet-options li { display: block; margin: 0 0 2mm; }
+.reading-test-sheet-options li > span:nth-child(2) { margin-inline-end: 2mm; }
+.reading-test-sheet-box { display: inline-block; height: 3mm; width: 3mm; margin-inline-end: 2mm; border: 1px solid #334155; }
+.reading-test-sheet-answer { margin: 0 0 0 6mm; font-size: 10pt; }
+.reading-test-questions-new-page { margin-top: 12mm; padding-top: 8mm; border-top: 1px dashed #94a3b8; }
+.listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-header { padding-bottom: 4mm; margin-bottom: 4mm; }
+.listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-task > td { padding-bottom: 3.5mm; }
+.listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-options li { margin-bottom: 1.5mm; }
+@media (max-width: 600px) {
+  .reading-test-print-panel { padding: 8px; }
+  .reading-test-print-sheet { padding: 6mm; }
+  .reading-test-sheet-line { min-width: 35mm; }
+  .reading-test-sheet-line-short { min-width: 24mm; }
+}
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body:has(.reading-test-print-root) { background: white !important; margin: 0 !important; height: auto !important; }
+  body:has(.reading-test-print-root) > *:not(.reading-test-print-root) { display: none !important; }
+  .reading-test-print-root { display: block !important; position: static; width: 100%; visibility: visible; pointer-events: auto; }
+  .reading-test-print-root .reading-test-print-sheet { display: block !important; width: 100%; max-width: none; margin: 0; padding: 0; border: 0; box-shadow: none; color: black; }
+  .reading-test-print-sheet h2, .reading-test-print-sheet h3 { break-after: avoid; page-break-after: avoid; }
+  .reading-test-sheet-header { break-inside: avoid; }
+  .reading-test-sheet-source p { orphans: 3; widows: 3; }
+  .reading-test-questions-new-page { break-before: page; page-break-before: always; margin: 0; padding: 0; border: 0; }
+  .reading-test-sheet-brand { color: black; }
+  .reading-test-sheet-line { min-width: 65mm; }
+  .reading-test-sheet-line-short { min-width: 28mm; }
+}

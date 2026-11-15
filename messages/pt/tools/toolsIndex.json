@@ -21,6 +21,10 @@
     "premium": {
       "title": "Geradores premium",
       "items": {
+        "assessments": {
+          "title": "Avaliação e provas",
+          "description": "Encontre provas de leitura e outras ferramentas de avaliação, em formato digital e em papel."
+        },
         "mathematics": {
           "title": "Matemática",
           "description": "Operações, geometria, frações, conversão de unidades e comparação de números."

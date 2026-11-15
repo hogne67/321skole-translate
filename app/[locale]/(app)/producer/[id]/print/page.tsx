@@ -10,6 +10,9 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { logUsageEvent } from "@/lib/usageClient";
+import SavedReadingTestPrintView from "@/components/assessments/SavedReadingTestPrintView";
+import { isReadingTestPrintLesson, readingTestPrintContent } from "@/lib/readingTests/print";
+import { getReadingTestPrintCopy } from "@/lib/readingTests/printCopy";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type AnswerSpace = "short" | "medium" | "long";
@@ -26,6 +29,7 @@ type Task = {
 };
 
 type Lesson = {
+  lessonType?: string;
   ownerId?: string;
   title: string;
   level?: string;
@@ -195,7 +199,9 @@ export default function ProducerPrintPage() {
   }, [lessonId, t, localizeError]);
 
   useEffect(() => {
-    if (!lesson) return;
+    // Reading tests use the same dedicated print flow as their editor, not
+    // the general lesson PDF/quota flow.
+    if (!lesson || isReadingTestPrintLesson(lesson)) return;
 
     let alive = true;
 
@@ -225,6 +231,10 @@ export default function ProducerPrintPage() {
     const t0 = Array.isArray(lesson?.tasks) ? (lesson?.tasks ?? []) : [];
     return sortTasks(t0).filter((x) => safeText(x.prompt).trim().length > 0);
   }, [lesson]);
+
+  const readingContent = useMemo(() => isReadingTestPrintLesson(lesson)
+    ? readingTestPrintContent(lesson, getReadingTestPrintCopy(locale).defaultTitle, locale)
+    : null, [lesson, locale]);
 
   const textSize = normalizeTextSize(lesson?.textSize);
   const showHighFrequencySections = isA1StartLevel(lesson?.level);
@@ -262,6 +272,13 @@ export default function ProducerPrintPage() {
         </div>
       </main>
     );
+  }
+
+  if (readingContent) {
+    const backHref = lesson.ownerId === uidNow()
+      ? `/${locale}/producer/reading-tests/${lessonId}`
+      : `/${locale}/reading-tests/${lessonId}`;
+    return <SavedReadingTestPrintView key={`${lessonId}:${teacherMode}`} content={readingContent} locale={locale} backHref={backHref} initialMode={teacherMode ? "key" : "learner"} />;
   }
 
   return (
