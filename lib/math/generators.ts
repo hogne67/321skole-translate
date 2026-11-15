@@ -5,6 +5,7 @@ export const MATH_GENERATORS = [
   { id: "fractionCalculation", path: "fraction-calculation" },
   { id: "measurement", path: "measurement" },
   { id: "comparison", path: "comparison" },
+  { id: "wordProblems", path: "word-problems" },
   { id: "coordinates", path: "coordinates" },
   { id: "statistics", path: "statistics" },
   { id: "clock", path: "clock" },
@@ -14,6 +15,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  wordProblems: "Tekstoppgaver", wordProblemsDescription: "De fire regneartene i ett eller to steg, med hverdagstekster og plass til utregning.",
   coordinates: "Koordinatsystem og speiling", coordinatesDescription: "Les og plasser punkter, tegn figurer og speil om x- eller y-aksen.",
   statistics: "Statistikk og diagram", statisticsDescription: "Les og lag diagrammer og frekvenstabeller. Finn sentralmål og variasjonsbredde.",
   clock: "Klokka og tid", clockDescription: "Les klokka, still viserne og finn tidsforskjeller.",
@@ -30,6 +32,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  wordProblems: "Word problems", wordProblemsDescription: "Everyday stories using the four operations in one or two steps, with space for working.",
   coordinates: "Coordinates and reflection", coordinatesDescription: "Read and plot points, draw shapes and reflect in the x- or y-axis.",
   statistics: "Statistics and charts", statisticsDescription: "Read and create charts and frequency tables. Find averages and range.",
   clock: "Clocks and time", clockDescription: "Read clocks, set the hands and find elapsed time.",
@@ -45,6 +48,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  wordProblems: "Problemas matemáticos", wordProblemsDescription: "As quatro operações num ou em dois passos, com situações do quotidiano e espaço para cálculos.",
   coordinates: "Coordenadas e reflexão", coordinatesDescription: "Ler e marcar pontos, desenhar figuras e refletir nos eixos x ou y.",
   statistics: "Estatística e gráficos", statisticsDescription: "Ler e criar gráficos e tabelas de frequências. Calcular medidas de localização e amplitude.",
   clock: "Relógios e tempo", clockDescription: "Ler relógios, acertar os ponteiros e calcular intervalos de tempo.",

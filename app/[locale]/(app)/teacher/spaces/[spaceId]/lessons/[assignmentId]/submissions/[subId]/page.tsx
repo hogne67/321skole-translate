@@ -61,7 +61,9 @@ import PercentageWorksheetView from "@/components/generators/math/percentage/Per
 import EquationWorksheetView from "@/components/generators/math/equations/EquationWorksheetView";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
+import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import StatisticsWorksheetView from "@/components/generators/math/statistics/StatisticsWorksheetView";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
@@ -525,7 +527,9 @@ function Inner() {
   const isEquationAssignment = !!equationWorksheet || assignment?.contentType === "equations_worksheet";
   const isPercentageAssignment = !!percentageWorksheet || assignment?.contentType === "percentage_worksheet";
 
+  const wordProblemsWorksheet = useMemo(() => sanitizeWordProblemsWorksheet(lesson?.mathWorksheet) ?? sanitizeWordProblemsWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const coordinatesWorksheet = useMemo(() => sanitizeCoordinatesWorksheet(lesson?.mathWorksheet) ?? sanitizeCoordinatesWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const isWordProblemsAssignment = !!wordProblemsWorksheet || assignment?.contentType === "word_problems_worksheet";
   const isCoordinatesAssignment = !!coordinatesWorksheet || assignment?.contentType === "coordinates_worksheet";
   const statisticsWorksheet = useMemo(() => sanitizeStatisticsWorksheet(lesson?.mathWorksheet) ?? sanitizeStatisticsWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const isStatisticsAssignment = !!statisticsWorksheet || assignment?.contentType === "statistics_worksheet";
@@ -1488,7 +1492,7 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
@@ -1518,7 +1522,7 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
+            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isWordProblemsAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}
@@ -1534,7 +1538,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isWordProblemsAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1564,6 +1568,8 @@ function Inner() {
                   <EquationWorksheetView worksheet={equationWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isPercentageAssignment && percentageWorksheet ? (
                   <PercentageWorksheetView worksheet={percentageWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isWordProblemsAssignment && wordProblemsWorksheet ? (
+                  <WordProblemsWorksheetView worksheet={wordProblemsWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isCoordinatesAssignment && coordinatesWorksheet ? (
                   <CoordinatesWorksheetView worksheet={coordinatesWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isStatisticsAssignment && statisticsWorksheet ? (

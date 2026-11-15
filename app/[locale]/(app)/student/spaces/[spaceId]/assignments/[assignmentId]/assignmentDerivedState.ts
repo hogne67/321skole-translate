@@ -2,6 +2,7 @@ import { safeTasksArray } from "./helpers";
 import { sanitizeLengthWorksheet } from "@/lib/math/length/worksheet";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
@@ -214,7 +215,9 @@ export function getAssignmentDerivedState(
     const percentageWorksheet = sanitizePercentageWorksheet(lesson?.mathWorksheet);
     const isEquationAssignment = !!equationWorksheet || [lesson?.contentType, assignment?.contentType].includes("equations_worksheet");
     const isPercentageAssignment = !!percentageWorksheet || [lesson?.contentType, assignment?.contentType].includes("percentage_worksheet");
+    const wordProblemsWorksheet = sanitizeWordProblemsWorksheet(lesson?.mathWorksheet);
     const coordinatesWorksheet = sanitizeCoordinatesWorksheet(lesson?.mathWorksheet);
+    const isWordProblemsAssignment = !!wordProblemsWorksheet || [lesson?.contentType, assignment?.contentType].includes("word_problems_worksheet");
     const isCoordinatesAssignment = !!coordinatesWorksheet || [lesson?.contentType, assignment?.contentType].includes("coordinates_worksheet");
     const statisticsWorksheet = sanitizeStatisticsWorksheet(lesson?.mathWorksheet);
     const isStatisticsAssignment = !!statisticsWorksheet || [lesson?.contentType, assignment?.contentType].includes("statistics_worksheet");
@@ -226,7 +229,9 @@ export function getAssignmentDerivedState(
     const isComparisonAssignment = !!comparisonWorksheet || [lesson?.contentType, assignment?.contentType].includes("comparison_worksheet");
     const isLengthAssignment = !!lengthWorksheet || [lesson?.contentType, assignment?.contentType].some(type => type === "length_worksheet" || type === "measurement_worksheet");
     return {
+        wordProblemsWorksheet,
         coordinatesWorksheet,
+        isWordProblemsAssignment,
         isCoordinatesAssignment,
         statisticsWorksheet,
         isStatisticsAssignment,

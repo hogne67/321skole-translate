@@ -76,6 +76,7 @@
       "openDigital": "Open Task",
       "openPreview": "Open preview",
       "subtypes": {
+      "word_problems": "Word problems",
       "coordinates": "Coordinates and reflection",
       "statistics": "Statistics and charts",
       "clock": "Clocks and time",

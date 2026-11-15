@@ -6,6 +6,7 @@ import type { ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import { isLengthWorksheet } from "@/lib/math/length/worksheet";
 import { sanitizePercentageWorksheet } from "@/lib/math/percentage/worksheet";
 import { sanitizeEquationWorksheet } from "@/lib/math/equations/worksheet";
+import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
@@ -49,6 +50,7 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
         typeof v.title === "string" &&
         v.kind !== "length" &&
         v.kind !== "measurement" &&
+        v.kind !== "word_problems" &&
         v.kind !== "coordinates" &&
         v.kind !== "statistics" &&
         v.kind !== "clock" &&
@@ -104,7 +106,7 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || isLengthWorksheet(a.measurementWorksheet ?? a.lengthWorksheet ?? a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || isLengthWorksheet(a.measurementWorksheet ?? a.lengthWorksheet ?? a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
