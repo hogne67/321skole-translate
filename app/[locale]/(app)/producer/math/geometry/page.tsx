@@ -33,6 +33,7 @@ import type {
 } from "@/lib/math/geometry/types";
 import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
 import { applyGeometryDisplayOptions } from "@/lib/math/geometry/displayOptions";
+import { DEFAULT_GEOMETRY_PRINT_OPTIONS, geometryFullPageCounts, geometryPageCapacity, geometryTaskCountAfterOptionsChange, normalizeGeometryTaskCount, type GeometryPrintOptions } from "@/lib/math/geometry/printLayout";
 import MathSpacePicker from "@/components/generators/math/MathSpacePicker";
 import { useSavedMathWorksheet } from "@/components/generators/math/useSavedMathWorksheet";
 import { useMathWorksheetSave } from "@/components/generators/math/useMathWorksheetSave";
@@ -58,7 +59,7 @@ const GEOMETRY_DRAFT_STORAGE_KEY = "321school.math.geometry.previewDraft";
 
 function clampTaskCount(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return Math.max(4, Math.min(12, Math.round(value)));
+  return normalizeGeometryTaskCount(value, DEFAULT_GEOMETRY_PRINT_OPTIONS);
 }
 
 function safePlan(plan: unknown): PlanKey {
@@ -141,7 +142,8 @@ export default function ProducerMathGeometryPage() {
   const [level, setLevel] = useState<GeometryLevel>("grade_5_7");
   const [topic, setTopic] = useState<GeometryTopic>("all");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [taskCount, setTaskCount] = useState<number>(6);
+  const [taskCount, setTaskCount] = useState<number>(geometryPageCapacity(DEFAULT_GEOMETRY_PRINT_OPTIONS).first);
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [includeHints, setIncludeHints] = useState<boolean>(false);
   const [showAnswerKey, setShowAnswerKey] = useState<boolean>(false);
   const [showFormulas, setShowFormulas] = useState<boolean>(false);
@@ -188,7 +190,8 @@ export default function ProducerMathGeometryPage() {
         setLevel("grade_5_7");
         setTopic("all");
         setDifficulty("easy");
-        setTaskCount(6);
+        setTaskCount(geometryPageCapacity(DEFAULT_GEOMETRY_PRINT_OPTIONS).first);
+        setCountMode("pages");
         setIncludeHints(false);
         setShowAnswerKey(false);
         setShowFormulas(false);
@@ -229,7 +232,11 @@ export default function ProducerMathGeometryPage() {
       if (isGeometryAnswerSpace(settings.answerSpace)) setAnswerSpace(settings.answerSpace);
 
       const restoredTaskCount = clampTaskCount(settings.taskCount);
-      if (restoredTaskCount !== null) setTaskCount(restoredTaskCount);
+      if (restoredTaskCount !== null) {
+        setTaskCount(restoredTaskCount);
+        const options: GeometryPrintOptions = { answerSpace: isGeometryAnswerSpace(settings.answerSpace) ? settings.answerSpace : "medium", includeHints: settings.includeHints === true, showFormulas: settings.showFormulas === true };
+        setCountMode(settings.countMode !== "custom" && geometryFullPageCounts(options).includes(restoredTaskCount) ? "pages" : "custom");
+      }
 
       if (Array.isArray(settings.selectedShapes)) {
         setSelectedShapes(settings.selectedShapes.filter(isFigureKind));
@@ -347,6 +354,15 @@ export default function ProducerMathGeometryPage() {
     setSelectedShapes([]);
   }
 
+  function changePrintOptions(next: Partial<GeometryPrintOptions>) {
+    const previous = { answerSpace, includeHints, showFormulas }, options = { ...previous, ...next };
+    const count = geometryTaskCountAfterOptionsChange(taskCount, previous, options, countMode === "custom");
+    if (count !== taskCount) { setTaskCount(count); setWorksheet(null); }
+    setAnswerSpace(options.answerSpace); setIncludeHints(options.includeHints); setShowFormulas(options.showFormulas);
+  }
+
+  function changeTaskCount(count: number) { setTaskCount(count); setWorksheet(null); }
+
   async function handleGenerateAndPreview() {
     if (!uid) {
       setError(t("upgradeRequired"));
@@ -434,11 +450,11 @@ export default function ProducerMathGeometryPage() {
     if (!worksheet) return;
     window.sessionStorage.setItem(GEOMETRY_DRAFT_STORAGE_KEY, JSON.stringify({
       worksheet: applyGeometryDisplayOptions(worksheet, { answerSpace, showAnswerKey, showFormulas, includeHints }),
-      settings: { language, level, topic, difficulty, taskCount, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes },
+      settings: { language, level, topic, difficulty, taskCount, countMode, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes },
       usageCounted: hasCountedDraft,
       createdAt: new Date().toISOString(),
     }));
-  }, [worksheet, language, level, topic, difficulty, taskCount, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes, hasCountedDraft]);
+  }, [worksheet, language, level, topic, difficulty, taskCount, countMode, includeHints, showAnswerKey, showFormulas, answerSpace, selectedShapes, hasCountedDraft]);
 
   const persistence = useMathWorksheetSave({ worksheet: previewWorksheet, endpoint: "/api/producer/save-math-worksheet", language: locale, source: "math-geometry-generator" });
   const { saving, savedId, success } = persistence;
@@ -449,6 +465,7 @@ export default function ProducerMathGeometryPage() {
     setTaskCount(result.tasks.length); setIncludeHints(result.tasks.some(task => !!task.hint));
     setShowAnswerKey(result.showAnswerKey); setShowFormulas(result.showFormulas); setAnswerSpace(result.answerSpace ?? "medium");
     setSelectedShapes(result.selectedShapes.filter(isFigureKind)); setHasCountedDraft(true);
+    setCountMode(geometryFullPageCounts({ answerSpace: result.answerSpace ?? "medium", includeHints: result.tasks.some(task => !!task.hint), showFormulas: result.showFormulas }).includes(result.tasks.length) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
@@ -468,6 +485,8 @@ export default function ProducerMathGeometryPage() {
             topic={topic}
             difficulty={difficulty}
             taskCount={taskCount}
+            countMode={countMode}
+            onCountModeChange={setCountMode}
             answerSpace={answerSpace}
             selectedShapes={selectedShapes}
             includeHints={includeHints}
@@ -475,13 +494,13 @@ export default function ProducerMathGeometryPage() {
             showAnswerKey={showAnswerKey}
             onTopicChange={setTopic}
             onMeasurementsChange={setDifficulty}
-            onTaskCountChange={setTaskCount}
-            onAnswerSpaceChange={setAnswerSpace}
+            onTaskCountChange={changeTaskCount}
+            onAnswerSpaceChange={(value) => changePrintOptions({ answerSpace: value })}
             onToggleShape={toggleShape}
             onSelectAll={selectAllShapes}
             onClearAll={clearAllShapes}
-            onHintsChange={setIncludeHints}
-            onFormulasChange={setShowFormulas}
+            onHintsChange={(value) => changePrintOptions({ includeHints: value })}
+            onFormulasChange={(value) => changePrintOptions({ showFormulas: value })}
             onAnswerKeyChange={setShowAnswerKey}
             onGenerate={handleGenerateAndPreview}
             onSave={() => { void persistence.save(); }}

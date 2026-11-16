@@ -16,6 +16,5 @@
   .geometry-generator-layout { display: block !important; margin: 0 !important; padding: 0 !important; }
   .geometry-generator-preview { position: absolute; inset: 0; padding: 0 !important; width: 100%; }
   .geometry-generator-preview * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .geometry-generator-preview .print-task-grid { grid-template-columns: 220px minmax(0, 1fr); }
   .geometry-generator-preview .print-page-break { break-before: page; }
 }

@@ -4,6 +4,10 @@
     "pageTitle": "Geometri",
     "pageSubtitle": "Figurer, omkrets og areal.",
     "generator": {
+      "pageCount": "Antall oppgaveark",
+      "pageOption": "{pages} ark – {tasks} oppgaver",
+      "customCount": "Eget antall",
+      "pageHint": "Første ark: {first} oppgaver, deretter {following} per ark. Antallet tilpasses svarplass, formler og hint. Fasit kommer i tillegg.",
       "taskType": "Oppgavetype",
       "nameShapes": "Navn på figurer",
       "combined": "Navn, omkrets og areal",

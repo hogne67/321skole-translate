@@ -109,8 +109,8 @@ for (const language of ["nb", "en", "pt"] as const) {
     const t = (key: string) => translate(key as Parameters<typeof translate>[0]);
     const tBrand = () => "skole";
     const print = load(renderToStaticMarkup(<GeometryWorksheetView worksheet={sheet} t={t} tBrand={tBrand} answerSpace="medium" includeHints />));
-    assert.equal(print(".print-task-list").first().find(".print-task-prompt").length, figures.length);
-    print(".print-task-list").first().find(".print-task-prompt").each((_, element) => assert.equal(print(element).text(), prompt));
+    assert.equal(print(".geometry-task-page .print-task-prompt").length, figures.length);
+    print(".geometry-task-page .print-task-prompt").each((_, element) => assert.equal(print(element).text(), prompt));
     assert.equal(print(".figure-meta-text").length, 2);
     assert.equal(print(".print-answer-key").length, figures.length);
 

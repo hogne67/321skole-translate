@@ -2,6 +2,7 @@
 "use client";
 
 import "./geometryWorksheet.css";
+import { geometryPrintPages } from "@/lib/math/geometry/printLayout";
 import type { RefObject } from "react";
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
 import FigureMeta from "@/components/generators/math/geometry/FigureMeta";
@@ -79,12 +80,13 @@ export default function GeometryWorksheetView({
     return isRawTranslationKey(measurementValue, rawKey) ? key : measurementValue;
   };
 
+  const pages = geometryPrintPages(worksheet.tasks, { answerSpace, includeHints: includeHints && worksheet.tasks.some(task => !!task.hint), showFormulas: worksheet.showFormulas && worksheet.tasks.some(task => !!task.formula), showFigureMeta });
+  if (!pages.length) pages.push({ tasks: [], startIndex: 0 });
   return (
-    <div
-      ref={printRef}
-      className="geometry-worksheet print-root mx-auto max-w-[820px] bg-white text-slate-900 print:max-w-none"
-    >
+    <div ref={printRef} data-answer-space={answerSpace} className="geometry-worksheet print-root mx-auto max-w-[820px] bg-white text-slate-900 print:max-w-none">
       <div className="print-card">
+        {pages.map(({ tasks, startIndex }, page) => <section className="geometry-task-page" key={startIndex}>
+          {page === 0 ? <>
         <div className="print-brandbar">
           <div className="print-brandleft">
             <img
@@ -140,17 +142,14 @@ export default function GeometryWorksheetView({
           ) : null}
         </div>
 
-        {worksheet.tasks.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-            {getEmptyStateLabel(t, emptyStateKey)}
-          </div>
-        ) : (
-          <>
+
+          </> : <h3 className="geometry-continuation">{worksheet.title}</h3>}
+          {tasks.length === 0 ? <p>{getEmptyStateLabel(t, emptyStateKey)}</p> : (
             <div className="print-task-list">
-              {worksheet.tasks.map((task, idx) => (
+              {tasks.map((task, idx) => (
                 <article key={task.id || String(idx)} className="print-task">
                   <div className="print-task-head">
-                    <div className="print-task-num">{idx + 1}</div>
+                    <div className="print-task-num">{startIndex + idx + 1}</div>
                     <div className="min-w-0">
                       <h4 className="print-task-prompt">{getGeometryTaskPrompt(task, worksheet.language)}</h4>
                     </div>
@@ -195,6 +194,9 @@ export default function GeometryWorksheetView({
               ))}
             </div>
 
+
+          )}
+        </section>)}
             {worksheet.showAnswerKey ? (
               <section className="geometry-answer-key mt-10 border-t-2 border-slate-300 pt-8">
                 <div className="mb-6">
@@ -264,8 +266,7 @@ export default function GeometryWorksheetView({
                 </div>
               </section>
             ) : null}
-          </>
-        )}
+
       </div>
     </div>
   );

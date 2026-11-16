@@ -4,6 +4,10 @@
     "pageTitle": "Geometria",
     "pageSubtitle": "Figuras, perímetro e área.",
     "generator": {
+      "pageCount": "Número de fichas",
+      "pageOption": "{pages} × A4 – {tasks} exercícios",
+      "customCount": "Quantidade personalizada",
+      "pageHint": "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. A quantidade adapta-se ao espaço de resposta, às fórmulas e às pistas. As soluções são apresentadas à parte.",
       "taskType": "Tipo de tarefa",
       "nameShapes": "Nome das figuras",
       "combined": "Nome, perímetro e área",

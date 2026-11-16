@@ -4,6 +4,10 @@
     "pageTitle": "Geometry",
     "pageSubtitle": "Shapes, perimeter and area.",
     "generator": {
+      "pageCount": "Number of worksheets",
+      "pageOption": "{pages} × A4 – {tasks} tasks",
+      "customCount": "Custom count",
+      "pageHint": "First sheet: {first} tasks, then {following} per sheet. Capacity follows answer space, formulas and hints. The answer key is separate.",
       "taskType": "Task type",
       "nameShapes": "Name the shapes",
       "combined": "Name, perimeter and area",

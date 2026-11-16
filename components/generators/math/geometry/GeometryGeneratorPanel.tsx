@@ -3,15 +3,18 @@
 import MathGeneratorActions from "../MathGeneratorActions";
 import { GEOMETRY_FIGURES } from "@/lib/math/geometry/types";
 import type { Difficulty, FigureKind, GeometryAnswerSpace, GeometryTopic } from "@/lib/math/geometry/types";
+import { GEOMETRY_MAX_TASK_COUNT, geometryFullPageCounts, geometryPageCapacity, normalizeGeometryTaskCount } from "@/lib/math/geometry/printLayout";
 
 type Props = {
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
   language: string;
   loadingSaved?: boolean;
   onShare: () => void;
   topic: GeometryTopic;
   difficulty: Difficulty;
   taskCount: number;
+  countMode: "pages" | "custom";
+  onCountModeChange: (value: "pages" | "custom") => void;
   answerSpace: GeometryAnswerSpace;
   selectedShapes: FigureKind[];
   includeHints: boolean;
@@ -47,6 +50,8 @@ function shapeKey(shape: FigureKind) {
 
 export default function GeometryGeneratorPanel(p: Props) {
   const { t } = p;
+  const options = { answerSpace: p.answerSpace, includeHints: p.includeHints, showFormulas: p.showFormulas };
+  const counts = geometryFullPageCounts(options), capacity = geometryPageCapacity(options);
   return (
     <div className="mt-6 grid gap-5">
       <label>
@@ -83,9 +88,17 @@ export default function GeometryGeneratorPanel(p: Props) {
       </fieldset>
 
       <label>
-        <span className={labelClass}>{t("taskCount")}</span>
-        <input type="number" min={4} max={12} step={1} value={p.taskCount} onChange={(e) => p.onTaskCountChange(Math.max(4, Math.min(12, Math.round(Number(e.target.value) || 4))))} className={fieldClass} />
+        <span className={labelClass}>{t("generator.pageCount")}</span>
+        <select disabled={p.generating || p.saving || p.loadingSaved} aria-describedby="geometry-page-count-hint" value={p.countMode === "custom" ? "custom" : p.taskCount} onChange={(event) => {
+          if (event.target.value === "custom") p.onCountModeChange("custom");
+          else { p.onCountModeChange("pages"); p.onTaskCountChange(Number(event.target.value)); }
+        }} className={fieldClass}>
+          {counts.map((count, page) => <option key={count} value={count}>{t("generator.pageOption", { pages: page + 1, tasks: count })}</option>)}
+          <option value="custom">{t("generator.customCount")}</option>
+        </select>
       </label>
+      {p.countMode === "custom" ? <label><span className={labelClass}>{t("taskCount")}</span><input disabled={p.generating || p.saving || p.loadingSaved} type="number" min={1} max={GEOMETRY_MAX_TASK_COUNT} step={1} value={p.taskCount} onChange={(e) => p.onTaskCountChange(normalizeGeometryTaskCount(e.target.valueAsNumber, options))} className={fieldClass} /></label> : null}
+      <p id="geometry-page-count-hint" className="-mt-3 text-xs leading-5 text-slate-500">{t("generator.pageHint", { first: capacity.first, following: capacity.following })}</p>
 
       <label>
         <span className={labelClass}>{t("generator.measurements")}</span>

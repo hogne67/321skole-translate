@@ -2,6 +2,7 @@ import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 // app\api\generate-math-worksheet\route.ts
 import { NextResponse } from "next/server";
 import { buildHint, buildFormula } from "@/lib/math/geometry/displayOptions";
+import { normalizeGeometryTaskCount } from "@/lib/math/geometry/printLayout";
 import { formatFigureMeta, formatNumber } from "@/lib/math/geometry/measurements";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
@@ -59,11 +60,6 @@ function normalizeSelectedShapes(value: unknown): FigureKind[] {
   if (!Array.isArray(value)) return ALL_FIGURES;
   const filtered = value.filter(isFigureKind);
   return filtered.length > 0 ? Array.from(new Set(filtered)) : ALL_FIGURES;
-}
-
-function clampTaskCount(value: unknown): number {
-  if (typeof value !== "number" || Number.isNaN(value)) return 6;
-  return Math.max(4, Math.min(12, Math.round(value)));
 }
 
 function randomFrom<T>(items: T[]): T {
@@ -896,9 +892,8 @@ function normalizeRequest(body: GenerateMathWorksheetRequest) {
   const difficulty: Difficulty = isDifficulty(body.difficulty)
     ? body.difficulty
     : "easy";
-  const taskCount = clampTaskCount(body.taskCount);
   const includeHints =
-    typeof body.includeHints === "boolean" ? body.includeHints : true;
+    typeof body.includeHints === "boolean" ? body.includeHints : false;
   const showAnswerKey =
     typeof body.showAnswerKey === "boolean" ? body.showAnswerKey : false;
   const showFormulas =
@@ -907,6 +902,7 @@ function normalizeRequest(body: GenerateMathWorksheetRequest) {
     ? body.answerSpace
     : "medium";
   const selectedShapes = normalizeSelectedShapes(body.selectedShapes);
+  const taskCount = normalizeGeometryTaskCount(body.taskCount, { answerSpace, includeHints, showFormulas });
 
   return {
     language,

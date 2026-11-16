@@ -257,9 +257,53 @@
 }
 
 @media print {
+  @page { size: A4; margin: 12mm; }
+  .geometry-worksheet.print-root { max-width: none; width: 100%; font-family: Arial, sans-serif; }
+  .geometry-worksheet, .geometry-worksheet *, .geometry-worksheet *::before, .geometry-worksheet *::after { box-sizing: border-box; }
+  .geometry-worksheet .geometry-task-page + .geometry-task-page { break-before: page; }
+  .geometry-worksheet .geometry-continuation { margin: 0 0 4mm; font-size: 12pt; line-height: 1.2; }
+  .geometry-worksheet .print-brandbar { margin-bottom: 2mm; padding-bottom: 2mm; gap: 3mm; }
+  .geometry-worksheet .print-brandleft { gap: 2mm; }
+  .geometry-worksheet .print-brandlogo { width: 11mm; }
+  .geometry-worksheet .print-brandtitle { font-size: 11pt; }
+  .geometry-worksheet .print-brandsite { font-size: 7pt; margin-top: 1mm; }
+  .geometry-worksheet .print-badge { padding: 1.5mm 2mm; font-size: 8pt; border-radius: 2mm; }
+  .geometry-worksheet .print-title-wrap { margin-bottom: 2mm; padding-bottom: 1mm; }
+  .geometry-worksheet .print-title { font-size: 15pt; }
+  .geometry-worksheet .print-instructions { margin: 2mm 0; font-size: 9pt; line-height: 1.35; }
+  .geometry-worksheet .print-meta-grid { margin-top: 2mm; gap: 1.5mm; }
+  .geometry-worksheet .print-meta-box { padding: 1.5mm; border-radius: 1mm; font-size: 8pt; line-height: 1.3; }
+  .geometry-worksheet .print-meta-box:last-child { grid-column: 1 / -1; }
+  .geometry-worksheet .print-task-list { grid-template-columns: minmax(0, 1fr); gap: 1mm; }
+  .geometry-worksheet .print-task { padding: 1.5mm; border-width: 0 0 1px; border-radius: 0; }
+  .geometry-worksheet .print-task-head { gap: 2mm; margin-bottom: 1mm; }
+  .geometry-worksheet .print-task-num { width: 5mm; height: 5mm; margin-top: 0; font-size: 8pt; }
+  .geometry-worksheet .print-task-prompt { font-size: 10pt; line-height: 1.3; }
+  .geometry-worksheet .print-task-grid { grid-template-columns: 56mm minmax(0, 1fr); gap: 4mm; align-items: start; }
+  .geometry-worksheet .print-figure-box { min-height: 0; gap: 1mm; padding: 0; background: white; border-radius: 0; }
+  .geometry-worksheet .print-figure-box svg { width: 54mm; height: 32mm; max-width: 100%; }
+  .geometry-worksheet .print-figure-box svg text { font-size: 14px; }
+  .geometry-worksheet .print-figure-box svg text[font-size="9"],
+  .geometry-worksheet .print-figure-box svg text[font-size="10"] { font-size: 11px; }
+  .geometry-worksheet .print-figure-box:has(> .figure-meta-text) svg { height: 27mm; }
+  .geometry-worksheet .figure-meta-text { font-size: 8pt; line-height: 1.2; }
+  .geometry-worksheet .print-answer-box { min-height: 24mm; padding: 2mm; border-width: 1px; border-radius: 1mm; }
+  .geometry-worksheet[data-answer-space="small"] .print-answer-box { min-height: 12mm; }
+  .geometry-worksheet[data-answer-space="large"] .print-answer-box { min-height: 36mm; }
+  .geometry-worksheet .print-answer-label { font-size: 9pt; }
+  .geometry-worksheet .print-formula, .geometry-worksheet .print-hint, .geometry-worksheet .print-answer-key, .geometry-worksheet .print-explanation { margin-top: 1.5mm; padding: 1.5mm; font-size: 8pt; line-height: 1.3; border-radius: 1mm; }
   .geometry-worksheet .geometry-answer-key { break-before: page; margin-top: 0; }
+  .geometry-worksheet .geometry-answer-key { padding-top: 0; border-top: 0; }
+  .geometry-worksheet .geometry-answer-key .print-task-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm; }
+  .geometry-worksheet .geometry-answer-key .print-figure-box { display: none; }
+  .geometry-worksheet .geometry-answer-key .print-task-grid { display: block; }
+  .geometry-worksheet .geometry-answer-key h3 { font-size: 13pt; }
+  .geometry-worksheet .geometry-answer-key .print-task-head p { display: none; }
+  .geometry-worksheet .geometry-answer-key .print-task { background: white !important; }
+  .geometry-worksheet .geometry-answer-key .print-answer-key,
+  .geometry-worksheet .geometry-answer-key .print-formula,
+  .geometry-worksheet .geometry-answer-key .print-explanation { padding: 0; margin-top: 1mm; border: 0; background: transparent; }
   .geometry-worksheet .print-task, .geometry-worksheet .print-answer-key { break-inside: avoid; }
-  .geometry-worksheet .print-task-grid { grid-template-columns: 220px minmax(0, 1fr); }
   .geometry-worksheet .print-top-row { flex-direction: row; justify-content: space-between; }
   .geometry-worksheet .print-meta-grid { grid-template-columns: 1fr 1fr; }
 }
