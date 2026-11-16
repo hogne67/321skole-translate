@@ -35,26 +35,34 @@
 @media (max-width: 620px) { .percentage-prompt { font-size: 14px; } }
 @media (max-width: 360px) { .percentage-equation { gap: 5px; font-size: 14px; } }
 @media print {
-  body:has(.percentage-sheet), .percentage-sheet { background: white !important; }
   .percentage-sheet .length-brand { margin-bottom: 3mm; }
-  .percentage-sheet .length-instructions { margin-bottom: 3mm; }
+  .percentage-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .percentage-sheet .length-instructions { font-size: 9pt; line-height: 1.35; margin-bottom: 3mm; }
   .percentage-sheet .length-identity { margin-bottom: 3mm; }
+  .percentage-sheet .percentage-task { min-height: 0; padding: .75mm 0; }
+  .percentage-sheet .percentage-prompt { font-size: 9pt; line-height: 1.2; min-height: 7.7mm; gap: 1.5mm; }
+  .percentage-sheet .percentage-prompt .length-number { width: 5mm; }
+  .percentage-sheet .percentage-part-equation { min-height: 15.5mm; padding: 0; }
+  .percentage-sheet.percentage-supported .percentage-part-equation { min-height: 19mm; }
+  body:has(.percentage-sheet), .percentage-sheet { background: white !important; }
   .percentage-sheet .length-identity span { padding: 1.5mm; }
   .percentage-task { min-height: 31mm; padding: 1mm 0; }
   .percentage-prompt { font-size: 9pt; line-height: 1.25; min-height: 6mm; }
   .percentage-equation { min-height: 20mm; padding: 0; gap: 2mm; font-size: 11pt; }
-  .percentage-fraction { grid-template-columns: 18mm; gap: 1mm; }
-  .percentage-blank { display: block; width: 18mm; height: 6mm; border: 1px dashed #94a3b8; border-radius: 0; }
-  .percentage-support { font-size: 6pt; line-height: 1; }
+  .percentage-fraction { grid-template-columns: 18mm; gap: .75mm; }
+  .percentage-blank { display: block; width: 18mm; height: 5.5mm; border: 1px dashed #94a3b8; border-radius: 0; }
+  .percentage-support { font-size: 6pt; line-height: 1.1; }
   .percentage-part-fraction { grid-template-columns: 33mm; }
   .percentage-part-equation .percentage-blank { width: 14mm; }
-  .percentage-factor { gap: .5mm; }
+  .percentage-factor { gap: .4mm; }
   .percentage-product { gap: .5mm; }
-  .percentage-times { height: 6mm; }
-  .percentage-working { height: 4mm; }
-  .percentage-conclusion-line { height: 8mm; margin-top: 1.5mm; font-size: 7pt; line-height: 1; }
-  .percentage-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4mm; }
-  .percentage-change-equation { min-height: 8mm; flex-wrap: nowrap; gap: 1mm; font-size: 9pt; }
+  .percentage-times { height: 5.5mm; }
+  .percentage-working { height: 2.5mm; margin: .3mm 0 0 5mm; }
+  .percentage-conclusion-line { height: 7mm; margin-top: .5mm; font-size: 7pt; line-height: 1; }
+  .percentage-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 4mm; }
+  .percentage-key-task { break-inside: avoid; }
+  .percentage-key p { line-height: 1.15; font-size: 9pt; }
+  .percentage-change-equation { min-height: 7.5mm; flex-wrap: nowrap; gap: 1mm; font-size: 9pt; }
   .percentage-change-equation .percentage-blank { width: 14mm; }
   .percentage-new-price-label { flex: 0 0 auto; font-size: 7pt; }
   .percentage-key-new-price { padding-top: 2mm; padding-left: 4mm; }

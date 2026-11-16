@@ -10,12 +10,14 @@ import MathGeneratorActions from "../MathGeneratorActions";
 import { useMathWorksheetSave } from "../useMathWorksheetSave";
 import { useSavedMathWorksheet } from "../useSavedMathWorksheet";
 import ComparisonWorksheetView from "./ComparisonWorksheetView";
+import { COMPARISON_MAX_TASK_COUNT, comparisonPageCapacity, comparisonFullPageCounts, comparisonCountAfterSupportChange } from "@/lib/math/comparison/printLayout";
 
 export default function ComparisonGenerator() {
   const locale = useLocale(), copy = getComparisonCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<ComparisonSettings>({ ...DEFAULT_COMPARISON_SETTINGS });
   const [worksheet, setWorksheet] = useState<ComparisonWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [language, setLanguage] = useState(locale);
@@ -25,6 +27,7 @@ export default function ComparisonGenerator() {
     const result = sanitizeComparisonWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(comparisonFullPageCounts(result.settings.visualSupport).includes(result.tasks.length) ? "pages" : "custom");
 
     persistence.rememberSaved(id, result);
     return true;
@@ -33,6 +36,8 @@ export default function ComparisonGenerator() {
     setSettings(current => ({ ...current, ...next }));
     setWorksheet(null); setError("");
   }
+  const capacity = comparisonPageCapacity(settings.visualSupport);
+  const pageCounts = comparisonFullPageCounts(settings.visualSupport);
   let validation = "";
   try { normalizeComparisonSettings(settings); }
   catch (error) {
@@ -57,8 +62,13 @@ export default function ComparisonGenerator() {
       }} />{copy[form]}</label>)}</div></fieldset>
       <label className="length-field">{copy.mode}<select aria-label={copy.mode} disabled={busy} value={settings.mode} onChange={e => change({ mode: e.target.value as ComparisonSettings["mode"] })}><option value="same">{copy.same}</option><option value="mixed" disabled={settings.forms.length < 2}>{copy.mixed}</option></select></label>
       {settings.forms.includes("fraction") ? <fieldset disabled={busy}><legend>{copy.denominators}</legend><div className="comparison-denominators">{COMPARISON_DENOMINATORS.map(d => <label key={d}><input type="checkbox" checked={settings.denominators.includes(d)} onChange={e => change({ denominators: e.target.checked ? [...settings.denominators, d] : settings.denominators.filter(value => value !== d) })} />{d}</label>)}</div></fieldset> : null}
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={100} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => change({ taskCount: e.target.valueAsNumber })} /></label>
-      <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.visualSupport} onChange={e => change({ visualSupport: e.target.checked, taskCount: settings.taskCount === (e.target.checked ? 36 : 12) ? (e.target.checked ? 12 : 36) : settings.taskCount })} />{copy.support}</label>
+      <label className="length-field">{common.pageCount}<select disabled={busy || persistence.saving || restored.loading} aria-describedby="comparison-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy || persistence.saving || restored.loading} type="number" min={1} max={COMPARISON_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="comparison-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
+      <label className="length-toggle"><input disabled={busy || persistence.saving || restored.loading} type="checkbox" checked={settings.visualSupport} onChange={event => change({ visualSupport: event.target.checked, taskCount: comparisonCountAfterSupportChange(settings.taskCount, settings.visualSupport, event.target.checked, countMode === "custom") })} />{copy.support}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={showAnswerKey} onChange={e => { setShowAnswerKey(e.target.checked); }} />{common.key}</label>
       {validation ? <p className="length-error" role="status">{validation}</p> : null}
       <MathGeneratorActions language={locale} generating={busy} saving={persistence.saving} loading={restored.loading} canGenerate={!validation} hasWorksheet={!!worksheet}

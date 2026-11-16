@@ -1,4 +1,5 @@
 import Fraction from "fraction.js";
+import { COMPARISON_MAX_TASK_COUNT, comparisonPageCapacity } from "./printLayout";
 
 export const COMPARISON_FORMS = ["fraction", "decimal", "percent"] as const;
 export const COMPARISON_DENOMINATORS = [2, 4, 5, 10, 20] as const;
@@ -20,7 +21,7 @@ export type ComparisonWorksheet = {
   showAnswerKey: boolean; tasks: ComparisonTask[];
 };
 export const DEFAULT_COMPARISON_SETTINGS: ComparisonSettings = {
-  forms: ["fraction", "decimal", "percent"], mode: "mixed", denominators: [2, 4, 5, 10, 20], visualSupport: false, taskCount: 36,
+  forms: ["fraction", "decimal", "percent"], mode: "mixed", denominators: [2, 4, 5, 10, 20], visualSupport: false, taskCount: comparisonPageCapacity(false).first,
 };
 export function normalizeComparisonSettings(value: unknown): ComparisonSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_SETTINGS");
@@ -30,7 +31,7 @@ export function normalizeComparisonSettings(value: unknown): ComparisonSettings 
   if ((raw.mode !== "same" && raw.mode !== "mixed") || (raw.mode === "mixed" && forms.length < 2)) throw new Error("INVALID_MODE");
   if (!Array.isArray(raw.denominators) || (forms.includes("fraction") && !raw.denominators.length) || raw.denominators.some(d => !(COMPARISON_DENOMINATORS as readonly number[]).includes(d))) throw new Error("INVALID_DENOMINATORS");
   if (typeof raw.visualSupport !== "boolean") throw new Error("INVALID_SUPPORT");
-  if (typeof raw.taskCount !== "number" || !Number.isInteger(raw.taskCount) || raw.taskCount < 1 || raw.taskCount > 100) throw new Error("INVALID_COUNT");
+  if (typeof raw.taskCount !== "number" || !Number.isInteger(raw.taskCount) || raw.taskCount < 1 || raw.taskCount > COMPARISON_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   return { forms, mode: raw.mode, denominators: [...new Set(raw.denominators)] as number[], visualSupport: raw.visualSupport, taskCount: raw.taskCount };
 }
 export function comparisonFraction(value: ComparisonValue) { return new Fraction(value.numerator, value.denominator); }
@@ -126,6 +127,7 @@ export function gradeComparisonWorksheet(worksheet: ComparisonWorksheet, answers
   return { totalAuto: entries.length, correctAuto, wrongAuto: entries.length - correctAuto - unansweredAuto, unansweredAuto, percentAuto: entries.length ? Math.round(correctAuto / entries.length * 100) : 0, byTask };
 }
 const nb = {
+  pageHint: "Første ark: {first} oppgaver, deretter {following} per ark. Antallet tilpasses visuell støtte. Fasit kommer i tillegg.",
   title: "Sammenlign tall", subtitle: "Brøk, desimaltall og prosent.",
   instructions: "Sammenlign tallene. Velg < (mindre enn), > (større enn) eller = (lik). En hel er 1 eller 100 %.",
   forms: "Uttrykksformer", fraction: "Brøk", decimal: "Desimaltall", percent: "Prosent", mode: "Sammenligning", same: "Samme uttrykksform", mixed: "Blandet", denominators: "Nevnere", support: "Visuell støtte", generate: "Lag sammenligningsark", empty: "Klar for første sammenligningsark",
@@ -134,10 +136,12 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageHint: "First sheet: {first} tasks, then {following} per sheet. The count adapts to visual support. The answer key is separate.",
   title: "Compare numbers", subtitle: "Fractions, decimals and percentages.", instructions: "Compare the numbers. Choose < (less than), > (greater than) or = (equal). One whole is 1 or 100%.",
   forms: "Representations", fraction: "Fractions", decimal: "Decimals", percent: "Percentages", mode: "Comparison", same: "Same representation", mixed: "Mixed", denominators: "Denominators", support: "Visual support", generate: "Create comparison worksheet", empty: "Ready for your first comparison worksheet", invalidForms: "Select at least one representation.", invalidMode: "Select at least two representations for mixed comparisons.", invalidDenominators: "Select at least one denominator.", less: "Less than", equal: "Equal", greater: "Greater than", comparison: "Comparison sign", whole: "One whole", numberLine: "Number line from 0 to 1",
 };
 const pt: Copy = {
+  pageHint: "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. A quantidade adapta-se ao apoio visual. As soluções são apresentadas à parte.",
   title: "Comparar números", subtitle: "Frações, decimais e percentagens.", instructions: "Compara os números. Escolhe < (menor que), > (maior que) ou = (igual). Uma unidade é 1 ou 100%.",
   forms: "Representações", fraction: "Frações", decimal: "Decimais", percent: "Percentagens", mode: "Comparação", same: "Mesma representação", mixed: "Misto", denominators: "Denominadores", support: "Apoio visual", generate: "Criar ficha de comparação", empty: "Pronto para a primeira ficha de comparação", invalidForms: "Seleciona pelo menos uma representação.", invalidMode: "Seleciona pelo menos duas representações para comparações mistas.", invalidDenominators: "Seleciona pelo menos um denominador.", less: "Menor que", equal: "Igual", greater: "Maior que", comparison: "Sinal de comparação", whole: "Uma unidade", numberLine: "Reta numérica de 0 a 1",
 };

@@ -3,7 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { DEFAULT_PERCENTAGE_SETTINGS, PERCENTAGE_MODES, getPercentageCopy, isPercentageChange, normalizePercentageSettings, percentageChoices, percentageTasksPerPage, sanitizePercentageWorksheet, type PercentageSettings, type PercentageMode, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { DEFAULT_PERCENTAGE_SETTINGS, PERCENTAGE_MODES, getPercentageCopy, isPercentageChange, normalizePercentageSettings, percentageChoices, sanitizePercentageWorksheet, type PercentageSettings, type PercentageMode, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { PERCENTAGE_MAX_TASK_COUNT, percentagePageCapacity, percentageFullPageCounts, percentageCountAfterOptionsChange } from "@/lib/math/percentage/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathSpacePicker from "../MathSpacePicker";
 import MathGeneratorActions from "../MathGeneratorActions";
@@ -14,7 +15,7 @@ import PercentageWorksheetView from "./PercentageWorksheetView";
 export default function PercentageGenerator() {
   const locale = useLocale(), copy = getPercentageCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<PercentageSettings>({ ...DEFAULT_PERCENTAGE_SETTINGS });
-  const [hasCustomCount, setHasCustomCount] = useState(false);
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const supportLabel = { find_percentage: copy.support, find_part: copy.partSupport, find_whole: copy.wholeSupport, mixed: copy.mixedSupport, discount: copy.changeSupport, increase: copy.changeSupport }[settings.taskType ?? "find_percentage"];
   const [worksheet, setWorksheet] = useState<PercentageWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
@@ -27,17 +28,18 @@ export default function PercentageGenerator() {
     const result = sanitizePercentageWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
-    setHasCustomCount(true);
+    setCountMode(percentageFullPageCounts(result.settings).includes(result.tasks.length) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   function change(next: Partial<PercentageSettings>) {
     setSettings(current => {
       const updated = { ...current, ...next };
-      return !hasCustomCount && (next.showConclusion !== undefined || next.taskType !== undefined) ? { ...updated, taskCount: percentageTasksPerPage(updated) } : updated;
+      return next.taskCount === undefined ? { ...updated, taskCount: percentageCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated;
     });
     setWorksheet(null); setError("");
   }
+  const capacity = percentagePageCapacity(settings), pageCounts = percentageFullPageCounts(settings);
   let validation = "";
   try { if (!percentageChoices(normalizePercentageSettings(settings)).length) validation = copy.invalidCombinations; }
   catch (error) { validation = error instanceof Error && error.message === "INVALID_COUNT" ? common.invalidCount : error instanceof Error && error.message === "INVALID_TYPE" ? copy.invalidType : copy.invalidRange; }
@@ -54,7 +56,12 @@ export default function PercentageGenerator() {
   return <main className="length-generator"><div className="length-layout">
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.title}</h1><p>{copy.subtitle}</p>
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType ?? "find_percentage"} onChange={e => change({ taskType: e.target.value as PercentageMode })}>{PERCENTAGE_MODES.map(type => <option key={type} value={type}>{copy[type]}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={100} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => { setHasCustomCount(true); change({ taskCount: e.target.valueAsNumber }); }} /></label>
+      <label className="length-field">{common.pageCount}<select aria-describedby="percentage-page-hint" disabled={busy || persistence.saving || restored.loading} value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy || persistence.saving || restored.loading} type="number" min={1} max={PERCENTAGE_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="percentage-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <fieldset disabled={busy}><legend>{isPercentageChange(settings.taskType) ? copy.priceRange : copy.range}</legend><div className="length-range">{(["minimum", "maximum"] as const).map(field => <label key={field}>{field === "minimum" ? common.minimum : common.maximum}<input type="number" min={1} max={10000} value={Number.isNaN(settings[field]) ? "" : settings[field]} onChange={e => change({ [field]: e.target.valueAsNumber })} /></label>)}</div></fieldset>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={e => change({ showSupport: e.target.checked })} />{supportLabel}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showConclusion ?? false} onChange={e => change({ showConclusion: e.target.checked })} />{copy.showConclusion}</label>

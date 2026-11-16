@@ -4,6 +4,7 @@ import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { COMPARISON_SIGNS, formatComparisonValue, getComparisonCopy, gradeComparisonTask, gradeComparisonWorksheet, type ComparisonValue, type ComparisonWorksheet } from "@/lib/math/comparison/worksheet";
 import ComparisonVisual from "./ComparisonVisual";
+import { comparisonPrintPages } from "@/lib/math/comparison/printLayout";
 import "../length/length.css";
 import "./comparison.css";
 
@@ -16,11 +17,10 @@ export default function ComparisonWorksheetView({ worksheet, answersByTaskId = {
 }) {
   const copy = getComparisonCopy(worksheet.language), common = getMeasurementCopy(worksheet.language);
   const grade = gradeComparisonWorksheet(worksheet, answersByTaskId);
-  const perPage = worksheet.settings.visualSupport ? 12 : 36;
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / perPage) }, (_, i) => worksheet.tasks.slice(i * perPage, (i + 1) * perPage));
+  const pages = printMode ? comparisonPrintPages(worksheet.tasks, worksheet.settings.visualSupport) : [{ tasks: worksheet.tasks, startIndex: 0 }];
   const labels = { "<": copy.less, "=": copy.equal, ">": copy.greater };
   return <div ref={printRef} className={`length-sheet comparison-sheet${worksheet.settings.visualSupport ? " comparison-supported" : ""}${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={startIndex}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -28,7 +28,7 @@ export default function ComparisonWorksheetView({ worksheet, answersByTaskId = {
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks comparison-tasks">{tasks.map((task, i) => {
-        const number = page * perPage + i + 1;
+        const number = startIndex + i + 1;
         const result = gradeComparisonTask(task, answersByTaskId[task.id]);
         const answer = COMPARISON_SIGNS.includes(answersByTaskId[task.id] as "<") ? String(answersByTaskId[task.id]) : "";
         const label = `${common.task} ${number}: ${formatComparisonValue(task.left, worksheet.language)}, ${copy.comparison}, ${formatComparisonValue(task.right, worksheet.language)}`;

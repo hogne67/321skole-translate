@@ -1,4 +1,5 @@
 import Fraction from "fraction.js";
+import { PERCENTAGE_MAX_TASK_COUNT, percentagePageCapacity, type PercentagePrintOptions } from "./printLayout";
 
 export const SIMPLE_PERCENTAGES = [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90] as const;
 export const BASIC_PERCENTAGE_TASK_TYPES = ["find_percentage", "find_part", "find_whole"] as const;
@@ -13,12 +14,12 @@ export type PercentageWorksheet = {
   version: 1; kind: "percentage"; language: "nb" | "en" | "pt"; title: string; instructions: string;
   settings: PercentageSettings; showAnswerKey: boolean; tasks: PercentageTask[];
 };
-export const DEFAULT_PERCENTAGE_SETTINGS: PercentageSettings = { minimum: 20, maximum: 200, taskCount: 12, showSupport: true, showConclusion: false, taskType: "find_percentage" };
+export const DEFAULT_PERCENTAGE_SETTINGS: PercentageSettings = { minimum: 20, maximum: 200, taskCount: percentagePageCapacity({ taskType: "find_percentage", showSupport: true }).first, showSupport: true, showConclusion: false, taskType: "find_percentage" };
 export function isPercentageChange(type: PercentageMode | undefined): boolean {
   return type === "discount" || type === "increase";
 }
-export function percentageTasksPerPage(settings: Pick<PercentageSettings, "taskType" | "showConclusion">): number {
-  return isPercentageChange(settings.taskType) ? settings.showConclusion ? 8 : 10 : settings.showConclusion ? 10 : 12;
+export function percentageTasksPerPage(settings: PercentagePrintOptions): number {
+  return percentagePageCapacity(settings).first;
 }
 export function percentageFinalValue(task: PercentageTask): number {
   return task.type === "discount" ? task.whole - task.part : task.whole + task.part;
@@ -27,7 +28,7 @@ export function normalizePercentageSettings(value: unknown): PercentageSettings 
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_SETTINGS");
   const raw = value as PercentageSettings;
   if (!Number.isInteger(raw.minimum) || !Number.isInteger(raw.maximum) || raw.minimum < 1 || raw.maximum > 10000 || raw.minimum > raw.maximum) throw new Error("INVALID_RANGE");
-  if (!Number.isInteger(raw.taskCount) || raw.taskCount < 1 || raw.taskCount > 100) throw new Error("INVALID_COUNT");
+  if (!Number.isInteger(raw.taskCount) || raw.taskCount < 1 || raw.taskCount > PERCENTAGE_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   if (typeof raw.showSupport !== "boolean") throw new Error("INVALID_SUPPORT");
   if (raw.showConclusion !== undefined && typeof raw.showConclusion !== "boolean") throw new Error("INVALID_CONCLUSION");
   const taskType = raw.taskType === undefined ? "find_percentage" : raw.taskType;
@@ -134,6 +135,7 @@ export function percentagePrompt(task: PercentageTask, language: string): string
   return language === "en" ? `What percentage is ${task.part} of ${task.whole}?` : language === "pt" ? `Que percentagem representa ${task.part} de ${task.whole}?` : `Hvor mange prosent er ${task.part} av ${task.whole}?`;
 }
 const nb = {
+  pageHint: "Første ark: {first} oppgaver, deretter {following} per ark. Antallet tilpasses oppgavetype, støtteord og svarsetning. Fasit kommer i tillegg.",
   discount: "Rabatt", increase: "Prosentvis økning", discountTitle: "Prosentregning – rabatt", increaseTitle: "Prosentregning – prosentvis økning", originalPrice: "Førpris", newPrice: "Ny pris", discountAmount: "Rabatt", increaseAmount: "Økning", newPriceSetup: "Oppsett for ny pris", changeSupport: "Vis støtteord", priceRange: "Prisen før endring",
   discountInstructions: "Finn rabatten med brøken, og trekk den fra førprisen. Skriv bare tall i regnefeltene. Oppsett og svar i hvert steg teller like mye.", increaseInstructions: "Finn økningen med brøken, og legg den til førprisen. Skriv bare tall i regnefeltene. Oppsett og svar i hvert steg teller like mye.", changeSetupHelp: "Prosenttallet og førprisen skal multipliseres over delestreken, med 100 under.", discountSetupHelp: "Trekk rabatten fra førprisen.", increaseSetupHelp: "Legg økningen til førprisen.",
   conclusionCalculationInstructions: "Sett opp brøken og regn ut svaret. Skriv bare tall i regnefeltene, uten prosenttegn. Oppsett og svar teller like mye.",
@@ -149,6 +151,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageHint: "First sheet: {first} tasks, then {following} per sheet. Counts adapt to the task type, support labels and answer sentence. The answer key is separate.",
   discount: "Discount", increase: "Percentage increase", discountTitle: "Percentages – discount", increaseTitle: "Percentages – percentage increase", originalPrice: "Original price", newPrice: "New price", discountAmount: "Discount", increaseAmount: "Increase", newPriceSetup: "New price setup", changeSupport: "Show support labels", priceRange: "Price before the change",
   discountInstructions: "Find the discount using the fraction, then subtract it from the original price. Write only numbers. Each setup and answer has equal weight.", increaseInstructions: "Find the increase using the fraction, then add it to the original price. Write only numbers. Each setup and answer has equal weight.", changeSetupHelp: "Multiply the percentage number and the original price above the fraction bar, with 100 below.", discountSetupHelp: "Subtract the discount from the original price.", increaseSetupHelp: "Add the increase to the original price.",
   conclusionCalculationInstructions: "Set up the fraction and calculate the answer. Write only numbers in the calculation boxes, without percentage signs. Setup and answer are weighted equally.",
@@ -163,6 +166,7 @@ const en: Copy = {
   equivalent: "Correct, using an equivalent fraction.", setupHelp: "Check which number is the part and which is the whole.", answerHelp: "Check your calculation.", numberHelp: "Use only numbers in the fraction, without percentage signs.",
 };
 const pt: Copy = {
+  pageHint: "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. A quantidade adapta-se ao tipo, às palavras de apoio e à frase de resposta. As soluções são apresentadas à parte.",
   discount: "Desconto", increase: "Aumento percentual", discountTitle: "Percentagens – desconto", increaseTitle: "Percentagens – aumento percentual", originalPrice: "Preço inicial", newPrice: "Novo preço", discountAmount: "Desconto", increaseAmount: "Aumento", newPriceSetup: "Cálculo do novo preço", changeSupport: "Mostrar palavras de apoio", priceRange: "Preço antes da alteração",
   discountInstructions: "Calcula o desconto usando a fração e subtrai-o do preço inicial. Escreve apenas números. O cálculo e a resposta de cada passo têm o mesmo peso.", increaseInstructions: "Calcula o aumento usando a fração e adiciona-o ao preço inicial. Escreve apenas números. O cálculo e a resposta de cada passo têm o mesmo peso.", changeSetupHelp: "Multiplica a percentagem pelo preço inicial acima da barra da fração, com 100 abaixo.", discountSetupHelp: "Subtrai o desconto do preço inicial.", increaseSetupHelp: "Adiciona o aumento ao preço inicial.",
   conclusionCalculationInstructions: "Escreve a fração e calcula a resposta. Escreve apenas números nas caixas de cálculo, sem sinais de percentagem. A fração e a resposta têm o mesmo peso.",

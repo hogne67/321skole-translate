@@ -2,7 +2,8 @@
 import type { Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { getPercentageCopy, gradePercentageTask, gradePercentageWorksheet, isPercentageChange, percentageFinalValue, percentageTasksPerPage, percentagePrompt, readPercentageAnswer, type PercentageAnswer, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { getPercentageCopy, gradePercentageTask, gradePercentageWorksheet, isPercentageChange, percentageFinalValue, percentagePrompt, readPercentageAnswer, type PercentageAnswer, type PercentageWorksheet } from "@/lib/math/percentage/worksheet";
+import { percentagePrintPages } from "@/lib/math/percentage/printLayout";
 import "../length/length.css";
 import "./percentage.css";
 
@@ -11,8 +12,8 @@ export default function PercentageWorksheetView({ worksheet, answersByTaskId = {
   readOnly?: boolean; showAutoCheck?: boolean; printMode?: boolean; printRef?: Ref<HTMLDivElement>;
 }) {
   const copy = getPercentageCopy(worksheet.language), common = getMeasurementCopy(worksheet.language);
-  const grade = gradePercentageWorksheet(worksheet, answersByTaskId), perPage = percentageTasksPerPage(worksheet.settings);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / perPage) }, (_, i) => worksheet.tasks.slice(i * perPage, (i + 1) * perPage));
+  const grade = gradePercentageWorksheet(worksheet, answersByTaskId);
+  const pages = printMode ? percentagePrintPages(worksheet.tasks, worksheet.settings) : [{ tasks: worksheet.tasks, startIndex: 0 }];
   function fitConclusion(element: HTMLTextAreaElement | null) {
     if (!element) return;
     const resize = () => {
@@ -30,8 +31,8 @@ export default function PercentageWorksheetView({ worksheet, answersByTaskId = {
     observer.observe(element);
     return () => observer.disconnect();
   }
-  return <div ref={printRef} className={`length-sheet percentage-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+  return <div ref={printRef} className={`length-sheet percentage-sheet${printMode ? " length-paper" : ""}${worksheet.settings.showSupport ? " percentage-supported" : ""}${worksheet.settings.showConclusion ? " percentage-conclusion-enabled" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={startIndex}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -39,7 +40,7 @@ export default function PercentageWorksheetView({ worksheet, answersByTaskId = {
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks">{tasks.map((task, i) => {
-        const number = page * perPage + i + 1, findPart = task.type === "find_part", findWhole = task.type === "find_whole", changeTask = isPercentageChange(task.type), answer = readPercentageAnswer(answersByTaskId[task.id], task.type), result = gradePercentageTask(task, answer);
+        const number = startIndex + i + 1, findPart = task.type === "find_part", findWhole = task.type === "find_whole", changeTask = isPercentageChange(task.type), answer = readPercentageAnswer(answersByTaskId[task.id], task.type), result = gradePercentageTask(task, answer);
         const amountLabel = task.type === "discount" ? copy.discountAmount : copy.increaseAmount;
         const firstLabel = findPart || changeTask ? copy.percentNumber : copy.part, secondLabel = changeTask ? copy.originalPrice : findPart ? copy.whole : copy.hundred;
         const denominatorLabel = findWhole ? copy.percentNumber : findPart || changeTask ? copy.hundred : copy.whole, resultLabel = changeTask ? amountLabel : findWhole ? copy.whole : findPart ? copy.part : copy.percentNumber;

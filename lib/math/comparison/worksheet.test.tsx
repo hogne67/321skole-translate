@@ -54,7 +54,7 @@ test("one or two selected forms and a single denominator keep all relations avai
   }
 });
 test("invalid settings cannot create empty, unsupported or unbounded worksheets", () => {
-  for (const patch of [{ forms: [] }, { forms: ["integer"] }, { forms: ["fraction"], mode: "mixed" }, { denominators: [] }, { denominators: [3] }, { taskCount: 0 }, { taskCount: 101 }, { taskCount: 1.5 }, { visualSupport: "true" }]) assert.throws(() => normalizeComparisonSettings({ ...DEFAULT_COMPARISON_SETTINGS, ...patch }), /INVALID_/);
+  for (const patch of [{ forms: [] }, { forms: ["integer"] }, { forms: ["fraction"], mode: "mixed" }, { denominators: [] }, { denominators: [3] }, { taskCount: 0 }, { taskCount: 201 }, { taskCount: 1.5 }, { visualSupport: "true" }]) assert.throws(() => normalizeComparisonSettings({ ...DEFAULT_COMPARISON_SETTINGS, ...patch }), /INVALID_/);
   assert.doesNotThrow(() => normalizeComparisonSettings({ ...DEFAULT_COMPARISON_SETTINGS, forms: ["decimal", "percent"], denominators: [] }));
 });
 test("single-task worksheets can still produce each comparison sign", () => {
@@ -111,7 +111,7 @@ test("compact and visual print layouts paginate independently and include an opt
   for (const visualSupport of [false, true]) {
     const sheet = generateComparisonWorksheet({ ...DEFAULT_COMPARISON_SETTINGS, visualSupport, taskCount: 37 }, "nb", true);
     const $ = load(renderToStaticMarkup(<View worksheet={sheet} printMode />));
-    assert.equal($(".length-page").length, visualSupport ? 4 : 2);
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".comparison-task").length), visualSupport ? [14, 16, 7] : [37]);
     assert.equal($(".comparison-blank").length, 37); assert.equal($("select").length, 0); assert.equal($(".length-key p").length, 37);
     assert.equal($("svg").length, visualSupport ? 74 : 0);
   }
@@ -123,7 +123,7 @@ test("localized instructions and API validation are consistent", async () => {
     const sheet = (await response.json()).worksheet;
     assert.equal(sheet.title, getComparisonCopy(language).title); assert.ok(sanitizeComparisonWorksheet(sheet));
   }
-  const invalid = await POST(new Request("http://localhost/api/generate-comparison-worksheet", { method: "POST", body: JSON.stringify({ settings: { ...DEFAULT_COMPARISON_SETTINGS, taskCount: 101 } }) }));
+  const invalid = await POST(new Request("http://localhost/api/generate-comparison-worksheet", { method: "POST", body: JSON.stringify({ settings: { ...DEFAULT_COMPARISON_SETTINGS, taskCount: 201 } }) }));
   assert.equal(invalid.status, 400);
   assert.equal((await POST(new Request("http://localhost/api/generate-comparison-worksheet", { method: "POST", body: "{" }))).status, 400);
   assert.equal(COMPARISON_FORMS.length, 3);

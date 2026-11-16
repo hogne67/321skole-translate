@@ -33,7 +33,7 @@ test("small ranges and repeated tasks remain valid; impossible ranges are reject
   const sheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, minimum: 4, maximum: 4, taskCount: 100 });
   assert.ok(sheet.tasks.every(t => t.whole === 4 && [25, 50, 75].includes(t.percent)));
   assert.throws(() => generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, minimum: 1, maximum: 1 }), /INVALID_COMBINATIONS/);
-  for (const patch of [{ minimum: 0 }, { maximum: 10001 }, { minimum: 201 }, { maximum: 20.5 }, { taskCount: 0 }, { taskCount: 101 }, { taskCount: 1.5 }, { showSupport: "true" }]) assert.throws(() => normalizePercentageSettings({ ...DEFAULT_PERCENTAGE_SETTINGS, ...patch }), /INVALID_/);
+  for (const patch of [{ minimum: 0 }, { maximum: 10001 }, { minimum: 201 }, { maximum: 20.5 }, { taskCount: 0 }, { taskCount: 201 }, { taskCount: 1.5 }, { showSupport: "true" }]) assert.throws(() => normalizePercentageSettings({ ...DEFAULT_PERCENTAGE_SETTINGS, ...patch }), /INVALID_/);
 });
 test("sanitization ignores forged keys and rejects invalid or duplicate tasks", () => {
   const sheet = generatePercentageWorksheet(DEFAULT_PERCENTAGE_SETTINGS);
@@ -82,11 +82,11 @@ test("student gets four labeled inputs per task, no early grading or saved key; 
   assert.equal(teacher("input[readonly]").length, 4); assert.equal(teacher(".length-correct").length, 1); assert.equal(teacher(".length-wrong").length, 1); assert.ok(teacher(".percentage-feedback").text().includes("Prosenttall: Feil. Svar: 30"));
   assert.equal(teacher("input").eq(1).attr("value"), "100");
 });
-test("two-column worksheets paginate 12 tasks per page and put the key on its own page", () => {
+test("two-column worksheets reserve the first-page header and put the key on its own page", () => {
   for (const showSupport of [true, false]) {
     const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, showSupport, taskCount: 25 }, "nb", true);
     const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-    assert.equal($(".length-page").length, 3); assert.equal($("input").length, 0); assert.equal($(".percentage-blank").length, 100); assert.equal($(".percentage-working").length, 25); assert.equal($(".length-key p").length, 25); assert.equal($(".percentage-support").length, showSupport ? 75 : 0);
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".percentage-task").length), showSupport ? [14, 11] : [16, 9]); assert.equal($("input").length, 0); assert.equal($(".percentage-blank").length, 100); assert.equal($(".percentage-working").length, 25); assert.equal($(".length-key p").length, 25); assert.equal($(".percentage-support").length, showSupport ? 75 : 0);
   }
 });
 test("localized copy and API validation", async () => {
@@ -163,7 +163,7 @@ test("find part prints four blank slots, optional support and the correct equati
   for (const showSupport of [true, false]) {
     const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, taskType: "find_part", showSupport, taskCount: 25 }, "nb", true);
     const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-    assert.equal($(".length-page").length, 3); assert.equal($(".percentage-blank").length, 100);
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".percentage-task").length), showSupport ? [14, 11] : [16, 9]); assert.equal($(".percentage-blank").length, 100);
     assert.equal($(".percentage-support").length, showSupport ? 75 : 0);
     const first = worksheet.tasks[0];
     assert.ok($(".length-key p").first().text().includes(`${first.percent} × ${first.whole}100 = ${first.part}`));
@@ -235,7 +235,7 @@ test("mixed mode accepts real task types only and does not weaken single-type va
 });
 test("whole and mixed snapshots retain task types and separate feedback in both views", () => {
   for (const taskType of ["find_whole", "mixed"] as const) {
-    const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, taskType }, "nb", true);
+    const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, taskType, taskCount: 12 }, "nb", true);
     const assignment = { mathWorksheet: worksheet, mathType: "percentage", contentType: "percentage_worksheet" };
     const state = getAssignmentDerivedState(assignmentToLesson(assignment), assignment);
     assert.deepEqual(state.percentageWorksheet, worksheet); assert.ok(state.isPercentageAssignment);
@@ -262,11 +262,11 @@ test("whole questions do not reveal the hidden whole and use the right support l
   const paper = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
   assert.ok(paper(".length-key p").text().includes("20 × 10025 = 80"));
 });
-test("whole and mixed paper worksheets keep twelve-task chunks and optional labels", () => {
+test("whole and mixed paper worksheets paginate with optional labels", () => {
   for (const taskType of ["find_whole", "mixed"] as const) for (const showSupport of [true, false]) {
     const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, taskType, showSupport, taskCount: 25 }, "nb", true);
     const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-    assert.equal($(".length-page").length, 3); assert.equal($(".percentage-blank").length, 100);
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".percentage-task").length), showSupport ? [14, 11] : [16, 9]); assert.equal($(".percentage-blank").length, 100);
     assert.equal($(".percentage-support").length, showSupport ? 75 : 0);
     assert.equal($(".length-key p").length, 25);
   }
@@ -310,7 +310,7 @@ test("old percentage answers migrate fixed hundred without filling new blank ans
 });
 
 test("optional conclusions survive snapshots and both views without changing automatic grades", () => {
-  const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, showConclusion: true, taskType: "mixed" });
+  const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, showConclusion: true, taskType: "mixed", taskCount: 12 });
   assert.deepEqual(sanitizePercentageWorksheet(worksheet), worksheet);
   assert.deepEqual(assignmentSnapshotToLesson({ mathWorksheet: worksheet }).mathWorksheet, worksheet);
   const t = worksheet.tasks[0], correct = gradePercentageTask(t, null).correctAnswer;
@@ -323,10 +323,10 @@ test("optional conclusions survive snapshots and both views without changing aut
   assert.equal(gradePercentageTask(t, { conclusion: "50 % av 20 er 10." }).isAnswered, false);
   assert.equal(readPercentageAnswer({ conclusion: "x".repeat(600) }).conclusion?.length, 500);
   const paper = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-  assert.equal(paper(".length-page").length, 2);
+  assert.equal(paper(".length-page").length, 1);
   assert.equal(paper(".percentage-conclusion-line").length, 12);
   assert.equal(paper("textarea").length, 0);
-  assert.equal(paper(".length-page").first().find(".percentage-task").length, 10);
+  assert.equal(paper(".length-page").first().find(".percentage-task").length, 12);
 });
 
 test("conclusion control is optional for old worksheets and strictly validated", () => {
@@ -423,9 +423,9 @@ test("price-change paper chunks leave room for both steps and show a two-step ke
   for (const taskType of ["discount", "increase"] as const) for (const showConclusion of [true, false]) {
     const worksheet = generatePercentageWorksheet({ ...DEFAULT_PERCENTAGE_SETTINGS, taskType, showConclusion, taskCount: 25 }, "nb", true);
     const perPage = percentageTasksPerPage(worksheet.settings);
-    assert.equal(perPage, showConclusion ? 8 : 10);
+    assert.equal(perPage, 10);
     const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-    assert.equal($(".length-page").length, Math.ceil(25 / perPage));
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".percentage-task").length), [10, 12, 3]);
     assert.equal($(".length-page").first().find(".percentage-task").length, perPage);
     assert.equal($(".percentage-blank").length, 150);
     assert.equal($(".percentage-key-task").length, 25); assert.equal($(".percentage-key-new-price").length, 25);
@@ -433,8 +433,8 @@ test("price-change paper chunks leave room for both steps and show a two-step ke
     const first = worksheet.tasks[0];
     assert.equal($(".percentage-key-new-price").first().text(), `${first.whole} ${taskType === "discount" ? "−" : "+"} ${first.part} = ${percentageFinalValue(first)}`);
   }
-  assert.equal(percentageTasksPerPage({ taskType: "mixed", showConclusion: true }), 10);
-  assert.equal(percentageTasksPerPage({ taskType: "find_percentage" }), 12);
+  assert.equal(percentageTasksPerPage({ taskType: "mixed", showConclusion: true }), 12);
+  assert.equal(percentageTasksPerPage({ taskType: "find_percentage" }), 14);
 });
 
 test("API supports separate discount and increase modes in all worksheet languages", async () => {
