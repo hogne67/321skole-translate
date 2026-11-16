@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_NUMBER_LINE_SETTINGS, getNumberLineCopy, NUMBER_LINE_FORMS, NUMBER_LINE_MODES, NUMBER_LINE_STEPS, normalizeNumberLineSettings, sanitizeNumberLineWorksheet, type NumberLineForm, type NumberLineMode, type NumberLineSettings, type NumberLineWorksheet } from "@/lib/math/number-line/worksheet";
+import { NUMBER_LINE_FIRST_PAGE_COUNT, NUMBER_LINE_FOLLOWING_PAGE_COUNT, NUMBER_LINE_MAX_TASK_COUNT, numberLineFullPageCounts } from "@/lib/math/number-line/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,8 @@ import NumberLineWorksheetView from "./NumberLineWorksheetView";
 export default function NumberLineGenerator() {
   const locale = useLocale(), copy = getNumberLineCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<NumberLineSettings>({ ...DEFAULT_NUMBER_LINE_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
+  const pageCounts = numberLineFullPageCounts();
   const [worksheet, setWorksheet] = useState<NumberLineWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,6 +26,7 @@ export default function NumberLineGenerator() {
     const result = sanitizeNumberLineWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(numberLineFullPageCounts().includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
@@ -48,7 +52,12 @@ export default function NumberLineGenerator() {
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.title}</h1><p>{copy.subtitle}</p>
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType} onChange={event => change({ taskType: event.target.value as NumberLineMode })}>{NUMBER_LINE_MODES.map(mode => <option key={mode} value={mode}>{copy[mode]}</option>)}</select></label>
       <label className="length-field">{copy.form}<select disabled={busy} value={settings.form} onChange={event => changeForm(event.target.value as NumberLineForm)}>{NUMBER_LINE_FORMS.map(form => <option key={form} value={form}>{copy[form]}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="number-line-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={NUMBER_LINE_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="number-line-page-hint">{copy.pageHint.replace("{first}", String(NUMBER_LINE_FIRST_PAGE_COUNT)).replace("{following}", String(NUMBER_LINE_FOLLOWING_PAGE_COUNT))}</p>
       <fieldset disabled={busy}><legend>{copy.range}</legend><div className="length-range">{(["minimum", "maximum"] as const).map(key => <label key={key}>{common[key]}<input type="number" min={-1000} max={1000} step={settings.form === "decimals" ? "0.1" : "1"} value={Number.isNaN(settings[key]) ? "" : settings[key]} onChange={event => change({ [key]: event.target.valueAsNumber })} /></label>)}</div></fieldset>
       <label className="length-field">{copy.step}<select disabled={busy} value={settings.step} onChange={event => change({ step: event.target.value })}>{NUMBER_LINE_STEPS[settings.form].map(step => <option key={step} value={step}>{locale === "en" ? step : step.replace(".", ",")}</option>)}</select></label>
       <label className="length-field">{copy.intervals}<select disabled={busy} value={settings.intervals} onChange={event => change({ intervals: Number(event.target.value) })}>{[4, 5, 6, 7, 8, 9, 10].map(value => <option key={value} value={value}>{value}</option>)}</select></label>

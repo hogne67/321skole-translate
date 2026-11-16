@@ -1,5 +1,6 @@
 import Fraction from "fraction.js";
 import { normalizeMathWorksheetLanguage, type MathWorksheetLanguage } from "../taxonomy";
+import { NUMBER_LINE_FIRST_PAGE_COUNT, NUMBER_LINE_MAX_TASK_COUNT } from "./printLayout";
 
 export const NUMBER_LINE_TYPES = ["read", "missing", "place"] as const;
 export const NUMBER_LINE_MODES = [...NUMBER_LINE_TYPES, "mixed"] as const;
@@ -21,10 +22,10 @@ export type NumberLineWorksheet = {
   version: 1; kind: "number_line"; language: MathWorksheetLanguage; title: string; instructions: string;
   settings: NumberLineSettings; tasks: NumberLineTask[]; showAnswerKey: boolean;
 };
-export const NUMBER_LINE_TASKS_PER_PAGE = 6;
+export const NUMBER_LINE_TASKS_PER_PAGE = NUMBER_LINE_FIRST_PAGE_COUNT;
 export const DEFAULT_NUMBER_LINE_SETTINGS: NumberLineSettings = {
   taskType: "mixed", form: "integers", minimum: 0, maximum: 20,
-  step: "1", intervals: 10, taskCount: 6, showSupport: false,
+  step: "1", intervals: 10, taskCount: NUMBER_LINE_FIRST_PAGE_COUNT, showSupport: false,
 };
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -52,7 +53,7 @@ export function normalizeNumberLineSettings(value: unknown): NumberLineSettings 
   if (form !== "decimals" && (!Number.isInteger(value.minimum) || !Number.isInteger(value.maximum))) throw new Error("INVALID_RANGE");
   if (typeof value.step !== "string" || !(NUMBER_LINE_STEPS[form] as readonly string[]).includes(value.step)) throw new Error("INVALID_STEP");
   if (!Number.isInteger(value.intervals) || Number(value.intervals) < 4 || Number(value.intervals) > 10) throw new Error("INVALID_INTERVALS");
-  if (!Number.isInteger(value.taskCount) || Number(value.taskCount) < 1 || Number(value.taskCount) > 60) throw new Error("INVALID_COUNT");
+  if (!Number.isInteger(value.taskCount) || Number(value.taskCount) < 1 || Number(value.taskCount) > NUMBER_LINE_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   if (typeof value.showSupport !== "boolean") throw new Error("INVALID_SUPPORT");
   const settings: NumberLineSettings = {
     taskType: value.taskType as NumberLineMode, form, minimum: value.minimum, maximum: value.maximum,
@@ -132,6 +133,7 @@ export function gradeNumberLineWorksheet(worksheet: NumberLineWorksheet, answers
 
 const nb = {
   title: "Tallinje", subtitle: "Les av, finn manglende tall og plasser tall på tallinjen.",
+  pageHint: "Første ark har plass til {first} oppgaver og navn, dato og klasse. Deretter er det plass til {following} oppgaver per ark. Velg eget antall ved behov.",
   instructions: "Se på tallinjen og løs oppgavene. Merkene har like stor avstand. Du kan skrive brøk eller desimaltall som svar.",
   taskType: "Oppgavetype", read: "Les av markert tall", missing: "Finn tallet som mangler", place: "Plasser et tall", mixed: "Blandet",
   form: "Talltype", integers: "Heltall", decimals: "Desimaltall", fractions: "Brøk", range: "Tallområde", step: "Avstand mellom merkene", intervals: "Antall intervaller", support: "Vis flere støttetall", empty: "Klar for første tallinjeark",
@@ -143,6 +145,7 @@ const nb = {
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
   title: "Number line", subtitle: "Read marked numbers, find missing numbers and place numbers on a number line.",
+  pageHint: "The first sheet fits {first} tasks and name, date and class. Each following sheet fits {following} tasks. Choose a custom count if needed.",
   instructions: "Look at each number line and complete the tasks. The marks are equally spaced. You may answer with a fraction or a decimal.",
   taskType: "Task type", read: "Read a marked number", missing: "Find the missing number", place: "Place a number", mixed: "Mixed",
   form: "Number type", integers: "Integers", decimals: "Decimals", fractions: "Fractions", range: "Number range", step: "Distance between marks", intervals: "Number of intervals", support: "Show extra reference numbers", empty: "Ready for your first number line worksheet",
@@ -153,6 +156,7 @@ const en: Copy = {
 };
 const pt: Copy = {
   title: "Reta numérica", subtitle: "Ler números assinalados, encontrar números em falta e colocar números na reta numérica.",
+  pageHint: "A primeira folha inclui {first} exercícios e nome, data e turma. Cada folha seguinte inclui {following} exercícios. Podes escolher outra quantidade.",
   instructions: "Observa cada reta numérica e resolve os exercícios. As marcas estão à mesma distância. Podes responder com uma fração ou um número decimal.",
   taskType: "Tipo de exercício", read: "Ler um número assinalado", missing: "Encontrar o número em falta", place: "Colocar um número", mixed: "Misto",
   form: "Tipo de número", integers: "Números inteiros", decimals: "Números decimais", fractions: "Frações", range: "Intervalo de números", step: "Distância entre marcas", intervals: "Número de intervalos", support: "Mostrar mais números de referência", empty: "Pronto para a primeira ficha de retas numéricas",

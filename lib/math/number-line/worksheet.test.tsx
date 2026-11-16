@@ -103,7 +103,7 @@ test("Spaces snapshots retain settings and grading in student and teacher reader
 });
 
 test("students get empty labeled answers, clickable placement marks and no early feedback or saved key", () => {
-  const sheet = generateNumberLineWorksheet(defaults, "nb", true);
+  const sheet = generateNumberLineWorksheet({ ...defaults, taskCount: 6 }, "nb", true);
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} onAnswerChange={() => {}} />));
   assert.equal($("input").length, 6);
   assert.ok($("input").toArray().every(el => $(el).attr("aria-label") && $(el).attr("value") === ""));
@@ -128,7 +128,7 @@ test("read and missing tasks never print the target value under its tick, even w
   }
 });
 
-test("paper uses six tasks per page, blank answer fields and an optional separate position key", () => {
+test("paper reserves room for the first-page header, blank answer fields and a separate position key", () => {
   const sheet = generateNumberLineWorksheet({ ...defaults, taskCount: 13 }, "en", true);
   const answers = Object.fromEntries(sheet.tasks.map(task => [task.id, numberLineValue(task).toFraction()]));
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={answers} printMode />));

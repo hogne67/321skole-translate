@@ -12,7 +12,9 @@ function TickLabel({ task, index, x, form, language }: {
     const width = Math.max(numerator.length, denominator.length) * 9;
     return <g><text x={x} y="73" textAnchor="middle" fontSize="15">{numerator}</text><path d={`M${x - width / 2} 79H${x + width / 2}`} stroke="currentColor" /><text x={x} y="96" textAnchor="middle" fontSize="15">{denominator}</text></g>;
   }
-  return <text x={x} y="82" textAnchor="middle" fontSize="18">{formatNumberLineValue(value, form, language)}</text>;
+  const label = formatNumberLineValue(value, form, language);
+  const fontSize = Math.min(18, (576 / task.intervals - 8) / (label.length * .62));
+  return <text x={x} y="82" textAnchor="middle" fontSize={fontSize}>{label}</text>;
 }
 
 export default function NumberLineDiagram({ task, settings, language, answer, onSelect, answerKey = false }: {

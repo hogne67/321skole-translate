@@ -14,14 +14,23 @@
 .number-line-answer input { width: 100px; min-height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; }
 .number-line-answer input:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
 .number-line-answer small { flex: 1 1 220px; color: #475569; }
+.number-line-paper-answer { flex: 0 0 auto; margin-left: auto; font-weight: 400; }
+.number-line-paper-answer .length-answer-space { display: inline-block; }
 @media print {
+  .number-line-sheet .length-brand { margin-bottom: 2mm; }
+  .number-line-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .number-line-sheet .length-instructions { font-size: 9pt; line-height: 1.35; margin-bottom: 3mm; }
+  .number-line-sheet .length-identity { margin-bottom: 2mm; }
+  .number-line-sheet .length-identity span { padding: 1.5mm; }
   .number-line-sheet .number-line-tasks { grid-template-columns: minmax(0, 1fr); }
-  .number-line-sheet .number-line-task { padding: 2mm 0; break-inside: avoid; page-break-inside: avoid; }
-  .number-line-heading { font-size: 10pt; }
-  .number-line-graphic { max-width: 140mm; margin: 0 auto; }
+  .number-line-sheet .number-line-task { padding: .5mm 0; break-inside: avoid; page-break-inside: avoid; }
+  .number-line-heading { font-size: 10pt; line-height: 1.2; min-height: 6mm; align-items: center; gap: 2mm; }
+  .number-line-graphic { max-width: 146mm; margin: 0 auto; }
   .number-line-sheet .length-identity { grid-template-columns: 2fr 1fr 1fr; }
   .number-line-sheet .length-identity span:last-child { grid-column: auto; }
-  .number-line-answer { font-size: 9pt; }
-  .number-line-answer .length-answer-space { display: inline-block; height: 4mm; }
-  .number-line-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .number-line-answer { font-size: 9pt; line-height: 1.2; gap: 2mm; }
+  .number-line-answer .length-answer-space { height: 6mm; width: 26mm; }
+  .number-line-key-note { font-size: 9pt; line-height: 1.35; margin: 0 0 4mm; }
+  .number-line-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 4mm; }
+  .number-line-key p { font-size: 9pt; line-height: 1.3; }
 }
