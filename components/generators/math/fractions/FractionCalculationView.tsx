@@ -10,6 +10,7 @@ import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import FractionDisplay from "./FractionDisplay";
 import FractionInput from "./FractionInput";
 import "./fractionCalculation.css";
+import { fractionCalculationPrintPages } from "@/lib/math/fractions/calculationPrintLayout";
 
 export default function FractionCalculationView({ worksheet, answers, onAnswerChange, readOnly, showAutoCheck, printMode, showIdentityFields, showAnswerKey, printRef, embedded }: {
   worksheet: FractionWorksheet; answers: Record<string, unknown>;
@@ -20,7 +21,11 @@ export default function FractionCalculationView({ worksheet, answers, onAnswerCh
 }) {
   const copy = getFractionCopy(worksheet.language), calc = getCalculationCopy(worksheet.language);
   const grade = gradeFractionWorksheet(worksheet, answers);
+  const pages = printMode ? fractionCalculationPrintPages(worksheet.tasks) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+  if (!pages.length) pages.push({ tasks: [], startIndex: 0 });
   return <div ref={printRef} className={`fraction-worksheet fraction-calculation ${printMode ? "print-root" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="fraction-calculation-page" key={startIndex}>
+      {page === 0 ? <>
     <header className="fraction-worksheet-header pb-5">
       {!embedded ? <div className="fraction-worksheet-brand mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3"><img src="/logo321ny.png" alt={`321 ${copy.school}`} className="h-12 w-auto" /><div><div className="text-lg font-extrabold">321 {copy.school}</div><div className="text-xs font-semibold text-slate-500">321school.com</div></div></div>
@@ -32,16 +37,19 @@ export default function FractionCalculationView({ worksheet, answers, onAnswerCh
         {[copy.name, copy.date, copy.classLabel].map((label, index) => <div key={label} className={`rounded-lg bg-slate-50 px-3 py-2 text-xs ${index === 2 ? "col-span-2" : ""}`}>{label}:</div>)}
       </div> : null}
     </header>
+      </> : <h2 className="fraction-calculation-continuation">{worksheet.title}</h2>}
+
     {showAutoCheck && !printMode ? <div className="mb-5 border-b border-slate-200 pb-3 text-sm text-slate-600" role="status">
       {copy.correct}: {grade.correctAuto} · {calc.partial}: {grade.partialAuto} · {calc.wrong}: {grade.wrongAuto} · {calc.unanswered}: {grade.unansweredAuto} · {calc.score}: {grade.percentAuto ?? 0}%
     </div> : null}
+
     <div className="fraction-calculation-tasks">
-      {worksheet.tasks.map((task, index) => {
-        const id = task.id || `task-${index}`, result = grade.byTask[id], value = typeof answers[id] === "string" ? answers[id] as string : "";
+      {tasks.map((task, index) => {
+        const id = task.id || `task-${startIndex + index}`, result = grade.byTask[id], value = typeof answers[id] === "string" ? answers[id] as string : "";
         const feedback = !showAutoCheck || !result.hasAnswer || printMode ? null : result.isCorrect ? copy.correct : result.isPartial ? calc.reduceFeedback : copy.tryAgain;
         return <article key={id} className="fraction-calculation-task">
           <div className="fraction-calculation-expression">
-            <span className="fraction-calculation-number">{index + 1}</span>
+            <span className="fraction-calculation-number">{startIndex + index + 1}</span>
             {task.calculation ? <><FractionDisplay fraction={task.calculation.left} size="sm" /><span className="font-bold" data-operation={task.calculation.operation}>{FRACTION_CALCULATION_SYMBOLS[task.calculation.operation]}</span><FractionDisplay fraction={task.calculation.right} size="sm" /><span className="font-bold">=</span></> : <span>{task.prompt}</span>}
             {printMode ? <div className="fraction-calculation-blank" aria-label={copy.answer}><div /><span /><div /></div> : <FractionInput
               value={value} disabled={readOnly} language={worksheet.language} compact
@@ -56,9 +64,12 @@ export default function FractionCalculationView({ worksheet, answers, onAnswerCh
         </article>;
       })}
     </div>
+
+    </section>)}
     {showAnswerKey ? <section className="fraction-answer-key mt-8 border-t-2 border-slate-300 pt-6">
       <h3 className="mb-5 text-xl font-bold">{copy.answerKeyTitle}</h3>
       <div className="grid gap-4 sm:grid-cols-3">{worksheet.tasks.map((task, index) => <div key={task.id} className="flex items-center gap-3 border-b border-slate-200 pb-2"><span className="text-xs font-semibold">{index + 1}.</span><FractionDisplay value={grade.byTask[task.id || `task-${index}`].correctAnswer} size="sm" /></div>)}</div>
     </section> : null}
+
   </div>;
 }

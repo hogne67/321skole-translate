@@ -76,7 +76,7 @@ test("fixed and varied generators honor denominators and balance operations with
   }
 });
 test("invalid settings are rejected, including impossible ranges and task counts", () => {
-  for (const settings of [{ denominatorMin: 0 }, { denominatorMax: 101 }, { denominatorMin: 12, denominatorMax: 3 }, { denominatorMin: 2.5 }, { taskCount: 101 }, { taskCount: 5 }]) {
+  for (const settings of [{ denominatorMin: 0 }, { denominatorMax: 101 }, { denominatorMin: 12, denominatorMax: 3 }, { denominatorMin: 2.5 }, { taskCount: 201 }, { taskCount: 5 }]) {
     assert.throws(() => normalizeCalculationRequest(settings), /INVALID_/);
   }
   assert.equal(normalizeCalculationRequest({ denominatorMode: "fixed", denominatorMin: 15, denominatorMax: 2 }).settings.denominatorMax, 15);
@@ -138,7 +138,7 @@ test("multiplication and division preserve optional simplification and saved hal
       return [task.id, `${value.n * BigInt(2)}/${value.d * BigInt(2)}`];
     }));
     const auto = readAutoGrade(JSON.parse(JSON.stringify({ auto: gradeFractionWorksheet(sheet, answers) })));
-    assert.equal(auto?.partialAuto, 36);
+    assert.equal(auto?.partialAuto, sheet.tasks.length);
     assert.equal(auto?.percentAuto, 50);
     assert.equal(auto?.wrongAuto, 0);
     assert.equal(gradeFractionWorksheet({ ...sheet, calculation: { ...sheet.calculation!, requireReduced: false } }, answers).percentAuto, 100);
@@ -156,7 +156,7 @@ test("unlike-denominator answers and half credit survive the saved teacher asses
     return [task.id, `${value.s * value.n * BigInt(2)}/${value.d * BigInt(2)}`];
   }));
   const auto = readAutoGrade(JSON.parse(JSON.stringify({ auto: gradeFractionWorksheet(sheet, answers) })));
-  assert.equal(auto?.partialAuto, 36);
+  assert.equal(auto?.partialAuto, sheet.tasks.length);
   assert.equal(auto?.percentAuto, 50);
   assert.equal(auto?.wrongAuto, 0);
 });

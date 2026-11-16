@@ -127,7 +127,7 @@ test("fraction calculations use stacked operands and answers without diagrams in
 test("calculation controls replace fixed and varied modes with same and different denominators", () => {
   const props = {
     language: "nb" as const, operation: "addition" as const, denominatorRelation: "different" as const,
-    denominatorMin: 7, denominatorMax: 7, requireReduced: false, taskCount: 36, showAnswerKey: false,
+    denominatorMin: 7, denominatorMax: 7, requireReduced: false, taskCount: 36, countMode: "custom" as const, onCountModeChange: () => {}, showAnswerKey: false,
     loading: false, saving: false, sharing: false, hasWorksheet: false, validRange: true, validDenominators: false,
     onOperationChange: () => {}, onDenominatorRelationChange: () => {}, onMinimumChange: () => {}, onMaximumChange: () => {},
     onTaskCountChange: () => {}, onRequireReducedChange: () => {}, onAnswerKeyChange: () => {},
@@ -137,7 +137,7 @@ test("calculation controls replace fixed and varied modes with same and differen
   assert.doesNotMatch($.text(), /Fast nevner|Variert nevner/);
   assert.ok($.text().includes("Like nevnere"));
   assert.ok($.text().includes("Ulike nevnere"));
-  assert.deepEqual($("select option").map((_, option) => $(option).text()).get(), ["Addisjon", "Subtraksjon", "Multiplikasjon", "Divisjon", "Blandet"]);
+  assert.deepEqual($("select").first().find("option").map((_, option) => $(option).text()).get(), ["Addisjon", "Subtraksjon", "Multiplikasjon", "Divisjon", "Blandet"]);
   assert.equal($("input[type='number']").length, 3);
   assert.match($("[role='alert']").text(), /minst og størst er forskjellige/);
   assert.equal($("button").first().is("[disabled]"), true);

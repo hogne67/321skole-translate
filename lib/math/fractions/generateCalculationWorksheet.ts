@@ -1,6 +1,7 @@
 import Fraction from "fraction.js";
 import { normalizeMathWorksheetLanguage } from "@/lib/math/taxonomy";
 import { getCalculationCopy } from "./calculationCopy";
+import { FRACTION_CALCULATION_FIRST_PAGE_COUNT, FRACTION_CALCULATION_MIN_TASK_COUNT, FRACTION_CALCULATION_MAX_TASK_COUNT } from "./calculationPrintLayout";
 import { FRACTION_CALCULATION_OPERATIONS, FRACTION_CALCULATION_SYMBOLS, type FractionCalculationOperation } from "./calculationOperations";
 import type { FractionCalculationSettings, FractionSpec, FractionTask, FractionWorksheet } from "./types";
 
@@ -16,7 +17,7 @@ export function normalizeCalculationRequest(body: CalculationRequest) {
   const denominatorRelation = body.denominatorRelation ?? "same";
   const denominatorMin = body.denominatorMin ?? 2;
   const denominatorMax = denominatorMode === "fixed" ? denominatorMin : body.denominatorMax ?? 12;
-  const taskCount = body.taskCount ?? 36;
+  const taskCount = body.taskCount ?? FRACTION_CALCULATION_FIRST_PAGE_COUNT;
   if (![...FRACTION_CALCULATION_OPERATIONS, "mixed"].includes(operation) || !["fixed", "varied"].includes(denominatorMode) || !["same", "different"].includes(denominatorRelation)) {
     throw new Error("INVALID_CALCULATION_SETTINGS");
   }
@@ -24,7 +25,7 @@ export function normalizeCalculationRequest(body: CalculationRequest) {
     throw new Error("INVALID_DENOMINATOR_RANGE");
   }
   if (denominatorRelation === "different" && denominatorMin === denominatorMax) throw new Error("INVALID_DIFFERENT_DENOMINATORS");
-  if (!Number.isInteger(taskCount) || taskCount < 6 || taskCount > 100) throw new Error("INVALID_TASK_COUNT");
+  if (!Number.isInteger(taskCount) || taskCount < FRACTION_CALCULATION_MIN_TASK_COUNT || taskCount > FRACTION_CALCULATION_MAX_TASK_COUNT) throw new Error("INVALID_TASK_COUNT");
   return {
     language: normalizeMathWorksheetLanguage(body.language), taskCount, showAnswerKey: body.showAnswerKey === true,
     settings: { operation, denominatorMode, denominatorRelation, denominatorMin, denominatorMax, requireReduced: body.requireReduced === true } satisfies FractionCalculationSettings,

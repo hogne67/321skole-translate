@@ -15,13 +15,18 @@
   .fraction-calculation-tasks { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
-  .fraction-calculation .fraction-calculation-tasks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm 5mm; }
-  .fraction-calculation .fraction-calculation-task { padding: 1mm 0 2mm; break-inside: avoid; page-break-inside: avoid; }
+  .fraction-worksheet.fraction-calculation { font-family: Arial, sans-serif; }
+  .fraction-calculation .fraction-calculation-page + .fraction-calculation-page { break-before: page; }
+  .fraction-worksheet.fraction-calculation .fraction-calculation-continuation { margin: 0 0 4mm; font-size: 12pt; line-height: 1.2; }
+  .fraction-calculation .fraction-calculation-tasks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5mm 5mm; }
+  .fraction-calculation .fraction-calculation-task { padding: .75mm 0; break-inside: avoid; page-break-inside: avoid; }
   .fraction-calculation .fraction-calculation-expression { min-height: 12mm; gap: 1.5mm; }
   .fraction-calculation .fraction-calculation-expression > span[aria-label] { font-size: 11pt; min-width: 6mm; }
-  .fraction-calculation .fraction-calculation-number { width: 4mm; font-size: 7pt; }
-  .fraction-calculation .fraction-calculation-blank { width: 10mm; }
-  .fraction-calculation .fraction-calculation-blank div { width: 8mm; height: 5mm; }
-  .fraction-calculation .fraction-calculation-blank span { width: 10mm; margin: 0.7mm 0; }
-  .fraction-calculation .fraction-answer-key > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; }
+  .fraction-calculation .fraction-calculation-number { width: 4.5mm; font-size: 7pt; }
+  .fraction-calculation .fraction-calculation-blank { width: 14mm; }
+  .fraction-calculation .fraction-calculation-blank div { width: 12mm; height: 5mm; }
+  .fraction-calculation .fraction-calculation-blank span { width: 14mm; margin: 0.7mm 0; }
+  .fraction-worksheet.fraction-calculation .fraction-answer-key > .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2mm 3mm; }
+  .fraction-calculation .fraction-answer-key > .grid > div { gap: 1.5mm; padding-bottom: 1mm; }
+  .fraction-calculation .fraction-answer-key [aria-label] { min-width: 6mm; font-size: 10pt; }
 }

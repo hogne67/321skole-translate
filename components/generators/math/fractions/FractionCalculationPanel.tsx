@@ -5,10 +5,12 @@ import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import { getCalculationCopy } from "@/lib/math/fractions/calculationCopy";
 import { FRACTION_CALCULATION_OPERATIONS } from "@/lib/math/fractions/calculationOperations";
 import type { FractionCalculationSettings, FractionLanguage } from "@/lib/math/fractions/types";
+import { FRACTION_CALCULATION_FIRST_PAGE_COUNT, FRACTION_CALCULATION_FOLLOWING_PAGE_COUNT, FRACTION_CALCULATION_MIN_TASK_COUNT, FRACTION_CALCULATION_MAX_TASK_COUNT, fractionCalculationFullPageCounts } from "@/lib/math/fractions/calculationPrintLayout";
 
 type Props = Omit<FractionCalculationSettings, "denominatorMode" | "denominatorRelation"> & {
   denominatorRelation: "same" | "different";
   language: FractionLanguage; taskCount: number; showAnswerKey: boolean;
+  countMode: "pages" | "custom"; onCountModeChange: (mode: "pages" | "custom") => void;
   onOperationChange: (operation: FractionCalculationSettings["operation"]) => void;
   onDenominatorRelationChange: (relation: "same" | "different") => void;
   onMinimumChange: (value: number) => void; onMaximumChange: (value: number) => void;
@@ -22,11 +24,17 @@ const field = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 te
 const label = "mb-1.5 block text-sm font-bold text-slate-700";
 export default function FractionCalculationPanel(p: Props) {
   const copy = getFractionCopy(p.language), calc = getCalculationCopy(p.language);
+  const busy = p.loading || p.saving || p.sharing || p.loadingSaved;
   return <div className="mt-6 grid gap-5">
     <label><span className={label}>{calc.operation}</span><select className={field} value={p.operation} onChange={e => p.onOperationChange(e.target.value as Props["operation"])}>
       {([...FRACTION_CALCULATION_OPERATIONS, "mixed"] as const).map(operation => <option key={operation} value={operation}>{calc[operation]}</option>)}
     </select></label>
-    <label><span className={label}>{copy.taskCount}</span><input type="number" min={6} max={100} step={1} className={field} value={p.taskCount} onChange={e => p.onTaskCountChange(Math.max(6, Math.min(100, Math.round(Number(e.target.value) || 6))))} /></label>
+    <label><span className={label}>{copy.pageCount}</span><select disabled={busy} className={field} aria-describedby="fraction-calculation-page-hint" value={p.countMode === "custom" ? "custom" : p.taskCount} onChange={event => {
+      if (event.target.value === "custom") p.onCountModeChange("custom");
+      else { p.onCountModeChange("pages"); p.onTaskCountChange(Number(event.target.value)); }
+    }}>{fractionCalculationFullPageCounts().map((count, page) => <option key={count} value={count}>{copy.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{copy.customCount}</option></select></label>
+    {p.countMode === "custom" ? <label><span className={label}>{copy.taskCount}</span><input disabled={busy} type="number" min={FRACTION_CALCULATION_MIN_TASK_COUNT} max={FRACTION_CALCULATION_MAX_TASK_COUNT} step={1} className={field} value={p.taskCount} onChange={e => p.onTaskCountChange(Math.max(FRACTION_CALCULATION_MIN_TASK_COUNT, Math.min(FRACTION_CALCULATION_MAX_TASK_COUNT, Math.round(Number(e.target.value) || FRACTION_CALCULATION_MIN_TASK_COUNT))))} /></label> : null}
+    <p id="fraction-calculation-page-hint" className="-mt-3 text-xs leading-5 text-slate-500">{calc.pageHint.replace("{first}", String(FRACTION_CALCULATION_FIRST_PAGE_COUNT)).replace("{following}", String(FRACTION_CALCULATION_FOLLOWING_PAGE_COUNT))}</p>
     <fieldset><legend className={label}>{calc.denominator}</legend>
       <div className="mb-3 grid grid-cols-2 gap-2">{(["same", "different"] as const).map(relation => <label key={relation} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-2 text-xs font-semibold ${relation === p.denominatorRelation ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-300 text-slate-700"}`}>
         <input type="radio" name="denominator-relation" value={relation} checked={relation === p.denominatorRelation} onChange={() => p.onDenominatorRelationChange(relation)} />{calc[relation]}

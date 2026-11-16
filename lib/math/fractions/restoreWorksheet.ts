@@ -1,6 +1,7 @@
 import type { FractionWorksheet } from "./types";
 import { isStoredMathWorksheetLanguage, normalizeMathWorksheetLanguage } from "../taxonomy";
 import { FRACTION_CALCULATION_OPERATIONS } from "./calculationOperations";
+import { FRACTION_CALCULATION_MAX_TASK_COUNT } from "./calculationPrintLayout";
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const fraction = (value: unknown) => record(value) && Number.isInteger(value.numerator) && Number.isInteger(value.denominator) && Number(value.denominator) > 0;
@@ -10,7 +11,7 @@ export function restoreFractionWorksheet(value: unknown): FractionWorksheet | nu
   if (!record(value) || typeof value.title !== "string" || typeof value.instructions !== "string" || !isStoredMathWorksheetLanguage(value.language)) return null;
   if (!["grade_2_4", "grade_5_7", "grade_8_10"].includes(String(value.level)) || !["easy", "medium", "hard"].includes(String(value.difficulty))) return null;
   if (!["part_of_whole", "write_fraction", "choose_fraction", "mixed", "calculation"].includes(String(value.topic))) return null;
-  if (!Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > 100) return null;
+  if (!Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > (value.topic === "calculation" ? FRACTION_CALCULATION_MAX_TASK_COUNT : 100)) return null;
   const ids = new Set<string>();
   for (const task of value.tasks) {
     if (!record(task) || typeof task.id !== "string" || !task.id || ids.has(task.id) || typeof task.prompt !== "string" || typeof task.answer !== "string" || !fraction(task.fraction)) return null;

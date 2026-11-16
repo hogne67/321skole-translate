@@ -1,6 +1,7 @@
 import { normalizeMathWorksheetLanguage } from "@/lib/math/taxonomy";
 
 const nb = {
+  pageHint: "Første ark: {first} oppgaver, deretter {following} per ark. Tre kolonner med plass til teller og nevner. Fasit kommer i tillegg.",
   title: "Brøkregning", subtitle: "Mengdetrening med brøk.",
   operation: "Regneart", addition: "Addisjon", subtraction: "Subtraksjon", multiplication: "Multiplikasjon", division: "Divisjon", mixed: "Blandet",
   denominator: "Nevnere", same: "Like nevnere", different: "Ulike nevnere", minimum: "Minst", maximum: "Størst",
@@ -13,6 +14,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageHint: "First sheet: {first} tasks, then {following} per sheet. Three columns with space for numerator and denominator. The answer key is separate.",
   title: "Fraction arithmetic", subtitle: "Fraction fluency practice.",
   operation: "Operation", addition: "Addition", subtraction: "Subtraction", multiplication: "Multiplication", division: "Division", mixed: "Mixed",
   denominator: "Denominators", same: "Like denominators", different: "Unlike denominators", minimum: "Minimum", maximum: "Maximum",
@@ -24,6 +26,7 @@ const en: Copy = {
   emptyTitle: "Ready for your first fraction arithmetic worksheet",
 };
 const pt: Copy = {
+  pageHint: "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. Três colunas com espaço para o numerador e o denominador. As soluções são apresentadas à parte.",
   title: "Cálculo com frações", subtitle: "Prática de cálculo com frações.",
   operation: "Operação", addition: "Adição", subtraction: "Subtração", multiplication: "Multiplicação", division: "Divisão", mixed: "Misturado",
   denominator: "Denominadores", same: "Iguais", different: "Diferentes", minimum: "Mínimo", maximum: "Máximo",

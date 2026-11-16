@@ -16,6 +16,7 @@ import { useMathWorksheetSave } from "../useMathWorksheetSave";
 import { useSavedMathWorksheet } from "../useSavedMathWorksheet";
 import { restoreFractionWorksheet } from "@/lib/math/fractions/restoreWorksheet";
 import { getCalculationCopy } from "@/lib/math/fractions/calculationCopy";
+import { FRACTION_CALCULATION_FIRST_PAGE_COUNT, fractionCalculationFullPageCounts } from "@/lib/math/fractions/calculationPrintLayout";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import { DEFAULT_FRACTION_VISUAL_PRINT_OPTIONS, fractionVisualCountAfterOptionsChange, fractionVisualFullPageCounts, fractionVisualPageCapacity, type FractionVisualPrintOptions } from "@/lib/math/fractions/printLayout";
 import "@/components/generators/math/fractions/fractionGenerator.css";
@@ -63,7 +64,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
     const validRange = Number.isInteger(denominatorMin) && denominatorMin >= 2 && denominatorMin <= (isCalculation ? 100 : 12) &&
         Number.isInteger(denominatorMax) && denominatorMax <= (isCalculation ? 100 : 12) && denominatorMin <= denominatorMax;
     const validDenominators = !isCalculation || denominatorRelation === "same" || denominatorMin < denominatorMax;
-    const [taskCount, setTaskCount] = useState(isCalculation ? 36 : fractionVisualPageCapacity(DEFAULT_FRACTION_VISUAL_PRINT_OPTIONS).first);
+    const [taskCount, setTaskCount] = useState(isCalculation ? FRACTION_CALCULATION_FIRST_PAGE_COUNT : fractionVisualPageCapacity(DEFAULT_FRACTION_VISUAL_PRINT_OPTIONS).first);
     const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
     const [showAnswerKey, setShowAnswerKey] = useState(false);
     const [includeHints, setIncludeHints] = useState(!isCalculation);
@@ -110,6 +111,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
         setDenominatorMax(result.calculation?.denominatorMax ?? result.denominatorRange?.max ?? Math.max(...denominators));
         setVisualKinds(result.visualKinds ?? Array.from(new Set(result.tasks.map(task => task.visual))));
         if (result.calculation) {
+            setCountMode(fractionCalculationFullPageCounts().includes(result.tasks.length) ? "pages" : "custom");
             setOperation(result.calculation.operation);
             setDenominatorRelation(result.calculation.denominatorRelation ?? (result.calculation.denominatorMode === "fixed" ? "same" : "different"));
             setRequireReduced(result.calculation.requireReduced);
@@ -132,7 +134,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
         setTopic(options.topic); setVisualKinds([...options.visualKinds]); setIncludeHints(options.showHints); setDenominatorMax(options.denominatorMax);
     }
 
-    function changeVisualTaskCount(count: number) {
+    function changeTaskCount(count: number) {
         setTaskCount(count); setWorksheet({ ...emptyWorksheet, language });
     }
 
@@ -216,7 +218,8 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                         denominatorRelation={denominatorRelation} onDenominatorRelationChange={setDenominatorRelation}
                         denominatorMin={denominatorMin} denominatorMax={denominatorMax}
                         onMinimumChange={setDenominatorMin} onMaximumChange={setDenominatorMax}
-                        taskCount={taskCount} onTaskCountChange={setTaskCount}
+                        taskCount={taskCount} onTaskCountChange={changeTaskCount}
+                        countMode={countMode} onCountModeChange={setCountMode}
                         requireReduced={requireReduced} onRequireReducedChange={setRequireReduced}
                         showAnswerKey={showAnswerKey} onAnswerKeyChange={setShowAnswerKey}
                         onGenerate={handleGenerate} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }}
@@ -226,7 +229,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                         countMode={countMode} onCountModeChange={setCountMode}
                         denominatorMin={denominatorMin} denominatorMax={denominatorMax}
                         visualKinds={visualKinds} includeHints={includeHints} showAnswerKey={showAnswerKey}
-                        onTopicChange={(value) => changeVisualPrintOptions({ topic: value })} onTaskCountChange={changeVisualTaskCount}
+                        onTopicChange={(value) => changeVisualPrintOptions({ topic: value })} onTaskCountChange={changeTaskCount}
                         onMinimumChange={setDenominatorMin} onMaximumChange={(value) => changeVisualPrintOptions({ denominatorMax: value })}
                         onToggleVisual={toggleVisual} onHintsChange={(value) => changeVisualPrintOptions({ showHints: value })} onAnswerKeyChange={setShowAnswerKey}
                         onGenerate={handleGenerate} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }}
