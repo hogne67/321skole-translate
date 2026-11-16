@@ -313,7 +313,7 @@ function uniqueSorted(values: string[]): string[] {
 
 export default async function QuizLibraryPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "libraryLanding.quiz" });
+  const t = await getTranslations({ locale, namespace: "libraryLanding" });
   const sp = searchParams ? await searchParams : {};
   const q = asString(sp?.q).toLowerCase();
   const defaultLanguage = defaultLanguageForLocale(locale);
@@ -374,7 +374,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
           <input
             name="q"
             defaultValue={sp?.q || ""}
-            placeholder={t("filters.searchPlaceholder")}
+            placeholder={t("quiz.filters.searchPlaceholder")}
             className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-4 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
           />
 
@@ -383,7 +383,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
             className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-950 md:hidden"
             htmlFor="quiz-filter-toggle"
           >
-            {activeFilterCount > 0 ? t("filters.showFiltersWithCount", { count: activeFilterCount }) : t("filters.showFilters")}
+            {activeFilterCount > 0 ? t("quiz.filters.showFiltersWithCount", { count: activeFilterCount }) : t("quiz.filters.showFilters")}
           </label>
 
           <div className="hidden grid-cols-1 gap-2 peer-checked:grid md:contents">
@@ -392,7 +392,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={languageFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">{t("filters.allLanguages")}</option>
+              <option value="all">{t("quiz.filters.allLanguages")}</option>
               {languageOptions.map((language) => (
                 <option key={language} value={language}>
                   {languageLabel(language, locale)}
@@ -404,7 +404,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={levelFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">{t("filters.levelAll")}</option>
+              <option value="all">{t("quiz.filters.levelAll")}</option>
               {levels.map((level) => (
                 <option key={level} value={level}>
                   {level}
@@ -416,7 +416,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               defaultValue={categoryFilter}
               className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             >
-              <option value="all">{t("filters.categoryAll")}</option>
+              <option value="all">{t("quiz.filters.categoryAll")}</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {categoryLabel(category)}
@@ -427,7 +427,7 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
               type="submit"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white"
             >
-              {t("filters.search")}
+              {t("quiz.filters.search")}
             </button>
             <Link
               href={`/${locale}/321quiz`}
@@ -438,13 +438,13 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
                   : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
               }`}
             >
-              {t("filters.reset")}
+              {t("quiz.filters.reset")}
             </Link>
           </div>
         </form>
 
         <section className="text-sm font-semibold text-slate-600">
-          {t("status.showingCount", { shown: quizzes.length, total: allQuizzes.length })}
+          {t("quiz.status.showingCount", { shown: quizzes.length, total: allQuizzes.length })}
         </section>
 
         {quizzes.length ? (
@@ -486,8 +486,8 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
           </section>
         ) : (
           <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <h2 className="text-2xl font-black">{t("empty.title")}</h2>
-            <p className="mt-2 text-slate-600">{t("empty.text")}</p>
+            <h2 className="text-2xl font-black">{t("quiz.empty.title")}</h2>
+            <p className="mt-2 text-slate-600">{t("quiz.empty.text")}</p>
           </section>
         )}
       </div>
