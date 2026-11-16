@@ -17,6 +17,7 @@ import { useSavedMathWorksheet } from "../useSavedMathWorksheet";
 import { restoreFractionWorksheet } from "@/lib/math/fractions/restoreWorksheet";
 import { getCalculationCopy } from "@/lib/math/fractions/calculationCopy";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
+import { DEFAULT_FRACTION_VISUAL_PRINT_OPTIONS, fractionVisualCountAfterOptionsChange, fractionVisualFullPageCounts, fractionVisualPageCapacity, type FractionVisualPrintOptions } from "@/lib/math/fractions/printLayout";
 import "@/components/generators/math/fractions/fractionGenerator.css";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import type {
@@ -62,7 +63,8 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
     const validRange = Number.isInteger(denominatorMin) && denominatorMin >= 2 && denominatorMin <= (isCalculation ? 100 : 12) &&
         Number.isInteger(denominatorMax) && denominatorMax <= (isCalculation ? 100 : 12) && denominatorMin <= denominatorMax;
     const validDenominators = !isCalculation || denominatorRelation === "same" || denominatorMin < denominatorMax;
-    const [taskCount, setTaskCount] = useState(isCalculation ? 36 : 6);
+    const [taskCount, setTaskCount] = useState(isCalculation ? 36 : fractionVisualPageCapacity(DEFAULT_FRACTION_VISUAL_PRINT_OPTIONS).first);
+    const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
     const [showAnswerKey, setShowAnswerKey] = useState(false);
     const [includeHints, setIncludeHints] = useState(!isCalculation);
     const [visualKinds, setVisualKinds] = useState<FractionVisualKind[]>(["bar"]);
@@ -99,7 +101,10 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
         }
         setWorksheet(result); setLanguage(result.language); setLevel(result.level);
         setTaskCount(result.tasks.length); setShowAnswerKey(result.showAnswerKey); setIncludeHints(result.showHints !== false);
-        if (result.topic !== "calculation") setTopic(result.topic);
+        if (result.topic !== "calculation") {
+            setTopic(result.topic);
+            setCountMode(fractionVisualFullPageCounts({ topic: result.topic, visualKinds: result.visualKinds ?? Array.from(new Set(result.tasks.map(task => task.visual))), showHints: result.showHints !== false, denominatorMax: result.denominatorRange?.max ?? Math.max(...result.tasks.map(task => task.fraction.denominator)) }).includes(result.tasks.length) ? "pages" : "custom");
+        }
         const denominators = result.tasks.map(task => task.fraction.denominator);
         setDenominatorMin(result.calculation?.denominatorMin ?? result.denominatorRange?.min ?? Math.min(...denominators));
         setDenominatorMax(result.calculation?.denominatorMax ?? result.denominatorRange?.max ?? Math.max(...denominators));
@@ -120,15 +125,19 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
         return true;
     });
 
-    function toggleVisual(kind: FractionVisualKind) {
-        setVisualKinds((current) => {
-            if (current.includes(kind)) {
-                const next = current.filter((item) => item !== kind);
-                return next;
-            }
+    function changeVisualPrintOptions(next: Partial<FractionVisualPrintOptions>) {
+        const previous = { topic, visualKinds, showHints: includeHints, denominatorMax }, options = { ...previous, ...next };
+        const count = fractionVisualCountAfterOptionsChange(taskCount, previous, options, countMode === "custom");
+        if (count !== taskCount) { setTaskCount(count); setWorksheet({ ...emptyWorksheet, language }); }
+        setTopic(options.topic); setVisualKinds([...options.visualKinds]); setIncludeHints(options.showHints); setDenominatorMax(options.denominatorMax);
+    }
 
-            return [...current, kind];
-        });
+    function changeVisualTaskCount(count: number) {
+        setTaskCount(count); setWorksheet({ ...emptyWorksheet, language });
+    }
+
+    function toggleVisual(kind: FractionVisualKind) {
+        changeVisualPrintOptions({ visualKinds: visualKinds.includes(kind) ? visualKinds.filter(item => item !== kind) : [...visualKinds, kind] });
     }
 
     async function handleGenerate() {
@@ -151,6 +160,7 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                     difficulty,
                     taskCount,
                     showAnswerKey,
+                    showHints: includeHints,
                     visualKinds,
                     denominatorMin,
                     denominatorMax,
@@ -213,11 +223,12 @@ export default function FractionGenerator({ mode = "visual" }: { mode?: "visual"
                         loading={loading} saving={saving} sharing={false} loadingSaved={restored.loading} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange} validDenominators={validDenominators}
                     /> : <FractionGeneratorPanel
                         language={language} topic={topic} taskCount={taskCount}
+                        countMode={countMode} onCountModeChange={setCountMode}
                         denominatorMin={denominatorMin} denominatorMax={denominatorMax}
                         visualKinds={visualKinds} includeHints={includeHints} showAnswerKey={showAnswerKey}
-                        onTopicChange={setTopic} onTaskCountChange={setTaskCount}
-                        onMinimumChange={setDenominatorMin} onMaximumChange={setDenominatorMax}
-                        onToggleVisual={toggleVisual} onHintsChange={setIncludeHints} onAnswerKeyChange={setShowAnswerKey}
+                        onTopicChange={(value) => changeVisualPrintOptions({ topic: value })} onTaskCountChange={changeVisualTaskCount}
+                        onMinimumChange={setDenominatorMin} onMaximumChange={(value) => changeVisualPrintOptions({ denominatorMax: value })}
+                        onToggleVisual={toggleVisual} onHintsChange={(value) => changeVisualPrintOptions({ showHints: value })} onAnswerKeyChange={setShowAnswerKey}
                         onGenerate={handleGenerate} onSave={() => { void persistence.save(); }} onShare={() => { void persistence.save(true); }}
                         loading={loading} saving={saving} sharing={false} loadingSaved={restored.loading} hasWorksheet={worksheet.tasks.length > 0} validRange={validRange}
                     />}

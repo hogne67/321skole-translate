@@ -6,6 +6,7 @@ import MathText from "@/components/generators/math/MathTextSupport";
 import { useEffect, useMemo, useState } from "react";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import "./fractionWorksheet.css";
+import { fractionVisualPrintPages } from "@/lib/math/fractions/printLayout";
 import FractionDisplay from "@/components/generators/math/fractions/FractionDisplay";
 import FractionInput from "@/components/generators/math/fractions/FractionInput";
 import FractionShadeInput, {
@@ -270,9 +271,14 @@ export default function FractionWorksheetView({
         showAnswerKey={!!shouldShowAnswerKey} printRef={printRef} embedded={variant === "embedded"}
     />;
 
+    const printOptions = { topic: worksheet.topic, visualKinds: worksheet.visualKinds ?? Array.from(new Set(worksheet.tasks.map(task => task.visual))), showHints: shouldShowHints, denominatorMax: worksheet.denominatorRange?.max ?? Math.max(2, ...worksheet.tasks.map(task => task.fraction.denominator)) };
+    const pages = printMode ? fractionVisualPrintPages(worksheet.tasks, printOptions) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+    if (!pages.length) pages.push({ tasks: [], startIndex: 0 });
     return (
-        <div ref={printRef} className={`fraction-worksheet mx-auto bg-white text-slate-900 ${printMode ? "print-root" : ""} ${variant === "embedded" ? "max-w-none" : "max-w-[980px]"}`}>
+        <div ref={printRef} className={`fraction-worksheet fraction-visual-worksheet mx-auto bg-white text-slate-900 ${printMode ? "print-root" : ""} ${variant === "embedded" ? "max-w-none" : "max-w-[980px]"}`}>
             <div className={documentView || variant === "embedded" ? "bg-white" : "rounded-lg border border-slate-200 bg-white"}>
+                {pages.map(({ tasks, startIndex }, page) => <section className="fraction-visual-page" key={startIndex}>
+                    {page === 0 ? <>
                 <header className={`fraction-worksheet-header ${documentView || variant === "embedded" ? "pb-5" : "px-6 pt-5"}`}>
                     {variant !== "embedded" ? (
                         <div className="fraction-worksheet-brand mb-5 flex items-start justify-between gap-3">
@@ -296,18 +302,15 @@ export default function FractionWorksheetView({
                         </div>
                     ) : null}
                 </header>
-
-                <div className={`fraction-worksheet-content ${documentView || variant === "embedded" ? "py-5" : "px-6 py-6"}`}>
-                    {worksheet.tasks.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">{copy.emptyTitle}</div>
-                    ) : (
-                        <>
+                    </> : <h2 className="fraction-visual-continuation">{worksheet.title}</h2>}
+                    <div className={`fraction-worksheet-content ${documentView || variant === "embedded" ? "py-5" : "px-6 py-6"}`}>
+                        {tasks.length === 0 ? <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">{copy.emptyTitle}</div> : <>
                             {showAutoCheck && !printMode ? <div className="mb-5 border-b border-slate-200 pb-4 text-sm text-slate-600">
                                 {copy.answered}: {answeredCount} / {worksheet.tasks.length} · {copy.correct}: {correctCount} / {worksheet.tasks.length}
                             </div> : null}
                             <div className="fraction-task-list grid gap-6">
-                                {worksheet.tasks.map((task, idx) => {
-                                    const taskId = task.id || `task-${idx}`;
+                                {tasks.map((task, idx) => {
+                                    const taskId = task.id || `task-${startIndex + idx}`;
                                     const studentAnswer = answers[taskId];
                                     const studentAnswerText = answerToString(studentAnswer);
                                     const correctAnswer = answerToString(task.answer);
@@ -326,7 +329,7 @@ export default function FractionWorksheetView({
                                     return (
                                         <article key={taskId} className={`fraction-print-task fraction-print-task-${task.type} border-b border-slate-200 pb-6`}>
                                             <div className="fraction-print-prompt mb-4 flex items-start gap-3">
-                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">{idx + 1}</div>
+                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">{startIndex + idx + 1}</div>
                                                 <h3 className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold leading-6">
                                                     {task.type === "shade_fraction" ? <>
                                                         <MathText text={copy.shadePrompt} />
@@ -387,7 +390,12 @@ export default function FractionWorksheetView({
                                     );
                                 })}
                             </div>
-                            {shouldShowAnswerKey ? (
+
+                        </>}
+                    </div>
+                </section>)}
+                <div className={`fraction-worksheet-content ${documentView || variant === "embedded" ? "" : "px-6"}`}>
+                            {shouldShowAnswerKey && worksheet.tasks.length > 0 ? (
                                 <section className="fraction-answer-key mt-8 border-t-2 border-slate-300 pt-6">
                                     <h3 className="mb-5 text-xl font-bold">{copy.answerKeyTitle}</h3>
                                     <div className="grid gap-4 sm:grid-cols-2">
@@ -401,8 +409,7 @@ export default function FractionWorksheetView({
                                     </div>
                                 </section>
                             ) : null}
-                        </>
-                    )}
+
                 </div>
             </div>
         </div>

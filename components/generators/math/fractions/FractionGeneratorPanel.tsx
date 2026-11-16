@@ -3,11 +3,14 @@
 import MathGeneratorActions from "../MathGeneratorActions";
 import { getFractionCopy } from "@/lib/math/fractions/uiCopy";
 import type { FractionLanguage, FractionTopic, FractionVisualKind } from "@/lib/math/fractions/types";
+import { FRACTION_VISUAL_MAX_TASK_COUNT, fractionVisualFullPageCounts, fractionVisualPageCapacity, normalizeFractionVisualTaskCount } from "@/lib/math/fractions/printLayout";
 
 type Props = {
   language: FractionLanguage;
   topic: FractionTopic;
   taskCount: number;
+  countMode: "pages" | "custom";
+  onCountModeChange: (value: "pages" | "custom") => void;
   denominatorMin: number;
   denominatorMax: number;
   visualKinds: FractionVisualKind[];
@@ -36,6 +39,9 @@ const labelClass = "mb-1.5 block text-sm font-bold text-slate-700";
 
 export default function FractionGeneratorPanel(p: Props) {
   const copy = getFractionCopy(p.language);
+  const options = { topic: p.topic, visualKinds: p.visualKinds, showHints: p.includeHints, denominatorMax: p.denominatorMax };
+  const counts = fractionVisualFullPageCounts(options), capacity = fractionVisualPageCapacity(options);
+  const busy = p.loading || p.saving || p.sharing || p.loadingSaved;
   return <div className="mt-6 grid gap-5">
     <label>
       <span className={labelClass}>{copy.taskType}</span>
@@ -47,10 +53,14 @@ export default function FractionGeneratorPanel(p: Props) {
       </select>
     </label>
     <label>
-      <span className={labelClass}>{copy.taskCount}</span>
-      <input type="number" min={3} max={12} step={1} value={p.taskCount} className={fieldClass}
-        onChange={(e) => p.onTaskCountChange(Math.max(3, Math.min(12, Math.round(Number(e.target.value) || 3))))} />
+      <span className={labelClass}>{copy.pageCount}</span>
+      <select disabled={busy} value={p.countMode === "custom" ? "custom" : p.taskCount} aria-describedby="fraction-visual-page-hint" className={fieldClass} onChange={(event) => {
+        if (event.target.value === "custom") p.onCountModeChange("custom");
+        else { p.onCountModeChange("pages"); p.onTaskCountChange(Number(event.target.value)); }
+      }}>{counts.map((count, page) => <option key={count} value={count}>{copy.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{copy.customCount}</option></select>
     </label>
+    {p.countMode === "custom" ? <label><span className={labelClass}>{copy.taskCount}</span><input disabled={busy} type="number" min={1} max={FRACTION_VISUAL_MAX_TASK_COUNT} step={1} value={p.taskCount} className={fieldClass} onChange={event => p.onTaskCountChange(normalizeFractionVisualTaskCount(event.target.valueAsNumber, options))} /></label> : null}
+    <p id="fraction-visual-page-hint" className="-mt-3 text-xs leading-5 text-slate-500">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
     <fieldset>
       <legend className={labelClass}>{copy.parts}</legend>
       <div className="grid grid-cols-2 gap-2">

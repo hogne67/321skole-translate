@@ -16,12 +16,12 @@ const View = nodeRequire("../../../components/generators/math/fractions/Fraction
 
 test("the generator offers task, part and model controls instead of grade and difficulty", () => {
   const $ = load(renderToStaticMarkup(<FractionGeneratorPanel
-    language="nb" topic="mixed" taskCount={6} denominatorMin={2} denominatorMax={8}
+    language="nb" topic="mixed" taskCount={6} countMode="custom" onCountModeChange={() => {}} denominatorMin={2} denominatorMax={8}
     visualKinds={["bar"]} includeHints showAnswerKey={false} loading={false} saving={false} sharing={false} hasWorksheet={false} validRange
     onTopicChange={() => {}} onTaskCountChange={() => {}} onMinimumChange={() => {}} onMaximumChange={() => {}}
     onToggleVisual={() => {}} onHintsChange={() => {}} onAnswerKeyChange={() => {}} onGenerate={() => {}} onSave={() => {}} onShare={() => {}}
   />));
-  assert.equal($("select").length, 1);
+  assert.equal($("select").length, 2);
   assert.equal($("input[type='checkbox']").length, 5);
   assert.equal($("input[type='number']").length, 3);
   assert.doesNotMatch($.text(), /Språk|Nivå|Vanskelighetsgrad|trinn/);
@@ -29,7 +29,7 @@ test("the generator offers task, part and model controls instead of grade and di
 });
 
 test("saved answer keys remain printable but never appear in embedded student view", () => {
-  const worksheet = generateWorksheet(normalizeRequest({ showAnswerKey: true }));
+  const worksheet = generateWorksheet(normalizeRequest({ taskCount: 6, showAnswerKey: true }));
   const printed = load(renderToStaticMarkup(<View worksheet={worksheet} printMode showAutoCheck={false} />));
   assert.equal(printed(".fraction-answer-key").length, 1);
   const student = load(renderToStaticMarkup(<View worksheet={worksheet} variant="embedded" showIdentityFields={false} />));
@@ -40,7 +40,7 @@ test("saved answer keys remain printable but never appear in embedded student vi
 test("generator, digital and readonly views retain every chosen shape and localized labels", () => {
   for (const language of ["nb", "en", "pt"] as const) {
     for (const visual of ["bar", "rectangle", "circle"] as const) {
-      const worksheet = generateWorksheet(normalizeRequest({ language, topic: "part_of_whole", visualKinds: [visual], denominatorMin: 12, denominatorMax: 12 }));
+      const worksheet = generateWorksheet(normalizeRequest({ taskCount: 6, language, topic: "part_of_whole", visualKinds: [visual], denominatorMin: 12, denominatorMax: 12 }));
       const copy = getFractionCopy(language);
       const print = load(renderToStaticMarkup(<View worksheet={worksheet} printMode showAutoCheck={false} />));
       assert.equal(print('svg[data-visual]').length, 6);
@@ -57,7 +57,7 @@ test("generator, digital and readonly views retain every chosen shape and locali
 });
 
 test("print and editable fraction fields and multiple-choice layouts stay distinct", () => {
-  const write = generateWorksheet(normalizeRequest({ topic: "write_fraction", language: "en" }));
+  const write = generateWorksheet(normalizeRequest({ taskCount: 6, topic: "write_fraction", language: "en" }));
   const digital = load(renderToStaticMarkup(<View worksheet={write} showAutoCheck={false} answersByTaskId={{ "1": "11/12" }} />));
   assert.equal(digital("input").length, 12);
   assert.deepEqual(digital("article").first().find("input").map((_, el) => digital(el).attr("value")).get(), ["11", "12"]);
@@ -65,14 +65,14 @@ test("print and editable fraction fields and multiple-choice layouts stay distin
   const print = load(renderToStaticMarkup(<View worksheet={write} printMode showAutoCheck={false} />));
   assert.equal(print("input").length, 0);
   assert.equal(print(".fraction-blank").length, 6);
-  const choose = generateWorksheet(normalizeRequest({ topic: "choose_fraction" }));
+  const choose = generateWorksheet(normalizeRequest({ taskCount: 6, topic: "choose_fraction" }));
   const choices = load(renderToStaticMarkup(<View worksheet={choose} printMode showAutoCheck={false} />));
   assert.equal(choices("article button").length, 18);
   assert.equal(choices("article button[disabled]").length, 18);
 });
 
 test("generator and saved print views share the same compact-print layout hooks", () => {
-  const worksheet = generateWorksheet(normalizeRequest({ topic: "mixed" }));
+  const worksheet = generateWorksheet(normalizeRequest({ taskCount: 6, topic: "mixed" }));
   for (const variant of ["generator", "worksheet"] as const) {
     const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode variant={variant} includeHints showAutoCheck={false} />));
     assert.equal($("header.fraction-worksheet-header").length, 1);

@@ -52,4 +52,22 @@
   .fraction-worksheet .fraction-answer-key > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fraction-worksheet .fraction-answer-key > .grid > div { break-inside: avoid; }
   .fraction-worksheet * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .fraction-visual-worksheet .fraction-visual-page + .fraction-visual-page { break-before: page; }
+  .fraction-visual-worksheet .fraction-visual-continuation { margin: 0 0 4mm; font-size: 12pt; }
+  .fraction-visual-worksheet { font-family: Arial, sans-serif; }
+  .fraction-visual-worksheet .fraction-task-list { gap: 2mm 6mm; }
+  .fraction-visual-worksheet .fraction-print-task { padding-bottom: 2mm; }
+  .fraction-visual-worksheet .fraction-print-prompt { margin-bottom: 1.5mm; }
+  .fraction-visual-worksheet .fraction-print-task-layout { min-height: 24mm; }
+  .fraction-visual-worksheet .fraction-print-task-choose_fraction .fraction-print-task-layout { grid-template-columns: minmax(0, 1fr) 38mm; gap: 3mm; }
+  .fraction-visual-worksheet .fraction-print-task-shade_fraction .fraction-visual[data-visual="rectangle"] { width: 52mm !important; }
+  .fraction-visual-worksheet .fraction-print-options { gap: 1.5mm; }
+  .fraction-visual-worksheet .fraction-print-options button { min-height: 14mm; padding: 1mm; }
+  .fraction-visual-worksheet .fraction-print-options button > span { min-width: 0; width: 100%; font-size: 11pt; }
+  .fraction-visual-worksheet .fraction-task-hint { margin-top: 1mm; padding: 1mm 0; font-size: 7.5pt; line-height: 1.25; }
+  .fraction-visual-worksheet .fraction-answer-key > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; }
+  .fraction-visual-worksheet .fraction-answer-key > .grid > div { gap: 2mm; padding-bottom: 2mm; }
+  .fraction-visual-worksheet .fraction-answer-key .fraction-visual { width: 20mm !important; max-height: 16mm; }
+  .fraction-visual-worksheet .fraction-answer-key .fraction-visual[data-visual="circle"] { width: 14mm !important; }
+  .fraction-visual-worksheet .fraction-answer-key [aria-label] { font-size: 10pt; }
 }

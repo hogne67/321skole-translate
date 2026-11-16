@@ -1,6 +1,7 @@
 import { normalizeMathWorksheetLanguage } from "@/lib/math/taxonomy";
 
 const nb = {
+  pageCount: "Antall oppgaveark", pageOption: "{pages} ark – {tasks} oppgaver", customCount: "Eget antall", pageHint: "Første ark: {first} oppgaver, deretter {following} per ark. Antallet tilpasses oppgavetype, figurer og hint. Fasit kommer i tillegg.",
   brand: "321school matematikk", title: "Brøk", subtitle: "Brøk som del av en helhet.",
   taskType: "Oppgavetype", mixed: "Blandet", shade: "Fargelegg brøk", write: "Skriv brøken", choose: "Velg riktig brøk",
   taskCount: "Antall oppgaver", parts: "Deler i helheten", minimum: "Minst", maximum: "Flest",
@@ -18,6 +19,7 @@ const nb = {
 
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageCount: "Number of worksheets", pageOption: "{pages} × A4 – {tasks} tasks", customCount: "Custom count", pageHint: "First sheet: {first} tasks, then {following} per sheet. Capacity follows task type, figures and hints. The answer key is separate.",
   brand: "321school mathematics", title: "Fractions", subtitle: "Fractions as parts of a whole.",
   taskType: "Task type", mixed: "Mixed", shade: "Shade a fraction", write: "Write the fraction", choose: "Choose the correct fraction",
   taskCount: "Number of tasks", parts: "Parts in the whole", minimum: "Minimum", maximum: "Maximum",
@@ -33,6 +35,7 @@ const en: Copy = {
   shadePrompt: "Shade", writePrompt: "Write the fraction that is shaded.",
 };
 const pt: Copy = {
+  pageCount: "Número de fichas", pageOption: "{pages} × A4 – {tasks} exercícios", customCount: "Quantidade personalizada", pageHint: "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. A quantidade adapta-se ao tipo de exercício, às figuras e às dicas. As soluções são apresentadas à parte.",
   brand: "321school matemática", title: "Frações", subtitle: "Frações como partes de um todo.",
   taskType: "Tipo de tarefa", mixed: "Misturado", shade: "Pinta a fração", write: "Escreve a fração", choose: "Escolhe a fração correta",
   taskCount: "Número de tarefas", parts: "Partes do todo", minimum: "Mínimo", maximum: "Máximo",

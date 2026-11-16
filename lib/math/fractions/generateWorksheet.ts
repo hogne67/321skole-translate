@@ -8,6 +8,7 @@ import type {
     FractionVisualKind,
     FractionWorksheet,
 } from "@/lib/math/fractions/types";
+import { normalizeFractionVisualTaskCount } from "./printLayout";
 
 export type GenerateFractionWorksheetRequest = {
     language?: string;
@@ -16,6 +17,7 @@ export type GenerateFractionWorksheetRequest = {
     difficulty?: string;
     taskCount?: number;
     showAnswerKey?: boolean;
+    showHints?: boolean;
     visualKinds?: string[];
     denominatorMin?: number;
     denominatorMax?: number;
@@ -55,11 +57,6 @@ function isVisualKind(value: unknown): value is FractionVisualKind {
 function normalizeLanguage(value: unknown): FractionLanguage {
     if (value === "no") return "nb";
     return isLanguage(value) ? value : "nb";
-}
-
-function clampTaskCount(value: unknown): number {
-    if (typeof value !== "number" || Number.isNaN(value)) return 6;
-    return Math.max(3, Math.min(12, Math.round(value)));
 }
 
 function normalizeVisualKinds(value: unknown): FractionVisualKind[] {
@@ -298,8 +295,6 @@ export function normalizeRequest(body: GenerateFractionWorksheetRequest) {
         ? body.difficulty
         : "easy";
 
-    const taskCount = clampTaskCount(body.taskCount);
-
     const showAnswerKey =
         typeof body.showAnswerKey === "boolean" ? body.showAnswerKey : false;
 
@@ -308,6 +303,8 @@ export function normalizeRequest(body: GenerateFractionWorksheetRequest) {
     const denominators = denominatorRange
         ? Array.from({ length: denominatorRange.max - denominatorRange.min + 1 }, (_, i) => denominatorRange.min + i)
         : getDenominatorPool(difficulty);
+    const showHints = body.showHints !== false;
+    const taskCount = normalizeFractionVisualTaskCount(body.taskCount, { topic, visualKinds, showHints, denominatorMax: Math.max(...denominators) });
 
     return {
         language,
@@ -316,6 +313,7 @@ export function normalizeRequest(body: GenerateFractionWorksheetRequest) {
         difficulty,
         taskCount,
         showAnswerKey,
+        showHints,
         visualKinds,
         denominatorRange,
         denominators,
@@ -344,6 +342,8 @@ export function generateWorksheet(params: ReturnType<typeof normalizeRequest>): 
         difficulty: params.difficulty,
         instructions: getInstructions(params.language),
         showAnswerKey: params.showAnswerKey,
+        showHints: params.showHints,
+        visualKinds: [...params.visualKinds],
         ...(params.denominatorRange ? { denominatorRange: params.denominatorRange } : {}),
         tasks,
     };
