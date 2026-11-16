@@ -1,4 +1,5 @@
 import { normalizeMathWorksheetLanguage, type MathWorksheetLanguage } from "../taxonomy";
+import { CLOCK_FIRST_PAGE_COUNT, CLOCK_MAX_TASK_COUNT } from "./printLayout";
 
 export const CLOCK_TASK_TYPES = ["read_analog", "draw_hands", "elapsed"] as const;
 export const CLOCK_MODES = [...CLOCK_TASK_TYPES, "mixed"] as const;
@@ -20,9 +21,9 @@ export type ClockWorksheet = {
   version: 1; kind: "clock"; language: MathWorksheetLanguage; title: string; instructions: string;
   settings: ClockSettings; tasks: ClockTask[]; showAnswerKey: boolean;
 };
-export const CLOCK_TASKS_PER_PAGE = 6;
+export const CLOCK_TASKS_PER_PAGE = CLOCK_FIRST_PAGE_COUNT;
 export const DEFAULT_CLOCK_SETTINGS: ClockSettings = {
-  taskType: "mixed", minuteStep: 15, timeFormat: "12h", taskCount: 6,
+  taskType: "mixed", minuteStep: 15, timeFormat: "12h", taskCount: CLOCK_FIRST_PAGE_COUNT,
   showSupport: false, allowMidnight: false, maxDuration: 180,
 };
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -32,7 +33,7 @@ export function normalizeClockSettings(value: unknown): ClockSettings {
   if (!CLOCK_MODES.includes(value.taskType as ClockMode)) throw new Error("INVALID_TYPE");
   if (!CLOCK_MINUTE_STEPS.includes(value.minuteStep as ClockMinuteStep)) throw new Error("INVALID_STEP");
   if (value.timeFormat !== "12h" && value.timeFormat !== "24h") throw new Error("INVALID_FORMAT");
-  if (!Number.isInteger(value.taskCount) || Number(value.taskCount) < 1 || Number(value.taskCount) > 60) throw new Error("INVALID_COUNT");
+  if (!Number.isInteger(value.taskCount) || Number(value.taskCount) < 1 || Number(value.taskCount) > CLOCK_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   if (typeof value.showSupport !== "boolean" || typeof value.allowMidnight !== "boolean") throw new Error("INVALID_SUPPORT");
   if (!Number.isInteger(value.maxDuration) || Number(value.maxDuration) < 60 || Number(value.maxDuration) > 360 || Number(value.maxDuration) % 60 !== 0) throw new Error("INVALID_DURATION");
   return {
@@ -151,6 +152,7 @@ export function gradeClockWorksheet(worksheet: ClockWorksheet, answers: Record<s
 
 const nb = {
   title: "Klokka og tid", subtitle: "Les analog klokke, still viserne og regn ut tidsforskjeller.",
+  pageHint: "Første ark har plass til {first} oppgaver og navn, dato og klasse. Deretter er det plass til {following} oppgaver per ark. Velg eget antall ved behov.",
   instructions: "Les klokkene og løs oppgavene. Skriv klokkeslett med kolon, for eksempel 3:15. Oppgi tidsforskjeller i minutter.",
   taskType: "Oppgavetype", read_analog: "Les analog klokke", draw_hands: "Fra digital til analog", elapsed: "Finn tidsforskjellen", mixed: "Blandet",
   precision: "Minuttinndeling", wholeHours: "Hele timer", halfHours: "Halvtimer", quarterHours: "Kvarter", fiveMinutes: "Fem minutter", everyMinute: "Ett minutt",
@@ -163,6 +165,7 @@ const nb = {
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
   title: "Clocks and time", subtitle: "Read analogue clocks, set the hands and calculate elapsed time.",
+  pageHint: "The first sheet fits {first} tasks and name, date and class. Each following sheet fits {following} tasks. Choose a custom count if needed.",
   instructions: "Read the clocks and complete the tasks. Write times with a colon, for example 3:15. Give elapsed time in minutes.",
   taskType: "Task type", read_analog: "Read an analogue clock", draw_hands: "Digital to analogue", elapsed: "Find elapsed time", mixed: "Mixed",
   precision: "Minute intervals", wholeHours: "Whole hours", halfHours: "Half hours", quarterHours: "Quarter hours", fiveMinutes: "Five minutes", everyMinute: "One minute",
@@ -174,6 +177,7 @@ const en: Copy = {
 };
 const pt: Copy = {
   title: "Relógios e tempo", subtitle: "Ler relógios analógicos, acertar os ponteiros e calcular intervalos de tempo.",
+  pageHint: "A primeira folha inclui {first} exercícios e nome, data e turma. Cada folha seguinte inclui {following} exercícios. Podes escolher outra quantidade.",
   instructions: "Lê os relógios e resolve os exercícios. Escreve as horas com dois pontos, por exemplo 3:15. Indica os intervalos de tempo em minutos.",
   taskType: "Tipo de exercício", read_analog: "Ler um relógio analógico", draw_hands: "Digital para analógico", elapsed: "Calcular o intervalo de tempo", mixed: "Misto",
   precision: "Intervalos dos minutos", wholeHours: "Horas certas", halfHours: "Meias horas", quarterHours: "Quartos de hora", fiveMinutes: "Cinco minutos", everyMinute: "Um minuto",

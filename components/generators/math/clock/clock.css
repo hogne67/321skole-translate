@@ -1,6 +1,7 @@
 .clock-sheet .clock-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
 .clock-task { break-inside: avoid; padding: 14px 0; }
 .clock-heading { display: flex; align-items: baseline; gap: 8px; min-height: 40px; font-size: 13px; font-weight: 600; }
+.clock-prompt { flex: 1; min-width: 0; }
 .clock-diagram { display: block; width: 100%; height: auto; max-width: 190px; margin: auto; color: #334155; font-family: Arial, sans-serif; }
 .clock-minute-label { fill: #475569; }
 .clock-face { text-align: center; }
@@ -13,16 +14,36 @@
 .clock-hand-controls label { display: flex; flex-direction: column; gap: 4px; }
 .clock-key .clock-diagram { max-width: 120px; }
 .clock-key-item { break-inside: avoid; text-align: center; }
+.clock-paper-answer { flex: 0 0 auto; flex-wrap: wrap; font-weight: 400; }
+.clock-paper-answer .length-answer-space { display: inline-block; }
 @media (max-width: 600px) { .clock-sheet .clock-tasks { grid-template-columns: minmax(0, 1fr); } }
 @media print {
-  .clock-sheet .clock-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm 6mm; }
-  .clock-sheet .clock-task { padding: 2mm 0; page-break-inside: avoid; }
-  .clock-heading { min-height: 11mm; font-size: 9pt; }
-  .clock-diagram { max-width: 44mm; }
-  .clock-pair .clock-diagram { max-width: 36mm; }
-  .clock-answer { font-size: 9pt; margin-top: 1mm; }
+  .clock-sheet .length-brand { margin-bottom: 2mm; }
+  .clock-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .clock-sheet .length-instructions { font-size: 9pt; line-height: 1.35; margin-bottom: 3mm; }
+  .clock-sheet .length-identity { margin-bottom: 2mm; }
+  .clock-sheet .length-identity span { padding: 1.5mm; }
+  .clock-sheet .clock-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5mm 6mm; }
+  .clock-sheet .length-page:first-child .clock-tasks { row-gap: 7mm; }
+  .clock-sheet .clock-task { padding: .5mm 0; page-break-inside: avoid; }
+  .clock-heading { min-height: 8mm; font-size: 9pt; line-height: 1.2; gap: 1.5mm; align-items: center; }
+  .clock-heading .length-number { width: 4mm; }
+  .clock-diagram { max-width: 42mm; }
+  .clock-minute-label { font-size: 11px; }
+  .clock-face { position: relative; }
+  .clock-face small { position: absolute; top: 0; right: 0; max-width: 20mm; font-size: 7.5pt; line-height: 1.2; }
+  .clock-pair { gap: 2mm; font-size: 8pt; line-height: 1.2; }
+  .clock-pair .clock-diagram { max-width: 35mm; }
+  .clock-answer { font-size: 8pt; line-height: 1.2; margin-top: 0; gap: 1mm; }
+  .clock-paper-answer { width: 26mm; justify-content: flex-start; }
+  .clock-task[data-task-type="read_analog"] .clock-paper-answer { width: 30mm; flex-wrap: nowrap; }
+  .clock-paper-answer .length-answer-space { width: 15mm; height: 6mm; }
+  .clock-task[data-task-type="elapsed"] .clock-paper-answer { display: grid; grid-template-columns: 15mm auto; gap: .5mm 1mm; }
+  .clock-task[data-task-type="elapsed"] .clock-paper-answer .length-answer-space { grid-column: 1; grid-row: 2; }
+  .clock-task[data-task-type="elapsed"] .clock-paper-answer > span:last-child { grid-column: 2; grid-row: 2; }
   .clock-sheet .length-identity { grid-template-columns: 2fr 1fr 1fr; }
   .clock-sheet .length-identity span:last-child { grid-column: auto; }
-  .clock-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clock-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2mm 4mm; }
+  .clock-key p { font-size: 9pt; line-height: 1.3; }
   .clock-key .clock-diagram { max-width: 30mm; }
 }

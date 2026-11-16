@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_CLOCK_SETTINGS, getClockCopy, CLOCK_MINUTE_STEPS, CLOCK_MODES, normalizeClockSettings, sanitizeClockWorksheet, type ClockMinuteStep, type ClockMode, type ClockTimeFormat, type ClockSettings, type ClockWorksheet } from "@/lib/math/clock/worksheet";
+import { CLOCK_FIRST_PAGE_COUNT, CLOCK_FOLLOWING_PAGE_COUNT, CLOCK_MAX_TASK_COUNT, clockFullPageCounts } from "@/lib/math/clock/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,8 @@ import ClockWorksheetView from "./ClockWorksheetView";
 export default function ClockGenerator() {
   const locale = useLocale(), copy = getClockCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<ClockSettings>({ ...DEFAULT_CLOCK_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
+  const pageCounts = clockFullPageCounts();
   const [worksheet, setWorksheet] = useState<ClockWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,6 +26,7 @@ export default function ClockGenerator() {
     const result = sanitizeClockWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(clockFullPageCounts().includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
@@ -46,7 +50,12 @@ export default function ClockGenerator() {
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType} onChange={event => change({ taskType: event.target.value as ClockMode })}>{CLOCK_MODES.map(mode => <option key={mode} value={mode}>{copy[mode]}</option>)}</select></label>
       <label className="length-field">{copy.precision}<select disabled={busy} value={settings.minuteStep} onChange={event => change({ minuteStep: Number(event.target.value) as ClockMinuteStep })}>{CLOCK_MINUTE_STEPS.map((step, i) => <option key={step} value={step}>{[copy.wholeHours, copy.halfHours, copy.quarterHours, copy.fiveMinutes, copy.everyMinute][i]}</option>)}</select></label>
       <label className="length-field">{copy.timeFormat}<select disabled={busy} value={settings.timeFormat} onChange={event => change({ timeFormat: event.target.value as ClockTimeFormat })}><option value="12h">{copy.format12}</option><option value="24h">{copy.format24}</option></select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="clock-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={CLOCK_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="clock-page-hint">{copy.pageHint.replace("{first}", String(CLOCK_FIRST_PAGE_COUNT)).replace("{following}", String(CLOCK_FOLLOWING_PAGE_COUNT))}</p>
       {settings.taskType === "elapsed" || settings.taskType === "mixed" ? <>
         <label className="length-field">{copy.maxDuration}<select disabled={busy} value={settings.maxDuration} onChange={event => change({ maxDuration: Number(event.target.value) })}>{[1, 2, 3, 4, 5, 6].map(hours => <option key={hours} value={hours * 60}>{hours} {hours === 1 ? copy.oneHour : copy.hours}</option>)}</select></label>
         <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.allowMidnight} onChange={event => change({ allowMidnight: event.target.checked })} />{copy.allowMidnight}</label>

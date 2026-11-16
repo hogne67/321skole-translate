@@ -3,7 +3,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 import { renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
-import { CLOCK_MINUTE_STEPS, CLOCK_MODES, CLOCK_TASKS_PER_PAGE, DEFAULT_CLOCK_SETTINGS as defaults, clockDuration, clockHandAngles, clockTaskPrompt, formatClockTime, generateClockWorksheet, getClockCopy, gradeClockTask, gradeClockWorksheet, normalizeClockSettings, parseClockTime, sanitizeClockWorksheet, type ClockTask } from "./worksheet";
+import { CLOCK_MINUTE_STEPS, CLOCK_MODES, DEFAULT_CLOCK_SETTINGS as defaults, clockDuration, clockHandAngles, clockTaskPrompt, formatClockTime, generateClockWorksheet, getClockCopy, gradeClockTask, gradeClockWorksheet, normalizeClockSettings, parseClockTime, sanitizeClockWorksheet, type ClockTask } from "./worksheet";
 import { POST } from "@/app/api/generate-clock-worksheet/route";
 import { getAssignmentDerivedState } from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/assignmentDerivedState";
 import { assignmentToLesson, hasSnapshotContent } from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/helpers";
@@ -123,11 +123,11 @@ test("24-hour reading shows the period of the day without revealing the answer a
   assert.equal($("input").attr("value"), ""); assert.equal($(".clock-task").text().includes("15:30"), false);
 });
 
-test("paper uses six tasks per page with blank drawing faces and a separate optional key", () => {
+test("paper reserves room for the first-page header with blank drawing faces and a separate key", () => {
   const sheet = generateClockWorksheet({ ...defaults, taskType: "draw_hands", taskCount: 13 }, "en", true);
   const answers = Object.fromEntries(sheet.tasks.map(task => [task.id, { hour: "3", minute: "30" }]));
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={answers} printMode />));
-  assert.equal($(".length-page").length, Math.ceil(13 / CLOCK_TASKS_PER_PAGE));
+  assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".clock-task").length), [8, 5]);
   assert.equal($(".clock-task").length, 13); assert.equal($("input, select, .length-result").length, 0);
   assert.equal($(".clock-task [data-hand]").length, 0); assert.equal($(".length-key").length, 1);
   assert.equal($(".clock-key-item").length, 13); assert.equal($(".clock-key [data-hand]").length, 26);
