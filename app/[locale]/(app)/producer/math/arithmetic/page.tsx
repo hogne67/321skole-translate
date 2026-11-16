@@ -21,6 +21,7 @@ import {
 } from "@/lib/math/arithmetic/presets";
 import { UI_COPY, copyValue } from "@/lib/math/arithmetic/uiCopy";
 import { clampVisualRange, constrainVisualConfig, visualOperandLimits } from "@/lib/math/arithmetic/visualLimits";
+import { defaultArithmeticTaskCount as defaultTaskCount, maxArithmeticTaskCount as maxTaskCount } from "@/lib/math/arithmetic/printLayout";
 import { alignDividendRange } from "@/lib/math/arithmetic/ranges";
 import type {
   ArithmeticConcreteOperation,
@@ -50,17 +51,6 @@ function normalizeLocale(locale: string): ArithmeticLanguage {
   return "nb";
 }
 
-function maxTaskCount(layout: ArithmeticLayout) {
-  if (layout === "grid") return 120;
-  if (layout === "vertical") return 36;
-  return 18;
-}
-
-function defaultTaskCount(layout: ArithmeticLayout) {
-  if (layout === "grid") return 100;
-  if (layout === "vertical") return 36;
-  return 18;
-}
 
 export default function ProducerMathArithmeticPage() {
   const locale = useLocale();

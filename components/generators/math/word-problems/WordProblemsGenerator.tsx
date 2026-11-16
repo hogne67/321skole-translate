@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_WORD_PROBLEMS_SETTINGS, getWordProblemsCopy, WORD_PROBLEMS_OPERATIONS, WORD_PROBLEMS_THEMES, normalizeWordProblemsSettings, sanitizeWordProblemsWorksheet, type WordProblemsSettings, type WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
+import { wordProblemsFullPageCounts, wordProblemsPageCapacity } from "@/lib/math/word-problems/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,7 @@ import WordProblemsWorksheetView from "./WordProblemsWorksheetView";
 export default function WordProblemsGenerator() {
   const locale = useLocale(), copy = getWordProblemsCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<WordProblemsSettings>({ ...DEFAULT_WORD_PROBLEMS_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<WordProblemsWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,11 +25,18 @@ export default function WordProblemsGenerator() {
     const result = sanitizeWordProblemsWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(wordProblemsFullPageCounts(result.settings.showSupport).includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   const busy = generating || persistence.saving || restored.loading;
+  const pageCounts = wordProblemsFullPageCounts(settings.showSupport), capacity = wordProblemsPageCapacity(settings.showSupport);
   function change(next: Partial<WordProblemsSettings>) { setSettings(current => ({ ...current, ...next })); setWorksheet(null); setError(""); }
+  function changeSupport(showSupport: boolean) {
+    const nextCounts = wordProblemsFullPageCounts(showSupport);
+    const page = Math.max(0, pageCounts.indexOf(settings.taskCount));
+    change({ showSupport, ...(countMode === "pages" ? { taskCount: nextCounts[Math.min(page, nextCounts.length - 1)] } : {}) });
+  }
   let validation = "";
   try { normalizeWordProblemsSettings(settings); }
   catch { validation = copy.invalid; }
@@ -47,8 +56,13 @@ export default function WordProblemsGenerator() {
       <label className="length-field">{copy.steps}<select disabled={busy} value={settings.steps} onChange={event => change({ steps: event.target.value === "mixed" ? "mixed" : Number(event.target.value) as 1 | 2 })}><option value="1">{copy.one}</option><option value="2">{copy.two}</option><option value="mixed">{copy.mixed}</option></select></label>
       <label className="length-field">{copy.theme}<select disabled={busy} value={settings.theme} onChange={event => change({ theme: event.target.value as WordProblemsSettings["theme"] })}>{WORD_PROBLEMS_THEMES.map(theme => <option key={theme} value={theme}>{copy[theme]}</option>)}</select></label>
       <label className="length-field">{copy.maximum}<select disabled={busy} value={settings.maximum} onChange={event => change({ maximum: Number(event.target.value) as WordProblemsSettings["maximum"] })}>{[20, 100, 1000].map(n => <option key={n} value={n}>0–{n}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
-      <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => change({ showSupport: event.target.checked })} />{copy.support}</label>
+      <label className="length-field">{copy.pageCount}<select disabled={busy} aria-describedby="word-problems-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{copy.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{copy.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="word-problems-page-hint" className="word-problems-count-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
+      <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => changeSupport(event.target.checked)} />{copy.support}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={showAnswerKey} onChange={event => setShowAnswerKey(event.target.checked)} />{common.key}</label>
       {validation ? <p role="status" className="length-error">{validation}</p> : null}
       <MathGeneratorActions language={locale} generating={generating} saving={persistence.saving} loading={restored.loading} canGenerate={!validation} hasWorksheet={!!worksheet}

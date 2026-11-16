@@ -8,6 +8,7 @@
   }
 
   .arithmetic-print-root * {
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     visibility: visible !important;
@@ -75,15 +76,19 @@
   }
 
   .arithmetic-grid-task {
-    min-height: 24px !important;
-    grid-template-columns: 20px 58px 28px 1fr !important;
-    font-size: 10.5px !important;
-    line-height: 1.1 !important;
+    min-height: 29px !important;
+    grid-template-columns: 18px minmax(0, 1fr) 48px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    padding-right: 6px !important;
   }
+
+  .arithmetic-grid-task-missing { grid-template-columns: 18px minmax(0, 1fr) !important; }
+  .arithmetic-missing-slot { height: 18px !important; min-width: 30px !important; }
 
   .arithmetic-grid-index {
     padding: 4px 3px !important;
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 
   .arithmetic-grid-expression {
@@ -93,13 +98,14 @@
   }
 
   .arithmetic-grid-answer {
-    min-height: 24px !important;
+    min-height: 29px !important;
+    border: 1px dashed #94a3b8 !important;
   }
 
   .arithmetic-vertical-grid {
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 14px 18px !important;
+    gap: 10px 18px !important;
   }
 
   .arithmetic-vertical-task {
@@ -146,13 +152,13 @@
   }
 
   .arithmetic-visual-task {
-    border-radius: 10px !important;
-    padding: 8px !important;
+    border-radius: 8px !important;
+    padding: 6px !important;
   }
 
   .arithmetic-visual-head {
-    margin-bottom: 5px !important;
-    gap: 8px !important;
+    margin-bottom: 4px !important;
+    gap: 6px !important;
   }
 
   .arithmetic-visual-index {
@@ -162,30 +168,31 @@
   }
 
   .arithmetic-visual-expression {
-    font-size: 14px !important;
-    line-height: 1.1 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
   }
 
   .arithmetic-visual-model {
-    gap: 4px !important;
+    gap: 3px !important;
     border-radius: 8px !important;
-    padding: 6px !important;
+    padding: 4px !important;
   }
 
   .arithmetic-visual-group {
     border-radius: 7px !important;
     min-height: 26px !important;
-    padding: 5px !important;
+    padding: 4px !important;
   }
 
   .arithmetic-visual-symbol {
-    font-size: 13px !important;
+    font-size: 11px !important;
     line-height: 1 !important;
   }
 
   .arithmetic-dot-grid {
     grid-template-columns: repeat(10, 7px) !important;
-    gap: 3px !important;
+    gap: 2px !important;
   }
 
   .arithmetic-dot {
@@ -194,13 +201,21 @@
   }
 
   .arithmetic-visual-answer {
-    margin-top: 5px !important;
-    min-height: 25px !important;
+    margin-top: 4px !important;
+    min-height: 24px !important;
     border-radius: 7px !important;
-    padding: 5px 6px !important;
+    padding: 4px 6px !important;
     font-size: 10px !important;
   }
 
+  .arithmetic-visual-groups { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 4px !important; }
+  .arithmetic-visual-groups .arithmetic-visual-group { min-height: 24px !important; padding: 3px !important; border-radius: 4px !important; }
+  .arithmetic-task-page { break-inside: auto; }
+  .arithmetic-task-page + .arithmetic-task-page { break-before: page; }
+  .arithmetic-continuation { margin: 0 0 6mm !important; font-size: 14px !important; }
+
   .arithmetic-grid-task, .arithmetic-vertical-task, .arithmetic-visual-task, .arithmetic-answer-key > div > div { break-inside: avoid; }
   .arithmetic-answer-key { break-before: page; margin-top: 0 !important; }
+  .arithmetic-answer-key > div { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px 8px !important; }
+  .arithmetic-answer-key > div > div { padding: 4px 6px !important; font-size: 10px !important; line-height: 1.2 !important; border-radius: 4px !important; }
 }

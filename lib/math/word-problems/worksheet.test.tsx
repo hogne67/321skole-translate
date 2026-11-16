@@ -164,10 +164,11 @@ test("student view has named controls and no key or feedback before checking; te
   assert.equal(teacher(".length-correct").length, 1); assert.match(teacher("textarea").text(), /alternative method/);
 });
 
-test("paper groups three tasks per page, uses blank working spaces and a separate optional worked key", () => {
+test("paper leaves space for method hints, uses blank working spaces and a separate optional worked key", () => {
   const sheet = generateWordProblemsWorksheet({ ...defaults, taskCount: 7, showSupport: true }, "en", true);
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={Object.fromEntries(sheet.tasks.map(t => [t.id, answerFor(t)]))} printMode />));
-  assert.equal($(".length-page").length, 3); assert.equal($(".word-problems-lines").length, 7);
+  assert.equal($(".length-page").length, 2); assert.equal($(".word-problems-lines").length, 7);
+  assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".word-problems-task").length), [4, 3]);
   assert.equal($("input, textarea, select, button, .length-result").length, 0);
   assert.equal($(".length-key").length, 1); assert.equal($(".word-problems-key-item").length, 7);
   assert.equal(load(renderToStaticMarkup(<View worksheet={{ ...sheet, showAnswerKey: false }} printMode />))(".length-key").length, 0);

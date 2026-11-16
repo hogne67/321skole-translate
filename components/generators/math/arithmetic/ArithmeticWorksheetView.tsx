@@ -2,6 +2,7 @@
 
 import "./arithmeticWorksheet.css";
 
+import { arithmeticPrintPages, arithmeticTasksPerPage } from "@/lib/math/arithmetic/printLayout";
 import type { RefObject } from "react";
 import { VISUAL_DOT_LIMIT, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
 import type {
@@ -34,7 +35,7 @@ function MissingPrintExpression({ task }: { task: ArithmeticTask }) {
   return (
     <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
       <span>{before}</span>
-      <span className="inline-block h-7 min-w-10 border-b-2 border-dashed border-slate-300 align-middle" />
+      <span className="arithmetic-missing-slot inline-block h-7 min-w-10 border-b-2 border-dashed border-slate-300 align-middle" />
       <span>{after}</span>
     </span>
   );
@@ -58,7 +59,7 @@ function MissingVerticalPrintStack({ task }: { task: ArithmeticTask }) {
     >
       <div className="text-right">
         {task.unknownPosition === "left" ? (
-          <span className="inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
+          <span className="arithmetic-missing-slot inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
         ) : (
           task.left
         )}
@@ -67,7 +68,7 @@ function MissingVerticalPrintStack({ task }: { task: ArithmeticTask }) {
         <span>{symbol}</span>
         <span className="text-right">
           {task.unknownPosition === "right" ? (
-            <span className="inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
+            <span className="arithmetic-missing-slot inline-block h-8 min-w-12 border-b-2 border-dashed border-slate-300 align-middle" />
           ) : (
             task.right
           )}
@@ -105,7 +106,7 @@ function renderMultiplicationModel(task: ArithmeticTask) {
   const dotsPerGroup = Math.max(0, Math.min(VISUAL_GROUP_LIMIT, Math.round(task.right)));
 
   return (
-    <div className="grid gap-2">
+    <div className="arithmetic-visual-groups grid gap-2">
       {Array.from({ length: groups }).map((_, index) => (
         <div
           key={index}
@@ -126,7 +127,7 @@ function renderDivisionModel(task: ArithmeticTask) {
   const quotient = Math.max(0, Math.min(VISUAL_GROUP_LIMIT, Math.round(task.answer)));
 
   return (
-    <div className="grid gap-2">
+    <div className="arithmetic-visual-groups grid gap-2">
       {Array.from({ length: quotient }).map((_, index) => (
         <div
           key={index}
@@ -239,7 +240,7 @@ function VisualTask({ task, index }: { task: ArithmeticTask; index: number }) {
 function GridTask({ task, index }: { task: ArithmeticTask; index: number }) {
   if (task.unknownPosition) {
     return (
-      <div className="arithmetic-grid-task grid min-h-10 grid-cols-[2.5rem_1fr] items-center border-b border-r border-slate-200 text-sm">
+      <div className="arithmetic-grid-task arithmetic-grid-task-missing grid min-h-10 grid-cols-[2.5rem_1fr] items-center border-b border-r border-slate-200 text-sm">
         <div className="arithmetic-grid-index border-r border-slate-200 px-2 py-2 text-center text-xs font-semibold text-slate-500">
           {index + 1}
         </div>
@@ -283,6 +284,8 @@ export default function ArithmeticWorksheetView({
   const classLabel = fallbackT(t, "classLabel", "Klasse");
   const answerLabel = fallbackT(t, "answer", "Svar");
   const schoolLabel = fallbackT(tBrand, "school", "skole");
+  const perPage = arithmeticTasksPerPage(worksheet.layout);
+  const pages = arithmeticPrintPages(worksheet.tasks, worksheet.layout);
 
   return (
     <div
@@ -290,69 +293,73 @@ export default function ArithmeticWorksheetView({
       className="arithmetic-print-root mx-auto max-w-[980px] bg-white text-slate-900"
     >
       <div className="arithmetic-print-card">
-        <div className="arithmetic-brandbar mb-5 flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <img
-              src="/logo321ny.png"
-              alt={`321 ${schoolLabel}`}
-              className="arithmetic-brandlogo h-12 w-auto shrink-0 object-contain"
-            />
-            <div className="min-w-0">
-              <div className="arithmetic-brandtitle text-lg font-extrabold text-slate-950">
-                321 {schoolLabel}
+        {pages.map((tasks, page) => <section className="arithmetic-task-page" key={page}>
+          {page === 0 ? <>
+            <div className="arithmetic-brandbar mb-5 flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src="/logo321ny.png"
+                  alt={`321 ${schoolLabel}`}
+                  className="arithmetic-brandlogo h-12 w-auto shrink-0 object-contain"
+                />
+                <div className="min-w-0">
+                  <div className="arithmetic-brandtitle text-lg font-extrabold text-slate-950">
+                    321 {schoolLabel}
+                  </div>
+                  <div className="arithmetic-brandsite text-xs font-semibold text-slate-500">
+                    321school.com
+                  </div>
+                </div>
               </div>
-              <div className="arithmetic-brandsite text-xs font-semibold text-slate-500">
-                321school.com
-              </div>
-            </div>
-          </div>
-          <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
-            {worksheetLabel}
-          </div>
-        </div>
-
-        <section className="arithmetic-title-wrap mb-6 border-b border-slate-200 pb-5">
-          <h2 className="arithmetic-title text-2xl font-black tracking-tight text-slate-950">
-            {worksheet.title}
-          </h2>
-          <p className="arithmetic-instructions mt-2 text-sm font-semibold leading-6 text-slate-600">
-            {worksheet.instructions}
-          </p>
-
-          {showIdentityFields ? (
-            <div className="arithmetic-identity-grid mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                <span className="font-semibold">{nameLabel}:</span>
-              </div>
-              <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                <span className="font-semibold">{dateLabel}:</span>
-              </div>
-              <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm sm:col-span-2">
-                <span className="font-semibold">{classLabel}:</span>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
+                {worksheetLabel}
               </div>
             </div>
-          ) : null}
-        </section>
 
-        {worksheet.layout === "grid" ? (
-          <div className="arithmetic-grid grid overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4">
-            {worksheet.tasks.map((task, index) => (
-              <GridTask key={task.id || index} task={task} index={index} />
-            ))}
-          </div>
-        ) : worksheet.layout === "vertical" ? (
-          <div className="arithmetic-vertical-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {worksheet.tasks.map((task, index) => (
-              <VerticalTask key={task.id || index} task={task} index={index} />
-            ))}
-          </div>
-        ) : (
-          <div className="arithmetic-visual-grid grid gap-4 sm:grid-cols-2">
-            {worksheet.tasks.map((task, index) => (
-              <VisualTask key={task.id || index} task={task} index={index} />
-            ))}
-          </div>
-        )}
+            <section className="arithmetic-title-wrap mb-6 border-b border-slate-200 pb-5">
+              <h2 className="arithmetic-title text-2xl font-black tracking-tight text-slate-950">
+                {worksheet.title}
+              </h2>
+              <p className="arithmetic-instructions mt-2 text-sm font-semibold leading-6 text-slate-600">
+                {worksheet.instructions}
+              </p>
+
+              {showIdentityFields ? (
+                <div className="arithmetic-identity-grid mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-semibold">{nameLabel}:</span>
+                  </div>
+                  <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <span className="font-semibold">{dateLabel}:</span>
+                  </div>
+                  <div className="arithmetic-identity-box rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm sm:col-span-2">
+                    <span className="font-semibold">{classLabel}:</span>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+          </> : <h2 className="arithmetic-continuation mb-4 text-lg font-bold">{worksheet.title}</h2>}
+          {worksheet.layout === "grid" ? (
+            <div className="arithmetic-grid grid overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+              {tasks.map((task, index) => (
+                <GridTask key={task.id || index} task={task} index={page * perPage + index} />
+              ))}
+            </div>
+          ) : worksheet.layout === "vertical" ? (
+            <div className="arithmetic-vertical-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tasks.map((task, index) => (
+                <VerticalTask key={task.id || index} task={task} index={page * perPage + index} />
+              ))}
+            </div>
+          ) : (
+            <div className="arithmetic-visual-grid grid gap-4 sm:grid-cols-2">
+              {tasks.map((task, index) => (
+                <VisualTask key={task.id || index} task={task} index={page * perPage + index} />
+              ))}
+            </div>
+          )}
+        </section>)}
 
         {worksheet.showAnswerKey ? (
           <section className="arithmetic-answer-key mt-10 border-t-2 border-slate-300 pt-8">

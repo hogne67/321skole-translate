@@ -33,6 +33,7 @@ import {
   type ArithmeticWorksheet,
 } from "@/lib/math/arithmetic/types";
 import { constrainVisualConfig, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
+import { defaultArithmeticTaskCount, maxArithmeticTaskCount } from "@/lib/math/arithmetic/printLayout";
 import { alignDividendRange } from "@/lib/math/arithmetic/ranges";
 import { createWholeDivisionSampler, wholeDivisionChoices } from "@/lib/math/arithmetic/division";
 
@@ -100,8 +101,8 @@ function normalizeMixedOperations(value: unknown): ArithmeticConcreteOperation[]
 }
 
 function normalizeTaskCount(value: unknown, layout: ArithmeticLayout) {
-  const max = layout === "grid" ? 120 : layout === "vertical" ? 36 : 18;
-  const fallback = layout === "grid" ? 60 : layout === "vertical" ? 18 : 8;
+  const max = maxArithmeticTaskCount(layout);
+  const fallback = defaultArithmeticTaskCount(layout);
   return clamp(value, fallback, 4, max);
 }
 

@@ -1,4 +1,5 @@
 .word-problems-sheet .word-problems-tasks { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.length-controls .word-problems-count-hint { margin: -8px 0 16px; font-size: 12px; line-height: 1.5; }
 .word-problems-task { display: block; min-width: 0; padding: 20px 0; break-inside: avoid; }
 .word-problems-heading { display: flex; align-items: baseline; gap: 16px; line-height: 1.65; }
 .word-problems-heading strong { flex: 1; min-width: 0; font-size: 17px; }
@@ -16,13 +17,14 @@
 .word-problems-key > .word-problems-key-item { display: block; padding: 12px 0; border-bottom: 1px solid #e2e8f0; break-inside: avoid; }
 .word-problems-key-item p { margin: 5px 0; }
 @media print {
-  .word-problems-sheet .word-problems-tasks { gap: 3mm; }
-  .word-problems-task { padding: 3mm 0; }
+  .word-problems-sheet .word-problems-tasks { gap: .75mm; }
+  .word-problems-task { padding: 1mm 0; }
   .word-problems-heading { gap: 3mm; }
-  .word-problems-heading strong { font-size: 10pt; line-height: 1.5; }
-  .word-problems-working { margin: 3mm 0 2mm 6mm; font-size: 9pt; }
-  .word-problems-lines { height: 18mm; }
-  .word-problems-answer { margin-left: 6mm; font-size: 10pt; }
+  .word-problems-heading strong { font-size: 10pt; line-height: 1.35; }
+  .word-problems-working { margin: 2mm 0 1.5mm 6mm; font-size: 8pt; line-height: 1.2; }
+  .word-problems-lines { height: 14mm; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(7mm - 1px), #cbd5e1 calc(7mm - 1px), #cbd5e1 7mm); }
+  .word-problems-answer { margin-left: 6mm; font-size: 9pt; line-height: 1.2; }
+  .word-problems-blank { min-height: 5mm; }
   .word-problems-hint { margin: 2mm 0 0 6mm; font-size: 8pt; }
   .word-problems-key-item { padding: 3mm 0; font-size: 10pt; }
 }
