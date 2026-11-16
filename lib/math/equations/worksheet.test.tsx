@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { equationPageCapacity } from "./printLayout";
 import React from "react";
 import { createRequire } from "node:module";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -27,7 +28,7 @@ for (const type of EQUATION_MODES) test(`generation and sanitization: ${type}`, 
   if (type === "mixed") { const counts = BASIC_EQUATION_TYPES.map(t => sheet.tasks.filter(task => task.type === t).length); assert.ok(Math.max(...counts) - Math.min(...counts) <= 1); assert.ok(sheet.tasks.every(t => t.type !== "both_sides")); }
 });
 test("validation rejects invalid bounds, count, settings and impossible division", () => {
-  for (const change of [{ minimum: 0 }, { maximum: 101 }, { minimum: 30, maximum: 20 }, { taskCount: 0 }, { taskCount: 101 }, { taskCount: 1.5 }, { showSupport: null }, { taskType: "unknown" }, { minimum: 1, maximum: 1, taskType: "divide" }, { minimum: 97, maximum: 97, taskType: "mixed" }]) assert.throws(() => normalizeEquationSettings({ ...defaults, ...change }));
+  for (const change of [{ minimum: 0 }, { maximum: 101 }, { minimum: 30, maximum: 20 }, { taskCount: 0 }, { taskCount: 201 }, { taskCount: 1.5 }, { showSupport: null }, { taskType: "unknown" }, { minimum: 1, maximum: 1, taskType: "divide" }, { minimum: 97, maximum: 97, taskType: "mixed" }]) assert.throws(() => normalizeEquationSettings({ ...defaults, ...change }));
 });
 test("bounded generation covers extreme and fixed ranges", () => {
   for (const type of EQUATION_TYPES) for (const x of [2, 9, 100]) {
@@ -94,7 +95,7 @@ test("Spaces snapshots are classified as equations, never visual fractions", () 
 });
 test("paper page chunks, blanks and a separate method key", () => {
   for (const taskType of ["add", "multiply_add", "mixed"] as const) {
-    const settings = { ...defaults, taskType, taskCount: equationTasksPerPage({ taskType }) * 2 + 1 }, sheet = generateEquationWorksheet(settings, "nb", true);
+    const settings = { ...defaults, taskType, taskCount: equationTasksPerPage({ taskType }) + equationPageCapacity({ taskType }).following + 1 }, sheet = generateEquationWorksheet(settings, "nb", true);
     const html = renderToStaticMarkup(<View worksheet={sheet} printMode />);
     assert.equal((html.match(/class="length-page"/g) ?? []).length, 3);
     assert.ok(html.includes("equation-key")); assert.ok(!html.includes("<input")); assert.ok(!html.includes("<select"));
@@ -280,14 +281,14 @@ test("fraction equations render horizontal fraction bars, all steps and fixed nu
   assert.ok(teacher.includes("100%")); assert.equal((teacher.match(/class="equation-fraction"/g) ?? []).length, 4);
   const paper = renderToStaticMarkup(<View worksheet={sheet} printMode />);
   assert.ok(!paper.includes("<input")); assert.ok(paper.includes("equation-key")); assert.ok(paper.includes("3x + 4"));
-  assert.equal(equationTasksPerPage(sheet.settings), 4);
+  assert.equal(equationTasksPerPage(sheet.settings), 6);
 });
 test("fraction equations support audio grouping and survive Spaces answer transport", () => {
   for (const lang of ["nb", "en", "pt"]) {
     const sheet = generateEquationWorksheet({ ...defaults, taskType: "fraction", taskCount: 9, minimum: -10, allowNegative: true, allowDecimals: true }, lang);
     const prompt = equationPrompt(sheet.tasks[0], lang);
     assert.ok(prompt.includes(lang === "nb" ? "parentes slutt delt på" : lang === "en" ? "close parenthesis divided by" : "fecha parênteses dividido por"));
-    assert.equal((renderToStaticMarkup(<View worksheet={sheet} printMode />).match(/class="length-page"/g) ?? []).length, 3);
+    assert.equal((renderToStaticMarkup(<View worksheet={sheet} printMode />).match(/class="length-page"/g) ?? []).length, 2);
     const snapshot = { mathWorksheet: sheet, contentType: "equations_worksheet", mathType: "equations" };
     assert.deepEqual(getAssignmentDerivedState(snapshot, snapshot).equationWorksheet, sheet);
     const answers = Object.fromEntries(sheet.tasks.map(t => [t.id, gradeEquationTask(t, null).correctAnswer]));
@@ -363,13 +364,13 @@ test("parentheses student and paper views leave all expansion fields blank and s
   assert.ok(teacher.includes("3x")); assert.ok(teacher.includes("− 12"));
   const paper = renderToStaticMarkup(<View worksheet={sheet} printMode />);
   assert.ok(!paper.includes("<input")); assert.ok(paper.includes("equation-distribution")); assert.ok(paper.includes("equation-key"));
-  assert.equal(equationTasksPerPage(sheet.settings), 4);
+  assert.equal(equationTasksPerPage(sheet.settings), 6);
 });
 test("parentheses support spoken math and survive Spaces answer transport", () => {
   for (const lang of ["nb", "en", "pt"]) {
     const sheet = generateEquationWorksheet({ ...defaults, taskType: "parentheses", taskCount: 9, minimum: -10, allowNegative: true, allowDecimals: true }, lang);
     assert.ok(equationPrompt(sheet.tasks[0], lang).includes(lang === "nb" ? "parentes slutt" : lang === "en" ? "close parenthesis" : "fecha parênteses"));
-    assert.equal((renderToStaticMarkup(<View worksheet={sheet} printMode />).match(/class="length-page"/g) ?? []).length, 3);
+    assert.equal((renderToStaticMarkup(<View worksheet={sheet} printMode />).match(/class="length-page"/g) ?? []).length, 2);
     const snapshot = { mathWorksheet: sheet, contentType: "equations_worksheet", mathType: "equations" };
     assert.deepEqual(getAssignmentDerivedState(snapshot, snapshot).equationWorksheet, sheet);
     const answers = Object.fromEntries(sheet.tasks.map(t => [t.id, gradeEquationTask(t, null).correctAnswer]));
@@ -444,11 +445,11 @@ test("both-sides view exposes only the new coefficient slot and carries the stud
   assert.equal((teacher.match(/readOnly=""/g) ?? []).length, 7);
   const paper = renderToStaticMarkup(<View worksheet={sheet} printMode />); assert.ok(!paper.includes("<input")); assert.ok(paper.includes("equation-coefficient-slot"));
 });
-test("both-sides worksheets use four tasks per sheet and preserve saved answers through Spaces", () => {
+test("both-sides worksheets preserve saved counts and answers through Spaces", () => {
   const sheet = generateEquationWorksheet({ ...defaults, taskType: "both_sides", taskCount: 9, minimum: -10.5, allowDecimals: true, allowNegative: true });
-  assert.equal(equationTasksPerPage(sheet.settings), 4);
+  assert.equal(equationTasksPerPage(sheet.settings), 6);
   const paper = renderToStaticMarkup(<View worksheet={sheet} printMode />);
-  assert.equal((paper.match(/class="length-page"/g) ?? []).length, 3);
+  assert.equal((paper.match(/class="length-page"/g) ?? []).length, 2);
   const snapshot = { mathWorksheet: sheet, contentType: "equations_worksheet", mathType: "equations" };
   assert.equal(getAssignmentDerivedState(snapshot, snapshot).equationWorksheet?.tasks[0].type, "both_sides");
   const answers = Object.fromEntries(sheet.tasks.map(t => [t.id, gradeEquationTask(t, null).correctAnswer]));

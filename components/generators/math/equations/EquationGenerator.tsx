@@ -3,7 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { DEFAULT_EQUATION_SETTINGS, EQUATION_MODES, getEquationCopy, normalizeEquationSettings, equationTasksPerPage, sanitizeEquationWorksheet, type EquationSettings, type EquationMode, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import { DEFAULT_EQUATION_SETTINGS, EQUATION_MODES, getEquationCopy, normalizeEquationSettings, sanitizeEquationWorksheet, type EquationSettings, type EquationMode, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import { EQUATION_MAX_TASK_COUNT, equationPageCapacity, equationFullPageCounts, equationCountAfterOptionsChange } from "@/lib/math/equations/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathSpacePicker from "../MathSpacePicker";
 import MathGeneratorActions from "../MathGeneratorActions";
@@ -14,7 +15,7 @@ import EquationWorksheetView from "./EquationWorksheetView";
 export default function EquationGenerator() {
   const locale = useLocale(), copy = getEquationCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<EquationSettings>({ ...DEFAULT_EQUATION_SETTINGS });
-  const [customCount, setCustomCount] = useState(false);
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<EquationWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,14 +27,15 @@ export default function EquationGenerator() {
     const result = sanitizeEquationWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
-    setCustomCount(true);
+    setCountMode(equationFullPageCounts(result.settings).includes(result.tasks.length) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   function change(next: Partial<EquationSettings>) {
-    setSettings(current => { const updated = { ...current, ...next }; return next.taskType && !customCount ? { ...updated, taskCount: equationTasksPerPage(updated) } : updated; });
+    setSettings(current => { const updated = { ...current, ...next }; return next.taskCount === undefined ? { ...updated, taskCount: equationCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated; });
     setWorksheet(null); setError("");
   }
+  const capacity = equationPageCapacity(settings), pageCounts = equationFullPageCounts(settings);
   function changeNumbers(field: "allowNegative" | "allowDecimals", checked: boolean) {
     const updated = { ...settings, [field]: checked };
     let minimum = Number.isFinite(settings.minimum) ? settings.minimum : DEFAULT_EQUATION_SETTINGS.minimum;
@@ -58,7 +60,12 @@ export default function EquationGenerator() {
   return <main className="length-generator"><div className="length-layout">
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.title}</h1><p>{copy.subtitle}</p>
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType} onChange={e => change({ taskType: e.target.value as EquationMode })}>{EQUATION_MODES.map(type => <option key={type} value={type}>{copy[type]}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={100} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => { setCustomCount(true); change({ taskCount: e.target.valueAsNumber }); }} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy || persistence.saving || restored.loading} aria-describedby="equation-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy || persistence.saving || restored.loading} type="number" min={1} max={EQUATION_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="equation-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.allowNegative ?? false} onChange={e => changeNumbers("allowNegative", e.target.checked)} />{copy.allowNegative}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.allowDecimals ?? false} onChange={e => changeNumbers("allowDecimals", e.target.checked)} />{copy.allowDecimals}</label>
       <fieldset disabled={busy}><legend>{copy.range}</legend><div className="length-range">{(["minimum", "maximum"] as const).map(field => <label key={field}>{field === "minimum" ? common.minimum : common.maximum}<input type="number" min={settings.allowNegative ? -100 : settings.allowDecimals ? .1 : 1} max={100} step={settings.allowDecimals ? .1 : 1} value={Number.isNaN(settings[field]) ? "" : settings[field]} onChange={e => change({ [field]: e.target.valueAsNumber })} /></label>)}</div></fieldset>

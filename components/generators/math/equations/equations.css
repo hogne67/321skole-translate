@@ -33,21 +33,26 @@
 @media print {
   .equation-sheet { container-type: normal; }
   .equation-sheet .length-brand { margin-bottom: 3mm; }
+  .equation-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .equation-sheet .length-instructions { font-size: 9pt; line-height: 1.35; margin-bottom: 3mm; }
   .equation-sheet .length-identity { margin-bottom: 3mm; }
   .equation-sheet .length-identity span { padding: 1.5mm; }
-  .equation-task { padding: 2mm 0; }
-  .equation-heading { min-height: 7mm; }
-  .equation-original { font-size: 12pt; }
-  .equation-step { padding: 1mm 0; }
-  .equation-line { min-height: 8mm; font-size: 11pt; gap: 2mm; }
-  .equation-expanded { padding: 1mm 0; }
-  .equation-small-blank { height: 5mm; width: 8mm; }
+  .equation-task { padding: .75mm 0; }
+  .equation-heading { min-height: 6mm; gap: 1.5mm; }
+  .equation-original { font-size: 12pt; line-height: 1.2; gap: 1.5mm; }
+  .equation-step { padding: .5mm 0; }
+  .equation-line { min-height: 7.5mm; font-size: 11pt; line-height: 1.2; gap: 2mm; }
+  .equation-expanded { padding: .5mm 0; }
+  .equation-fraction { gap: .5mm; line-height: 1.1; }
+  .equation-fraction > span:first-child { padding: 0 1mm .5mm; border-bottom-width: 1px; }
+  .equation-small-blank { height: 4mm; width: 8mm; }
   .equation-symbol-blank { height: 5mm; width: 4mm; }
   .equation-blank { height: 6mm; width: 15mm; }
+  .equation-next > .equation-blank { width: 18mm; }
   .equation-support { font-size: 7pt; }
   .equation-feedback { display: none; }
-  .equation-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .equation-key p { font-size: 9pt; margin-bottom: 1mm; }
+  .equation-key > div { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm 4mm; }
+  .equation-key p { font-size: 9pt; line-height: 1.2; margin-bottom: 1mm; }
   .equation-both-task .equation-expanded { font-size: 10pt; }
   .equation-both-task .equation-original { font-size: 11pt; }
 }

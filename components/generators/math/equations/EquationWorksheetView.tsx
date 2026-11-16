@@ -2,7 +2,8 @@
 import type { ReactNode, Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { equationLeft, equationNumerator, equationRight, equationPrompt, equationSteps, formatEquationNumber, getEquationCopy, gradeEquationTask, gradeEquationWorksheet, readEquationAnswer, equationTasksPerPage, OPERATIONS, type EquationAnswer, type EquationStepAnswer, type EquationTask, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import { equationLeft, equationNumerator, equationRight, equationPrompt, equationSteps, formatEquationNumber, getEquationCopy, gradeEquationTask, gradeEquationWorksheet, readEquationAnswer, OPERATIONS, type EquationAnswer, type EquationStepAnswer, type EquationTask, type EquationWorksheet } from "@/lib/math/equations/worksheet";
+import { equationPrintPages } from "@/lib/math/equations/printLayout";
 import "../length/length.css";
 import "./equations.css";
 
@@ -16,13 +17,13 @@ function AppliedOperation({ source, operation, operand, operandType, paper = fal
 export default function EquationWorksheetView({ worksheet, answersByTaskId = {}, onAnswerChange, readOnly = false, showAutoCheck = false, printMode = false, printRef }: {
   worksheet: EquationWorksheet; answersByTaskId?: Record<string, unknown>; onAnswerChange?: (id: string, value: EquationAnswer) => void; readOnly?: boolean; showAutoCheck?: boolean; printMode?: boolean; printRef?: Ref<HTMLDivElement>;
 }) {
-  const copy = getEquationCopy(worksheet.language), common = getMeasurementCopy(worksheet.language), grade = gradeEquationWorksheet(worksheet, answersByTaskId), perPage = equationTasksPerPage(worksheet.settings);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / perPage) }, (_, i) => worksheet.tasks.slice(i * perPage, (i + 1) * perPage));
+  const copy = getEquationCopy(worksheet.language), common = getMeasurementCopy(worksheet.language), grade = gradeEquationWorksheet(worksheet, answersByTaskId);
+  const pages = printMode ? equationPrintPages(worksheet.tasks, worksheet.settings) : [{ tasks: worksheet.tasks, startIndex: 0 }];
   const format = (value: number) => formatEquationNumber(value, worksheet.language);
   const originalEquation = (task: EquationTask) => task.type === "divide" ? <FractionRow top="x" bottom={task.coefficient} /> : task.type === "fraction" ? <FractionRow top={equationNumerator(task, worksheet.language)} bottom={task.denominator} /> : equationLeft(task, worksheet.language);
   const variable = (coefficient: ReactNode, constant: number | string = 0) => <span className="equation-linear">{coefficient === 1 || coefficient === "1" ? null : coefficient}x{constant === 0 ? null : typeof constant === "number" ? ` ${constant > 0 ? "+" : "−"} ${format(Math.abs(constant))}` : <>{constant.startsWith("-") ? " − " : " + "}{constant ? constant.replace(/^-/, "").replace(".", worksheet.language === "en" ? "." : ",") : <span className="equation-small-blank" />}</>}</span>;
   return <div ref={printRef} className={`length-sheet equation-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={startIndex}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -30,7 +31,7 @@ export default function EquationWorksheetView({ worksheet, answersByTaskId = {},
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks">{tasks.map((task, index) => {
-        const number = page * perPage + index + 1, answer = readEquationAnswer(answersByTaskId[task.id], task), steps = equationSteps(task), result = gradeEquationTask(task, answer);
+        const number = startIndex + index + 1, answer = readEquationAnswer(answersByTaskId[task.id], task), steps = equationSteps(task), result = gradeEquationTask(task, answer);
         const original = originalEquation(task);
         const update = (i: number, field: keyof EquationStepAnswer, value: string) => onAnswerChange?.(task.id, { steps: answer.steps.map((s, j) => j === i ? { ...s, [field]: value } : s) });
         const slot = (i: number, field: "operand" | "right" | "coefficient" | "constant", label: string) => printMode ? <span className="equation-blank" aria-label={label} /> : <input type="text" inputMode={worksheet.settings.allowNegative || field === "constant" ? "text" : "decimal"} autoComplete="off" maxLength={18} title={label} aria-label={`${common.task} ${number}, ${copy.step} ${i + 1}: ${label}`} value={answer.steps[i][field] ?? ""} readOnly={readOnly} onChange={e => update(i, field, e.target.value)} />;
