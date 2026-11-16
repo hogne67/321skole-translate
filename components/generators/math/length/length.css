@@ -78,15 +78,17 @@
   .length-brand { margin-bottom: 4mm; }
   .length-sheet h2 { font-size: 15pt; }
   .length-instructions { font-size: 9pt; margin-bottom: 4mm; }
-  .length-identity { margin-bottom: 5mm; gap: 2mm; }
-  .length-identity span { padding: 2mm; }
+  .length-identity { grid-template-columns: 2fr 1fr 1fr; margin-bottom: 5mm; gap: 3mm; line-height: 1.4; }
+  .length-identity span { padding: 2mm 0; border-bottom: 1px solid #cbd5e1; border-radius: 0; background: white; }
+  .length-identity span:last-child { grid-column: auto; }
   .length-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8mm; }
-  .length-task { padding: 2mm 0; min-height: 10mm; box-sizing: border-box; }
-  .length-equation { font-size: 11pt; gap: 2mm; flex-wrap: nowrap; }
-  .length-answer-space { width: 22mm; height: 6mm; flex-shrink: 1; }
+  .length-task { padding: 1mm 0; min-height: 8.5mm; box-sizing: border-box; }
+  .length-equation { font-size: 11pt; line-height: 1.2; gap: 2mm; flex-wrap: nowrap; }
+  .length-number { width: 5mm; }
+  .length-answer-space { width: 26mm; height: 6mm; flex-shrink: 0; }
   .length-answer-group { gap: 2mm; }
   .length-page + .length-page, .length-key { break-before: page; margin-top: 0; }
-  .length-continuation { margin-top: 0 !important; margin-bottom: 6mm !important; }
+  .length-sheet .length-continuation { margin: 0 0 4mm !important; font-size: 12pt; line-height: 1.2; }
   .length-key > div { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3mm; }
   .length-key p { break-inside: avoid; font-size: 10pt; }
   .length-summary, .length-result { display: none; }

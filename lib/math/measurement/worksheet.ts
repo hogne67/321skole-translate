@@ -1,4 +1,5 @@
 import Fraction from "fraction.js";
+import { MEASUREMENT_FIRST_PAGE_COUNT, MEASUREMENT_MAX_TASK_COUNT } from "./printLayout";
 
 export const LENGTH_UNITS = ["mil", "km", "m", "dm", "cm", "mm"] as const;
 export const MASS_UNITS = ["t", "kg", "hg", "g", "mg"] as const;
@@ -35,7 +36,7 @@ export type MeasurementWorksheet = {
 
 const exponents: Record<MeasurementUnit, number> = { mil: 7, km: 6, m: 3, dm: 2, cm: 1, mm: 0, t: 9, kg: 6, hg: 5, g: 3, mg: 0, l: 3, dl: 2, cl: 1, ml: 0 };
 export const DEFAULT_MEASUREMENT_SETTINGS: MeasurementSettings = {
-  category: "length", units: ["m", "cm"], minimum: 1, maximum: 1000, allowDecimals: false, taskCount: 36,
+  category: "length", units: ["m", "cm"], minimum: 1, maximum: 1000, allowDecimals: false, taskCount: MEASUREMENT_FIRST_PAGE_COUNT,
 };
 export function getMeasurementUnits(category: MeasurementCategory): readonly MeasurementUnit[] {
   return category === "mass" ? MASS_UNITS : category === "volume" ? VOLUME_UNITS : LENGTH_UNITS;
@@ -74,7 +75,7 @@ export function normalizeMeasurementSettings(value: unknown): MeasurementSetting
   if (typeof minimum !== "number" || typeof maximum !== "number" || !Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum < 0 || maximum > 100000 || minimum > maximum ||
       new Fraction(String(minimum)).mul(100).d !== BigInt(1) || new Fraction(String(maximum)).mul(100).d !== BigInt(1) ||
       typeof allowDecimals !== "boolean" || (!allowDecimals && (!Number.isInteger(minimum) || !Number.isInteger(maximum)))) throw new Error("INVALID_RANGE");
-  if (typeof taskCount !== "number" || !Number.isInteger(taskCount) || taskCount < 1 || taskCount > 100) throw new Error("INVALID_COUNT");
+  if (typeof taskCount !== "number" || !Number.isInteger(taskCount) || taskCount < 1 || taskCount > MEASUREMENT_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   return { category: category as MeasurementCategory, units, minimum, maximum, allowDecimals, taskCount };
 }
 
@@ -155,29 +156,32 @@ export function gradeMeasurementWorksheet(worksheet: MeasurementWorksheet, answe
   return { totalAuto: entries.length, correctAuto, wrongAuto: entries.length - correctAuto - unansweredAuto, unansweredAuto, percentAuto: entries.length ? Math.round(correctAuto / entries.length * 100) : 0, byTask };
 }
 const nb = {
+  pageCount: "Antall oppgaveark", pageOption: "{pages} ark – {tasks} oppgaver", customCount: "Eget antall", pageHint: "Første ark: {first} oppgaver, deretter {following} per ark. To kolonner med plass til svar. Fasit kommer i tillegg.",
   generatorTitle: "Omregning av enheter", category: "Måling", length: "Lengde", mass: "Vekt", volume: "Volum", tonne: "t (tonn)", generatorSubtitle: "Lengde, vekt og volum.",
   title: "Lengde", subtitle: "Omregning mellom lengdeenheter.", worksheetTitle: "Lengde – omregning av enheter",
   instructions: "Gjør om til enheten som står etter svarfeltet. Skriv bare tallet.",
   decimalInstructions: "Gjør om til enheten som står etter svarfeltet. Skriv bare tallet. Du kan bruke komma eller punktum i desimaltall.",
   units: "Enheter", count: "Antall oppgaver", range: "Tall i oppgaven", minimum: "Minst", maximum: "Størst", decimals: "Tillat desimaltall", key: "Vis fasit",
   generate: "Lag lengdeark", save: "Lagre til mitt innhold", share: "Del til Spaces", print: "Skriv ut / lagre som PDF", empty: "Klar for første lengdeark",
-  invalidUnits: "Velg minst to enheter.", invalidRange: "Velg et gyldig tallområde fra 0 til 100 000. Bruk hele tall når desimaltall er slått av.", invalidCount: "Velg fra 1 til 100 oppgaver.", invalidCombinations: "Tallområdet gir ingen omregninger uten avrunding. Endre tallområdet, enhetene eller tillat desimaltall.",
+  invalidUnits: "Velg minst to enheter.", invalidRange: "Velg et gyldig tallområde fra 0 til 100 000. Bruk hele tall når desimaltall er slått av.", invalidCount: "Velg fra 1 til 200 oppgaver.", invalidCombinations: "Tallområdet gir ingen omregninger uten avrunding. Endre tallområdet, enhetene eller tillat desimaltall.",
   limitedPairs: "Noen retninger krever andre tall. Arket bruker retningene som går nøyaktig opp i valgt tallområde.",
   mil: "mil (10 km)", name: "Navn", date: "Dato", className: "Klasse", answer: "Svar", task: "Oppgave", correct: "Riktig", wrong: "Feil", unanswered: "Ubesvart", score: "Score", answerKey: "Fasit", worksheet: "Arbeidsark",
   busy: "Jobber…", saved: "Lagret til mitt innhold.", shared: "Delt til Spaces.", login: "Logg inn for å lagre og dele.", failed: "Noe gikk galt. Prøv igjen.", openContent: "Åpne Mitt innhold", selectSpace: "Velg Space", close: "Lukk", noSpaces: "Ingen Spaces funnet.", searchSpaces: "Søk i Spaces", shareHere: "Del her",
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageCount: "Number of worksheets", pageOption: "{pages} sheets – {tasks} tasks", customCount: "Custom count", pageHint: "First sheet: {first} tasks, then {following} per sheet. Two columns with room for answers. The answer key is separate.",
   generatorTitle: "Unit conversion", category: "Measurement", length: "Length", mass: "Mass", volume: "Volume", tonne: "t (tonne)", generatorSubtitle: "Length, mass and volume.",
   title: "Length", subtitle: "Convert between units of length.", worksheetTitle: "Length – unit conversion", instructions: "Convert to the unit after the answer box. Write only the number.", decimalInstructions: "Convert to the unit after the answer box. Write only the number. You may use a comma or a decimal point.",
   units: "Units", count: "Number of tasks", range: "Numbers in tasks", minimum: "Minimum", maximum: "Maximum", decimals: "Allow decimals", key: "Show answer key", generate: "Create worksheet", save: "Save to My Content", share: "Share to Spaces", print: "Print / save as PDF", empty: "Ready for your first length worksheet",
-  invalidUnits: "Select at least two units.", invalidRange: "Choose a valid range from 0 to 100,000. Use whole numbers when decimals are off.", invalidCount: "Choose 1 to 100 tasks.", invalidCombinations: "No exact conversions fit this range. Change the numbers, units or allow decimals.", limitedPairs: "Some directions need other numbers. This worksheet uses directions with exact answers in your range.",
+  invalidUnits: "Select at least two units.", invalidRange: "Choose a valid range from 0 to 100,000. Use whole numbers when decimals are off.", invalidCount: "Choose 1 to 200 tasks.", invalidCombinations: "No exact conversions fit this range. Change the numbers, units or allow decimals.", limitedPairs: "Some directions need other numbers. This worksheet uses directions with exact answers in your range.",
   mil: "Norwegian mil (10 km)", name: "Name", date: "Date", className: "Class", answer: "Answer", task: "Task", correct: "Correct", wrong: "Incorrect", unanswered: "Unanswered", score: "Score", answerKey: "Answer key", worksheet: "Worksheet", busy: "Working…", saved: "Saved to My Content.", shared: "Shared to Spaces.", login: "Sign in to save and share.", failed: "Something went wrong. Please try again.", openContent: "Open My Content", selectSpace: "Select Space", close: "Close", noSpaces: "No Spaces found.", searchSpaces: "Search Spaces", shareHere: "Share here",
 };
 const pt: Copy = {
   ...en,
+  pageCount: "Número de fichas", pageOption: "{pages} fichas – {tasks} exercícios", customCount: "Quantidade personalizada", pageHint: "Primeira ficha: {first} exercícios; seguintes: {following} por ficha. Duas colunas com espaço para respostas. As soluções são apresentadas à parte.",
   generatorTitle: "Conversão de unidades", category: "Grandeza", length: "Comprimento", mass: "Massa", volume: "Volume", tonne: "t (tonelada)", generatorSubtitle: "Comprimento, massa e volume.",
-  title: "Comprimento", subtitle: "Conversão entre unidades de comprimento.", worksheetTitle: "Comprimento – conversão de unidades", instructions: "Converte para a unidade depois da caixa de resposta. Escreve apenas o número.", decimalInstructions: "Converte para a unidade depois da caixa de resposta. Escreve apenas o número. Podes usar vírgula ou ponto decimal.", units: "Unidades", count: "Número de exercícios", range: "Números nos exercícios", minimum: "Mínimo", maximum: "Máximo", decimals: "Permitir decimais", key: "Mostrar soluções", generate: "Criar ficha", save: "Guardar no Meu conteúdo", share: "Partilhar nos Spaces", print: "Imprimir / guardar como PDF", empty: "Pronto para a primeira ficha", invalidUnits: "Seleciona pelo menos duas unidades.", invalidRange: "Escolhe um intervalo válido entre 0 e 100 000. Usa números inteiros quando os decimais estão desativados.", invalidCount: "Escolhe entre 1 e 100 exercícios.", invalidCombinations: "Não há conversões exatas neste intervalo. Altera os números, as unidades ou permite decimais.", limitedPairs: "Algumas direções precisam de outros números. A ficha usa direções com respostas exatas neste intervalo.", mil: "mil norueguês (10 km)", name: "Nome", date: "Data", className: "Turma", answer: "Resposta", task: "Exercício", correct: "Correto", wrong: "Incorreto", unanswered: "Sem resposta", score: "Pontuação", answerKey: "Soluções", worksheet: "Ficha", busy: "A processar…", saved: "Guardado no Meu conteúdo.", shared: "Partilhado nos Spaces.", login: "Inicia sessão para guardar e partilhar.", failed: "Ocorreu um erro. Tenta novamente.", openContent: "Abrir Meu conteúdo", selectSpace: "Selecionar Space", close: "Fechar", noSpaces: "Nenhum Space encontrado.", searchSpaces: "Pesquisar Spaces", shareHere: "Partilhar aqui",
+  title: "Comprimento", subtitle: "Conversão entre unidades de comprimento.", worksheetTitle: "Comprimento – conversão de unidades", instructions: "Converte para a unidade depois da caixa de resposta. Escreve apenas o número.", decimalInstructions: "Converte para a unidade depois da caixa de resposta. Escreve apenas o número. Podes usar vírgula ou ponto decimal.", units: "Unidades", count: "Número de exercícios", range: "Números nos exercícios", minimum: "Mínimo", maximum: "Máximo", decimals: "Permitir decimais", key: "Mostrar soluções", generate: "Criar ficha", save: "Guardar no Meu conteúdo", share: "Partilhar nos Spaces", print: "Imprimir / guardar como PDF", empty: "Pronto para a primeira ficha", invalidUnits: "Seleciona pelo menos duas unidades.", invalidRange: "Escolhe um intervalo válido entre 0 e 100 000. Usa números inteiros quando os decimais estão desativados.", invalidCount: "Escolhe entre 1 e 200 exercícios.", invalidCombinations: "Não há conversões exatas neste intervalo. Altera os números, as unidades ou permite decimais.", limitedPairs: "Algumas direções precisam de outros números. A ficha usa direções com respostas exatas neste intervalo.", mil: "mil norueguês (10 km)", name: "Nome", date: "Data", className: "Turma", answer: "Resposta", task: "Exercício", correct: "Correto", wrong: "Incorreto", unanswered: "Sem resposta", score: "Pontuação", answerKey: "Soluções", worksheet: "Ficha", busy: "A processar…", saved: "Guardado no Meu conteúdo.", shared: "Partilhado nos Spaces.", login: "Inicia sessão para guardar e partilhar.", failed: "Ocorreu um erro. Tenta novamente.", openContent: "Abrir Meu conteúdo", selectSpace: "Selecionar Space", close: "Fechar", noSpaces: "Nenhum Space encontrado.", searchSpaces: "Pesquisar Spaces", shareHere: "Partilhar aqui",
 };
 export function getMeasurementCopy(language: string, category: MeasurementCategory = "length"): Copy {
   const copy = language === "en" ? en : language === "pt" ? pt : nb;

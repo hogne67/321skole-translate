@@ -11,6 +11,7 @@ import { DEFAULT_MEASUREMENT_SETTINGS, getMeasurementCopy, measurementPairs, nor
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import LengthWorksheetView from "./LengthWorksheetView";
 import { MEASUREMENT_CATEGORIES, getMeasurementUnits, getMeasurementDefaults, type MeasurementCategory } from "@/lib/math/measurement/worksheet";
+import { MEASUREMENT_FIRST_PAGE_COUNT, MEASUREMENT_FOLLOWING_PAGE_COUNT, MEASUREMENT_MAX_TASK_COUNT, measurementFullPageCounts } from "@/lib/math/measurement/printLayout";
 
 
 export default function MeasurementGenerator() {
@@ -19,6 +20,7 @@ export default function MeasurementGenerator() {
   const copy = getMeasurementCopy(locale, settings.category);
   const [worksheet, setWorksheet] = useState<MeasurementWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [language, setLanguage] = useState(locale);
@@ -28,11 +30,13 @@ export default function MeasurementGenerator() {
     const result = sanitizeMeasurementWorksheet(data.measurementWorksheet ?? data.lengthWorksheet ?? data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(measurementFullPageCounts().includes(result.tasks.length) ? "pages" : "custom");
 
     persistence.rememberSaved(id, result);
     return true;
   });
   function change(next: Partial<MeasurementSettings>) { setSettings(current => ({ ...current, ...next })); }
+  function changeTaskCount(taskCount: number) { change({ taskCount }); setWorksheet(null); }
   function changeCategory(category: MeasurementCategory) {
     setSettings(current => ({ ...current, category, units: getMeasurementDefaults(category).units }));
     setWorksheet(null); setError("");
@@ -63,7 +67,12 @@ export default function MeasurementGenerator() {
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.generatorTitle}</h1><p>{copy.generatorSubtitle}</p>
       <label className="length-field">{copy.category}<select value={settings.category ?? "length"} disabled={busy} onChange={e => changeCategory(e.target.value as MeasurementCategory)}>{MEASUREMENT_CATEGORIES.map(category => <option key={category} value={category}>{copy[category]}</option>)}</select></label>
       <fieldset><legend>{copy.units}</legend><div className="length-unit-choices">{getMeasurementUnits(settings.category ?? "length").map(unit => <label key={unit}><input type="checkbox" checked={settings.units.includes(unit)} onChange={e => change({ units: e.target.checked ? [...settings.units, unit] : settings.units.filter(value => value !== unit) })} />{unit === "mil" ? copy.mil : unit === "t" ? copy.tonne : unit}</label>)}</div></fieldset>
-      <label className="length-field">{copy.count}<input type="number" min={1} max={100} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => change({ taskCount: e.target.valueAsNumber })} /></label>
+      <label className="length-field">{copy.pageCount}<select aria-describedby="measurement-page-hint" disabled={busy || persistence.saving || restored.loading} value={countMode === "custom" ? "custom" : settings.taskCount} onChange={e => {
+        if (e.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); changeTaskCount(Number(e.target.value)); }
+      }}>{measurementFullPageCounts().map((count, page) => <option key={count} value={count}>{copy.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{copy.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{copy.count}<input type="number" min={1} max={MEASUREMENT_MAX_TASK_COUNT} disabled={busy || persistence.saving || restored.loading} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={e => changeTaskCount(e.target.valueAsNumber)} /></label> : null}
+      <p id="measurement-page-hint">{copy.pageHint.replace("{first}", String(MEASUREMENT_FIRST_PAGE_COUNT)).replace("{following}", String(MEASUREMENT_FOLLOWING_PAGE_COUNT))}</p>
       <fieldset><legend>{copy.range}</legend><div className="length-range">{(["minimum", "maximum"] as const).map(key => <label key={key}>{copy[key]}<input type="number" min={0} max={100000} step={settings.allowDecimals ? "0.01" : "1"} value={Number.isNaN(settings[key]) ? "" : settings[key]} onChange={e => change({ [key]: e.target.valueAsNumber })} /></label>)}</div></fieldset>
       <label className="length-toggle"><input type="checkbox" checked={settings.allowDecimals} onChange={e => change({ allowDecimals: e.target.checked })} />{copy.decimals}</label>
       <label className="length-toggle"><input type="checkbox" checked={showAnswerKey} onChange={e => { setShowAnswerKey(e.target.checked); }} />{copy.key}</label>

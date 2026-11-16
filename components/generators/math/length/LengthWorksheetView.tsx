@@ -2,6 +2,7 @@
 
 import type { Ref } from "react";
 import MathText from "../MathTextSupport";
+import { measurementPrintPages } from "@/lib/math/measurement/printLayout";
 import { formatMeasurement, getMeasurementCopy, gradeMeasurementTask, gradeMeasurementWorksheet, type MeasurementWorksheet } from "@/lib/math/measurement/worksheet";
 import "./length.css";
 
@@ -16,9 +17,9 @@ export default function LengthWorksheetView({ worksheet, answersByTaskId = {}, o
 }) {
   const copy = getMeasurementCopy(worksheet.language);
   const grade = gradeMeasurementWorksheet(worksheet, answersByTaskId);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / 36) }, (_, i) => worksheet.tasks.slice(i * 36, (i + 1) * 36));
+  const pages = printMode ? measurementPrintPages(worksheet.tasks) : [{ tasks: worksheet.tasks, startIndex: 0 }];
   return <div ref={printRef} className={`length-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={startIndex}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{copy.worksheet}</span></div>
         <h2>{worksheet.title}</h2>
@@ -31,10 +32,10 @@ export default function LengthWorksheetView({ worksheet, answersByTaskId = {}, o
           const result = gradeMeasurementTask(task, answersByTaskId[task.id]);
           const answer = answersByTaskId[task.id];
           const value = typeof answer === "string" || typeof answer === "number" ? String(answer) : "";
-          const label = `${copy.task} ${page * 36 + i + 1}: ${formatMeasurement(task.quantity, worksheet.language)} ${task.fromUnit} = ${copy.answer} ${task.toUnit}`;
+          const label = `${copy.task} ${startIndex + i + 1}: ${formatMeasurement(task.quantity, worksheet.language)} ${task.fromUnit} = ${copy.answer} ${task.toUnit}`;
           return <div className="length-task" key={task.id}>
-            <div className="length-equation"><span className="length-number">{page * 36 + i + 1}</span><span className="length-source">{formatMeasurement(task.quantity, worksheet.language)} {task.fromUnit}</span><span>=</span>
-              <span className="length-answer-group">{printMode ? <span className="length-answer-space" aria-label={label} /> : <input type="text" inputMode={worksheet.settings.allowDecimals ? "decimal" : "numeric"} aria-label={label} style={{ width: Math.max(88, task.answer.length * 8 + 16) }} value={value} maxLength={24} autoComplete="off" readOnly={readOnly} onChange={e => onAnswerChange?.(task.id, e.target.value)} />}
+            <div className="length-equation"><span className="length-number">{startIndex + i + 1}</span><span className="length-source">{formatMeasurement(task.quantity, worksheet.language)} {task.fromUnit}</span><span>=</span>
+              <span className="length-answer-group">{printMode ? <span className="length-answer-space" style={{ width: `${Math.max(26, Math.min(40, task.answer.length * 2.5 + 2))}mm` }} aria-label={label} /> : <input type="text" inputMode={worksheet.settings.allowDecimals ? "decimal" : "numeric"} aria-label={label} style={{ width: Math.max(88, task.answer.length * 8 + 16) }} value={value} maxLength={24} autoComplete="off" readOnly={readOnly} onChange={e => onAnswerChange?.(task.id, e.target.value)} />}
               <span className="length-unit">{task.toUnit}</span></span>
             </div>
             {showAutoCheck && !printMode ? <div className={`length-result ${result.isCorrect ? "length-correct" : "length-wrong"}`}>{!result.isAnswered ? copy.unanswered : result.isCorrect ? copy.correct : `${copy.wrong}. ${copy.answer}: ${formatMeasurement(task.answer, worksheet.language)} ${task.toUnit}`}</div> : null}

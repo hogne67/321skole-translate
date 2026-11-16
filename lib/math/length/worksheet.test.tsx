@@ -63,7 +63,7 @@ test("decimal boundaries are exact, including values not exactly representable a
   assert.ok(zero.tasks.every(task => task.answer === "0"));
 });
 test("settings reject empty units, invalid numbers, decimals when off and excessive task counts", () => {
-  for (const partial of [{ units: ["m"] }, { units: ["m", "m"] }, { units: ["m", "inch"] }, { minimum: NaN }, { maximum: Infinity }, { minimum: -1 }, { maximum: 100001 }, { minimum: 1001 }, { minimum: 1.13 }, { taskCount: 0 }, { taskCount: 101 }, { taskCount: 3.5 }]) assert.throws(() => normalizeLengthSettings({ ...DEFAULT_LENGTH_SETTINGS, ...partial }), /INVALID_/);
+  for (const partial of [{ units: ["m"] }, { units: ["m", "m"] }, { units: ["m", "inch"] }, { minimum: NaN }, { maximum: Infinity }, { minimum: -1 }, { maximum: 100001 }, { minimum: 1001 }, { minimum: 1.13 }, { taskCount: 0 }, { taskCount: 201 }, { taskCount: 3.5 }]) assert.throws(() => normalizeLengthSettings({ ...DEFAULT_LENGTH_SETTINGS, ...partial }), /INVALID_/);
 });
 test("sanitization recomputes answers and rejects changed units, precision and duplicate IDs", () => {
   const worksheet = generateLengthWorksheet(DEFAULT_LENGTH_SETTINGS);
@@ -115,10 +115,10 @@ test("digital views share inline inputs, read-only results and hide the printabl
   assert.equal(teacher(".length-correct").length, 6);
   assert.equal(teacher(".length-key").length, 0);
 });
-test("print output paginates at 36 tasks and keeps answers on a separate page", () => {
+test("print output reserves the first-page header and keeps answers on a separate page", () => {
   const worksheet = generateLengthWorksheet({ ...DEFAULT_LENGTH_SETTINGS, taskCount: 100 }, "nb", true);
   const $ = load(renderToStaticMarkup(<View worksheet={worksheet} printMode />));
-  assert.equal($(".length-page").length, 3);
+  assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".length-task").length), [52, 48]);
   assert.equal($(".length-task").length, 100);
   assert.equal($(".length-answer-space").length, 100);
   assert.equal($("input").length, 0);
