@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_ALGEBRA_SETTINGS, ALGEBRA_LEVELS, getAlgebraCopy, normalizeAlgebraSettings, sanitizeAlgebraWorksheet, type AlgebraSettings, type AlgebraWorksheet } from "@/lib/math/algebra/worksheet";
+import { ALGEBRA_MAX_TASK_COUNT, algebraPageCapacity, algebraFullPageCounts, algebraCountAfterOptionsChange } from "@/lib/math/algebra/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,7 @@ import AlgebraWorksheetView from "./AlgebraWorksheetView";
 export default function AlgebraGenerator() {
   const locale = useLocale(), copy = getAlgebraCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<AlgebraSettings>({ ...DEFAULT_ALGEBRA_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<AlgebraWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,11 +25,16 @@ export default function AlgebraGenerator() {
     const result = sanitizeAlgebraWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(algebraFullPageCounts(result.settings).includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   const busy = generating || persistence.saving || restored.loading;
-  function change(next: Partial<AlgebraSettings>) { setSettings(current => ({ ...current, ...next })); setWorksheet(null); setError(""); }
+  function change(next: Partial<AlgebraSettings>) {
+    setSettings(current => { const updated = { ...current, ...next }; return next.taskCount === undefined ? { ...updated, taskCount: algebraCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated; });
+    setWorksheet(null); setError("");
+  }
+  const capacity = algebraPageCapacity(settings), pageCounts = algebraFullPageCounts(settings);
   let validation = "";
   try { normalizeAlgebraSettings(settings); }
   catch { validation = copy.invalidSettings; }
@@ -45,7 +52,12 @@ export default function AlgebraGenerator() {
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.title}</h1><p>{copy.subtitle}</p>
       <label className="length-field">{copy.level}<select disabled={busy} value={settings.level} onChange={event => change({ level: event.target.value as AlgebraSettings["level"] })}>{ALGEBRA_LEVELS.map(level => <option key={level} value={level}>{copy[level]}</option>)}</select></label>
       <label className="length-field">{copy.maximum}<input disabled={busy} type="number" min={2} max={12} value={Number.isNaN(settings.maxCoefficient) ? "" : settings.maxCoefficient} onChange={event => change({ maxCoefficient: event.target.valueAsNumber })} /></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="algebra-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={ALGEBRA_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="algebra-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.allowNegative} onChange={event => change({ allowNegative: event.target.checked })} />{copy.negative}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.includeSquares} onChange={event => change({ includeSquares: event.target.checked })} />{copy.squares}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.includeParentheses} onChange={event => change({ includeParentheses: event.target.checked })} />{copy.parentheses}</label>

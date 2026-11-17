@@ -141,10 +141,10 @@ test("unfinished answers get explanatory feedback only after explicit checking",
   assert.match($(".length-result").text(), /riktig verdi.*ikke ferdig forenklet/);
 });
 
-test("paper uses two columns with sixteen tasks normally and eight with support, with blank spaces and a separate optional key", () => {
-  assert.equal(defaults.taskCount, 16);
+test("paper keeps two columns with blank spaces and a separate optional key", () => {
+  assert.equal(defaults.taskCount, 20);
   for (const showSupport of [false, true]) {
-    const sheet = generateAlgebraWorksheet({ ...defaults, level: "mixed", taskCount: 17, showSupport }, "pt", true), perPage = showSupport ? 8 : 16;
+    const sheet = generateAlgebraWorksheet({ ...defaults, level: "mixed", taskCount: 17, showSupport }, "pt", true), perPage = showSupport ? 12 : 16;
     const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={Object.fromEntries(sheet.tasks.map(t => [t.id, algebraTaskAnswer(t)]))} printMode />));
     assert.equal($(".length-page").length, Math.ceil(17 / perPage)); assert.equal($(".length-page").first().find(".algebra-task").length, perPage); assert.equal($("input, button, output").length, 0); assert.equal($(".algebra-answer-space").length, 17); assert.equal($(".length-identity").length, 1); assert.equal($(".length-key > div").length, 17);
     assert.deepEqual($(".length-number").map((_, el) => $(el).text()).get(), Array.from({ length: 17 }, (_, i) => String(i + 1)));
