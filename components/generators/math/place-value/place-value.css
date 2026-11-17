@@ -21,17 +21,34 @@
 .place-value-key > .place-value-key-item { display: block; padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; break-inside: avoid; overflow-wrap: anywhere; }
 @media (max-width: 620px) { .place-value-table { min-width: 360px; } .place-value-heading strong { font-size: 14px; } .place-value-answer { margin-left: 0; } }
 @media print {
-  .place-value-task { padding: 3mm 0; }
-  .place-value-heading { gap: 3mm; line-height: 1.4; }
-  .place-value-heading strong { font-size: 10pt; }
-  .place-value-marked-number { margin: 2mm 0 2mm 6mm; font-size: 14pt; }
-  .place-value-table-scroll { margin: 2mm 0; overflow: visible; }
+  .place-value-sheet { --place-value-task-height: 11.5mm; --place-value-first-gap: .75mm; --place-value-next-gap: 1.5mm; }
+  .place-value-sheet.place-value-with-marked { --place-value-task-height: 17mm; --place-value-first-gap: 1.5mm; }
+  .place-value-sheet.place-value-with-table { --place-value-task-height: 24mm; --place-value-first-gap: 3.5mm; --place-value-next-gap: 2mm; }
+  .place-value-sheet.place-value-with-table.place-value-wide-table { --place-value-task-height: 27mm; --place-value-first-gap: 4.5mm; }
+  .place-value-sheet.place-value-with-table.place-value-with-marked { --place-value-task-height: 29.5mm; --place-value-first-gap: 2mm; --place-value-next-gap: 3mm; }
+  .place-value-sheet.place-value-with-table.place-value-wide-table.place-value-with-marked { --place-value-task-height: 33mm; --place-value-first-gap: 4mm; --place-value-next-gap: 4.5mm; }
+  .place-value-sheet .length-brand { margin-bottom: 2mm; }
+  .place-value-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .place-value-sheet .length-instructions { font-size: 8.5pt; line-height: 1.3; margin-bottom: 2.5mm; }
+  .place-value-sheet .length-identity { margin-bottom: 2mm; }
+  .place-value-sheet .length-identity span { padding: 1.5mm; }
+  .place-value-sheet .place-value-tasks { grid-template-columns: minmax(0, 1fr); row-gap: var(--place-value-next-gap); }
+  .place-value-sheet .length-page:first-child .place-value-tasks { row-gap: var(--place-value-first-gap); }
+  .place-value-task { padding: .4mm 0; min-height: var(--place-value-task-height); }
+  .place-value-heading { gap: 1.5mm; line-height: 1.1; }
+  .place-value-heading .length-number { width: 4mm; }
+  .place-value-heading strong { font-size: 9pt; }
+  .place-value-marked-number { margin: .25mm 0 .25mm 5.5mm; font-size: 13pt; line-height: 1.1; }
+  .place-value-marked-number mark { padding: .2mm .75mm; }
+  .place-value-table-scroll { margin: .75mm 0; overflow: visible; }
   .place-value-table { min-width: 0; }
-  .place-value-table th { font-size: 7pt; padding: 1mm; }
-  .place-value-table td { padding: 1mm; height: 7mm; }
+  .place-value-table th { font-size: 7.5pt; line-height: 1.1; padding: .75mm; }
+  .place-value-table td { padding: .75mm; height: 6.5mm; }
   .place-value-cell-space { height: 5mm; }
-  .place-value-answer { margin: 2mm 0 0 6mm; font-size: 10pt; }
-  .place-value-answer-space { height: 5mm; }
-  .place-value-hint { font-size: 8pt; margin: 0 0 2mm; }
-  .place-value-key > .place-value-key-item { font-size: 10pt; padding: 3mm 0; }
+  .place-value-answer { margin: .75mm 0 0 5.5mm; font-size: 9pt; line-height: 1.2; gap: 2mm; }
+  .place-value-answer-space { flex: 1; width: auto; height: 5.5mm; }
+  .place-value-hint { font-size: 8pt; line-height: 1.2; margin: 0 0 2mm; }
+  .place-value-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
+  .place-value-key h2 { grid-column: 1 / -1; }
+  .place-value-key > .place-value-key-item { font-size: 9pt; line-height: 1.35; padding: 1mm 0; min-width: 0; }
 }

@@ -147,10 +147,10 @@ test("student tables and answers are labeled and blank; keys and feedback stay h
   assert.equal(noTable("table").length, 0); assert.equal(noTable("input").length, 1);
 });
 
-test("paper uses four tasks per page, blank tables and answer lines, with a separate optional key", () => {
+test("paper reserves space for the header and tables, with blank answers and a separate key", () => {
   const sheet = generatePlaceValueWorksheet({ ...defaults, taskCount: 9, decimalPlaces: 2 }, "en", true), answers = Object.fromEntries(sheet.tasks.map(t => [t.id, answerFor(t, sheet.settings)]));
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={answers} printMode />));
-  assert.equal($(".length-page").length, 3); assert.equal($(".place-value-task").length, 9); assert.equal($("table").length, 9);
+  assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".place-value-task").length), [7, 2]); assert.equal($(".place-value-task").length, 9); assert.equal($("table").length, 9);
   assert.equal($("input, textarea, button, .length-result").length, 0); assert.equal($(".place-value-answer-space").length, 9);
   assert.equal($(".length-key").length, 1); assert.equal($(".place-value-key-item").length, 9);
   assert.equal(load(renderToStaticMarkup(<View worksheet={{ ...sheet, showAnswerKey: false }} printMode />))(".length-key").length, 0);

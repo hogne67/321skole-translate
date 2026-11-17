@@ -3,7 +3,8 @@
 import type { Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { PLACE_VALUE_TASKS_PER_PAGE, getPlaceValueCopy, gradePlaceValueTask, gradePlaceValueWorksheet, placeValueColumn, placeValueExponents, placeValueNumberTokens, placeValueTaskAnswer, placeValueTaskPrompt, readPlaceValueAnswer, type PlaceValueAnswer, type PlaceValueSettings, type PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
+import { getPlaceValueCopy, gradePlaceValueTask, gradePlaceValueWorksheet, placeValueColumn, placeValueExponents, placeValueNumberTokens, placeValueTaskAnswer, placeValueTaskPrompt, readPlaceValueAnswer, type PlaceValueAnswer, type PlaceValueSettings, type PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
+import { placeValuePrintPages } from "@/lib/math/place-value/printLayout";
 import "../length/length.css";
 import "./place-value.css";
 
@@ -20,9 +21,10 @@ export default function PlaceValueWorksheetView({ worksheet, answersByTaskId = {
   worksheet: PlaceValueWorksheet; answersByTaskId?: Record<string, unknown>; onAnswerChange?: (id: string, value: PlaceValueAnswer) => void; readOnly?: boolean; showAutoCheck?: boolean; printMode?: boolean; printRef?: Ref<HTMLDivElement>;
 }) {
   const common = getMeasurementCopy(worksheet.language), copy = getPlaceValueCopy(worksheet.language), settings = worksheet.settings, grade = gradePlaceValueWorksheet(worksheet, answersByTaskId);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / PLACE_VALUE_TASKS_PER_PAGE) }, (_, i) => worksheet.tasks.slice(i * PLACE_VALUE_TASKS_PER_PAGE, (i + 1) * PLACE_VALUE_TASKS_PER_PAGE));
-  return <div ref={printRef} className={`length-sheet place-value-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+  const pages = printMode ? placeValuePrintPages(worksheet.tasks, settings) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+  const marked = settings.taskType === "mixed" || settings.taskType === "digit_value";
+  return <div ref={printRef} className={`length-sheet place-value-sheet${settings.showPlaceValueTable ? " place-value-with-table" : ""}${settings.integerDigits + settings.decimalPlaces >= 7 ? " place-value-wide-table" : ""}${marked ? " place-value-with-marked" : ""}${printMode ? " length-paper" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={page}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -31,7 +33,7 @@ export default function PlaceValueWorksheetView({ worksheet, answersByTaskId = {
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks place-value-tasks">{tasks.map((task, index) => {
-        const number = page * PLACE_VALUE_TASKS_PER_PAGE + index + 1, label = `${common.task} ${number}`, answer = readPlaceValueAnswer(printMode ? null : answersByTaskId[task.id], settings.integerDigits + settings.decimalPlaces), result = gradePlaceValueTask(task, settings, answersByTaskId[task.id]);
+        const number = startIndex + index + 1, label = `${common.task} ${number}`, answer = readPlaceValueAnswer(printMode ? null : answersByTaskId[task.id], settings.integerDigits + settings.decimalPlaces), result = gradePlaceValueTask(task, settings, answersByTaskId[task.id]);
         const change = (next: Partial<PlaceValueAnswer>) => onAnswerChange?.(task.id, { ...answer, ...next });
         return <div className="length-task place-value-task" key={task.id} data-task-type={task.type}>
           <div className="place-value-heading"><span className="length-number">{number}</span><strong><MathText text={placeValueTaskPrompt(task, settings, worksheet.language)} /></strong></div>
