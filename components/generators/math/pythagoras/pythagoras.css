@@ -1,0 +1,47 @@
+.pythagoras-sheet .pythagoras-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.pythagoras-task { display: block; min-width: 0; padding: 18px 0; break-inside: avoid; }
+.pythagoras-heading { display: flex; align-items: baseline; gap: 10px; line-height: 1.45; }
+.pythagoras-heading strong { font-size: 15px; flex: 1; min-width: 0; }
+.pythagoras-figure { margin: 8px auto; max-width: 290px; color: #334155; }
+.pythagoras-figure svg { display: block; width: 100%; height: auto; font-family: Arial, sans-serif; font-size: 14px; }
+.pythagoras-figure figcaption { text-align: center; font-size: 11px; line-height: 1.4; }
+.pythagoras-hint, .pythagoras-note { font-size: 12px; line-height: 1.5; color: #475569; }
+.pythagoras-hint { margin: 7px 0; }
+.pythagoras-working { font-size: 12px; color: #475569; margin: 8px 0; }
+.pythagoras-working label { display: grid; gap: 5px; }
+.pythagoras-working textarea { width: 100%; min-height: 60px; padding: 8px; resize: vertical; background: white; border: 1px solid #94a3b8; border-radius: 6px; font: inherit; color: #0f172a; }
+.pythagoras-lines { height: 34px; background: repeating-linear-gradient(to bottom, transparent 0, transparent 16px, #cbd5e1 16px, #cbd5e1 17px); print-color-adjust: exact; }
+.pythagoras-answer { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; font-size: 13px; }
+.pythagoras-answer label { display: grid; gap: 5px; }
+.pythagoras-answer input, .pythagoras-answer select { max-width: 100%; min-height: 38px; padding: 6px; border: 1px solid #94a3b8; border-radius: 5px; background: white; color: #0f172a; font: inherit; }
+.pythagoras-answer input { width: 120px; }
+.pythagoras-answer :is(input, select):focus-visible, .pythagoras-working textarea:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.pythagoras-blank { width: 65%; min-height: 24px; border-bottom: 1px dashed #94a3b8; }
+.pythagoras-key > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pythagoras-key > div > div { display: block; break-inside: avoid; }
+.pythagoras-key p { font-size: 12px; margin: 5px 0; }
+@media (max-width: 700px) { .pythagoras-sheet .pythagoras-tasks, .pythagoras-key > div { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  .pythagoras-sheet .length-brand { margin-bottom: 2mm; }
+  .pythagoras-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2mm; }
+  .pythagoras-sheet .length-instructions { font-size: 8pt; line-height: 1.3; margin-bottom: 2mm; }
+  .pythagoras-sheet .length-identity { grid-template-columns: 2fr 1fr 1fr; margin-bottom: 2mm; }
+  .pythagoras-sheet .length-identity span { padding: 1.5mm; }
+  .pythagoras-sheet .length-identity span:last-child { grid-column: auto; }
+  .pythagoras-sheet .pythagoras-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2mm 7mm; }
+  .pythagoras-task { padding: .5mm 0; }
+  .pythagoras-heading { gap: 1.5mm; line-height: 1.2; }
+  .pythagoras-heading strong { font-size: 8.5pt; }
+  .pythagoras-heading .length-number { width: 3mm; }
+  .pythagoras-figure { max-width: 52mm; margin: .5mm auto; }
+  .pythagoras-figure svg { font-size: 16px; }
+  .pythagoras-figure figcaption { font-size: 7pt; line-height: 1.1; }
+  .pythagoras-hint { font-size: 7.5pt; line-height: 1.2; margin: .75mm 0; }
+  .pythagoras-working { font-size: 7.5pt; margin: 1mm 0; }
+  .pythagoras-lines { height: 8mm; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(4mm - 1px), #cbd5e1 calc(4mm - 1px), #cbd5e1 4mm); }
+  .pythagoras-answer { font-size: 8.5pt; gap: 2mm; }
+  .pythagoras-blank { min-height: 4mm; }
+  .pythagoras-with-support .pythagoras-tasks { row-gap: 3mm; }
+  .pythagoras-key > div { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; }
+  .pythagoras-key p { font-size: 8.5pt; line-height: 1.35; }
+}

@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getMathGeneratorCopy, MATH_GENERATORS } from "@/lib/math/generators";
 
 function TaskSample({ id }: { id: typeof MATH_GENERATORS[number]["id"] }) {
+  if (id === "pythagoras") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M20 10V65H120Z" fill="#e0f2fe" stroke="#334155" strokeWidth="2" /><path d="M20 55H30V65" fill="none" stroke="#0f766e" strokeWidth="2" /><text x="44" y="35" fontSize="18" fill="#0f766e">c = ?</text><text x="50" y="79" fontSize="13">a² + b² = c²</text></svg>;
   if (id === "volume") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M25 30L85 30L85 72L25 72Z" fill="#e0f2fe" stroke="#334155" /><path d="M25 30L48 10L108 10L85 30Z" fill="#d1fae5" stroke="#334155" /><path d="M85 30L108 10L108 52L85 72Z" fill="#bfdbfe" stroke="#334155" /><text x="122" y="49" fontSize="20" fill="#0f766e">cm³</text></svg>;
   if (id === "algebra") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-xl font-bold text-slate-900"><span>2a + a + b · b = 3a + b²</span></div>;
   if (id === "powers") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-2xl font-bold text-slate-900"><span>2³ = 2 × 2 × 2 = 8</span></div>;

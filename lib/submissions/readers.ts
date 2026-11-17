@@ -12,6 +12,7 @@ import { sanitizeFactorizationWorksheet } from "@/lib/math/factorization/workshe
 import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeVolumeWorksheet } from "@/lib/math/volume/worksheet";
+import { sanitizePythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import { sanitizeClockWorksheet } from "@/lib/math/clock/worksheet";
@@ -61,6 +62,7 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
         v.kind !== "place_value" &&
         v.kind !== "word_problems" &&
         v.kind !== "volume" &&
+        v.kind !== "pythagoras" &&
         v.kind !== "coordinates" &&
         v.kind !== "statistics" &&
         v.kind !== "clock" &&
@@ -116,7 +118,7 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || isLengthWorksheet(a.measurementWorksheet ?? a.lengthWorksheet ?? a.mathWorksheet) || !!sanitizeAlgebraWorksheet(a.mathWorksheet) || !!sanitizePowersWorksheet(a.mathWorksheet) || !!sanitizeFactorizationWorksheet(a.mathWorksheet) || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeVolumeWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || isLengthWorksheet(a.measurementWorksheet ?? a.lengthWorksheet ?? a.mathWorksheet) || !!sanitizeAlgebraWorksheet(a.mathWorksheet) || !!sanitizePowersWorksheet(a.mathWorksheet) || !!sanitizeFactorizationWorksheet(a.mathWorksheet) || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeVolumeWorksheet(a.mathWorksheet) || !!sanitizePythagorasWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {

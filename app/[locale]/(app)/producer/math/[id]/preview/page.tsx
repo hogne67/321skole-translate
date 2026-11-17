@@ -22,6 +22,7 @@ import FactorizationWorksheetView from "@/components/generators/math/factorizati
 import PlaceValueWorksheetView from "@/components/generators/math/place-value/PlaceValueWorksheetView";
 import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import VolumeWorksheetView from "@/components/generators/math/volume/VolumeWorksheetView";
+import PythagorasWorksheetView from "@/components/generators/math/pythagoras/PythagorasWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
 import { sanitizeAlgebraWorksheet, type AlgebraWorksheet } from "@/lib/math/algebra/worksheet";
 import { sanitizePowersWorksheet, type PowersWorksheet } from "@/lib/math/powers/worksheet";
@@ -29,6 +30,7 @@ import { sanitizeFactorizationWorksheet, type FactorizationWorksheet } from "@/l
 import { sanitizePlaceValueWorksheet, type PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet, type WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeVolumeWorksheet, type VolumeWorksheet } from "@/lib/math/volume/worksheet";
+import { sanitizePythagorasWorksheet, type PythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
 import { sanitizeCoordinatesWorksheet, type CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import StatisticsWorksheetView from "@/components/generators/math/statistics/StatisticsWorksheetView";
 import { sanitizeStatisticsWorksheet, type StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
@@ -121,6 +123,7 @@ export default function MathWorksheetPreviewPage() {
   const [placeValueWorksheet, setPlaceValueWorksheet] = useState<PlaceValueWorksheet | null>(null);
   const [wordProblemsWorksheet, setWordProblemsWorksheet] = useState<WordProblemsWorksheet | null>(null);
   const [volumeWorksheet, setVolumeWorksheet] = useState<VolumeWorksheet | null>(null);
+  const [pythagorasWorksheet, setPythagorasWorksheet] = useState<PythagorasWorksheet | null>(null);
   const [coordinatesWorksheet, setCoordinatesWorksheet] = useState<CoordinatesWorksheet | null>(null);
   const [statisticsWorksheet, setStatisticsWorksheet] = useState<StatisticsWorksheet | null>(null);
   const [clockWorksheet, setClockWorksheet] = useState<ClockWorksheet | null>(null);
@@ -154,6 +157,7 @@ export default function MathWorksheetPreviewPage() {
       setPlaceValueWorksheet(null);
       setWordProblemsWorksheet(null);
       setVolumeWorksheet(null);
+      setPythagorasWorksheet(null);
       setCoordinatesWorksheet(null);
       setStatisticsWorksheet(null);
       setClockWorksheet(null);
@@ -301,6 +305,12 @@ export default function MathWorksheetPreviewPage() {
           setLesson(loadedLesson);
           setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
           setVolumeWorksheet(volume); setLoading(false); return;
+        }
+        const pythagoras = sanitizePythagorasWorksheet(loadedRecord.mathWorksheet);
+        if (pythagoras) {
+          setLesson(loadedLesson);
+          setWorksheet(null); setFractionWorksheet(null); setArithmeticWorksheet(null);
+          setPythagorasWorksheet(pythagoras); setLoading(false); return;
         }
         const coordinates = sanitizeCoordinatesWorksheet(loadedRecord.mathWorksheet);
         if (coordinates) {
@@ -492,7 +502,7 @@ export default function MathWorksheetPreviewPage() {
     [tPrint]
   );
 
-  const editorHref = mathEditorHref(locale, lessonId, algebraWorksheet ? "algebra" : powersWorksheet ? "powers" : factorizationWorksheet ? "factorization" : placeValueWorksheet ? "place_value" : wordProblemsWorksheet ? "word_problems" : volumeWorksheet ? "volume" : coordinatesWorksheet ? "coordinates" : statisticsWorksheet ? "statistics" : clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
+  const editorHref = mathEditorHref(locale, lessonId, algebraWorksheet ? "algebra" : powersWorksheet ? "powers" : factorizationWorksheet ? "factorization" : placeValueWorksheet ? "place_value" : wordProblemsWorksheet ? "word_problems" : volumeWorksheet ? "volume" : pythagorasWorksheet ? "pythagoras" : coordinatesWorksheet ? "coordinates" : statisticsWorksheet ? "statistics" : clockWorksheet ? "clock" : numberLineWorksheet ? "number_line" : equationWorksheet ? "equations" : percentageWorksheet ? "percentage" : comparisonWorksheet ? "comparison" : lengthWorksheet ? "measurement" : arithmeticWorksheet ? "arithmetic" : fractionWorksheet ? "fractions" : "geometry", "", fractionWorksheet ?? undefined);
 
   if (loading) {
     return (
@@ -502,7 +512,7 @@ export default function MathWorksheetPreviewPage() {
     );
   }
 
-  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !algebraWorksheet && !powersWorksheet && !factorizationWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !volumeWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
+  if (err || !lesson || (!worksheet && !fractionWorksheet && !arithmeticWorksheet && !lengthWorksheet && !algebraWorksheet && !powersWorksheet && !factorizationWorksheet && !placeValueWorksheet && !wordProblemsWorksheet && !volumeWorksheet && !pythagorasWorksheet && !coordinatesWorksheet && !statisticsWorksheet && !clockWorksheet && !numberLineWorksheet && !comparisonWorksheet && !equationWorksheet && !percentageWorksheet)) {
     return (
       <main className="mx-auto min-h-screen max-w-4xl bg-slate-50 px-4 py-8">
         <h1 className="text-2xl font-black text-slate-950">
@@ -539,7 +549,7 @@ export default function MathWorksheetPreviewPage() {
                   arithmeticWorksheet?.title ||
                   lengthWorksheet?.title ||
                   equationWorksheet?.title || percentageWorksheet?.title ||
-                  algebraWorksheet?.title || powersWorksheet?.title || factorizationWorksheet?.title || placeValueWorksheet?.title || wordProblemsWorksheet?.title || volumeWorksheet?.title || coordinatesWorksheet?.title ||
+                  algebraWorksheet?.title || powersWorksheet?.title || factorizationWorksheet?.title || placeValueWorksheet?.title || wordProblemsWorksheet?.title || volumeWorksheet?.title || pythagorasWorksheet?.title || coordinatesWorksheet?.title ||
                   statisticsWorksheet?.title ||
                   clockWorksheet?.title ||
                   numberLineWorksheet?.title ||
@@ -577,6 +587,8 @@ export default function MathWorksheetPreviewPage() {
               <WordProblemsWorksheetView worksheet={wordProblemsWorksheet} printMode printRef={previewRef} />
             ) : volumeWorksheet ? (
               <VolumeWorksheetView worksheet={volumeWorksheet} printMode printRef={previewRef} />
+            ) : pythagorasWorksheet ? (
+              <PythagorasWorksheetView worksheet={pythagorasWorksheet} printMode printRef={previewRef} />
             ) : coordinatesWorksheet ? (
               <CoordinatesWorksheetView worksheet={coordinatesWorksheet} printMode printRef={previewRef} />
             ) : statisticsWorksheet ? (

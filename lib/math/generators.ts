@@ -1,4 +1,5 @@
 export const MATH_GENERATORS = [
+  { id: "pythagoras", path: "pythagoras" },
   { id: "volume", path: "volume" },
   { id: "arithmetic", path: "arithmetic" },
   { id: "geometry", path: "geometry?new=1" },
@@ -20,6 +21,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  pythagoras: "Pytagoras", pythagorasDescription: "Finn hypotenusen eller en katet, undersøk trekanter og løs praktiske oppgaver.",
   volume: "Volum og romfigurer", volumeDescription: "Tell enhetskuber, beregn volum, finn manglende mål og løs praktiske oppgaver.",
   algebra: "Forenkling av algebraiske uttrykk", algebraDescription: "Trekk sammen like ledd, forenkle produkter og øv på blandede uttrykk.",
   powers: "Potensregning", powersDescription: "Skriv og regn med potenser, gjentatt multiplikasjon og potensregler.",
@@ -42,6 +44,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pythagoras: "Pythagoras", pythagorasDescription: "Find a hypotenuse or leg, check triangles and solve practical problems.",
   volume: "Volume and solids", volumeDescription: "Count unit cubes, calculate volume, find missing measurements and solve practical problems.",
   algebra: "Simplifying algebraic expressions", algebraDescription: "Collect like terms, simplify products and practise mixed expressions.",
   powers: "Powers and exponents", powersDescription: "Write and calculate powers, repeated multiplication and exponent rules.",
@@ -63,6 +66,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  pythagoras: "Teorema de Pitágoras", pythagorasDescription: "Encontra a hipotenusa ou um cateto, verifica triângulos e resolve problemas práticos.",
   volume: "Volume e sólidos geométricos", volumeDescription: "Contar cubos unitários, calcular volumes, encontrar medidas e resolver problemas práticos.",
   algebra: "Simplificação de expressões algébricas", algebraDescription: "Reduzir termos semelhantes, simplificar produtos e praticar expressões mistas.",
   powers: "Potências", powersDescription: "Escrever e calcular potências, multiplicação repetida e regras das potências.",
