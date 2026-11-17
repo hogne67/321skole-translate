@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_COORDINATES_SETTINGS, getCoordinatesCopy, COORDINATES_AXES, COORDINATES_EXTENTS, COORDINATES_MODES, coordinatesSteps, normalizeCoordinatesSettings, sanitizeCoordinatesWorksheet, type CoordinatesMode, type CoordinatesSettings, type CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
+import { COORDINATES_FIRST_PAGE_COUNT, COORDINATES_MAX_TASK_COUNT, coordinatesFullPageCounts } from "@/lib/math/coordinates/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,8 @@ import CoordinatesWorksheetView from "./CoordinatesWorksheetView";
 export default function CoordinatesGenerator() {
   const locale = useLocale(), copy = getCoordinatesCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<CoordinatesSettings>({ ...DEFAULT_COORDINATES_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
+  const pageCounts = coordinatesFullPageCounts();
   const [worksheet, setWorksheet] = useState<CoordinatesWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,6 +26,7 @@ export default function CoordinatesGenerator() {
     const result = sanitizeCoordinatesWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(coordinatesFullPageCounts().includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
@@ -59,7 +63,12 @@ export default function CoordinatesGenerator() {
       <label className="length-field">{copy.pointCount}<select disabled={busy} value={settings.pointCount} onChange={event => change({ pointCount: Number(event.target.value) })}>{[1, 2, 3, 4, 5].filter(n => n >= (settings.taskType === "draw_figure" || settings.taskType === "mixed" ? 3 : 1)).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       {settings.taskType === "reflect" || settings.taskType === "mixed" && settings.quadrants === "all" ? <label className="length-field">{copy.reflectionAxis}<select disabled={busy} value={settings.reflectionAxis} onChange={event => change({ reflectionAxis: event.target.value as CoordinatesSettings["reflectionAxis"] })}>{COORDINATES_AXES.map(axis => <option key={axis} value={axis}>{copy[axis]}</option>)}</select></label> : null}
       {settings.quadrants === "positive" && settings.taskType === "mixed" ? <p>{copy.positiveNote}</p> : null}
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="coordinates-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={COORDINATES_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="coordinates-page-hint">{copy.pageHint.replace("{count}", String(COORDINATES_FIRST_PAGE_COUNT))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => change({ showSupport: event.target.checked })} />{copy.support}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={showAnswerKey} onChange={event => setShowAnswerKey(event.target.checked)} />{common.key}</label>
       {validation ? <p role="status" className="length-error">{validation}</p> : null}

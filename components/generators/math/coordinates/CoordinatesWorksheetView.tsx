@@ -3,7 +3,8 @@
 import { useState, type Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { COORDINATES_TASKS_PER_PAGE, coordinatesAnswerPoints, coordinatesClosed, coordinatesExpected, coordinatesLabel, coordinatesTaskAnswer, coordinatesTaskPrompt, getCoordinatesCopy, gradeCoordinatesTask, gradeCoordinatesWorksheet, readCoordinatesAnswer, type CoordinatesAnswer, type CoordinatesSettings, type CoordinatesTask, type CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
+import { coordinatesAnswerPoints, coordinatesClosed, coordinatesExpected, coordinatesLabel, coordinatesTaskAnswer, coordinatesTaskPrompt, getCoordinatesCopy, gradeCoordinatesTask, gradeCoordinatesWorksheet, readCoordinatesAnswer, type CoordinatesAnswer, type CoordinatesSettings, type CoordinatesTask, type CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
+import { coordinatesPrintPages } from "@/lib/math/coordinates/printLayout";
 import CoordinatesGrid from "./CoordinatesGrid";
 import "../length/length.css";
 import "./coordinates.css";
@@ -35,16 +36,16 @@ export default function CoordinatesWorksheetView({ worksheet, answersByTaskId = 
   readOnly?: boolean; showAutoCheck?: boolean; printMode?: boolean; printRef?: Ref<HTMLDivElement>;
 }) {
   const common = getMeasurementCopy(worksheet.language), copy = getCoordinatesCopy(worksheet.language), grade = gradeCoordinatesWorksheet(worksheet, answersByTaskId);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / COORDINATES_TASKS_PER_PAGE) }, (_, i) => worksheet.tasks.slice(i * COORDINATES_TASKS_PER_PAGE, (i + 1) * COORDINATES_TASKS_PER_PAGE));
-  return <div ref={printRef} className={`length-sheet coordinates-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+  const pages = printMode ? coordinatesPrintPages(worksheet.tasks) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+  return <div ref={printRef} data-point-count={worksheet.settings.pointCount} className={`length-sheet coordinates-sheet${worksheet.settings.showSupport ? " coordinates-with-support" : ""}${printMode ? " length-paper" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={page}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
         {printMode ? <div className="length-identity"><span>{common.name}:</span><span>{common.date}:</span><span>{common.className}:</span></div> : null}
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
-      <div className="length-tasks coordinates-tasks">{tasks.map((task, i) => <CoordinatesTaskCard key={task.id} task={task} settings={worksheet.settings} language={worksheet.language} number={page * COORDINATES_TASKS_PER_PAGE + i + 1} value={answersByTaskId[task.id]} onChange={value => onAnswerChange?.(task.id, value)} readOnly={readOnly} printMode={printMode} showAutoCheck={showAutoCheck} />)}</div>
+      <div className="length-tasks coordinates-tasks">{tasks.map((task, i) => <CoordinatesTaskCard key={task.id} task={task} settings={worksheet.settings} language={worksheet.language} number={startIndex + i + 1} value={answersByTaskId[task.id]} onChange={value => onAnswerChange?.(task.id, value)} readOnly={readOnly} printMode={printMode} showAutoCheck={showAutoCheck} />)}</div>
     </section>)}
     {printMode && worksheet.showAnswerKey ? <section className="length-key coordinates-key"><h2>{common.answerKey}</h2><div>{worksheet.tasks.map((task, i) => <div className="coordinates-key-item" key={task.id}><p><strong>{i + 1}.</strong> {coordinatesTaskAnswer(task)}</p>{coordinatesClosed(task) || task.type === "reflect" ? <CoordinatesGrid settings={worksheet.settings} language={worksheet.language} sourcePoints={task.type === "reflect" ? task.points : []} sourceClosed={task.type === "reflect" && coordinatesClosed(task)} answerPoints={coordinatesExpected(task)} answersClosed={coordinatesClosed(task)} reflected={task.type === "reflect"} reflectionAxis={task.type === "reflect" ? task.axis : undefined} /> : null}</div>)}</div></section> : null}
   </div>;

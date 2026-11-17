@@ -1,4 +1,5 @@
 import { normalizeMathWorksheetLanguage, type MathWorksheetLanguage } from "../taxonomy";
+import { COORDINATES_FIRST_PAGE_COUNT, COORDINATES_MAX_TASK_COUNT } from "./printLayout";
 
 export const COORDINATES_TASK_TYPES = ["read_points", "place_points", "draw_figure", "reflect"] as const;
 export const COORDINATES_MODES = [...COORDINATES_TASK_TYPES, "mixed"] as const;
@@ -18,8 +19,8 @@ export type CoordinatesWorksheet = {
   version: 1; kind: "coordinates"; language: MathWorksheetLanguage; title: string; instructions: string;
   settings: CoordinatesSettings; tasks: CoordinatesTask[]; showAnswerKey: boolean;
 };
-export const COORDINATES_TASKS_PER_PAGE = 2;
-export const DEFAULT_COORDINATES_SETTINGS: CoordinatesSettings = { taskType: "mixed", quadrants: "all", extent: 5, step: 1, pointCount: 3, reflectionAxis: "mixed", taskCount: 4, showSupport: false };
+export const COORDINATES_TASKS_PER_PAGE = COORDINATES_FIRST_PAGE_COUNT;
+export const DEFAULT_COORDINATES_SETTINGS: CoordinatesSettings = { taskType: "mixed", quadrants: "all", extent: 5, step: 1, pointCount: 3, reflectionAxis: "mixed", taskCount: COORDINATES_FIRST_PAGE_COUNT, showSupport: false };
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const labels = "ABCDE";
 export function coordinatesSteps(extent: number, quadrants: "positive" | "all"): number[] {
@@ -36,7 +37,7 @@ export function normalizeCoordinatesSettings(v: unknown): CoordinatesSettings {
   if (!Number.isInteger(v.pointCount) || Number(v.pointCount) < (v.taskType === "draw_figure" || v.taskType === "mixed" ? 3 : 1) || Number(v.pointCount) > 5) throw new Error("INVALID_POINTS");
   if (!COORDINATES_AXES.includes(v.reflectionAxis as CoordinatesSettings["reflectionAxis"])) throw new Error("INVALID_AXIS");
   if (v.taskType === "reflect" && v.quadrants !== "all") throw new Error("INVALID_REFLECTION_RANGE");
-  if (!Number.isInteger(v.taskCount) || Number(v.taskCount) < 1 || Number(v.taskCount) > 60) throw new Error("INVALID_COUNT");
+  if (!Number.isInteger(v.taskCount) || Number(v.taskCount) < 1 || Number(v.taskCount) > COORDINATES_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   if (typeof v.showSupport !== "boolean") throw new Error("INVALID_SUPPORT");
   return { taskType: v.taskType as CoordinatesMode, quadrants: v.quadrants, extent: v.extent as CoordinatesSettings["extent"], step: v.step, pointCount: Number(v.pointCount), reflectionAxis: v.reflectionAxis as CoordinatesSettings["reflectionAxis"], taskCount: Number(v.taskCount), showSupport: v.showSupport };
 }
@@ -159,6 +160,7 @@ export function gradeCoordinatesWorksheet(worksheet: CoordinatesWorksheet, answe
 
 const nb = {
   title: "Koordinatsystem og speiling", subtitle: "Les og plasser punkter, tegn figurer og speil dem om x- eller y-aksen.",
+  pageHint: "Hvert ark har plass til {count} oppgaver i to kolonner. Navn, dato og klasse står på første ark. Velg eget antall ved behov.",
   instructions: "Koordinater skrives (x, y): først vannrett, deretter loddrett. Tegn figurer ved å forbinde punktene i oppgitt rekkefølge og tilbake til start. Ved speiling merkes speilbildet A′, B′ og så videre.",
   taskType: "Oppgavetype", read_points: "Les av punkter", place_points: "Plasser punkter", draw_figure: "Tegn en figur", reflect: "Speil punkter og figurer", mixed: "Blandet",
   quadrants: "Koordinatområde", positive: "Bare positive koordinater og null", all: "Alle fire kvadranter", extent: "Største akseverdi", step: "Verdi per rute", pointCount: "Antall punkter", reflectionAxis: "Speilingsakse", x: "x-aksen", y: "y-aksen", support: "Vis flere aksetall og forklaringer", empty: "Klar for første koordinatark",
@@ -169,6 +171,7 @@ const nb = {
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
   title: "Coordinates and reflection", subtitle: "Read and plot points, draw shapes and reflect them in the x- or y-axis.",
+  pageHint: "Each sheet fits {count} tasks in two columns. Name, date and class appear on the first sheet. Choose a custom count if needed.",
   instructions: "Write coordinates as (x, y): horizontal first, then vertical. Draw shapes by connecting the points in the given order and back to the start. Label reflected points A′, B′ and so on.",
   taskType: "Task type", read_points: "Read coordinates", place_points: "Plot points", draw_figure: "Draw a shape", reflect: "Reflect points and shapes", mixed: "Mixed",
   quadrants: "Coordinate region", positive: "Positive coordinates and zero", all: "All four quadrants", extent: "Largest axis value", step: "Value per square", pointCount: "Number of points", reflectionAxis: "Axis of reflection", x: "x-axis", y: "y-axis", support: "Show more axis numbers and explanations", empty: "Ready for your first coordinate worksheet",
@@ -178,6 +181,7 @@ const en: Copy = {
 };
 const pt: Copy = {
   title: "Coordenadas e reflexão", subtitle: "Ler e marcar pontos, desenhar figuras e refletir nos eixos x ou y.",
+  pageHint: "Cada folha inclui {count} exercícios em duas colunas. O nome, a data e a turma aparecem na primeira folha. Podes escolher outra quantidade.",
   instructions: "Escreve as coordenadas como (x, y): primeiro a horizontal, depois a vertical. Desenha as figuras ligando os pontos pela ordem indicada e voltando ao início. Identifica os pontos refletidos com A′, B′ e assim por diante.",
   taskType: "Tipo de exercício", read_points: "Ler coordenadas", place_points: "Marcar pontos", draw_figure: "Desenhar uma figura", reflect: "Refletir pontos e figuras", mixed: "Misto",
   quadrants: "Região de coordenadas", positive: "Coordenadas positivas e zero", all: "Os quatro quadrantes", extent: "Maior valor dos eixos", step: "Valor de cada quadrícula", pointCount: "Número de pontos", reflectionAxis: "Eixo de reflexão", x: "Eixo x", y: "Eixo y", support: "Mostrar mais valores e explicações", empty: "Pronto para a primeira ficha de coordenadas",

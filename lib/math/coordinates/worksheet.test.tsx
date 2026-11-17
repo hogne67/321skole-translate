@@ -163,7 +163,7 @@ test("reflection shows only original points before answering; fixed-point labels
   assert.equal(coordinatesTaskAnswer(task), "A′ = (2, 0)");
 });
 
-test("paper uses two grids per page, blank plotting spaces and a separate optional visual key", () => {
+test("paper uses four grids per page, blank plotting spaces and a separate optional visual key", () => {
   for (const taskType of COORDINATES_MODES) {
     const sheet = generateCoordinatesWorksheet({ ...defaults, taskType, taskCount: 5 }, "en", true);
     const answers = Object.fromEntries(sheet.tasks.map(t => [t.id, answerFor(t)]));
