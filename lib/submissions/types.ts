@@ -10,6 +10,7 @@ import type { PowersWorksheet } from "@/lib/math/powers/worksheet";
 import type { FactorizationWorksheet } from "@/lib/math/factorization/worksheet";
 import type { PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import type { WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
+import type { VolumeWorksheet } from "@/lib/math/volume/worksheet";
 import type { CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import type { StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import type { ClockWorksheet } from "@/lib/math/clock/worksheet";
@@ -59,7 +60,7 @@ export type AiFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "fraction" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "algebra" | "powers" | "factorization" | "place_value" | "word_problems" | "coordinates" | "statistics" | "clock" | "number_line";
+    type: "mcq" | "truefalse" | "fraction" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "algebra" | "powers" | "factorization" | "place_value" | "word_problems" | "volume" | "coordinates" | "statistics" | "clock" | "number_line";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;
@@ -107,7 +108,7 @@ export type SubmissionDoc = {
     taskType?: string | null;
     lessonType?: string | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -157,7 +158,7 @@ export type AssignmentDoc = {
     coverImageUrl?: string;
     learningPosterAttachments?: unknown;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -187,7 +188,7 @@ export type Lesson = {
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
 
-    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;

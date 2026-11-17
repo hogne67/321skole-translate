@@ -76,6 +76,7 @@
       "openDigital": "Open Task",
       "openPreview": "Open preview",
       "subtypes": {
+        "volume": "Volume and solids",
       "algebra": "Simplifying algebraic expressions",
       "powers": "Powers and exponents",
       "factorization": "Factorisation",

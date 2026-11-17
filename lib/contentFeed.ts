@@ -305,6 +305,7 @@ function deriveMathMeta(d: unknown): string[] {
   if (joined.includes("factorization")) out.push("factorization");
   if (joined.includes("place_value")) out.push("place_value");
   if (joined.includes("word_problems")) out.push("word_problems");
+  if (joined.includes("math_volume") || joined.includes("volume_worksheet") || joined.includes("math-volume-generator")) out.push("volume");
   if (joined.includes("coordinates")) out.push("coordinates");
   if (joined.includes("statistics")) out.push("statistics");
   if (joined.includes("clock")) out.push("clock");

@@ -1,4 +1,5 @@
 export const MATH_GENERATORS = [
+  { id: "volume", path: "volume" },
   { id: "arithmetic", path: "arithmetic" },
   { id: "geometry", path: "geometry?new=1" },
   { id: "fractions", path: "fractions" },
@@ -19,6 +20,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  volume: "Volum og romfigurer", volumeDescription: "Tell enhetskuber, beregn volum, finn manglende mål og løs praktiske oppgaver.",
   algebra: "Forenkling av algebraiske uttrykk", algebraDescription: "Trekk sammen like ledd, forenkle produkter og øv på blandede uttrykk.",
   powers: "Potensregning", powersDescription: "Skriv og regn med potenser, gjentatt multiplikasjon og potensregler.",
   factorization: "Faktorisering", factorizationDescription: "Finn faktorpar og manglende faktorer, primtallsfaktoriser og bygg faktortrær.",
@@ -40,6 +42,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  volume: "Volume and solids", volumeDescription: "Count unit cubes, calculate volume, find missing measurements and solve practical problems.",
   algebra: "Simplifying algebraic expressions", algebraDescription: "Collect like terms, simplify products and practise mixed expressions.",
   powers: "Powers and exponents", powersDescription: "Write and calculate powers, repeated multiplication and exponent rules.",
   factorization: "Factorisation", factorizationDescription: "Find factor pairs and missing factors, prime-factorise and build factor trees.",
@@ -60,6 +63,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  volume: "Volume e sólidos geométricos", volumeDescription: "Contar cubos unitários, calcular volumes, encontrar medidas e resolver problemas práticos.",
   algebra: "Simplificação de expressões algébricas", algebraDescription: "Reduzir termos semelhantes, simplificar produtos e praticar expressões mistas.",
   powers: "Potências", powersDescription: "Escrever e calcular potências, multiplicação repetida e regras das potências.",
   factorization: "Fatorização", factorizationDescription: "Descobrir pares de fatores e fatores em falta, decompor em primos e construir árvores de fatores.",

@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getMathGeneratorCopy, MATH_GENERATORS } from "@/lib/math/generators";
 
 function TaskSample({ id }: { id: typeof MATH_GENERATORS[number]["id"] }) {
+  if (id === "volume") return <svg viewBox="0 0 180 80" className="h-20 w-44" aria-hidden="true"><path d="M25 30L85 30L85 72L25 72Z" fill="#e0f2fe" stroke="#334155" /><path d="M25 30L48 10L108 10L85 30Z" fill="#d1fae5" stroke="#334155" /><path d="M85 30L108 10L108 52L85 72Z" fill="#bfdbfe" stroke="#334155" /><text x="122" y="49" fontSize="20" fill="#0f766e">cm³</text></svg>;
   if (id === "algebra") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-xl font-bold text-slate-900"><span>2a + a + b · b = 3a + b²</span></div>;
   if (id === "powers") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-2xl font-bold text-slate-900"><span>2³ = 2 × 2 × 2 = 8</span></div>;
   if (id === "factorization") return <div aria-hidden="true" className="flex h-20 items-center gap-2 text-lg font-bold text-slate-900"><span>36 = 2 × 2 × 3 × 3</span></div>;

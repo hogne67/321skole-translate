@@ -354,6 +354,7 @@ function getMathSubtype(it: ContentItem): string | null {
   if (all.has("factorization") || all.has("factorization_worksheet") || all.has("math_factorization")) return "factorization";
   if (all.has("place_value") || all.has("place_value_worksheet") || all.has("math_place_value")) return "place_value";
   if (all.has("word_problems") || all.has("word_problems_worksheet") || all.has("math_word_problems")) return "word_problems";
+  if (all.has("volume") || all.has("volume_worksheet") || all.has("math_volume")) return "volume";
   if (all.has("coordinates") || all.has("coordinates_worksheet") || all.has("math_coordinates")) return "coordinates";
   if (all.has("statistics") || all.has("statistics_worksheet") || all.has("math_statistics")) return "statistics";
   if (all.has("clock") || all.has("clock_worksheet") || all.has("math_clock")) return "clock";
@@ -521,7 +522,7 @@ export default function ContentClient() {
       return readingTestPlayHref(it.activePublishedId || it.id);
     }
     const mathSubtype = getMathSubtype(it);
-    if (mathSubtype === "algebra" || mathSubtype === "powers" || mathSubtype === "factorization" || mathSubtype === "place_value" || mathSubtype === "word_problems" || mathSubtype === "coordinates" || mathSubtype === "statistics" || mathSubtype === "clock" || mathSubtype === "number_line" || mathSubtype === "measurement" || mathSubtype === "comparison" || mathSubtype === "percentage" || mathSubtype === "equations") {
+    if (mathSubtype === "algebra" || mathSubtype === "powers" || mathSubtype === "factorization" || mathSubtype === "place_value" || mathSubtype === "word_problems" || mathSubtype === "volume" || mathSubtype === "coordinates" || mathSubtype === "statistics" || mathSubtype === "clock" || mathSubtype === "number_line" || mathSubtype === "measurement" || mathSubtype === "comparison" || mathSubtype === "percentage" || mathSubtype === "equations") {
       return `/${locale}/producer/math/${it.id}/preview`;
     }
     if (mathSubtype === "geometry") {
@@ -1482,6 +1483,8 @@ export default function ContentClient() {
       "place_value_worksheet",
       "word_problems",
       "word_problems_worksheet",
+      "volume",
+      "volume_worksheet",
       "coordinates",
       "coordinates_worksheet",
       "statistics",
@@ -1901,7 +1904,7 @@ export default function ContentClient() {
     if (isMathArchive) {
       return [
         ...restoreAction,
-        ...(isStudent && !isDeleted && mathSubtype !== "algebra" && mathSubtype !== "powers" && mathSubtype !== "factorization" && mathSubtype !== "place_value" && mathSubtype !== "word_problems" && mathSubtype !== "coordinates" && mathSubtype !== "statistics" && mathSubtype !== "clock" && mathSubtype !== "number_line" && mathSubtype !== "comparison" && mathSubtype !== "percentage" && mathSubtype !== "equations"
+        ...(isStudent && !isDeleted && mathSubtype !== "algebra" && mathSubtype !== "powers" && mathSubtype !== "factorization" && mathSubtype !== "place_value" && mathSubtype !== "word_problems" && mathSubtype !== "volume" && mathSubtype !== "coordinates" && mathSubtype !== "statistics" && mathSubtype !== "clock" && mathSubtype !== "number_line" && mathSubtype !== "comparison" && mathSubtype !== "percentage" && mathSubtype !== "equations"
           ? [
             {
               key: "openMath",

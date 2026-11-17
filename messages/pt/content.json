@@ -76,6 +76,7 @@
       "openDigital": "Abrir atividade",
       "openPreview": "Abrir pré-visualização",
       "subtypes": {
+        "volume": "Volume e sólidos geométricos",
       "algebra": "Simplificação de expressões algébricas",
       "powers": "Potências",
       "factorization": "Fatorização",
