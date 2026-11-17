@@ -1,4 +1,5 @@
 "use client";
+import type { CSSProperties } from "react";
 import type { LearningPoster, PosterPlan } from "@/lib/learningPosters/model";
 import { posterCopy } from "@/lib/learningPosters/copy";
 import { posterLanguageLabel, posterLevelLabel } from "@/lib/learningPosters/presentation";
@@ -18,7 +19,9 @@ export default function PosterPreview({ plan, images, locale, hidden = false }: 
     }
     return parts;
   }
-  return <article className="learning-poster-print" aria-label={copy.title}>
+  return <article className="learning-poster-print" aria-label={copy.title}
+    data-print-density={plan.items.some(item => item.label.length + item.caption.length + (item.explanation?.length ?? 0) > 320) ? "compact" : "normal"}
+    style={{ "--lp-print-rows": Math.max(1, Math.ceil(plan.items.length / 2)) } as CSSProperties}>
     <header><div className="lp-poster-top"><span>{posterLevelLabel(plan.level)} · {posterLanguageLabel(plan.language, locale)}</span>
       <div className="lp-poster-brand"><img src="/logo321ny.png" alt="" width={36} height={33} /><span>321school</span></div>
     </div><h2>{plan.title}</h2><p>{plan.goal}</p></header>
@@ -26,7 +29,7 @@ export default function PosterPreview({ plan, images, locale, hidden = false }: 
       {plan.items.map((item, i) => <section className="learning-poster-card" key={i}>
         {/* Generated images have independent labels so text stays editable and readable. */}
         {images[i]?.url ? <img src={images[i].url} alt={item.visualPrompt} /> : <div className="learning-poster-placeholder">{copy.empty}</div>}
-        {!hidden && <><h3>{highlight(item.label)}</h3><p>{highlight(item.caption)}</p>{item.explanation && <p className="learning-poster-explanation">{item.explanation}</p>}</>}
+        {!hidden && <div className="learning-poster-card-copy"><h3>{highlight(item.label)}</h3><p>{highlight(item.caption)}</p>{item.explanation && <p className="learning-poster-explanation">{item.explanation}</p>}</div>}
       </section>)}
     </div>
   </article>;
