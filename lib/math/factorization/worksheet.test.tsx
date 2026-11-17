@@ -10,6 +10,7 @@ import { assignmentToLesson, hasSnapshotContent } from "@/app/[locale]/(app)/stu
 import { assignmentSnapshotToLesson, hasAssignmentSnapshotContent, isFractionWorksheet, isMathWorksheet, readAutoGrade } from "@/lib/submissions/readers";
 import { isFractionWorksheet as studentFractionGuard } from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/worksheetTypeGuards";
 import { mathEditorHref } from "../editor";
+import { factorizationPageCapacity } from "./printLayout";
 
 const require = createRequire(import.meta.url);
 require.extensions[".css"] = () => {};
@@ -182,11 +183,12 @@ test("student controls are named and blank, and no key, prime marking or feedbac
   }
 });
 
-test("paper groups two tasks per page with blank factor pairs and drawing space, plus an optional worked tree key", () => {
+test("paper reserves space for factor pairs and drawing, plus an optional worked tree key", () => {
   for (const taskType of FACTORIZATION_MODES) {
     const sheet = generateFactorizationWorksheet({ ...defaults, taskType, showSupport: true, showPowers: true, taskCount: 5 }, "en", true);
     const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={Object.fromEntries(sheet.tasks.map(t => [t.id, answerFor(t)]))} printMode />));
-    assert.equal($(".length-page").length, 3); assert.equal($(".factorization-task").length, 5); assert.equal($("input, button, .length-result").length, 0);
+    const first = factorizationPageCapacity(sheet.settings).first;
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".factorization-task").length), first >= 5 ? [5] : [4, 1]); assert.equal($(".factorization-task").length, 5); assert.equal($("input, button, .length-result").length, 0);
     assert.equal($(".length-key").length, 1); assert.equal($(".factorization-key-item").length, 5);
     assert.equal($(".factor-tree-paper-space").length, sheet.tasks.filter(t => t.type === "factor_tree").length);
     assert.equal($(".factorization-task .factor-tree-prime").length, 0);

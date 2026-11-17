@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_FACTORIZATION_SETTINGS, FACTORIZATION_MODES, FACTORIZATION_MAXIMUMS, getFactorizationCopy, normalizeFactorizationSettings, sanitizeFactorizationWorksheet, type FactorizationSettings, type FactorizationWorksheet } from "@/lib/math/factorization/worksheet";
+import { FACTORIZATION_MAX_TASK_COUNT, factorizationPageCapacity, factorizationFullPageCounts, factorizationCountAfterOptionsChange } from "@/lib/math/factorization/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,7 @@ import FactorizationWorksheetView from "./FactorizationWorksheetView";
 export default function FactorizationGenerator() {
   const locale = useLocale(), copy = getFactorizationCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<FactorizationSettings>({ ...DEFAULT_FACTORIZATION_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<FactorizationWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,11 +25,16 @@ export default function FactorizationGenerator() {
     const result = sanitizeFactorizationWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(factorizationFullPageCounts(result.settings).includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   const busy = generating || persistence.saving || restored.loading;
-  function change(next: Partial<FactorizationSettings>) { setSettings(current => ({ ...current, ...next })); setWorksheet(null); setError(""); }
+  function change(next: Partial<FactorizationSettings>) {
+    setSettings(current => { const updated = { ...current, ...next }; return next.taskCount === undefined ? { ...updated, taskCount: factorizationCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated; });
+    setWorksheet(null); setError("");
+  }
+  const capacity = factorizationPageCapacity(settings), pageCounts = factorizationFullPageCounts(settings);
   let validation = "";
   try { normalizeFactorizationSettings(settings); }
   catch { validation = copy.invalid; }
@@ -45,7 +52,12 @@ export default function FactorizationGenerator() {
     <aside className="length-controls"><MathGeneratorBackLink /><h1>{copy.title}</h1><p>{copy.subtitle}</p>
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType} onChange={event => change({ taskType: event.target.value as FactorizationSettings["taskType"] })}>{FACTORIZATION_MODES.map(mode => <option key={mode} value={mode}>{copy[mode]}</option>)}</select></label>
       <label className="length-field">{copy.maximum}<select disabled={busy} value={settings.maximum} onChange={event => change({ maximum: Number(event.target.value) as FactorizationSettings["maximum"] })}>{FACTORIZATION_MAXIMUMS.map(n => <option key={n} value={n}>2–{n}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="factorization-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={FACTORIZATION_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="factorization-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => change({ showSupport: event.target.checked })} />{copy.support}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showPowers} onChange={event => change({ showPowers: event.target.checked })} />{copy.powers}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={showAnswerKey} onChange={event => setShowAnswerKey(event.target.checked)} />{common.key}</label>
