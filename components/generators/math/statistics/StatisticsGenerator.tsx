@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_STATISTICS_SETTINGS, getStatisticsCopy, STATISTICS_CHARTS, STATISTICS_DIFFICULTIES, STATISTICS_MODES, normalizeStatisticsSettings, sanitizeStatisticsWorksheet, type StatisticsMode, type StatisticsSettings, type StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
+import { STATISTICS_MAX_TASK_COUNT, statisticsPageCapacity, statisticsFullPageCounts, statisticsCountAfterOptionsChange } from "@/lib/math/statistics/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,7 @@ import StatisticsWorksheetView from "./StatisticsWorksheetView";
 export default function StatisticsGenerator() {
   const locale = useLocale(), copy = getStatisticsCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<StatisticsSettings>({ ...DEFAULT_STATISTICS_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<StatisticsWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,11 +25,16 @@ export default function StatisticsGenerator() {
     const result = sanitizeStatisticsWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(statisticsFullPageCounts(result.settings).includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   const busy = generating || persistence.saving || restored.loading;
-  function change(next: Partial<StatisticsSettings>) { setSettings(current => ({ ...current, ...next })); setWorksheet(null); setError(""); }
+  function change(next: Partial<StatisticsSettings>) {
+    setSettings(current => { const updated = { ...current, ...next }; return next.taskCount === undefined ? { ...updated, taskCount: statisticsCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated; });
+    setWorksheet(null); setError("");
+  }
+  const capacity = statisticsPageCapacity(settings), pageCounts = statisticsFullPageCounts(settings);
   let validation = "";
   try { normalizeStatisticsSettings(settings); }
   catch { validation = copy.invalid; }
@@ -46,7 +53,12 @@ export default function StatisticsGenerator() {
       <label className="length-field">{copy.taskType}<select disabled={busy} value={settings.taskType} onChange={event => change({ taskType: event.target.value as StatisticsMode })}>{STATISTICS_MODES.map(mode => <option key={mode} value={mode}>{copy[mode]}</option>)}</select></label>
       {settings.taskType === "read_chart" || settings.taskType === "draw_chart" || settings.taskType === "mixed" ? <label className="length-field">{copy.chartType}<select disabled={busy} value={settings.chartType} onChange={event => change({ chartType: event.target.value as StatisticsSettings["chartType"] })}>{STATISTICS_CHARTS.map(chart => <option key={chart} value={chart}>{copy[chart]}</option>)}</select></label> : null}
       <label className="length-field">{copy.difficulty}<select disabled={busy} value={settings.difficulty} onChange={event => change({ difficulty: event.target.value as StatisticsSettings["difficulty"] })}>{STATISTICS_DIFFICULTIES.map(difficulty => <option key={difficulty} value={difficulty}>{copy[difficulty]}</option>)}</select></label>
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="statistics-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={STATISTICS_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="statistics-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => change({ showSupport: event.target.checked })} />{copy.support}</label>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={showAnswerKey} onChange={event => setShowAnswerKey(event.target.checked)} />{common.key}</label>
       {validation ? <p role="status" className="length-error">{validation}</p> : null}

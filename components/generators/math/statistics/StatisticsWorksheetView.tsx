@@ -3,7 +3,8 @@
 import type { Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { STATISTICS_TASKS_PER_PAGE, getStatisticsCopy, gradeStatisticsTask, gradeStatisticsWorksheet, parseStatisticsNumber, readStatisticsEntries, statisticsTaskAnswer, statisticsTaskPrompt, type StatisticsAnswer, type StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
+import { getStatisticsCopy, gradeStatisticsTask, gradeStatisticsWorksheet, parseStatisticsNumber, readStatisticsEntries, statisticsTaskAnswer, statisticsTaskPrompt, type StatisticsAnswer, type StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
+import { statisticsPrintPages } from "@/lib/math/statistics/printLayout";
 import StatisticsDiagram from "./StatisticsDiagram";
 import StatisticsFrequencyTable from "./StatisticsFrequencyTable";
 import "../length/length.css";
@@ -15,9 +16,9 @@ export default function StatisticsWorksheetView({ worksheet, answersByTaskId = {
 }) {
   const common = getMeasurementCopy(worksheet.language), copy = getStatisticsCopy(worksheet.language);
   const grade = gradeStatisticsWorksheet(worksheet, answersByTaskId);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / STATISTICS_TASKS_PER_PAGE) }, (_, i) => worksheet.tasks.slice(i * STATISTICS_TASKS_PER_PAGE, (i + 1) * STATISTICS_TASKS_PER_PAGE));
-  return <div ref={printRef} className={`length-sheet statistics-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+  const pages = printMode ? statisticsPrintPages(worksheet.tasks, worksheet.settings) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+  return <div ref={printRef} className={`length-sheet statistics-sheet statistics-mode-${worksheet.settings.taskType}${worksheet.settings.showSupport ? " statistics-with-support" : ""}${printMode ? " length-paper" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={page}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -25,12 +26,12 @@ export default function StatisticsWorksheetView({ worksheet, answersByTaskId = {
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks statistics-tasks">{tasks.map((task, index) => {
-        const number = page * STATISTICS_TASKS_PER_PAGE + index + 1, value = answersByTaskId[task.id], label = `${common.task} ${number}`;
+        const number = startIndex + index + 1, value = answersByTaskId[task.id], label = `${common.task} ${number}`;
         const entries = readStatisticsEntries(printMode ? undefined : value, task.dataset.values.length);
         const result = gradeStatisticsTask(task, value), prompt = statisticsTaskPrompt(task, worksheet.language);
         const answer = typeof value === "string" ? value : "";
         const table = <StatisticsFrequencyTable dataset={task.dataset} language={worksheet.language} label={label} />;
-        return <div className="length-task statistics-task" key={task.id} data-task-type={task.type}>
+        return <div className={`length-task statistics-task${task.type === "read_chart" || task.type === "draw_chart" ? " statistics-task-with-chart" : ""}`} key={task.id} data-task-type={task.type}>
           <div className="statistics-heading"><span className="length-number">{number}</span><strong><MathText text={prompt} /></strong></div>
           <h3>{copy[task.dataset.theme]}</h3>
           {task.type === "frequency_table" ? <>

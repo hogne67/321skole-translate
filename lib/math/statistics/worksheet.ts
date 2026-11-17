@@ -1,5 +1,6 @@
 import Fraction from "fraction.js";
 import { normalizeMathWorksheetLanguage, type MathWorksheetLanguage } from "../taxonomy";
+import { STATISTICS_MAX_TASK_COUNT, statisticsPageCapacity } from "./printLayout";
 
 export const STATISTICS_TASK_TYPES = ["read_chart", "draw_chart", "central_tendency", "frequency_table"] as const;
 export const STATISTICS_MODES = [...STATISTICS_TASK_TYPES, "mixed"] as const;
@@ -24,8 +25,8 @@ export type StatisticsWorksheet = {
   version: 1; kind: "statistics"; language: MathWorksheetLanguage; title: string; instructions: string;
   settings: StatisticsSettings; tasks: StatisticsTask[]; showAnswerKey: boolean;
 };
-export const STATISTICS_TASKS_PER_PAGE = 2;
-export const DEFAULT_STATISTICS_SETTINGS: StatisticsSettings = { taskType: "mixed", chartType: "bar", difficulty: "easy", taskCount: 6, showSupport: false };
+export const STATISTICS_TASKS_PER_PAGE = statisticsPageCapacity({ taskType: "mixed", showSupport: false }).first;
+export const DEFAULT_STATISTICS_SETTINGS: StatisticsSettings = { taskType: "mixed", chartType: "bar", difficulty: "easy", taskCount: STATISTICS_TASKS_PER_PAGE, showSupport: false };
 const levels = { easy: { categories: 4, maximum: 5, start: 2 }, medium: { categories: 5, maximum: 8, start: 4 }, hard: { categories: 6, maximum: 10, start: 8 } };
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const themes = ["books", "goals", "siblings"] as const;
@@ -35,7 +36,7 @@ export function normalizeStatisticsSettings(v: unknown): StatisticsSettings {
   if (!STATISTICS_MODES.includes(v.taskType as StatisticsMode)) throw new Error("INVALID_TYPE");
   if (!STATISTICS_CHARTS.includes(v.chartType as StatisticsSettings["chartType"])) throw new Error("INVALID_CHART");
   if (!STATISTICS_DIFFICULTIES.includes(v.difficulty as StatisticsSettings["difficulty"])) throw new Error("INVALID_DIFFICULTY");
-  if (!Number.isInteger(v.taskCount) || Number(v.taskCount) < 1 || Number(v.taskCount) > 60) throw new Error("INVALID_COUNT");
+  if (!Number.isInteger(v.taskCount) || Number(v.taskCount) < 1 || Number(v.taskCount) > STATISTICS_MAX_TASK_COUNT) throw new Error("INVALID_COUNT");
   if (typeof v.showSupport !== "boolean") throw new Error("INVALID_SUPPORT");
   return { taskType: v.taskType as StatisticsMode, chartType: v.chartType as StatisticsSettings["chartType"], difficulty: v.difficulty as StatisticsSettings["difficulty"], taskCount: Number(v.taskCount), showSupport: v.showSupport };
 }
@@ -184,6 +185,7 @@ export function gradeStatisticsWorksheet(worksheet: StatisticsWorksheet, answers
 
 const nb = {
   title: "Statistikk og diagram", subtitle: "Les og lag diagrammer og frekvenstabeller. Øv på typetall, median, gjennomsnitt og variasjonsbredde.",
+  pageHint: "Med disse valgene har første ark plass til {first} oppgaver og navn, dato og klasse. Deretter er det plass til {following} oppgaver per ark. Velg eget antall ved behov.",
   instructions: "Bruk opplysningene til å løse oppgavene. Gjennomsnitt avrundes til én desimal hvis det trengs. I tabeller og diagrammer skal alle verdiene tas med, også når frekvensen er 0.",
   taskType: "Oppgavetype", read_chart: "Les av diagram", draw_chart: "Lag diagram", central_tendency: "Sentralmål og variasjonsbredde", frequency_table: "Lag frekvenstabell", mixed: "Blandet",
   chartType: "Diagramtype", bar: "Søylediagram", line: "Linjediagram", difficulty: "Vanskelighetsgrad", easy: "Enkel", medium: "Middels", hard: "Vanskelig", support: "Vis støttetall og forklaringer", empty: "Klar for første statistikkark",
@@ -197,6 +199,7 @@ const nb = {
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
   title: "Statistics and charts", subtitle: "Read and create charts and frequency tables. Practise mode, median, mean and range.",
+  pageHint: "With these settings, the first sheet fits {first} tasks and name, date and class. Each following sheet fits {following} tasks. Choose a custom count if needed.",
   instructions: "Use the data to complete the tasks. Round means to one decimal place where necessary. Include every value in tables and charts, even when its frequency is 0.",
   taskType: "Task type", read_chart: "Read a chart", draw_chart: "Draw a chart", central_tendency: "Averages and range", frequency_table: "Create a frequency table", mixed: "Mixed",
   chartType: "Chart type", bar: "Bar chart", line: "Line chart", difficulty: "Difficulty", easy: "Easy", medium: "Medium", hard: "Hard", support: "Show supporting numbers and explanations", empty: "Ready for your first statistics worksheet",
@@ -209,6 +212,7 @@ const en: Copy = {
 };
 const pt: Copy = {
   title: "Estatística e gráficos", subtitle: "Ler e criar gráficos e tabelas de frequências. Praticar moda, mediana, média e amplitude.",
+  pageHint: "Com estas opções, a primeira folha inclui {first} exercícios e nome, data e turma. Cada folha seguinte inclui {following} exercícios. Podes escolher outra quantidade.",
   instructions: "Usa os dados para resolver os exercícios. Arredonda as médias a uma casa decimal quando necessário. Inclui todos os valores nas tabelas e nos gráficos, mesmo quando a frequência é 0.",
   taskType: "Tipo de exercício", read_chart: "Ler um gráfico", draw_chart: "Construir um gráfico", central_tendency: "Medidas de localização e amplitude", frequency_table: "Criar uma tabela de frequências", mixed: "Misto",
   chartType: "Tipo de gráfico", bar: "Gráfico de barras", line: "Gráfico de linhas", difficulty: "Dificuldade", easy: "Fácil", medium: "Média", hard: "Difícil", support: "Mostrar números de apoio e explicações", empty: "Pronto para a primeira ficha de estatística",

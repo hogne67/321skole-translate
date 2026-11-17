@@ -3,7 +3,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 import { renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
-import { DEFAULT_STATISTICS_SETTINGS as defaults, STATISTICS_CHARTS, STATISTICS_DIFFICULTIES, STATISTICS_MODES, STATISTICS_TASKS_PER_PAGE, generateStatisticsWorksheet, getStatisticsCopy, gradeStatisticsTask, gradeStatisticsWorksheet, normalizeStatisticsSettings, parseStatisticsNumber, sanitizeStatisticsWorksheet, statisticsAxis, statisticsMetricValue, statisticsModes, statisticsObservations, statisticsTaskAnswer, type StatisticsTask } from "./worksheet";
+import { DEFAULT_STATISTICS_SETTINGS as defaults, STATISTICS_CHARTS, STATISTICS_DIFFICULTIES, STATISTICS_MODES, generateStatisticsWorksheet, getStatisticsCopy, gradeStatisticsTask, gradeStatisticsWorksheet, normalizeStatisticsSettings, parseStatisticsNumber, sanitizeStatisticsWorksheet, statisticsAxis, statisticsMetricValue, statisticsModes, statisticsObservations, statisticsTaskAnswer, type StatisticsTask } from "./worksheet";
 import { POST } from "@/app/api/generate-statistics-worksheet/route";
 import { getAssignmentDerivedState } from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/assignmentDerivedState";
 import { assignmentToLesson, hasSnapshotContent } from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/helpers";
@@ -141,12 +141,12 @@ test("line charts plot zero, preserve missing entries, use the axis scale and ex
   assert.equal(partial(".statistics-data-mark").length, 3); assert.equal(partial(".statistics-data-line").length, 1);
 });
 
-test("paper has two groups per page with blank grids and tables, and a separate optional answer key", () => {
+test("paper reserves room for each task type with blank grids and tables and a separate answer key", () => {
   for (const taskType of ["draw_chart", "frequency_table"] as const) {
     const sheet = generateStatisticsWorksheet({ ...defaults, taskType, taskCount: 5 }, "en", true);
     const answers = Object.fromEntries(sheet.tasks.map(task => [task.id, answerFor(task)]));
     const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={answers} printMode />));
-    assert.equal($(".length-page").length, Math.ceil(5 / STATISTICS_TASKS_PER_PAGE));
+    assert.deepEqual($(".length-page").toArray().map(page => $(page).find(".statistics-task").length), taskType === "draw_chart" ? [3, 2] : [5]);
     assert.equal($(".statistics-task").length, 5); assert.equal($("input, button, .length-result").length, 0);
     assert.equal($(".statistics-task .statistics-data-mark").length, 0);
     assert.equal($(".length-key").length, 1); assert.equal($(".statistics-key-item").length, 5);
