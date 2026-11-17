@@ -345,7 +345,7 @@ function getMathSubtype(it: ContentItem): string | null {
   if (all.has("arithmetic") || all.has("arithmetic_worksheet") || all.has("math_arithmetic")) return "arithmetic";
   if (all.has("algebra")) return "algebra";
   if (all.has("fractions") || all.has("fraction_worksheet")) return "fractions";
-  if (all.has("percent")) return "percent";
+  if (all.has("percent")) return "percentage";
   if (all.has("equations") || all.has("equations_worksheet") || all.has("math_equations")) return "equations";
   if (all.has("measurement")) return "measurement";
   if (all.has("percentage") || all.has("percentage_worksheet")) return "percentage";

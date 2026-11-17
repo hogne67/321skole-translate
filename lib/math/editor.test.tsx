@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
 import { mathEditorHref } from "./editor";
+import { MATH_GENERATORS } from "./generators";
 import { getMathEditorCopy } from "./editorCopy";
 import { applyGeometryDisplayOptions } from "./geometry/displayOptions";
 import { sanitizeWorksheet } from "./geometry/sanitize";
@@ -36,9 +37,14 @@ test("every generator action uses the same order, labels and availability in eac
 });
 
 test("saved worksheet links reopen each generator with the worksheet id", () => {
-  for (const path of ["arithmetic", "geometry", "fractions", "comparison", "measurement", "percentage", "equations"]) {
-    assert.equal(mathEditorHref("nb", "saved/id?", path), `/nb/producer/math/${path}?edit=saved%2Fid%3F`);
+  for (const generator of MATH_GENERATORS) {
+    const path = generator.path.split("?")[0];
+    for (const language of ["nb", "en", "pt"]) {
+      assert.equal(mathEditorHref(language, "saved/id?", path), `/${language}/producer/math/${path}?edit=saved%2Fid%3F`);
+    }
   }
+  // My Content also derives the legacy "percent" tag from "math_percentage".
+  assert.equal(mathEditorHref("nb", "id", "percent"), "/nb/producer/math/percentage?edit=id");
   assert.equal(mathEditorHref("en", "id", "fractions", "math-fraction-calculation-generator"), "/en/producer/math/fraction-calculation?edit=id");
   assert.equal(mathEditorHref("pt", "id", "fractions", "", { topic: "calculation" }), "/pt/producer/math/fraction-calculation?edit=id");
   assert.equal(mathEditorHref("nb", "id", "length"), "/nb/producer/math/measurement?edit=id");

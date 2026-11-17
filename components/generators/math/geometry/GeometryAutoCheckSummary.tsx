@@ -52,7 +52,7 @@ function readPercent(auto: GeometryAutoLike | null | undefined): number | null {
 }
 
 function fallback(label: string, fallbackText: string) {
-  return label === fallbackText || label.includes(".") ? fallbackText : label;
+  return label === fallbackText || /^[\w-]+(?:\.[\w-]+)+$/.test(label) ? fallbackText : label;
 }
 
 function Card({
