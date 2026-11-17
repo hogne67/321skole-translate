@@ -1,4 +1,5 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { isSpaceOpenForSharing, SpaceNotOpenError } from "@/lib/spaceSharing";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import "server-only";
 
@@ -115,6 +116,7 @@ export async function POST(
     };
 
     await db.runTransaction(async (tx) => {
+      if (!isSpaceOpenForSharing((await tx.get(db.collection("spaces").doc(spaceId))).data())) throw new SpaceNotOpenError();
       tx.set(assignedRef, payload);
       tx.set(
         db.collection("spaces").doc(spaceId),
@@ -138,6 +140,6 @@ export async function POST(
     return json({ activityId: assignedRef.id, spaceId }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Assign writing activity failed" }, (accountErrorStatus(e) ?? 500));
+    return json({ error: msg || "Assign writing activity failed" }, e instanceof SpaceNotOpenError ? 409 : (accountErrorStatus(e) ?? 500));
   }
 }

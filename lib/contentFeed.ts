@@ -18,6 +18,7 @@ import type { AppMode } from "@/lib/mode";
 import { getTextTypeSearchTerms, normalizeTextTypeValue } from "@/lib/textTypes";
 import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { canShareContentToSpace } from "@/lib/spaceSharing";
 
 const MY_CONTENT_QUERY_LIMIT = 250;
 const MY_SPACE_QUERY_LIMIT = 250;
@@ -89,6 +90,7 @@ export type ContentItem =
     meta?: string[];
     ownerUid?: string;
     joinCode?: string;
+    canShareContent: boolean;
     deletedAt?: Date | null;
   }
   | {
@@ -950,7 +952,8 @@ async function fetchMySpaceSubmissions(db: Firestore, uid: string, locale: strin
   return results;
 }
 
-async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode, locale: string) {
+async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode, locale: string,
+  uid: string, memberships: ReadonlyMap<string, Record<string, unknown>>) {
   const results: ContentItem[] = [];
   const unique = Array.from(new Set(spaceIds.filter(Boolean)));
 
@@ -988,6 +991,7 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode
           meta: [],
           ownerUid: pickOwnerUidLoose(d),
           joinCode: readJoinCode(d),
+          canShareContent: canShareContentToSpace(d, uid, memberships.get(docSnap.id) ?? null),
           deletedAt: toDateSafe(d.deletedAt),
         });
       });
@@ -1027,6 +1031,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
       meta: [],
       ownerUid: pickOwnerUidLoose(d),
       joinCode: readJoinCode(d),
+      canShareContent: canShareContentToSpace(d, uid),
       deletedAt: toDateSafe(d.deletedAt),
     });
   };
@@ -1039,15 +1044,15 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
     const qy = query(collection(db, "spaceMembers"), where("uid", "==", uid), limit(400));
     const snap = await getDocs(qy);
 
-    const spaceIds: string[] = [];
+    const memberships = new Map<string, Record<string, unknown>>();
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
       const sid = typeof d.spaceId === "string" ? d.spaceId : "";
-      if (sid && isActiveSpaceMember(d) && docSnap.id === `${sid}_${uid}`) spaceIds.push(sid);
+      if (sid && isActiveSpaceMember(d) && docSnap.id === `${sid}_${uid}`) memberships.set(sid, d);
     });
 
-    const memberSpaces = await fetchSpacesByIds(db, spaceIds, mode, locale);
+    const memberSpaces = await fetchSpacesByIds(db, [...memberships.keys()], mode, locale, uid, memberships);
     results.push(...memberSpaces);
   } catch {
     // ignore

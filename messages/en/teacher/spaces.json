@@ -121,6 +121,33 @@
       "pointsTo": "This QR points to",
       "note": "Note: install the QR dependency once: npm i qrcode",
       "imageAlt": "QR code"
+    },
+    "deletion": {
+      "delete": "Delete room",
+      "deleteNamed": "Delete room {title}",
+      "restore": "Restore",
+      "restoreNamed": "Restore room {title}",
+      "deleted": "Deleted room",
+      "showDeleted": "Show deleted",
+      "showActive": "Show regular rooms",
+      "empty": "You have no deleted rooms.",
+      "requirement": "Only rooms without other members or student submissions can be deleted.",
+      "help": "The room is hidden from Spaces and sharing. You can undo this through ‘Show deleted’ in the room overview.",
+      "restoreHelp": "The room will appear in Spaces again, with its original room code and content.",
+      "checking": "Checking members and student submissions …",
+      "eligible": "The room has no other members or student submissions and can be deleted.",
+      "confirmDelete": "Delete room",
+      "confirmRestore": "Restore room",
+      "saving": "Saving …",
+      "cancel": "Cancel",
+      "errors": {
+        "members": "The room has other membership records, including any archived members. It cannot be deleted. You can close the room instead.",
+        "submissions": "The room has student submissions and cannot be deleted. You can close the room instead.",
+        "ownerOnly": "Only the owner can delete or restore this room.",
+        "notFound": "The room no longer exists.",
+        "unauthorized": "Sign in to manage the room.",
+        "failed": "Could not complete the action. Please try again."
+      }
     }
   }
 }

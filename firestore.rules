@@ -92,6 +92,7 @@ service cloud.firestore {
 
     function spaceIsOpen(spaceId) {
       return spaceExists(spaceId)
+        && spaceData(spaceId).get("deletedAt", null) == null
         && ("isOpen" in spaceData(spaceId))
         && (spaceData(spaceId).isOpen is bool)
         && spaceData(spaceId).isOpen == true;
@@ -850,6 +851,7 @@ service cloud.firestore {
 
   allow create: if accountEnabled() && (signedIn()
     && (request.resource.data.ownerId is string)
+    && !request.resource.data.keys().hasAny(["deletedAt", "deletedByUid", "isOpenBeforeDeletion"])
     && request.resource.data.ownerId == myUid()
     && spaceOwnerUid(request.resource.data) == myUid()
     && (request.resource.data.title is string)
@@ -880,7 +882,8 @@ service cloud.firestore {
     ));
 
   allow update: if accountEnabled() && (isAdmin() || isSpaceOwner(spaceId))
-    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["schoolId", "ownerId", "ownerUid"])
+    && resource.data.get("deletedAt", null) == null
+    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["schoolId", "ownerId", "ownerUid", "deletedAt", "deletedByUid", "isOpenBeforeDeletion"])
     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["lessonAiFeedbackDisabled"])
       || (isAdmin() && request.resource.data.get("lessonAiFeedbackDisabled", false) is bool))
     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["writingAiDisabled"])

@@ -242,7 +242,7 @@
     },
     "stepStatus": {
       "step1Title": "Step 1: Choose a text",
-      "step1Body": "Start by writing or pasting your own text. You can also choose an AI suggestion. Review the text before creating tasks.",
+      "step1Body": "First choose whether to use your own text or get an AI suggestion. Then choose the level and language.",
       "reviewTextTitle": "Review the text",
       "reviewTextBody": "The teacher must approve the text before tasks can be generated.",
       "textReadyTitle": "The text is ready",
@@ -252,7 +252,7 @@
     },
     "sections": {
       "generateOrPasteTextTitle": "Choose a text",
-      "generateOrPasteTextBody": "Use your own text or get a text suggestion from AI. Review the text before creating tasks.",
+      "generateOrPasteTextBody": "How would you like to add the text? Choose an option to open the text and settings.",
       "generateTasksTitle": "Generate tasks",
       "generateTasksBody": "Choose how many tasks you want. This section is unlocked when the text is ready.",
       "enableTaskGeneratorFirst": "Add text first. You can write, paste or use an AI suggestion.",
@@ -266,11 +266,13 @@
       "manual": "Write or paste text",
       "ai": "Create a text suggestion with AI",
       "manualHelp": "Write or paste the text you want to create tasks for. You can edit the text before continuing.",
-      "aiHelp": "AI creates a suggestion. It appears in the text tab, where you can review and edit it before creating tasks.",
+      "aiHelp": "AI creates a suggestion. The text then opens so you can review and edit it before creating tasks.",
       "replaceTitle": "Replace your current text?",
       "replaceBody": "A new suggestion replaces the title and text and removes any existing tasks. Do you want to continue?",
       "replaceConfirm": "Create suggestion and replace text",
-      "cancel": "Keep current text"
+      "cancel": "Keep current text",
+      "manualDescription": "Use a text you already have, or write a new one yourself.",
+      "aiDescription": "Describe a topic and get a text suggestion you can edit."
     }
   }
 }

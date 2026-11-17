@@ -121,6 +121,33 @@
       "pointsTo": "Este QR aponta para",
       "note": "Nota: instale a dependência de QR uma vez: npm i qrcode",
       "imageAlt": "QR code"
+    },
+    "deletion": {
+      "delete": "Excluir sala",
+      "deleteNamed": "Excluir a sala {title}",
+      "restore": "Restaurar",
+      "restoreNamed": "Restaurar a sala {title}",
+      "deleted": "Sala excluída",
+      "showDeleted": "Mostrar excluídas",
+      "showActive": "Mostrar salas normais",
+      "empty": "Você não tem salas excluídas.",
+      "requirement": "Só é possível excluir salas sem outros membros ou respostas de alunos.",
+      "help": "A sala fica oculta em Spaces e no compartilhamento. Você pode desfazer isso em ‘Mostrar excluídas’ na lista de salas.",
+      "restoreHelp": "A sala aparecerá novamente em Spaces, com o mesmo código e conteúdo.",
+      "checking": "Verificando membros e respostas de alunos …",
+      "eligible": "A sala não tem outros membros nem respostas de alunos e pode ser excluída.",
+      "confirmDelete": "Excluir sala",
+      "confirmRestore": "Restaurar sala",
+      "saving": "Salvando …",
+      "cancel": "Cancelar",
+      "errors": {
+        "members": "A sala tem outros registros de membros, incluindo membros arquivados. Não é possível excluí-la. Você pode fechar a sala.",
+        "submissions": "A sala tem respostas de alunos e não pode ser excluída. Você pode fechar a sala.",
+        "ownerOnly": "Somente o proprietário pode excluir ou restaurar esta sala.",
+        "notFound": "A sala não existe mais.",
+        "unauthorized": "Entre para administrar a sala.",
+        "failed": "Não foi possível concluir a ação. Tente novamente."
+      }
     }
   }
 }

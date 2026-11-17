@@ -121,6 +121,33 @@
       "pointsTo": "Denne QR-koden peker til",
       "note": "Merk: installer QR-avhengigheten én gang: npm i qrcode",
       "imageAlt": "QR-kode"
+    },
+    "deletion": {
+      "delete": "Slett rom",
+      "deleteNamed": "Slett rommet {title}",
+      "restore": "Gjenopprett",
+      "restoreNamed": "Gjenopprett rommet {title}",
+      "deleted": "Slettet rom",
+      "showDeleted": "Vis slettede",
+      "showActive": "Vis vanlige rom",
+      "empty": "Du har ingen slettede rom.",
+      "requirement": "Bare rom uten andre medlemmer eller elevbesvarelser kan slettes.",
+      "help": "Rommet skjules fra Spaces og deling. Du kan angre via «Vis slettede» i romoversikten.",
+      "restoreHelp": "Rommet blir synlig i Spaces igjen, med samme romkode og innhold som før.",
+      "checking": "Sjekker medlemmer og elevbesvarelser …",
+      "eligible": "Rommet har ingen andre medlemmer eller elevbesvarelser og kan slettes.",
+      "confirmDelete": "Slett rommet",
+      "confirmRestore": "Gjenopprett rommet",
+      "saving": "Lagrer …",
+      "cancel": "Avbryt",
+      "errors": {
+        "members": "Rommet har andre medlemsoppføringer, også eventuelle arkiverte medlemmer. Det kan ikke slettes. Du kan lukke rommet i stedet.",
+        "submissions": "Rommet har elevbesvarelser og kan ikke slettes. Du kan lukke rommet i stedet.",
+        "ownerOnly": "Bare eieren kan slette eller gjenopprette dette rommet.",
+        "notFound": "Rommet finnes ikke lenger.",
+        "unauthorized": "Logg inn for å administrere rommet.",
+        "failed": "Kunne ikke fullføre. Prøv igjen."
+      }
     }
   }
 }

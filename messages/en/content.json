@@ -234,7 +234,7 @@
     },
     "shareToSpace": {
       "title": "Share to Spaces",
-      "noSpaces": "You don’t have any Spaces yet.",
+      "noSpaces": "You have no active rooms you can share to. You must own the room or have a teaching role in it.",
       "createsLabel": "Creates:",
       "searchPlaceholder": "Search rooms...",
       "noMatches": "No rooms match your search.",
@@ -243,7 +243,9 @@
       "audioReadingHint": "The student can record audio before sending it to the teacher.",
       "audioReadingRequired": "Require audio before submission",
       "on": "On",
-      "off": "Off"
+      "off": "Off",
+      "activeSpacesOnly": "Active rooms you own or teach in are shown here. Rooms where you are only a student or observer are excluded.",
+      "spaceNotActive": "This room is not active. Open it in Spaces before sharing to it."
     },
     "writing": {
       "shareTitle": "Assign writing activity",

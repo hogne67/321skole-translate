@@ -234,7 +234,7 @@
     },
     "shareToSpace": {
       "title": "Compartilhar com Spaces",
-      "noSpaces": "Você ainda não tem nenhum Spaces.",
+      "noSpaces": "Você não tem salas ativas com as quais possa compartilhar. Você precisa ser proprietário ou ter uma função de professor na sala.",
       "createsLabel": "Cria:",
       "searchPlaceholder": "Buscar salas...",
       "noMatches": "Nenhuma sala corresponde à busca.",
@@ -243,7 +243,9 @@
       "audioReadingHint": "O estudante pode gravar áudio antes de enviar ao professor.",
       "audioReadingRequired": "Exigir áudio antes do envio",
       "on": "Ativado",
-      "off": "Desativado"
+      "off": "Desativado",
+      "activeSpacesOnly": "Aqui são exibidas salas ativas que você possui ou nas quais ensina. Salas nas quais você é apenas aluno ou observador não são exibidas.",
+      "spaceNotActive": "Esta sala não está ativa. Abra a sala em Spaces antes de compartilhar com ela."
     },
     "writing": {
       "shareTitle": "Atribuir atividade de escrita",

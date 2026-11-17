@@ -234,7 +234,7 @@
     },
     "shareToSpace": {
       "title": "Del til Spaces",
-      "noSpaces": "Du har ingen Spaces ennå.",
+      "noSpaces": "Du har ingen aktive rom du kan dele til. Du må eie rommet eller ha en lærerrolle der.",
       "createsLabel": "Oppretter:",
       "searchPlaceholder": "Søk etter rom...",
       "noMatches": "Ingen rom matcher søket.",
@@ -243,7 +243,9 @@
       "audioReadingHint": "Eleven kan lese inn lyd før han sender til lærer.",
       "audioReadingRequired": "Krev lydopptak før innsending",
       "on": "På",
-      "off": "Av"
+      "off": "Av",
+      "activeSpacesOnly": "Her vises aktive rom du eier eller har en lærerrolle i. Rom der du bare er elev eller observatør, vises ikke.",
+      "spaceNotActive": "Rommet er ikke aktivt. Åpne rommet i Spaces før du deler til det."
     },
     "writing": {
       "shareTitle": "Tildel skriveaktivitet",

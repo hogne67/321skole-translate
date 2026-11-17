@@ -32,6 +32,8 @@ import { getOrigin } from "@/lib/url";
 import { getTextTypeLabel, normalizeTextTypeKey } from "@/lib/textTypes";
 import { getListeningCopy } from "@/lib/listeningTests/copy";
 import { listeningEditHref } from "@/lib/listeningTests/persistence";
+import { Mic } from "lucide-react";
+import { isSpaceOpenForSharing, SPACE_NOT_OPEN_MESSAGE } from "@/lib/spaceSharing";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "poster" | "submission" | "space";
@@ -445,14 +447,16 @@ export default function ContentClient() {
   const [sharedSpaceNamesByItemKey, setSharedSpaceNamesByItemKey] = useState<Record<string, string[]>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
+  const shareableSpaces = useMemo(() => mySpaces.filter((space) => space.canShareContent
+    && (pickLesson?.mode !== "writing" || space.ownerUid === uid)), [mySpaces, pickLesson?.mode, uid]);
   const filteredPickSpaces = useMemo(() => {
     const needle = pickSpaceQuery.trim().toLowerCase();
-    if (!needle) return mySpaces;
-    return mySpaces.filter((space) => {
+    if (!needle) return shareableSpaces;
+    return shareableSpaces.filter((space) => {
       const haystack = [space.title, ...(space.meta ?? [])].join(" ").toLowerCase();
       return haystack.includes(needle);
     });
-  }, [mySpaces, pickSpaceQuery]);
+  }, [shareableSpaces, pickSpaceQuery]);
   const visiblePickSpaces = filteredPickSpaces.slice(0, pickSpaceVisibleCount);
 
   const safeMsg = useCallback((key: string, fallback: string, values?: Record<string, unknown>) => {
@@ -1078,6 +1082,7 @@ export default function ContentClient() {
     sourceId: string;
     mode?: "space" | "board" | "writing";
   }) {
+    setErr(null);
     setPickLesson({
       ...opts,
       audioReadingEnabled: false,
@@ -1097,6 +1102,7 @@ export default function ContentClient() {
 
   async function assignLessonToSpace(spaceId: string) {
     if (!pickLesson) return;
+    if (!shareableSpaces.some((space) => space.id === spaceId)) return;
 
     if (pickLesson.mode === "board") {
       await sendQuizToBoard(spaceId);
@@ -1113,7 +1119,7 @@ export default function ContentClient() {
         closePickSpace();
         router.push(`/${locale}/teacher/spaces/${spaceId}`);
       } catch (e: unknown) {
-        setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
+        setErr(assignmentError(e));
       } finally {
         setBusy(key, false);
       }
@@ -1148,10 +1154,15 @@ export default function ContentClient() {
         router.push(`/${locale}/teacher/spaces/${spaceId}`);
       }
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
+      setErr(assignmentError(e));
     } finally {
       setBusy(key, false);
     }
+  }
+
+  function assignmentError(error: unknown) {
+    if (!(error instanceof Error)) return t("errors.assignFailed");
+    return error.message === SPACE_NOT_OPEN_MESSAGE ? t("shareToSpace.spaceNotActive") : error.message;
   }
 
   async function setPublished(lessonId: string, nextPublished: boolean) {
@@ -2167,6 +2178,10 @@ export default function ContentClient() {
     setBusy(key, true);
 
     try {
+      const spaceSnap = await getDoc(doc(db, "spaces", spaceId));
+      if (!isSpaceOpenForSharing(spaceSnap.data())) {
+        throw new Error(t("shareToSpace.spaceNotActive"));
+      }
       const lessonSnap = await getDoc(doc(db, "lessons", pickLesson.lessonId));
       if (!lessonSnap.exists()) throw new Error(t("errors.lessonNotFound"));
       const data = lessonSnap.data() as Record<string, unknown>;
@@ -2964,7 +2979,8 @@ export default function ContentClient() {
             </div>
 
             <div className="p-4">
-              {mySpaces.length === 0 ? (
+              {err && <p role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">{err}</p>}
+              {shareableSpaces.length === 0 ? (
                 <div className="text-sm text-slate-600">{t("shareToSpace.noSpaces")}</div>
               ) : (
                 <div>
@@ -2981,15 +2997,31 @@ export default function ContentClient() {
                   {pickLesson.mode !== "board" && pickLesson.mode !== "writing" ? (
                     <div
                       className={[
-                        "mb-3 rounded-2xl border p-3 transition",
+                        "mb-3 rounded-2xl border-2 p-4 shadow-sm transition",
                         pickLesson.audioReadingEnabled === true
-                          ? "border-blue-300 bg-blue-50"
-                          : "border-blue-100 bg-blue-50/60",
+                          ? "border-indigo-600 bg-indigo-100"
+                          : "border-indigo-300 bg-indigo-50",
                       ].join(" ")}
                     >
-                      <label className="flex cursor-pointer items-start gap-3">
+                      <label className="flex cursor-pointer flex-wrap items-center gap-3">
+                        <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-200 text-indigo-900">
+                          <Mic size={24} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-base font-black text-indigo-950">
+                            {safeMsg("shareToSpace.audioReadingEnabled", "Legg til lydinnlesing")}
+                          </span>
+                          <span className="mt-1 block text-sm font-medium leading-5 text-indigo-900">
+                            {safeMsg(
+                              "shareToSpace.audioReadingHint",
+                              "Eleven kan lese inn lyd før han sender til lærer."
+                            )}
+                          </span>
+                        </span>
                         <input
                           type="checkbox"
+                          role="switch"
+                          aria-label={safeMsg("shareToSpace.audioReadingEnabled", "Legg til lydinnlesing")}
                           checked={pickLesson.audioReadingEnabled === true}
                           onChange={(e) =>
                             setPickLesson((current) =>
@@ -3004,30 +3036,26 @@ export default function ContentClient() {
                                 : current
                             )
                           }
-                          className="sr-only"
+                          className="peer sr-only"
                         />
                         <span
                           className={[
-                            "mt-0.5 inline-flex h-7 min-w-14 items-center justify-center rounded-full border px-2 text-xs font-black",
+                            "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border-2 transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-indigo-700",
                             pickLesson.audioReadingEnabled === true
-                              ? "border-emerald-500 bg-emerald-600 text-white"
-                              : "border-slate-300 bg-white text-slate-600",
+                              ? "border-indigo-700 bg-indigo-700"
+                              : "border-slate-500 bg-slate-500",
                           ].join(" ")}
+                          aria-hidden="true"
                         >
+                          <span className={[
+                            "absolute h-6 w-6 rounded-full bg-white shadow transition-transform",
+                            pickLesson.audioReadingEnabled === true ? "translate-x-6" : "translate-x-0.5",
+                          ].join(" ")} />
+                        </span>
+                        <span aria-hidden="true" className="w-6 text-sm font-black text-indigo-950">
                           {pickLesson.audioReadingEnabled === true
                             ? safeMsg("shareToSpace.on", "På")
                             : safeMsg("shareToSpace.off", "Av")}
-                        </span>
-                        <span>
-                          <span className="block text-sm font-black text-slate-900">
-                            {safeMsg("shareToSpace.audioReadingEnabled", "Legg til lydinnlesing")}
-                          </span>
-                          <span className="mt-0.5 block text-xs font-semibold text-slate-600">
-                            {safeMsg(
-                              "shareToSpace.audioReadingHint",
-                              "Eleven kan lese inn lyd før han sender til lærer."
-                            )}
-                          </span>
                         </span>
                       </label>
 
@@ -3049,11 +3077,11 @@ export default function ContentClient() {
                                   : current
                               )
                             }
-                            className="sr-only"
+                            className="peer sr-only"
                           />
                           <span
                             className={[
-                              "inline-flex h-7 min-w-14 items-center justify-center rounded-full border px-2 text-xs font-black",
+                              "inline-flex h-7 min-w-14 items-center justify-center rounded-full border px-2 text-xs font-black peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-indigo-700",
                               pickLesson.audioReadingRequired !== false
                                 ? "border-slate-900 bg-slate-900 text-white"
                                 : "border-slate-300 bg-white text-slate-600",
@@ -3105,18 +3133,7 @@ export default function ContentClient() {
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {pickLesson.mode === "board"
-                ? safeMsg("shareToBoard.createsLabel", "Sender til:")
-                : pickLesson.mode === "writing"
-                  ? safeMsg("writing.createsLabel", "Oppretter:")
-                  : t("shareToSpace.createsLabel")}{" "}
-              <code>
-                {pickLesson.mode === "board"
-                  ? "spaces/{spaceId}/board/state"
-                  : pickLesson.mode === "writing"
-                    ? "spaces/{spaceId}/writingActivities/{activityId}"
-                    : `spaces/{spaceId}/lessons/${pickLesson.lessonId}`}
-              </code>
+              {t("shareToSpace.activeSpacesOnly")}
             </div>
           </div>
         </div>

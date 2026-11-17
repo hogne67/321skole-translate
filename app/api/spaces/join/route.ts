@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const result = await db.runTransaction<JoinReply>(async tx => {
       const space = await tx.get(room);
       const data = space.data();
-      if (!data || data.archived === true || data.status === "archived") return { error: "room_unavailable" } as const;
+      if (!data || data.deletedAt || data.archived === true || data.status === "archived") return { error: "room_unavailable" } as const;
       // isOpen was a legacy admission toggle. Valid personal codes admit existing pupils on new devices.
       const membershipRef = db.collection("spaceMembers").doc(`${room.id}_${uid}`);
       const existing = await tx.get(membershipRef);

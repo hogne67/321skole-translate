@@ -242,7 +242,7 @@
     },
     "stepStatus": {
       "step1Title": "Etapa 1: Escolher texto",
-      "step1Body": "Comece escrevendo ou colando o seu próprio texto. Você também pode escolher uma sugestão da IA. Revise o texto antes de criar atividades.",
+      "step1Body": "Primeiro, escolha se quer usar seu próprio texto ou obter uma sugestão da IA. Depois, escolha o nível e o idioma.",
       "reviewTextTitle": "Revise o texto",
       "reviewTextBody": "O professor deve aprovar o texto antes que as atividades possam ser geradas.",
       "textReadyTitle": "O texto está pronto",
@@ -252,7 +252,7 @@
     },
     "sections": {
       "generateOrPasteTextTitle": "Escolher texto",
-      "generateOrPasteTextBody": "Use seu próprio texto ou obtenha uma sugestão da IA. Revise o texto antes de criar atividades.",
+      "generateOrPasteTextBody": "Como você quer adicionar o texto? Escolha uma opção para abrir o texto e as configurações.",
       "generateTasksTitle": "Gerar atividades",
       "generateTasksBody": "Escolha quantas atividades você quer. Esta seção é desbloqueada quando o texto está pronto.",
       "enableTaskGeneratorFirst": "Adicione o texto primeiro. Você pode escrever, colar ou usar uma sugestão da IA.",
@@ -266,11 +266,13 @@
       "manual": "Escrever ou colar texto",
       "ai": "Criar sugestão de texto com IA",
       "manualHelp": "Escreva ou cole o texto para o qual deseja criar atividades. Você pode editar o texto antes de continuar.",
-      "aiHelp": "A IA cria uma sugestão. Ela aparece na aba de texto, onde você pode revisar e editar antes de criar atividades.",
+      "aiHelp": "A IA cria uma sugestão. Em seguida, o texto é aberto para você revisar e editar antes de criar atividades.",
       "replaceTitle": "Substituir o texto atual?",
       "replaceBody": "Uma nova sugestão substitui o título e o texto e remove as atividades existentes. Deseja continuar?",
       "replaceConfirm": "Criar sugestão e substituir texto",
-      "cancel": "Manter texto atual"
+      "cancel": "Manter texto atual",
+      "manualDescription": "Use um texto que você já tem ou escreva um novo.",
+      "aiDescription": "Descreva um tema e receba uma sugestão de texto que você pode editar."
     }
   }
 }

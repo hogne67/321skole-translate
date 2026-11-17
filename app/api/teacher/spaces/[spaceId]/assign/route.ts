@@ -1,5 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isSpaceOpenForSharing, SpaceNotOpenError } from "@/lib/spaceSharing";
 import { PublicationAccessError } from "@/lib/security/publicationAccess.server";
 import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
@@ -359,6 +360,7 @@ export async function POST(
     const now = new Date();
 
     const result = await db.runTransaction(async (tx) => {
+      if (!isSpaceOpenForSharing((await tx.get(spaceRef)).data())) throw new SpaceNotOpenError();
       let quota:
         | {
           feature: string;
@@ -496,6 +498,6 @@ export async function POST(
     return json({ assignmentId: result.assignmentId, quota: result.quota }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: msg || "Assign failed" }, e instanceof PublicationAccessError ? e.status : (accountErrorStatus(e) ?? 500));
+    return json({ error: msg || "Assign failed" }, e instanceof SpaceNotOpenError ? 409 : e instanceof PublicationAccessError ? e.status : (accountErrorStatus(e) ?? 500));
   }
 }

@@ -1,5 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { isSpaceOpenForSharing, SpaceNotOpenError } from "@/lib/spaceSharing";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
 // app/api/parent/spaces/[spaceId]/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
@@ -214,21 +215,21 @@ export async function POST(
       createdAt: FieldValue.serverTimestamp(),
     };
 
-    const batch = adminDb.batch();
+    await adminDb.runTransaction(async (tx) => {
+      if (!isSpaceOpenForSharing((await tx.get(spaceRef)).data())) throw new SpaceNotOpenError();
 
-    batch.set(targetRef, assignmentDoc, { merge: false });
+      tx.set(targetRef, assignmentDoc, { merge: false });
 
-    batch.set(
-      spaceRef,
-      {
-        activeLessonId: targetRef.id,
-        activeLessonTitle: lessonTitle,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    await batch.commit();
+      tx.set(
+        spaceRef,
+        {
+          activeLessonId: targetRef.id,
+          activeLessonTitle: lessonTitle,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
 
     return NextResponse.json({
       ok: true,
@@ -245,7 +246,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: message },
-      { status: (accountErrorStatus(error) ?? 500) }
+      { status: error instanceof SpaceNotOpenError ? 409 : (accountErrorStatus(error) ?? 500) }
     );
   }
 }

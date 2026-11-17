@@ -22,6 +22,7 @@ export type SpaceDoc = {
 
   title: string;
   isOpen: boolean;
+  deletedAt?: unknown;
   allowRoomCodeOnly?: boolean;
 
   // ✅ Useful metadata

@@ -233,6 +233,7 @@ function TeacherSpacesInner() {
 
   const [search, setSearch] = useState("");
   const [showClosed, setShowClosed] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -310,7 +311,8 @@ function TeacherSpacesInner() {
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    let list = rows;
+    let list = rows.filter(row => Boolean(row.data.deletedAt) === showDeleted
+      && (!showDeleted || getSpaceOwnerUid(row.data) === user?.uid));
 
     if (s) {
       list = list.filter((r) => {
@@ -320,7 +322,7 @@ function TeacherSpacesInner() {
       });
     }
 
-    if (!showClosed) {
+    if (!showClosed && !showDeleted) {
       list = list.filter((r) => Boolean(r.data.isOpen));
     }
 
@@ -338,7 +340,7 @@ function TeacherSpacesInner() {
     });
 
     return sorted;
-  }, [rows, search, showClosed, sortKey]);
+  }, [rows, search, showClosed, showDeleted, sortKey, user?.uid]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -536,6 +538,12 @@ function TeacherSpacesInner() {
       </div>
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
+        <div className="mb-3 flex justify-end">
+          <button type="button" aria-pressed={showDeleted} onClick={() => setShowDeleted(value => !value)}
+            className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${showDeleted ? "border-amber-300 bg-amber-50 text-amber-950" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"}`}>
+            {t(showDeleted ? "deletion.showActive" : "deletion.showDeleted")}
+          </button>
+        </div>
         <div className="mb-3 flex min-w-0 items-center justify-between gap-3 sm:mb-4">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("title")}</div>
@@ -566,13 +574,15 @@ function TeacherSpacesInner() {
               title={row.data.title}
               memberCount={memberCount[row.id]}
               loading={Boolean(memberCountBusy[row.id])}
+              canDelete={getSpaceOwnerUid(row.data) === user?.uid}
+              deleted={Boolean(row.data.deletedAt)}
             />
           ))}
 
           {filtered.length === 0 && (
             <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:col-span-2 sm:p-6">
-              {t("empty.title")}
-              <div className="mt-2">{t("empty.hint")}</div>
+              {t(showDeleted ? "deletion.empty" : "empty.title")}
+              {!showDeleted ? <div className="mt-2">{t("empty.hint")}</div> : null}
             </div>
           )}
         </div>

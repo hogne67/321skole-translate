@@ -184,6 +184,7 @@ export default function TeacherSpaceDetailPage() {
 function Inner() {
   const t = useTranslations("spaceDetail");
   const tCommon = useTranslations("common");
+  const tSpaces = useTranslations("spaces");
   const locale = useLocale();
 
   const router = useRouter();
@@ -560,6 +561,11 @@ function Inner() {
       spaceStaffRole === "substitute" ||
       spaceStaffRole === "teacher");
 
+  if (space.deletedAt) return <div className="mx-auto max-w-5xl space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+    <h1 className="text-xl font-bold">{tSpaces("deletion.deleted")}</h1>
+    <Link href={`/${locale}/teacher/spaces`} className="text-sm font-semibold text-emerald-700 underline">{t("actions.back")}</Link>
+  </div>;
+
   return (
     <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
@@ -585,7 +591,7 @@ function Inner() {
       )}
 
       <SpaceAdministration key={spaceId} spaceId={spaceId} space={space}
-        canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} />
+        canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} canDelete={isSpaceOwnerNow} />
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

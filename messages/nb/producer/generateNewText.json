@@ -242,7 +242,7 @@
     },
     "stepStatus": {
       "step1Title": "Steg 1: Velg tekst",
-      "step1Body": "Start med å skrive eller lime inn din egen tekst. Du kan også velge et tekstforslag fra KI. Gjennomgå teksten før du lager oppgaver.",
+      "step1Body": "Velg først om du vil bruke egen tekst eller få et tekstforslag fra KI. Deretter velger du nivå og språk.",
       "reviewTextTitle": "Les gjennom teksten",
       "reviewTextBody": "Lærer må godkjenne teksten før oppgaver kan genereres.",
       "textReadyTitle": "Teksten er klar",
@@ -252,7 +252,7 @@
     },
     "sections": {
       "generateOrPasteTextTitle": "Velg tekst",
-      "generateOrPasteTextBody": "Bruk egen tekst, eller få et tekstforslag fra KI. Gjennomgå teksten før du lager oppgaver.",
+      "generateOrPasteTextBody": "Hvordan vil du legge inn teksten? Velg et alternativ for å åpne tekst og innstillinger.",
       "generateTasksTitle": "Generer oppgaver",
       "generateTasksBody": "Velg hvor mange oppgaver du vil ha. Denne delen låses opp når teksten er klar.",
       "enableTaskGeneratorFirst": "Legg inn tekst først. Du kan skrive, lime inn eller bruke et KI-forslag.",
@@ -266,11 +266,13 @@
       "manual": "Skriv eller lim inn tekst",
       "ai": "Lag tekstforslag med KI",
       "manualHelp": "Skriv eller lim inn teksten du vil lage oppgaver til. Du kan redigere teksten før du går videre.",
-      "aiHelp": "KI lager et forslag. Forslaget legges i tekstfanen, der du kan lese gjennom og redigere før du lager oppgaver.",
+      "aiHelp": "KI lager et forslag. Etterpå åpnes teksten, slik at du kan lese gjennom og redigere før du lager oppgaver.",
       "replaceTitle": "Vil du erstatte teksten du har?",
       "replaceBody": "Et nytt forslag erstatter tittel og tekst og fjerner eventuelle oppgaver. Vil du fortsette?",
       "replaceConfirm": "Lag forslag og erstatt teksten",
-      "cancel": "Behold teksten"
+      "cancel": "Behold teksten",
+      "manualDescription": "Bruk en tekst du har, eller skriv en ny selv.",
+      "aiDescription": "Beskriv et tema, og få et tekstforslag du kan redigere."
     }
   }
 }

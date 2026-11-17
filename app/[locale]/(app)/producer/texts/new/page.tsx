@@ -20,7 +20,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { trackCreateLesson } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
 import { getTextTypeLabel, type TextTypeKey } from "@/lib/textTypes";
-import { X } from "lucide-react";
+import { Check, FileText, Sparkles, X } from "lucide-react";
 
 const GUIDE_IMAGE_WIDTH = 1024;
 const GUIDE_IMAGE_HEIGHT = 1536;
@@ -804,7 +804,7 @@ export default function NewTextPage() {
     });
   }, [locale]);
   const [prompt, setPrompt] = useState("");
-  const [textEntryMode, setTextEntryMode] = useState<"manual" | "ai">("manual");
+  const [textEntryMode, setTextEntryMode] = useState<"manual" | "ai" | null>(null);
   const [confirmTextReplacement, setConfirmTextReplacement] = useState(false);
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
@@ -1810,33 +1810,41 @@ export default function NewTextPage() {
               </div>
             </div>
 
-            <div role="tablist" aria-label={t("textTabs.label")}
-              style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {(["manual", "ai"] as const).map(mode => (
-                <button key={mode} id={`text-entry-${mode}-tab`} type="button" role="tab"
-                  aria-selected={textEntryMode === mode} aria-controls={`text-entry-${mode}-panel`}
-                  tabIndex={textEntryMode === mode ? 0 : -1} disabled={busy}
-                  onClick={() => { setTextEntryMode(mode); setConfirmTextReplacement(false); }}
-                  onKeyDown={event => {
-                    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-                    event.preventDefault();
-                    const next = event.key === "Home" ? "manual" : event.key === "End" ? "ai" : mode === "manual" ? "ai" : "manual";
-                    setTextEntryMode(next);
-                    setConfirmTextReplacement(false);
-                    document.getElementById(`text-entry-${next}-tab`)?.focus();
-                  }}
-                  style={{
-                    padding: "10px 16px", borderRadius: 12, font: "inherit", fontWeight: 800,
-                    border: textEntryMode === mode ? "1px solid #1d4ed8" : "1px solid #cbd5e1",
-                    background: textEntryMode === mode ? "#1d4ed8" : "#ffffff",
-                    color: textEntryMode === mode ? "#ffffff" : "#334155",
-                    cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.65 : 1,
-                  }}>
-                  {t(`textTabs.${mode}`)}
-                </button>
-              ))}
+            <div role="group" aria-label={t("textTabs.label")}
+              style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+              {(["manual", "ai"] as const).map((mode) => {
+                const selected = textEntryMode === mode;
+                const Icon = mode === "manual" ? FileText : Sparkles;
+                return (
+                  <button key={mode} id={`text-entry-${mode}-choice`} type="button"
+                    className="textSourceChoice"
+                    aria-pressed={selected} aria-expanded={selected} aria-controls="text-entry-details"
+                    disabled={busy}
+                    onClick={() => { setTextEntryMode(mode); setConfirmTextReplacement(false); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left",
+                      padding: 16, borderRadius: 14, font: "inherit",
+                      border: selected ? "2px solid #1d4ed8" : "2px solid #cbd5e1",
+                      background: selected ? "#eff6ff" : "#ffffff", color: "#0f172a",
+                      cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.65 : 1,
+                    }}>
+                    <span aria-hidden="true" style={{
+                      display: "grid", placeItems: "center", flexShrink: 0,
+                      width: 42, height: 42, borderRadius: 12, background: "#dbeafe", color: "#1d4ed8",
+                    }}><Icon size={22} /></span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: "block", fontWeight: 800 }}>{t(`textTabs.${mode}`)}</span>
+                      <span style={{ display: "block", marginTop: 4, fontSize: 13, lineHeight: 1.5, color: "#475569" }}>
+                        {t(`textTabs.${mode}Description`)}
+                      </span>
+                    </span>
+                    {selected && <Check size={20} color="#1d4ed8" aria-hidden="true" style={{ flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
             </div>
 
+            <div id="text-entry-details" hidden={textEntryMode === null} style={{ marginTop: 14 }}>
             <div
               style={{
                 border: "1px solid #e2e8f0",
@@ -2269,7 +2277,7 @@ export default function NewTextPage() {
               }}
             >
               <div
-                id="text-entry-ai-panel" role="tabpanel" aria-labelledby="text-entry-ai-tab"
+                id="text-entry-ai-panel" role="region" aria-labelledby="text-entry-ai-choice"
                 hidden={textEntryMode !== "ai"}
                 style={{
                   border: "1px solid #dbeafe",
@@ -2350,7 +2358,7 @@ export default function NewTextPage() {
               </div>
 
               <div
-                id="text-entry-manual-panel" role="tabpanel" aria-labelledby="text-entry-manual-tab"
+                id="text-entry-manual-panel" role="region" aria-labelledby="text-entry-manual-choice"
                 hidden={textEntryMode !== "manual"}
                 style={{
                   border: "1px solid #e2e8f0",
@@ -2551,9 +2559,11 @@ export default function NewTextPage() {
                 )}
               </div>
             </div>
+            </div>
           </div>
         </section>
 
+        {textEntryMode !== null && <>
         <section style={{ marginTop: 16 }}>
           <div style={{ ...(hasText ? cardStyle : mutedCardStyle) }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
@@ -3074,7 +3084,18 @@ export default function NewTextPage() {
           </details>
         )}
 
+        </>}
+
         <style jsx>{`
+          .textSourceChoice:focus-visible {
+            outline: 3px solid #2563eb;
+            outline-offset: 3px;
+          }
+
+          .textSourceChoice:hover:not(:disabled) {
+            border-color: #1d4ed8 !important;
+          }
+
           @media (max-width: 560px) {
             .actionRow {
               flex-direction: column !important;
