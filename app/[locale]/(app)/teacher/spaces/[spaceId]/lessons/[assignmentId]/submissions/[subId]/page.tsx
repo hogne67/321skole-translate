@@ -52,6 +52,9 @@ import AiFeedbackPanel from "@/components/teacher/submissions/AiFeedbackPanel";
 import { readEffectiveSpaceAiPolicy } from "@/lib/security/spaceAiPolicy.client";
 import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
 import StandardSubmissionView from "@/components/teacher/submissions/StandardSubmissionView";
+import GrammarTestPlayer from "@/components/assessments/GrammarTestPlayer";
+import "@/components/assessments/grammarTests.css";
+import { gradeGrammar,parseGrammarTasks } from "@/lib/grammarTests/types";
 import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/PodcastWorkshopSubmissionView";
 import GeometrySubmissionView from "@/components/teacher/submissions/GeometrySubmissionView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
@@ -1066,7 +1069,9 @@ function Inner() {
       : sub.answers
   );
 
-  const auto =
+  const isGrammarTest = (assignment?.lessonType ?? lesson?.lessonType) === "grammar_test";
+  const grammarTasks = isGrammarTest ? parseGrammarTasks(assignment?.tasks ?? lesson?.tasks) : null;
+  const auto = grammarTasks ? gradeGrammar(grammarTasks,answersMap) :
     isGeometryAssignment && !isFractionAssignment ? null : readAutoGrade(sub);
 
   const showPartialAutoCount = fractionWorksheet?.topic === "calculation" ||
@@ -1547,7 +1552,8 @@ function Inner() {
               />
             ) : null}
 
-            {!isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isAlgebraAssignment && !isPowersAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isVolumeAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
+            {isGrammarTest ? <div><h2 className="text-lg font-semibold">{lessonTitle}</h2>{grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answersMap} disabled showResults/> : <p role="alert">Kunne ikke lese oppgavene i denne prøven.</p>}</div> : null}
+            {!isGrammarTest && !isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isAlgebraAssignment && !isPowersAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isVolumeAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}

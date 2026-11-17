@@ -374,6 +374,9 @@ function withLocale(locale: string, path: string) {
 function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonType?: string) {
   const normalizedLessonType = String(lessonType || "").trim().toLowerCase();
 
+  if (normalizedLessonType === "grammar_test") {
+    return withLocale(locale, `/tools/grammar-tests?edit=${encodeURIComponent(lessonId)}`);
+  }
   if (normalizedLessonType === "listening_test") {
     return withLocale(locale, `/tools/listening-tests?edit=${encodeURIComponent(lessonId)}`);
   }

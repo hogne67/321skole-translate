@@ -39,6 +39,13 @@ export default function AssessmentOverview({ locale }: { locale: string }) {
           <p className="mt-4 text-sm font-semibold text-slate-600">{copy.listeningFormat}</p>
           <span className="mt-5 inline-flex items-center gap-2 font-bold text-sky-800">{copy.listeningAction}<ArrowRight size={18} aria-hidden="true" /></span>
         </Link>
+        <Link href={`/${locale}/tools/grammar-tests`} className="group block rounded-2xl border border-solid border-sky-300 bg-sky-50 p-5 text-slate-900 no-underline transition hover:border-sky-500 hover:bg-sky-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-700 sm:p-6">
+          <FileText size={32} className="mb-4 text-sky-700" aria-hidden="true" />
+          <div className="flex flex-wrap items-center gap-3"><h3 className="text-xl font-bold">{copy.grammar}</h3><span className="rounded-full border border-solid border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-800">{copy.firstVersion}</span></div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{copy.grammarDescription}</p>
+          <p className="mt-4 text-sm font-semibold text-slate-600">{copy.grammarFormat}</p>
+          <span className="mt-5 inline-flex items-center gap-2 font-bold text-sky-800">{copy.grammarAction}<ArrowRight size={18} aria-hidden="true" /></span>
+        </Link>
         </div>
         <p className="mt-3 text-sm leading-6 text-slate-600">{copy.readingNote}</p>
       </section>

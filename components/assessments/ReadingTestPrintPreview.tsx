@@ -25,12 +25,13 @@ export default function ReadingTestPrintPreview({ content, locale, initiallyOpen
   const id = useId();
   const copy = getReadingTestPrintCopy(locale);
   const isListening = content.modality === "listening";
+  const hasSource = !isListening && content.modality !== "grammar";
   const listenCopy = getListeningCopy(locale);
   const unsupported = (content.unsupportedTaskCount ?? 0) > 0;
-  const ready = Boolean(content.sourceText.trim() && orderedPrintTasks(content.tasks).length && !unsupported);
+  const ready = Boolean((content.modality === "grammar" || content.sourceText.trim()) && orderedPrintTasks(content.tasks).length && !unsupported);
   const measured = measurement?.content === content && measurement.locale === locale;
-  const effectiveLayout = isListening ? "after_text" : layout === "auto" ? measured ? measurement.layout : "after_text" : layout;
-  const calculating = !isListening && mode === "learner" && layout === "auto" && !measured;
+  const effectiveLayout = !hasSource ? "after_text" : layout === "auto" ? measured ? measurement.layout : "after_text" : layout;
+  const calculating = hasSource && mode === "learner" && layout === "auto" && !measured;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -46,7 +47,7 @@ export default function ReadingTestPrintPreview({ content, locale, initiallyOpen
   }, []);
 
   useEffect(() => {
-    if (!mounted || !open || !ready || isListening || mode !== "learner" || layout !== "auto") return;
+    if (!mounted || !open || !ready || !hasSource || mode !== "learner" || layout !== "auto") return;
     const root = printRoot.current;
     const sheet = root?.querySelector<HTMLElement>(".reading-test-print-sheet");
     if (!root || !sheet) return;
@@ -62,7 +63,7 @@ export default function ReadingTestPrintPreview({ content, locale, initiallyOpen
     const observer = new ResizeObserver(measure);
     observer.observe(sheet);
     return () => { active = false; observer.disconnect(); };
-  }, [mounted, open, ready, isListening, mode, layout, content, locale]);
+  }, [mounted, open, ready, hasSource, mode, layout, content, locale]);
 
   async function handlePrint() {
     setPrinting(true);
@@ -81,14 +82,14 @@ export default function ReadingTestPrintPreview({ content, locale, initiallyOpen
       {open && ready && (
         <div id={id} className="reading-test-print-panel">
           <div className="reading-test-print-toolbar">
-            <div><h2>{copy.title}</h2><p>{isListening ? listenCopy.check : copy.description}</p></div>
+            <div><h2>{copy.title}</h2><p>{content.modality === "grammar" ? "Skriv ut elevark og separat fasit med forklaringer." : isListening ? listenCopy.check : copy.description}</p></div>
             <button type="button" className="reading-test-print-button" onClick={() => { setOpen(false); toggle.current?.focus(); }}><X size={16} aria-hidden="true" />{copy.close}</button>
             <label>{copy.mode}<select value={mode} disabled={printing} onChange={event => setMode(event.target.value === "key" ? "key" : "learner")}><option value="learner">{copy.learner}</option><option value="key">{isListening ? listenCopy.teacherPrint : copy.key}</option></select></label>
-            {!isListening && <label>{copy.layout}<select value={layout} disabled={printing || mode === "key"} aria-describedby={`${id}-layout-help`} onChange={event => setLayout(event.target.value === "new_page" ? "new_page" : event.target.value === "after_text" ? "after_text" : "auto")}><option value="auto">{copy.automatic}</option><option value="after_text">{copy.afterText}</option><option value="new_page">{copy.newPage}</option></select></label>}
+            {hasSource && <label>{copy.layout}<select value={layout} disabled={printing || mode === "key"} aria-describedby={`${id}-layout-help`} onChange={event => setLayout(event.target.value === "new_page" ? "new_page" : event.target.value === "after_text" ? "after_text" : "auto")}><option value="auto">{copy.automatic}</option><option value="after_text">{copy.afterText}</option><option value="new_page">{copy.newPage}</option></select></label>}
             <button type="button" className="reading-test-print-button reading-test-print-primary" disabled={printing || calculating} onClick={handlePrint}><Printer size={17} aria-hidden="true" />{printing ? copy.printing : calculating ? copy.calculating : copy.print}</button>
             {error && <p role="alert">{copy.printError}</p>}
-            {!isListening && <p id={`${id}-layout-help`} className="reading-test-print-layout-help">{copy.layoutHelp}</p>}
-            {!isListening && mode === "learner" && layout === "auto" && measured && <p className="reading-test-print-layout-help" role="status">{effectiveLayout === "new_page" ? copy.autoNewPage : copy.autoAfterText}</p>}
+            {hasSource && <p id={`${id}-layout-help`} className="reading-test-print-layout-help">{copy.layoutHelp}</p>}
+            {hasSource && mode === "learner" && layout === "auto" && measured && <p className="reading-test-print-layout-help" role="status">{effectiveLayout === "new_page" ? copy.autoNewPage : copy.autoAfterText}</p>}
           </div>
           <ReadingTestWorksheet content={content} locale={locale} mode={mode} layout={effectiveLayout} />
           {mounted && createPortal(

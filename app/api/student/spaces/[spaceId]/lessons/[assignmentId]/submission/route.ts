@@ -5,6 +5,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { gradeGrammar,parseGrammarTasks } from "@/lib/grammarTests/types";
 export const runtime = "nodejs";
 type RouteParams = { params: Promise<{ spaceId: string; assignmentId: string }> };
 export async function POST(req: Request, ctx: RouteParams) {
@@ -30,6 +31,9 @@ export async function POST(req: Request, ctx: RouteParams) {
       const [activity, nested, index] = await Promise.all([tx.get(db.doc(`spaces/${spaceId}/lessons/${assignmentId}`)), tx.get(nestedRef), tx.get(indexRef)]);
       if (!activity.exists) throw new SubmissionWriteError("Assignment not found", 404);
       const patch = studentSubmissionPatch(body.payload, nested.data(), context);
+      const grammarTasks = activity.data()?.lessonType === "grammar_test" ? parseGrammarTasks(activity.data()?.tasks) : null;
+      if (activity.data()?.lessonType === "grammar_test" && !grammarTasks) throw new SubmissionWriteError("Invalid grammar assignment", 503);
+      if (grammarTasks) patch.auto = gradeGrammar(grammarTasks, patch.answers ?? nested.data()?.answers);
       // A stale or foreign index must never be silently taken over.
       validateStoredSubmissionIndex(index.data(), { ...nested.data(), ...patch }, context);
       const now = FieldValue.serverTimestamp();
@@ -37,6 +41,7 @@ export async function POST(req: Request, ctx: RouteParams) {
       tx.set(nestedRef, write, { merge: true });
       // Preserve an existing index's identities independently; canonical fields bind a new index.
       const indexPatch = studentSubmissionPatch(body.payload, index.data() ?? nested.data(), context);
+      if (grammarTasks) indexPatch.auto = patch.auto;
       tx.set(indexRef, { ...indexPatch, spaceId, assignmentId, updatedAt: now, ...(!index.exists ? { createdAt: now } : {}) }, { merge: true });
     });
     return NextResponse.json({ ok: true, submissionId });

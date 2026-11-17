@@ -47,6 +47,10 @@
 .listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-task > td { padding-bottom: 3.5mm; }
 .listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-options li { margin-bottom: 1.5mm; }
 .listening-test-print-sheet .reading-test-sheet-source h4 { margin: 3mm 0 1mm; font-size: 11pt; }
+.grammar-test-print-sheet .reading-test-sheet-task > td { padding-bottom: 3.5mm; }
+.grammar-test-print-sheet .reading-test-sheet-options { display: flex; flex-wrap: wrap; gap: 2mm 8mm; margin-top: 1mm; }
+.grammar-test-print-sheet .reading-test-sheet-options li { margin-bottom: 0; }
+.grammar-test-print-sheet .reading-test-sheet-task td > div > p:not(.reading-test-sheet-answer) { font-size: 10pt; margin: 1mm 0 0 6mm; }
 @media (max-width: 600px) {
   .reading-test-print-panel { padding: 8px; }
   .reading-test-print-sheet { padding: 6mm; }

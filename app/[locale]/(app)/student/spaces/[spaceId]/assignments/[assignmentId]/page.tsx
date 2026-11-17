@@ -6,6 +6,9 @@ import { getSubmissionStatus } from "@/lib/submissions/status";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
+import GrammarTestPlayer from "@/components/assessments/GrammarTestPlayer";
+import "@/components/assessments/grammarTests.css";
+import { gradeGrammar,parseGrammarTasks } from "@/lib/grammarTests/types";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -492,6 +495,8 @@ export default function StudentAssignmentPage() {
     isFractionAssignment,
     isArithmeticAssignment,
   } = getAssignmentDerivedState(lesson, assignment);
+  const isGrammarTest = (assignment?.lessonType ?? lesson?.lessonType) === "grammar_test";
+  const grammarTasks = useMemo(() => isGrammarTest ? parseGrammarTasks(assignment?.tasks ?? lesson?.tasks) : null,[isGrammarTest,assignment?.tasks,lesson?.tasks]);
 
   const tMap = useMemo(() => {
     const m = new Map<string, TranslatedTask>();
@@ -599,7 +604,7 @@ export default function StudentAssignmentPage() {
     router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}${previewQuery}`);
   }, [assignmentId, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
 
-  const displayedSourceTextSafe = isImageWriting || isReadingTest || isPodcastWorkshop ? "" : sourceTextSafe;
+  const displayedSourceTextSafe = isImageWriting || isReadingTest || isGrammarTest || isPodcastWorkshop ? "" : sourceTextSafe;
   const baseStudentTextSize = defaultAssignmentStudentTextSize(
     lesson?.textSize ?? assignment?.textSize,
     lesson?.level ?? assignment?.level
@@ -1686,7 +1691,7 @@ export default function StudentAssignmentPage() {
           })
           : null;
 
-        let auto: unknown = computeAutoGrade(tasksOriginal, finalAnswers);
+        let auto: unknown = grammarTasks ? gradeGrammar(grammarTasks, finalAnswers) : computeAutoGrade(tasksOriginal, finalAnswers);
 
         if (isGeometryAssignment && geometryWorksheet) {
           const geometryAuto = gradeGeometryWorksheet(
@@ -1949,6 +1954,7 @@ export default function StudentAssignmentPage() {
       readingTestTotalSeconds,
       readingTestSecondsLeft,
       tasksOriginal,
+      grammarTasks,
     ]
   );
 
@@ -2004,7 +2010,7 @@ export default function StudentAssignmentPage() {
     ? t("actions.saving")
     : canResubmit
       ? t("actions.resubmit")
-      : isReadingTest
+      : isReadingTest || isGrammarTest
         ? "Send til lærer"
         : t("actions.submit");
 
@@ -2058,7 +2064,7 @@ export default function StudentAssignmentPage() {
         <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
       ) : null}
 
-      {imageUrl && !isReadingTest ? (
+      {imageUrl && !isReadingTest && !isGrammarTest ? (
         <div
           style={{
             marginTop: 14,
@@ -2076,7 +2082,7 @@ export default function StudentAssignmentPage() {
         </div>
       ) : null}
 
-      {showPreReadingPrompt ? (
+      {showPreReadingPrompt && !isGrammarTest ? (
         <section
           style={{
             marginTop: 14,
@@ -2148,7 +2154,7 @@ export default function StudentAssignmentPage() {
         </section>
       ) : null}
 
-      {(!isReadingTest && !isPodcastWorkshop) || liveTeacherText ? (
+      {(!isReadingTest && !isGrammarTest && !isPodcastWorkshop) || liveTeacherText ? (
         <div
           style={{
             marginTop: 12,
@@ -2214,6 +2220,7 @@ export default function StudentAssignmentPage() {
           onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, algebraWorksheet?.language ?? powersWorksheet?.language ?? factorizationWorksheet?.language ?? placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? volumeWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
           t={tString}
         >
+        {isGrammarTest ? grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answers} onChange={setAnswers} disabled={lock || submitted || submitting} showResults={submitted}/> : <p role="alert">Kunne ikke åpne grammatikkprøven. Be læreren dele den på nytt.</p> : null}
         {isReadingTest ? (
           <ReadingTestPlayer
             title={mainTitle}
@@ -2379,7 +2386,7 @@ export default function StudentAssignmentPage() {
           />
         ) : null}
 
-        {!isReadingTest &&
+        {!isReadingTest && !isGrammarTest &&
         !isGeometryAssignment &&
         !isFractionAssignment &&
         !isArithmeticAssignment &&

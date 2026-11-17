@@ -6,6 +6,7 @@ export type PrintableReadingTask = {
   options?: string[];
   correctAnswer?: string | boolean;
   enabled?: boolean;
+  explanation?: string;
 };
 
 export type ReadingTestPrintContent = {
@@ -15,7 +16,7 @@ export type ReadingTestPrintContent = {
   language: string;
   tasks: PrintableReadingTask[];
   unsupportedTaskCount?: number;
-  modality?: "reading" | "listening";
+  modality?: "reading" | "listening" | "grammar";
   plays?: number;
   listeningClips?: {taskId:string;script:string}[];
 };
