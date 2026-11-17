@@ -1,6 +1,7 @@
 // components/generators/math/geometry/GeometryWorksheetPracticeView.tsx
 "use client";
 
+import { useId } from "react";
 import MathText from "@/components/generators/math/MathTextSupport";
 
 import GeometryFigure from "@/components/generators/math/geometry/GeometryFigure";
@@ -370,6 +371,8 @@ function FeedbackLine({
 
 function renderTaskInputs({
   task,
+  taskNumber,
+  inputIdPrefix,
   answer,
   onAnswerChange,
   readOnly = false,
@@ -378,6 +381,8 @@ function renderTaskInputs({
   auto,
 }: {
   task: MathWorksheetTask;
+  taskNumber: number;
+  inputIdPrefix: string;
   answer: GeometryPracticeAnswer;
   onAnswerChange?: (taskId: string, patch: Partial<GeometryPracticeAnswer>) => void;
   readOnly?: boolean;
@@ -385,6 +390,9 @@ function renderTaskInputs({
   showInlineFeedback?: boolean;
   auto?: GeometryAutoLike | null;
 }) {
+  const taskLabel = safeT(t, "taskLabel", "Task");
+  const fieldLabel = (label: string, unit?: string) =>
+    `${taskLabel} ${taskNumber}: ${label}${unit ? ` (${unit})` : ""}`;
   const result = showInlineFeedback ? getTaskResult(auto, task.id) : undefined;
   const shapePart = showInlineFeedback ? readPart(result, "shapeName") : undefined;
   const perimeterPart = showInlineFeedback ? readPart(result, "perimeter") : undefined;
@@ -403,11 +411,13 @@ function renderTaskInputs({
     const field = fieldStateClass(shapePart?.isCorrect);
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-shape`} className="mb-2 block text-sm font-medium text-slate-700">
           {getShapeNameLabel(t)}
         </label>
         <input
           type="text"
+          id={`${inputIdPrefix}-shape`}
+          aria-label={fieldLabel(getShapeNameLabel(t))}
           value={answer.shapeName ?? ""}
           disabled={readOnly}
           onChange={(e) =>
@@ -431,13 +441,15 @@ function renderTaskInputs({
     const field = fieldStateClass(perimeterPart?.isCorrect);
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-perimeter`} className="mb-2 block text-sm font-medium text-slate-700">
           {getPerimeterAnswerLabel(t)}
         </label>
         <div className="flex items-center gap-2">
           <input
             type="text"
             inputMode="decimal"
+            id={`${inputIdPrefix}-perimeter`}
+            aria-label={fieldLabel(getPerimeterAnswerLabel(t), "cm")}
             value={getPerimeterInputValue(answer)}
             disabled={readOnly}
             placeholder={getNumberOnlyHelp(t)}
@@ -465,13 +477,15 @@ function renderTaskInputs({
     const field = fieldStateClass(areaPart?.isCorrect);
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-area`} className="mb-2 block text-sm font-medium text-slate-700">
           {getAreaAnswerLabel(t)}
         </label>
         <div className="flex items-center gap-2">
           <input
             type="text"
             inputMode="decimal"
+            id={`${inputIdPrefix}-area`}
+            aria-label={fieldLabel(getAreaAnswerLabel(t), "cm²")}
             value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             disabled={readOnly}
@@ -502,11 +516,13 @@ function renderTaskInputs({
   return (
     <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4">
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-shape`} className="mb-2 block text-sm font-medium text-slate-700">
           {getShapeNameLabel(t)}
         </label>
         <input
           type="text"
+          id={`${inputIdPrefix}-shape`}
+          aria-label={fieldLabel(getShapeNameLabel(t))}
           value={answer.shapeName ?? ""}
           disabled={readOnly}
           onChange={(e) =>
@@ -525,13 +541,15 @@ function renderTaskInputs({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-perimeter`} className="mb-2 block text-sm font-medium text-slate-700">
           {getPerimeterAnswerLabel(t)}
         </label>
         <div className="flex items-center gap-2">
           <input
             type="text"
             inputMode="decimal"
+            id={`${inputIdPrefix}-perimeter`}
+            aria-label={fieldLabel(getPerimeterAnswerLabel(t), "cm")}
             value={getPerimeterInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             disabled={readOnly}
@@ -554,13 +572,15 @@ function renderTaskInputs({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
+        <label htmlFor={`${inputIdPrefix}-area`} className="mb-2 block text-sm font-medium text-slate-700">
           {getAreaAnswerLabel(t)}
         </label>
         <div className="flex items-center gap-2">
           <input
             type="text"
             inputMode="decimal"
+            id={`${inputIdPrefix}-area`}
+            aria-label={fieldLabel(getAreaAnswerLabel(t), "cm²")}
             disabled={readOnly}
             value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
@@ -672,6 +692,7 @@ export default function GeometryWorksheetPracticeView({
   auto?: GeometryAutoLike | null;
   showInlineFeedback?: boolean;
 }) {
+  const inputIdPrefix = useId();
   const tMeasurement = (key: MeasurementKey) => {
     const rawKey = `measurements.${key}`;
     const measurementValue = t(rawKey);
@@ -800,6 +821,8 @@ export default function GeometryWorksheetPracticeView({
                       <div className="space-y-3">
                         {renderTaskInputs({
                           task,
+                          taskNumber: idx + 1,
+                          inputIdPrefix: `${inputIdPrefix}-${idx}`,
                           answer,
                           onAnswerChange,
                           readOnly,

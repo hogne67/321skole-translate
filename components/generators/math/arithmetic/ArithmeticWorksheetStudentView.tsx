@@ -4,6 +4,8 @@ import MathText from "@/components/generators/math/MathTextSupport";
 
 import type { ArithmeticTask, ArithmeticWorksheet } from "@/lib/math/arithmetic/types";
 import { normalizeArithmeticTask } from "@/lib/math/arithmetic/normalizeTask";
+import { normalizeArithmeticLanguage } from "@/lib/math/arithmetic/types";
+import { UI_COPY } from "@/lib/math/arithmetic/uiCopy";
 import { VISUAL_DOT_LIMIT, VISUAL_GROUP_LIMIT } from "@/lib/math/arithmetic/visualLimits";
 
 type AnswersByTaskId = Record<string, unknown>;
@@ -24,12 +26,14 @@ function MissingAnswerExpression({
   id,
   value,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   task: ArithmeticTask;
   id: string;
   value: unknown;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   const [before, after] = task.prompt.split("□");
@@ -44,7 +48,7 @@ function MissingAnswerExpression({
         readOnly={readOnly}
         onChange={(event) => onAnswerChange?.(id, event.target.value)}
         className="h-9 w-16 rounded-lg border border-dashed border-slate-300 bg-white px-2 text-center text-base font-black text-slate-950 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-        aria-label="Svar"
+        aria-label={answerLabel}
       />
       <span>{after}</span>
     </span>
@@ -63,12 +67,14 @@ function MissingVerticalAnswerStack({
   id,
   value,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   task: ArithmeticTask;
   id: string;
   value: unknown;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   const symbol = operationSymbol(task.operation);
@@ -81,7 +87,7 @@ function MissingVerticalAnswerStack({
       readOnly={readOnly}
       onChange={(event) => onAnswerChange?.(id, event.target.value)}
       className="h-9 w-16 rounded-lg border border-dashed border-slate-300 bg-white px-2 text-center text-base font-black text-slate-950 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-      aria-label="Svar"
+      aria-label={answerLabel}
     />
   );
 
@@ -194,17 +200,20 @@ function AnswerInput({
   id,
   value,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   id: string;
   value: unknown;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   return (
     <input
       type="text"
       inputMode="numeric"
+      aria-label={answerLabel}
       value={answerToString(value)}
       readOnly={readOnly}
       onChange={(event) => onAnswerChange?.(id, event.target.value)}
@@ -219,12 +228,14 @@ function GridTask({
   index,
   answers,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   task: ArithmeticTask;
   index: number;
   answers: AnswersByTaskId;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   const id = taskId(task, index);
@@ -235,6 +246,7 @@ function GridTask({
         <div className="text-xs font-black text-slate-500">{index + 1}</div>
         <div className="text-right text-base font-black text-slate-950">
           <MissingAnswerExpression
+            answerLabel={answerLabel}
             task={task}
             id={id}
             value={answers[id]}
@@ -253,6 +265,7 @@ function GridTask({
         {taskDisplay(task)}
       </div>
       <AnswerInput
+        answerLabel={answerLabel}
         id={id}
         value={answers[id]}
         readOnly={readOnly}
@@ -267,12 +280,14 @@ function VerticalTask({
   index,
   answers,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   task: ArithmeticTask;
   index: number;
   answers: AnswersByTaskId;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   const id = taskId(task, index);
@@ -292,6 +307,7 @@ function VerticalTask({
       </div>
       {task.unknownPosition ? (
         <MissingVerticalAnswerStack
+          answerLabel={answerLabel}
           task={task}
           id={id}
           value={answers[id]}
@@ -313,6 +329,7 @@ function VerticalTask({
       {!task.unknownPosition ? (
         <div className="mt-4">
           <AnswerInput
+            answerLabel={answerLabel}
             id={id}
             value={answers[id]}
             readOnly={readOnly}
@@ -329,12 +346,14 @@ function VisualTask({
   index,
   answers,
   readOnly,
+  answerLabel,
   onAnswerChange,
 }: {
   task: ArithmeticTask;
   index: number;
   answers: AnswersByTaskId;
   readOnly: boolean;
+  answerLabel: string;
   onAnswerChange?: (taskId: string, value: unknown) => void;
 }) {
   const id = taskId(task, index);
@@ -352,6 +371,7 @@ function VisualTask({
         <div className="text-lg font-black text-slate-950">
           {task.unknownPosition ? (
             <MissingAnswerExpression
+              answerLabel={answerLabel}
               task={task}
               id={id}
               value={answers[id]}
@@ -391,6 +411,7 @@ function VisualTask({
       <div className="mt-3">
         {task.unknownPosition ? null : (
           <AnswerInput
+            answerLabel={answerLabel}
             id={id}
             value={answers[id]}
             readOnly={readOnly}
@@ -415,6 +436,9 @@ export default function ArithmeticWorksheetStudentView({
 }) {
   const answers = answersByTaskId ?? {};
   const tasks = worksheet.tasks.map(normalizeArithmeticTask);
+  const copy = UI_COPY[normalizeArithmeticLanguage(worksheet.language)].worksheet;
+  const answerLabel = (task: ArithmeticTask, index: number) =>
+    `${copy.task} ${index + 1}: ${copy.answer}. ${taskDisplay(task)}`;
 
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -434,6 +458,7 @@ export default function ArithmeticWorksheetStudentView({
         <div className="grid gap-2 sm:grid-cols-2">
           {tasks.map((task, index) => (
             <GridTask
+              answerLabel={answerLabel(task, index)}
               key={task.id || index}
               task={task}
               index={index}
@@ -447,6 +472,7 @@ export default function ArithmeticWorksheetStudentView({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tasks.map((task, index) => (
             <VerticalTask
+              answerLabel={answerLabel(task, index)}
               key={task.id || index}
               task={task}
               index={index}
@@ -460,6 +486,7 @@ export default function ArithmeticWorksheetStudentView({
         <div className="grid gap-4 sm:grid-cols-2">
           {tasks.map((task, index) => (
             <VisualTask
+              answerLabel={answerLabel(task, index)}
               key={task.id || index}
               task={task}
               index={index}

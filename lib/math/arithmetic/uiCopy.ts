@@ -87,6 +87,7 @@ export const UI_COPY = {
       date: "Dato",
       classLabel: "Klasse",
       answer: "Svar",
+      task: "Oppgave",
     },
     brand: {
       school: "skole",
@@ -174,6 +175,7 @@ export const UI_COPY = {
       date: "Date",
       classLabel: "Class",
       answer: "Answer",
+      task: "Problem",
     },
     brand: {
       school: "school",
@@ -261,6 +263,7 @@ export const UI_COPY = {
       date: "Data",
       classLabel: "Turma",
       answer: "Resposta",
+      task: "Tarefa",
     },
     brand: {
       school: "escola",

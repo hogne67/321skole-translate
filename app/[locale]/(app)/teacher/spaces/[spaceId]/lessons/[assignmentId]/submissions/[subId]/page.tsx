@@ -1065,6 +1065,9 @@ function Inner() {
   const auto =
     isGeometryAssignment && !isFractionAssignment ? null : readAutoGrade(sub);
 
+  const showPartialAutoCount = fractionWorksheet?.topic === "calculation" ||
+    isEquationAssignment || isPercentageAssignment || isAlgebraAssignment;
+
   const geometryAuto =
     isGeometryAssignment && !isFractionAssignment ? readGeometryAuto(sub) : null;
 
@@ -1366,7 +1369,7 @@ function Inner() {
             </div>
           )
         ) : auto ? (
-          <div className={`grid grid-cols-2 gap-3 ${(fractionWorksheet?.topic === "calculation" || isEquationAssignment || isPercentageAssignment) ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
+          <div className={`grid grid-cols-2 gap-3 ${showPartialAutoCount ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
             <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {correctLabel}
@@ -1376,7 +1379,7 @@ function Inner() {
               </div>
             </div>
 
-            {(fractionWorksheet?.topic === "calculation" || isEquationAssignment || isPercentageAssignment) ? <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+            {showPartialAutoCount ? <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wide text-slate-500">{partialLabel}</div>
               <div className="mt-1 text-2xl font-black text-slate-950">{auto.partialAuto ?? 0}</div>
             </div> : null}
