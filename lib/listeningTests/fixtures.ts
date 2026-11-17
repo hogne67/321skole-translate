@@ -1,4 +1,5 @@
 import type { ListeningTest } from "./types";
+import { listeningScript } from "./types";
 
 export const exampleListeningTest:ListeningTest={
   version:1,title:"En endret avtale",level:"A2",language:"nb",plays:2,playback:"individual",aiVoice:true,
@@ -12,3 +13,16 @@ export const exampleListeningTest:ListeningTest={
     {id:"summary",type:"best_summary",prompt:"Hvilken oppsummering passer best?",options:["Nora foreslår en ny dag og et nytt sted for å planlegge en tur","Nora skal ta med en liste over det de trenger","Den andre har kjøpt et kart til turen"],correctAnswer:"Nora foreslår en ny dag og et nytt sted for å planlegge en tur"},
   ],
 };
+
+const startClips=[
+  {taskId:"start-1",script:"Hei! Jeg har bursdag på lørdag. Vi skal feire hjemme hos meg. Du er velkommen!"},
+  {taskId:"start-2",script:"I bursdagen skal vi spise pizza sammen. Etter maten får alle et stykke kake."},
+  {taskId:"start-3",script:"Bursdagen min begynner klokken fem. Du kan komme litt før, hvis du vil."},
+  {taskId:"start-4",script:"Ta med varme klær til bursdagen. Vi skal være litt ute i hagen etter maten."},
+];
+export const exampleStartListeningTest:ListeningTest={version:1,title:"En bursdag",level:"A1Start",language:"nb",plays:2,playback:"individual",script:listeningScript(startClips),clips:startClips,tasks:[
+  {id:"start-1",type:"mcq",prompt:"Hvor skal de feire bursdagen?",options:["Hjemme","På skolen","I parken"],correctAnswer:"Hjemme"},
+  {id:"start-2",type:"mcq",prompt:"Hva skal de spise først?",options:["Kake","Pizza","Fisk"],correctAnswer:"Pizza"},
+  {id:"start-3",type:"mcq",prompt:"Når begynner bursdagen?",options:["Klokken fire","Klokken seks","Klokken fem"],correctAnswer:"Klokken fem"},
+  {id:"start-4",type:"mcq",prompt:"Hva skal de ta med?",options:["Varme klær","En bok","En stol"],correctAnswer:"Varme klær"},
+]};

@@ -46,6 +46,7 @@
 .listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-header { padding-bottom: 4mm; margin-bottom: 4mm; }
 .listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-task > td { padding-bottom: 3.5mm; }
 .listening-test-print-sheet[data-sheet="learner"] .reading-test-sheet-options li { margin-bottom: 1.5mm; }
+.listening-test-print-sheet .reading-test-sheet-source h4 { margin: 3mm 0 1mm; font-size: 11pt; }
 @media (max-width: 600px) {
   .reading-test-print-panel { padding: 8px; }
   .reading-test-print-sheet { padding: 6mm; }

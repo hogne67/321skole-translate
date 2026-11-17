@@ -1,8 +1,8 @@
-import type { CefrLevel } from "../readingTests/generationGuidance";
 import { readingGenerationPolicy } from "../readingTests/generationBudget";
+import type { ListeningLevel } from "./types";
 
-export function listeningGenerationPolicy(level:CefrLevel) {
-  const base=readingGenerationPolicy(level);
+export function listeningGenerationPolicy(level:ListeningLevel) {
+  const base=readingGenerationPolicy(level==="A1Start"?"A1":level);
   return {...base,totalMs:level==="B2"?110_000:level==="C1"||level==="C2"?210_000:150_000,maxAttempts:level==="B2"?2:3};
 }
 

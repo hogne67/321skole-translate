@@ -431,7 +431,7 @@ function buildOutputShape(level: CefrLevel, language: string, topic: string) {
   return `Return valid JSON in exactly this structure.${evidenceInstruction}\n` + JSON.stringify(shape, null, 2);
 }
 
-async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
+export async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
   const authHeader =
     req.headers.get("authorization") || req.headers.get("Authorization");
 

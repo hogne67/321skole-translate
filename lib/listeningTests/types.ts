@@ -1,10 +1,12 @@
 import type { CefrLevel } from "../readingTests/generationGuidance";
 import type { PrintableReadingTask } from "../readingTests/print";
 
+export type ListeningLevel = CefrLevel | "A1Start";
+export type ListeningClip = {taskId:string;script:string;audioDataUrl?:string;aiVoice?:boolean};
 export type ListeningTest = {
   version: 1;
   title: string;
-  level: CefrLevel;
+  level: ListeningLevel;
   language: string;
   script: string;
   tasks: PrintableReadingTask[];
@@ -12,10 +14,14 @@ export type ListeningTest = {
   playback: "individual" | "teacher";
   audioDataUrl?: string;
   aiVoice?: boolean;
+  clips?: ListeningClip[];
 };
 
 export const MAX_LISTENING_AUDIO_BYTES = 8 * 1024 * 1024;
 export const LISTENING_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/mp4", "audio/webm"];
+export function listeningScript(clips:ListeningClip[]){return clips.map(clip=>clip.script).join("\n\n");}
+export function listeningHasAudio(test:Pick<ListeningTest,"level"|"clips"|"audioDataUrl">){return test.level==="A1Start"?test.clips?.length===4&&test.clips.every(clip=>validListeningAudio(clip.audioDataUrl)):validListeningAudio(test.audioDataUrl);}
+export function listeningAudioBytes(value:string){const encoded=value.slice(value.indexOf(",")+1);return Math.floor(encoded.length*3/4)-(encoded.endsWith("==")?2:encoded.endsWith("=")?1:0);}
 
 export function validListeningAudio(value: unknown): value is string {
   return typeof value === "string" && value.length <= Math.ceil(MAX_LISTENING_AUDIO_BYTES * 4 / 3) + 100
@@ -24,7 +30,7 @@ export function validListeningAudio(value: unknown): value is string {
 
 export function listeningTestError(test: ListeningTest): string | null {
   if (!test.title.trim() || test.title.length > 200 || !test.script.trim() || test.script.length > 4000) return "content";
-  if (!["A1", "A2", "B1", "B2", "C1", "C2"].includes(test.level) || !/^[a-z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$/.test(test.language)) return "content";
+  if (!["A1Start", "A1", "A2", "B1", "B2", "C1", "C2"].includes(test.level) || !/^[a-z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$/.test(test.language)) return "content";
   if (![1, 2, 3].includes(test.plays) || !["individual", "teacher"].includes(test.playback)) return "content";
   if (!test.tasks.length || test.tasks.length > 24 || new Set(test.tasks.map(task => task.id)).size !== test.tasks.length) return "tasks";
   for (const task of test.tasks) {
@@ -38,6 +44,14 @@ export function listeningTestError(test: ListeningTest): string | null {
     } else return "tasks";
   }
   if (test.audioDataUrl && !validListeningAudio(test.audioDataUrl)) return "audio";
+  if(test.level==="A1Start"){
+    if(test.audioDataUrl||test.tasks.length!==4||test.tasks.some(task=>task.type!=="mcq"||task.options?.length!==3)||test.clips?.length!==4)return "clips";
+    if(test.script!==listeningScript(test.clips))return "clips";
+    for(const [index,clip]of test.clips.entries()){
+      if(clip.taskId!==test.tasks[index].id||!clip.script.trim()||clip.script.length>500)return "clips";
+      if(clip.audioDataUrl&&(!validListeningAudio(clip.audioDataUrl)||listeningAudioBytes(clip.audioDataUrl)>MAX_LISTENING_AUDIO_BYTES/4))return "audio";
+    }
+  }else if(test.clips!==undefined)return "clips";
   return null;
 }
 
@@ -56,15 +70,30 @@ export function parseListeningTest(raw: unknown): ListeningTest | null {
     tasks.push({id: task.id, prompt: task.prompt, type: task.type as PrintableReadingTask["type"], options: task.options as string[] | undefined, correctAnswer: task.correctAnswer, order: index + 1});
   }
   if (value.audioDataUrl !== undefined && !validListeningAudio(value.audioDataUrl)) return null;
-  const test: ListeningTest = {version: 1, title: value.title, script: value.script, level: value.level as CefrLevel, language: value.language, tasks,
+  let clips:ListeningClip[]|undefined;
+  if(value.clips!==undefined){
+    if(!Array.isArray(value.clips)||value.clips.length!==4)return null;
+    clips=[];
+    for(const rawClip of value.clips){
+      if(!rawClip||typeof rawClip!=="object")return null;
+      const clip=rawClip as Record<string,unknown>;
+      if(typeof clip.taskId!=="string"||typeof clip.script!=="string"||clip.audioDataUrl!==undefined&&!validListeningAudio(clip.audioDataUrl))return null;
+      clips.push({taskId:clip.taskId,script:clip.script,...(clip.audioDataUrl?{audioDataUrl:clip.audioDataUrl as string}:{}),aiVoice:clip.aiVoice===true});
+    }
+  }
+  const test: ListeningTest = {version: 1, title: value.title, script: value.script, level: value.level as ListeningLevel, language: value.language, tasks,
     plays: typeof value.plays === "number" ? value.plays : 2, playback: value.playback === "teacher" ? "teacher" : "individual",
-    audioDataUrl: value.audioDataUrl as string | undefined, aiVoice: value.aiVoice === true};
+    audioDataUrl: value.audioDataUrl as string | undefined, aiVoice: value.aiVoice === true,...(clips?{clips}:{})};
   return listeningTestError(test) ? null : test;
 }
 
 export function listeningTestFromGenerated(raw: unknown, plays: number, playback: ListeningTest["playback"]): ListeningTest | null {
   if (!raw || typeof raw !== "object") return null;
   const value = raw as Record<string,unknown>;
+  if(value.level==="A1Start"){
+    const parsed=parseListeningTest({...value,plays,playback});
+    return parsed?{...parsed,tasks:shuffleListeningOptions(parsed.tasks)}:null;
+  }
   if (!value.tasks || typeof value.tasks !== "object") return null;
   const groups=value.tasks as Record<string,unknown>;
   if (!Array.isArray(groups.mcq) || !Array.isArray(groups.trueFalse) || !groups.bestSummary || typeof groups.bestSummary!=="object") return null;
@@ -85,10 +114,11 @@ export function shuffleListeningOptions(tasks:PrintableReadingTask[], random:()=
   });
 }
 
-export type ListeningStudentTest = Omit<ListeningTest, "script" | "version">;
+export type ListeningStudentTest = Omit<ListeningTest, "script" | "version" | "clips"> & {clips?:Omit<ListeningClip,"script">[]};
 
 export function listeningStudentTest(test: ListeningTest): ListeningStudentTest {
   return {title:test.title,level:test.level,language:test.language,tasks:test.tasks,plays:test.plays,playback:test.playback,aiVoice:test.aiVoice,
+    ...(test.clips?{clips:test.clips.map(clip=>({taskId:clip.taskId,aiVoice:clip.aiVoice,...(test.playback==="individual"?{audioDataUrl:clip.audioDataUrl}:{})}))}:{}),
     ...(test.playback==="individual"?{audioDataUrl:test.audioDataUrl}:{})};
 }
 

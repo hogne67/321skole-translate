@@ -2,10 +2,11 @@
 
 Entry point: `/{locale}/tools/listening-tests`, linked from the assessment overview.
 
-- One single-voice recording per test; A1–C2 and the same three question types as reading tests.
+- A1 Start uses four independent short messages and four multiple-choice questions. A1–C2 retain one single-voice recording and the three reading-test question types. A1 Start is an introductory practice format, not an official CEFR level.
+- The A1 Start learner sees one question and one recording at a time, advances with Next and receives results only at the end. The question is narrated before each message; the default is two plays per clip. The teacher can prompt a theme, edit or replace individual clips and download each recording.
 - Generation shares the reading service, validation and independent A2–C2 content review. Listening adds checks against visual information and multiple voices. A failed review cannot return an approved test.
 - Speech uses an authenticated, metered endpoint and returns an MP3 without persisting the recording. `OPENAI_LISTENING_MODEL` and `OPENAI_LISTENING_TTS_MODEL` optionally override the configured defaults.
-- The teacher can upload audio, edit tasks and choose 1–3 plays. Editing the script, level or language clears the current recording.
+- The teacher can upload audio, edit tasks and choose 1–3 plays per recording. A1 Start script or prompt edits clear only the matching recording. Level or language changes clear all recordings.
 - Learner HTML is a self-contained offline activity. It excludes the script, performs scoring in memory, and makes no requests or submissions. Its answer key is necessarily embedded for local scoring; it is intended for classroom practice and teacher-led assessment, not secure examinations.
 - Individual mode embeds audio in the HTML. Teacher playback mode excludes it; the teacher plays the separate audio file while learners use either the HTML questions or the printed sheet.
 - Save to My Content stores a private `listening_test` lesson, including script and keys. Audio is uploaded directly to private Firebase Storage through a single-use upload session, checked for size, type, privacy and SHA-256 before committing the lesson. Reopening fetches version-bound authenticated audio chunks. Concurrent edits fail rather than overwrite another revision.

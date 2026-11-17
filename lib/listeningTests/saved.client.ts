@@ -20,17 +20,20 @@ function session(){
 export async function saveListeningTest(test:ListeningTest,version:ListeningSavedVersion|null,signal:AbortSignal):Promise<ListeningSavedVersion>{
   const current=session(),blob=test.audioDataUrl?audioBlob(test.audioDataUrl):null;
   const audio=blob?{contentType:blob.type,size:blob.size,sha256:await sha256(blob)}:null;
+  const clipBlobs=new Map((test.clips??[]).filter(clip=>clip.audioDataUrl).map(clip=>[clip.taskId,audioBlob(clip.audioDataUrl!)]));
+  const clipAudios=Object.fromEntries(await Promise.all([...clipBlobs].map(async([key,blob])=>[key,{contentType:blob.type,size:blob.size,sha256:await sha256(blob)}])));
   signal.throwIfAborted();
   const response=await fetch("/api/listening-tests/saved",{method:"POST",signal,headers:{...await current.headers(),"Content-Type":"application/json"},
-    body:JSON.stringify({...version,test:listeningMetadata(test),audio})});current.check();
+    body:JSON.stringify({...version,test:listeningMetadata(test),audio,...(test.clips?{clipAudios}:{})})});current.check();
   if(!response.ok)throw new ListeningClientError(response.status);
   const pending=await response.json();
   if(!validListeningId(pending.id)||!validListeningId(pending.saveId))throw new ListeningClientError(503);
   try{
-    if(blob){
-      const upload=new URL(pending.uploadUrl);
+    const targets=[...(blob?[{url:pending.uploadUrl,blob}]:[]),...[...clipBlobs].map(([key,blob])=>({url:pending.clipUploadUrls?.[key],blob}))];
+    for(const target of targets){
+      const upload=new URL(target.url);
       if(upload.protocol!=="https:"||upload.hostname!=="storage.googleapis.com"||upload.username||upload.password)throw new ListeningClientError(503);
-      const uploaded=await fetch(upload.href,{method:"PUT",body:blob,signal,credentials:"omit",referrerPolicy:"no-referrer",headers:{"Content-Type":blob.type}});
+      const uploaded=await fetch(upload.href,{method:"PUT",body:target.blob,signal,credentials:"omit",referrerPolicy:"no-referrer",headers:{"Content-Type":target.blob.type}});
       current.check();if(!uploaded.ok)throw new ListeningClientError(503);
     }
     const finished=await fetch(`/api/listening-tests/saved/${pending.id}`,{method:"POST",signal,headers:{...await current.headers(),"Content-Type":"application/json"},body:JSON.stringify({saveId:pending.saveId})});current.check();
@@ -51,9 +54,8 @@ export async function loadSavedListeningTest(id:string,signal:AbortSignal):Promi
   if(!response.ok)throw new ListeningClientError(response.status);
   const saved=await response.json(),test=parseListeningTest(saved.test);
   if(!test||!validListeningId(saved.revision)||saved.id!==id)throw new ListeningClientError(503);
-  if(saved.audio){
-    const audio=saved.audio;
-    if(audio.url!==`/api/listening-tests/saved/${id}/audio`||!Number.isSafeInteger(audio.size)||audio.size<=0||audio.size>MAX_LISTENING_AUDIO_BYTES
+  async function readAudio(audio:{url:string;size:number;generation:string;sha256:string;contentType:string},expectedUrl:string){
+    if(audio.url!==expectedUrl||!Number.isSafeInteger(audio.size)||audio.size<=0||audio.size>MAX_LISTENING_AUDIO_BYTES
       ||typeof audio.generation!=="string"||typeof audio.sha256!=="string")throw new ListeningClientError(503);
     const chunks:Blob[]=[];
     for(let start=0;start<audio.size;start+=LISTENING_READ_CHUNK_BYTES){
@@ -64,7 +66,15 @@ export async function loadSavedListeningTest(id:string,signal:AbortSignal):Promi
     }
     const blob=new Blob(chunks,{type:audio.contentType});
     if(await sha256(blob)!==audio.sha256)throw new ListeningClientError(503);
-    test.audioDataUrl=await dataUrl(blob);
+    return await dataUrl(blob);
+  }
+  if(saved.audio)test.audioDataUrl=await readAudio(saved.audio,`/api/listening-tests/saved/${id}/audio`);
+  if(saved.clipAudios){
+    if(!test.clips||typeof saved.clipAudios!=="object"||Object.keys(saved.clipAudios).some(key=>!test.clips?.some(clip=>clip.taskId===key)))throw new ListeningClientError(503);
+    for(const clip of test.clips){
+      const audio=saved.clipAudios[clip.taskId];
+      if(audio){if(audio.size>MAX_LISTENING_AUDIO_BYTES/4)throw new ListeningClientError(503);clip.audioDataUrl=await readAudio(audio,`/api/listening-tests/saved/${id}/audio?clip=${encodeURIComponent(clip.taskId)}`);}
+    }
   }
   signal.throwIfAborted();current.check();
   return {test,version:{id,revision:saved.revision}};

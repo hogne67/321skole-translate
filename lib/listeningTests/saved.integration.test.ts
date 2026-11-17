@@ -12,6 +12,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { beginListeningSave, cancelListeningSave, finishListeningSave, ListeningSaveError, loadListeningTest, readListeningAudio } from "./saved.server";
 import { listeningMetadata } from "./persistence";
 import { exampleListeningTest } from "./fixtures";
+import { exampleStartListeningTest } from "./fixtures";
 import { GET as getRoute } from "../../app/api/listening-tests/saved/[id]/route";
 import { loadMyContent } from "../contentFeed";
 
@@ -104,4 +105,19 @@ test("an 8 MB recording is loaded in bounded chunks; changed file versions and f
   const part=await readListeningAudio("owner",request.id,new Request("https://synthetic.invalid",{headers:{range:"bytes=0-8388607"}}));assert.equal((await part.arrayBuffer()).byteLength,1024*1024);assert.equal(part.headers.get("content-range"),"bytes 0-1048575/8388608");
   await assert.rejects(readListeningAudio("owner",request.id,new Request("https://synthetic.invalid",{headers:{"if-match":"\"102\""}})),denied(412));
   await db.doc(`lessons/${request.id}`).update({"listeningAudio.storagePath":"private-listening-tests/peer/other/foreign"});await assert.rejects(loadListeningTest("owner",request.id),denied(503));
+});
+
+test("A1 Start saves four separately bound recordings atomically and restores their slots",async()=>{
+  const clipAudios=Object.fromEntries(exampleStartListeningTest.clips!.map((clip,index)=>[clip.taskId,metadata(Buffer.from([index,2,3]))]));
+  const request=await beginListeningSave(owner,{test:listeningMetadata(exampleStartListeningTest),clipAudios});
+  assert.equal(Object.keys(request.clipUploadUrls!).length,4);
+  for(const [path,file]of files){const index=exampleStartListeningTest.clips!.findIndex(clip=>path.endsWith(clip.taskId));file.bytes=Buffer.from([index,2,3]);}
+  await finishListeningSave(owner,request.id,request.saveId);
+  const saved=await loadListeningTest("owner",request.id);assert.equal(Object.keys(saved.clipAudios!).length,4);assert.equal(saved.test.clips?.length,4);assert.ok(!JSON.stringify(saved.test).includes("base64"));
+  for(const [index,clip]of exampleStartListeningTest.clips!.entries()){
+    const response=await readListeningAudio("owner",request.id,new Request(`https://synthetic.invalid?clip=${clip.taskId}`));assert.deepEqual([...new Uint8Array(await response.arrayBuffer())],[index,2,3]);
+  }
+  const document=(await db.doc(`lessons/${request.id}`).get()).data()!;
+  await db.doc(`lessons/${request.id}`).update({"listeningClipAudio.start-1":document.listeningClipAudio["start-2"]});
+  await assert.rejects(loadListeningTest("owner",request.id),denied(503));
 });

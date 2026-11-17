@@ -1,6 +1,7 @@
 import { orderedPrintTasks, printTrueFalseAnswer, type ReadingTestPrintContent, type ReadingTestPrintLayout } from "@/lib/readingTests/print";
 import { getReadingTestPrintCopy } from "@/lib/readingTests/printCopy";
 import { getListeningCopy, listeningText } from "@/lib/listeningTests/copy";
+import { getListeningStartCopy } from "@/lib/listeningTests/startCopy";
 
 export default function ReadingTestWorksheet({ content, locale, mode, layout = "after_text" }: {
   content: ReadingTestPrintContent;
@@ -13,13 +14,14 @@ export default function ReadingTestWorksheet({ content, locale, mode, layout = "
   const isKey = mode === "key";
   const listening = content.modality === "listening";
   const listenCopy = getListeningCopy(locale);
+  const startCopy=getListeningStartCopy(locale);
   return (
     <article className={`reading-test-print-sheet${listening ? " listening-test-print-sheet" : ""}`} data-sheet={mode}>
       <header className="reading-test-sheet-header">
         <p className="reading-test-sheet-brand">{copy.brand}</p>
-        <p className="reading-test-sheet-kind">{listening ? `${listenCopy.studentTitle} · ` : ""}{isKey ? listening ? listenCopy.teacherPrint : copy.key : copy.learner} · {copy.level}: {content.level} · {copy.tasks}: {tasks.length}</p>
+        <p className="reading-test-sheet-kind">{listening ? `${listenCopy.studentTitle} · ` : ""}{isKey ? listening ? listenCopy.teacherPrint : copy.key : copy.learner} · {copy.level}: {content.level==="A1Start"?startCopy.label:content.level} · {copy.tasks}: {tasks.length}</p>
         <h2 dir="auto">{content.title}</h2>
-        {isKey ? <p className="reading-test-sheet-note">{listening ? listenCopy.printNote : copy.teacherNote}</p> : (
+        {isKey ? <p className="reading-test-sheet-note">{listening ? content.listeningClips?startCopy.printNote:listenCopy.printNote : copy.teacherNote}</p> : (
           <div className="reading-test-sheet-identity"><span>{copy.name}: <span className="reading-test-sheet-line" /></span><span>{copy.date}: <span className="reading-test-sheet-line reading-test-sheet-line-short" /></span></div>
         )}
       </header>
@@ -28,14 +30,14 @@ export default function ReadingTestWorksheet({ content, locale, mode, layout = "
         <section className="reading-test-sheet-source" aria-label={listening ? listenCopy.scriptPrint : copy.reading}>
           <h3>{listening ? listenCopy.scriptPrint : copy.reading}</h3>
           <div lang={content.language} dir="auto">
-            {content.sourceText.trim().split(/\n\s*\n/u).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            {content.listeningClips?content.listeningClips.map((clip,index)=><div key={clip.taskId}><h4>{listeningText(startCopy.clip,{number:index+1})}</h4><p>{tasks.find(task=>task.id===clip.taskId)?.prompt}</p><p>{clip.script}</p></div>):content.sourceText.trim().split(/\n\s*\n/u).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
           </div>
         </section>
       )}
 
       <section className={`reading-test-sheet-questions${!listening && !isKey && layout === "new_page" ? " reading-test-questions-new-page" : ""}`} aria-label={copy.tasks}>
         <h3>{copy.tasks}</h3>
-        {!isKey && <p className="reading-test-sheet-instructions">{listening ? `${listenCopy.printInstructions} ${listeningText(listenCopy.teacherPolicy, {count: content.plays ?? 2})}` : copy.instructions}</p>}
+        {!isKey && <p className="reading-test-sheet-instructions">{listening ? `${content.listeningClips?startCopy.printInstructions:listenCopy.printInstructions} ${listeningText(content.listeningClips?startCopy.teacherPolicy:listenCopy.teacherPolicy, {count: content.plays ?? 2})}` : copy.instructions}</p>}
         <table className="reading-test-sheet-task-list" role="presentation"><tbody>
           {tasks.map((task, index) => {
             const trueFalseAnswer = task.type === "true_false" ? printTrueFalseAnswer(task.correctAnswer) : null;

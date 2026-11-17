@@ -17,6 +17,7 @@ export type ReadingTestPrintContent = {
   unsupportedTaskCount?: number;
   modality?: "reading" | "listening";
   plays?: number;
+  listeningClips?: {taskId:string;script:string}[];
 };
 
 export type ReadingTestPrintLayout = "auto" | "after_text" | "new_page";
