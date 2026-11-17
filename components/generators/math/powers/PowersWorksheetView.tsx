@@ -1,18 +1,21 @@
 "use client";
 
-import type { Ref } from "react";
+import type { CSSProperties, Ref } from "react";
 import MathText from "../MathTextSupport";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
-import { getPowersCopy, gradePowersTask, gradePowersWorksheet, powersTaskAnswer, powersTaskHint, powersTaskPrompt, powersTasksPerPage, readPowersAnswer, type PowersAnswer, type PowersWorksheet } from "@/lib/math/powers/worksheet";
+import { getPowersCopy, gradePowersTask, gradePowersWorksheet, powersTaskAnswer, powersTaskHint, powersTaskPrompt, readPowersAnswer, type PowersAnswer, type PowersWorksheet } from "@/lib/math/powers/worksheet";
+import { powersPageCapacity, powersPrintPages } from "@/lib/math/powers/printLayout";
 import "../length/length.css";
 import "./powers.css";
 
 export default function PowersWorksheetView({ worksheet, answersByTaskId = {}, onAnswerChange, readOnly = false, showAutoCheck = false, printMode = false, printRef }: { worksheet: PowersWorksheet; answersByTaskId?: Record<string, unknown>; onAnswerChange?: (id: string, value: PowersAnswer) => void; readOnly?: boolean; showAutoCheck?: boolean; printMode?: boolean; printRef?: Ref<HTMLDivElement> }) {
   const common = getMeasurementCopy(worksheet.language), copy = getPowersCopy(worksheet.language), grade = gradePowersWorksheet(worksheet, answersByTaskId);
-  const tasksPerPage = powersTasksPerPage(worksheet.settings);
-  const pages = Array.from({ length: Math.ceil(worksheet.tasks.length / tasksPerPage) }, (_, i) => worksheet.tasks.slice(i * tasksPerPage, (i + 1) * tasksPerPage));
-  return <div ref={printRef} className={`length-sheet powers-sheet${printMode ? " length-paper" : ""}`}>
-    {pages.map((tasks, page) => <section className="length-page" key={page}>
+  const pages = printMode ? powersPrintPages(worksheet.tasks, worksheet.settings) : [{ tasks: worksheet.tasks, startIndex: 0 }];
+  const capacity = powersPageCapacity(worksheet.settings);
+  const rowHeight = (count: number, height: number) => `${(height - (Math.ceil(count / 2) - 1) * 2) / Math.ceil(count / 2)}mm`;
+  const printStyle = { "--powers-first-row": rowHeight(capacity.first, 210), "--powers-next-row": rowHeight(capacity.following, 252) } as CSSProperties;
+  return <div ref={printRef} style={printMode ? printStyle : undefined} className={`length-sheet powers-sheet${printMode ? " length-paper" : ""}`}>
+    {pages.map(({ tasks, startIndex }, page) => <section className="length-page" key={page}>
       {page === 0 ? <>
         <div className="length-brand"><img src="/logo321ny.png" alt="321 skole" width={40} height={40} /><div><strong>321 skole</strong><small>321school.com</small></div><span>{common.worksheet}</span></div>
         <h2>{worksheet.title}</h2><div className="length-instructions"><MathText text={worksheet.instructions} /></div>
@@ -20,7 +23,7 @@ export default function PowersWorksheetView({ worksheet, answersByTaskId = {}, o
         {showAutoCheck && !printMode ? <p className="length-summary">{common.correct}: {grade.correctAuto} · {copy.partial}: {grade.partialAuto} · {common.wrong}: {grade.wrongAuto} · {common.unanswered}: {grade.unansweredAuto} · {common.score}: {grade.percentAuto}%</p> : null}
       </> : <h2 className="length-continuation">{worksheet.title}</h2>}
       <div className="length-tasks powers-tasks">{tasks.map((task, index) => {
-        const number = page * tasksPerPage + index + 1, label = `${common.task} ${number}`, answer = readPowersAnswer(printMode ? null : answersByTaskId[task.id]), result = gradePowersTask(task, answersByTaskId[task.id]);
+        const number = startIndex + index + 1, label = `${common.task} ${number}`, answer = readPowersAnswer(printMode ? null : answersByTaskId[task.id]), result = gradePowersTask(task, answersByTaskId[task.id]);
         const powerTask = task.type === "write_power" || task.type === "power_rules";
         const change = (next: Partial<PowersAnswer>) => onAnswerChange?.(task.id, { ...answer, ...next });
         return <div className="length-task powers-task" key={task.id} data-task-type={task.type}>

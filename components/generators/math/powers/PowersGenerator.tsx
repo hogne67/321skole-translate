@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { getMeasurementCopy } from "@/lib/math/measurement/worksheet";
 import { DEFAULT_POWERS_SETTINGS, POWERS_MODES, POWERS_RULE_OPERATIONS, getPowersCopy, normalizePowersSettings, sanitizePowersWorksheet, type PowersSettings, type PowersWorksheet } from "@/lib/math/powers/worksheet";
+import { POWERS_MAX_TASK_COUNT, powersPageCapacity, powersFullPageCounts, powersCountAfterOptionsChange } from "@/lib/math/powers/printLayout";
 import MathGeneratorBackLink from "../MathGeneratorBackLink";
 import MathGeneratorActions from "../MathGeneratorActions";
 import MathSpacePicker from "../MathSpacePicker";
@@ -15,6 +16,7 @@ import PowersWorksheetView from "./PowersWorksheetView";
 export default function PowersGenerator() {
   const locale = useLocale(), copy = getPowersCopy(locale), common = getMeasurementCopy(locale);
   const [settings, setSettings] = useState<PowersSettings>({ ...DEFAULT_POWERS_SETTINGS });
+  const [countMode, setCountMode] = useState<"pages" | "custom">("pages");
   const [worksheet, setWorksheet] = useState<PowersWorksheet | null>(null);
   const [showAnswerKey, setShowAnswerKey] = useState(false), [language, setLanguage] = useState(locale);
   const [generating, setGenerating] = useState(false), [error, setError] = useState("");
@@ -23,11 +25,16 @@ export default function PowersGenerator() {
     const result = sanitizePowersWorksheet(data.mathWorksheet);
     if (!result) return false;
     setWorksheet(result); setSettings(result.settings); setShowAnswerKey(result.showAnswerKey); setLanguage(result.language);
+    setCountMode(powersFullPageCounts(result.settings).includes(result.settings.taskCount) ? "pages" : "custom");
     persistence.rememberSaved(id, result);
     return true;
   });
   const busy = generating || persistence.saving || restored.loading;
-  function change(next: Partial<PowersSettings>) { setSettings(current => ({ ...current, ...next })); setWorksheet(null); setError(""); }
+  function change(next: Partial<PowersSettings>) {
+    setSettings(current => { const updated = { ...current, ...next }; return next.taskCount === undefined ? { ...updated, taskCount: powersCountAfterOptionsChange(current.taskCount, current, updated, countMode === "custom") } : updated; });
+    setWorksheet(null); setError("");
+  }
+  const capacity = powersPageCapacity(settings), pageCounts = powersFullPageCounts(settings);
   let validation = "";
   try { normalizePowersSettings(settings); }
   catch { validation = copy.invalid; }
@@ -47,7 +54,12 @@ export default function PowersGenerator() {
       <label className="length-field">{copy.maxBase}<input disabled={busy} type="number" min={2} max={12} value={Number.isNaN(settings.maxBase) ? "" : settings.maxBase} onChange={event => change({ maxBase: event.target.valueAsNumber })} /></label>
       <label className="length-field">{copy.maxExponent}<input disabled={busy} type="number" min={2} max={6} aria-describedby="powers-exponent-help" value={Number.isNaN(settings.maxExponent) ? "" : settings.maxExponent} onChange={event => change({ maxExponent: event.target.valueAsNumber })} /><small id="powers-exponent-help">{copy.exponentHelp}</small></label>
       {settings.taskType === "mixed" || settings.taskType === "power_rules" ? <label className="length-field">{copy.operation}<select disabled={busy} value={settings.ruleOperation} onChange={event => change({ ruleOperation: event.target.value as PowersSettings["ruleOperation"] })}>{POWERS_RULE_OPERATIONS.map(operation => <option key={operation} value={operation}>{copy[operation]}</option>)}</select></label> : null}
-      <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={60} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label>
+      <label className="length-field">{common.pageCount}<select disabled={busy} aria-describedby="powers-page-hint" value={countMode === "custom" ? "custom" : settings.taskCount} onChange={event => {
+        if (event.target.value === "custom") setCountMode("custom");
+        else { setCountMode("pages"); change({ taskCount: Number(event.target.value) }); }
+      }}>{pageCounts.map((count, page) => <option key={count} value={count}>{common.pageOption.replace("{pages}", String(page + 1)).replace("{tasks}", String(count))}</option>)}<option value="custom">{common.customCount}</option></select></label>
+      {countMode === "custom" ? <label className="length-field">{common.count}<input disabled={busy} type="number" min={1} max={POWERS_MAX_TASK_COUNT} value={Number.isNaN(settings.taskCount) ? "" : settings.taskCount} onChange={event => change({ taskCount: event.target.valueAsNumber })} /></label> : null}
+      <p id="powers-page-hint">{copy.pageHint.replace("{first}", String(capacity.first)).replace("{following}", String(capacity.following))}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.includeZeroExponent} aria-describedby="powers-zero-help" onChange={event => change({ includeZeroExponent: event.target.checked })} />{copy.zero}</label>
       <p id="powers-zero-help" className="powers-control-help">{copy.zeroHelp}</p>
       <label className="length-toggle"><input disabled={busy} type="checkbox" checked={settings.showSupport} onChange={event => change({ showSupport: event.target.checked })} />{copy.support}</label>

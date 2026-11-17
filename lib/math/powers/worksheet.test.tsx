@@ -152,11 +152,11 @@ test("student fields are labelled and answers and answer key stay hidden until e
   assert.equal(checked("input[readonly]").length, 6); assert.equal(checked(".length-correct").length, 4); assert.match(checked(".length-summary").text(), /100%/);
 });
 
-test("paper has six tasks per page, blank answer spaces and an optional separate key", () => {
+test("paper fits a full first sheet with blank answer spaces and an optional separate key", () => {
   const sheet = generatePowersWorksheet({ ...defaults, taskCount: 13 }, "nb", true);
   const answers = Object.fromEntries(sheet.tasks.map(t => [t.id, answerFor(t)]));
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} answersByTaskId={answers} printMode />));
-  assert.equal($(".length-page").length, 3); assert.deepEqual($(".length-page").map((_, el) => $(el).find(".powers-task").length).get(), [6, 6, 1]);
+  assert.equal($(".length-page").length, 1); assert.deepEqual($(".length-page").map((_, el) => $(el).find(".powers-task").length).get(), [13]);
   assert.equal($(".length-identity").length, 1); assert.equal($("input").length, 0); assert.equal($(".length-result").length, 0); assert.equal($(".length-key > div").length, 13);
   assert.equal($(".powers-base-blank").length, sheet.tasks.filter(t => t.type === "write_power" || t.type === "power_rules").length);
   const noKey = load(renderToStaticMarkup(<View worksheet={{ ...sheet, showAnswerKey: false }} printMode />)); assert.equal(noKey(".length-key").length, 0);
@@ -165,7 +165,7 @@ test("paper has six tasks per page, blank answer spaces and an optional separate
 test("support pages leave extra space and preserve consecutive numbering", () => {
   const sheet = generatePowersWorksheet({ ...defaults, taskCount: 9, showSupport: true }, "pt", true);
   const $ = load(renderToStaticMarkup(<View worksheet={sheet} printMode />));
-  assert.deepEqual($(".length-page").map((_, el) => $(el).find(".powers-task").length).get(), [4, 4, 1]);
+  assert.deepEqual($(".length-page").map((_, el) => $(el).find(".powers-task").length).get(), [9]);
   assert.deepEqual($(".length-number").map((_, el) => $(el).text()).get(), ["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
   assert.equal($(".powers-hint").length, 9);
 });

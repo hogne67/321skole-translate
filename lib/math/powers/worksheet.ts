@@ -1,4 +1,5 @@
 import { normalizeMathWorksheetLanguage, type MathWorksheetLanguage } from "../taxonomy";
+import { POWERS_MAX_TASK_COUNT, powersPageCapacity } from "./printLayout";
 
 export const POWERS_TASK_TYPES = ["write_power", "expand", "evaluate", "power_rules"] as const;
 export const POWERS_MODES = [...POWERS_TASK_TYPES, "mixed"] as const;
@@ -7,14 +8,14 @@ export type PowersSettings = { taskType: typeof POWERS_MODES[number]; maxBase: n
 export type PowersTask = { id: string; type: typeof POWERS_TASK_TYPES[number]; base: number; exponent: number; operation: "multiply" | "divide" | null; otherExponent: number | null };
 export type PowersAnswer = { base: string; exponent: string; value: string };
 export type PowersWorksheet = { version: 1; kind: "powers"; language: MathWorksheetLanguage; title: string; instructions: string; settings: PowersSettings; tasks: PowersTask[]; showAnswerKey: boolean };
-export const POWERS_TASKS_PER_PAGE = 6;
-export function powersTasksPerPage(settings: PowersSettings): number { return settings.showSupport ? 4 : POWERS_TASKS_PER_PAGE; }
-export const DEFAULT_POWERS_SETTINGS: PowersSettings = { taskType: "mixed", maxBase: 10, maxExponent: 4, taskCount: 12, includeZeroExponent: false, ruleOperation: "mixed", showSupport: false };
+export const POWERS_TASKS_PER_PAGE = powersPageCapacity({ taskType: "mixed", showSupport: false }).first;
+export function powersTasksPerPage(settings: PowersSettings): number { return powersPageCapacity(settings).first; }
+export const DEFAULT_POWERS_SETTINGS: PowersSettings = { taskType: "mixed", maxBase: 10, maxExponent: 4, taskCount: POWERS_TASKS_PER_PAGE, includeZeroExponent: false, ruleOperation: "mixed", showSupport: false };
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const integerIn = (value: unknown, min: number, max: number): value is number => typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
 
 export function normalizePowersSettings(value: unknown): PowersSettings {
-  if (!record(value) || !POWERS_MODES.includes(value.taskType as PowersSettings["taskType"]) || !integerIn(value.maxBase, 2, 12) || !integerIn(value.maxExponent, 2, 6) || !integerIn(value.taskCount, 1, 60) || typeof value.includeZeroExponent !== "boolean" || !POWERS_RULE_OPERATIONS.includes(value.ruleOperation as PowersSettings["ruleOperation"]) || typeof value.showSupport !== "boolean") throw new Error("INVALID_SETTINGS");
+  if (!record(value) || !POWERS_MODES.includes(value.taskType as PowersSettings["taskType"]) || !integerIn(value.maxBase, 2, 12) || !integerIn(value.maxExponent, 2, 6) || !integerIn(value.taskCount, 1, POWERS_MAX_TASK_COUNT) || typeof value.includeZeroExponent !== "boolean" || !POWERS_RULE_OPERATIONS.includes(value.ruleOperation as PowersSettings["ruleOperation"]) || typeof value.showSupport !== "boolean") throw new Error("INVALID_SETTINGS");
   return { taskType: value.taskType as PowersSettings["taskType"], maxBase: value.maxBase, maxExponent: value.maxExponent, taskCount: value.taskCount, includeZeroExponent: value.includeZeroExponent, ruleOperation: value.ruleOperation as PowersSettings["ruleOperation"], showSupport: value.showSupport };
 }
 const superscripts = "⁰¹²³⁴⁵⁶⁷⁸⁹";
@@ -123,6 +124,7 @@ export function gradePowersWorksheet(worksheet: PowersWorksheet, answers: Record
 }
 
 const nb = {
+  pageHint: "Med disse valgene har første ark plass til {first} oppgaver og navn, dato og klasse. Deretter er det plass til {following} oppgaver per ark. Velg eget antall ved behov.",
   title: "Potensregning", subtitle: "Skriv og regn med potenser, gjentatt multiplikasjon og potensregler.",
   instructions: "Skriv som potens, skriv som produkt, regn ut eller bruk potensregler. Som potens beholder du grunntallet og finner eksponenten. Som produkt skriver du like faktorer med × mellom. Regn ut betyr at du skriver tallverdien.",
   taskType: "Oppgavetype", write_power: "Skriv som potens", expand: "Skriv som produkt", evaluate: "Regn ut potensen", power_rules: "Bruk potensregler", mixed: "Blandet", maxBase: "Største grunntall", maxExponent: "Største eksponent", operation: "Potensregler", multiply: "Multiplikasjon", divide: "Divisjon", zero: "Ta med eksponenten 0", support: "Vis forklaringer og støtte", empty: "Klar for første potensark", invalid: "Velg gyldig oppgavetype, grunntall 2–12, eksponent 2–6 og 1–60 oppgaver.", answer: "Svar", base: "Grunntall", exponent: "Eksponent", partial: "Delvis riktig",
@@ -132,10 +134,12 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  pageHint: "With these settings, the first sheet fits {first} tasks and name, date and class. Each following sheet fits {following} tasks. Choose a custom count if needed.",
   title: "Powers and exponents", subtitle: "Write and calculate powers, repeated multiplication and exponent rules.", instructions: "Write as a power, expand as a product, calculate or use exponent rules. For a power, keep the base and find the exponent. For a product, write equal factors separated by ×. Calculate means write the numerical value.",
   taskType: "Task type", write_power: "Write as a power", expand: "Expand as a product", evaluate: "Calculate the power", power_rules: "Use exponent rules", mixed: "Mixed", maxBase: "Largest base", maxExponent: "Largest exponent", operation: "Exponent rules", multiply: "Multiplication", divide: "Division", zero: "Include exponent 0", support: "Show explanations and support", empty: "Ready for your first powers worksheet", invalid: "Choose a valid task type, base 2–12, exponent 2–6 and 1–60 tasks.", answer: "Answer", base: "Base", exponent: "Exponent", partial: "Partly correct", zeroHelp: "Exponent 0 is used in calculation and exponent-rule tasks. The base is always at least 2.", exponentHelp: "Applies to both the question and the answer in exponent rules.", powerPrompt: "Write {product} as a single power.", expandPrompt: "Write {power} as a product of equal factors.", evaluatePrompt: "Calculate {power}.", rulePrompt: "Write as a single power with the same base: {expression}", powerHint: "The base is the repeated factor. The exponent tells you how many equal factors there are.", expandHint: "The exponent tells you how many times to write the base as a factor.", evaluateHint: "Multiply equal factors. Example: 3² = 3 × 3 = 9. For a positive base, a⁰ = 1.", multiplyHint: "Same base: keep the base and add the exponents. aᵐ × aⁿ = aᵐ⁺ⁿ.", divideHint: "Same base: keep the base and subtract the exponents. aᵐ : aⁿ = aᵐ⁻ⁿ.",
 };
 const pt: Copy = {
+  pageHint: "Com estas opções, a primeira folha inclui {first} exercícios e nome, data e turma. Cada folha seguinte inclui {following} exercícios. Podes escolher outra quantidade.",
   title: "Potências", subtitle: "Escrever e calcular potências, multiplicação repetida e regras das potências.", instructions: "Escreve como potência, como produto, calcula ou aplica as regras das potências. Numa potência, mantém a base e encontra o expoente. Num produto, escreve fatores iguais separados por ×. Calcular significa escrever o valor numérico.",
   taskType: "Tipo de exercício", write_power: "Escrever como potência", expand: "Escrever como produto", evaluate: "Calcular a potência", power_rules: "Aplicar as regras das potências", mixed: "Misto", maxBase: "Maior base", maxExponent: "Maior expoente", operation: "Regras das potências", multiply: "Multiplicação", divide: "Divisão", zero: "Incluir o expoente 0", support: "Mostrar explicações e apoio", empty: "Pronto para a primeira ficha de potências", invalid: "Escolhe um tipo válido, base de 2 a 12, expoente de 2 a 6 e de 1 a 60 exercícios.", answer: "Resposta", base: "Base", exponent: "Expoente", partial: "Parcialmente correto", zeroHelp: "O expoente 0 é usado nos exercícios de cálculo e de regras das potências. A base é sempre pelo menos 2.", exponentHelp: "Aplica-se à pergunta e à resposta nas regras das potências.", powerPrompt: "Escreve {product} como uma única potência.", expandPrompt: "Escreve {power} como um produto de fatores iguais.", evaluatePrompt: "Calcula {power}.", rulePrompt: "Escreve como uma única potência com a mesma base: {expression}", powerHint: "A base é o fator que se repete. O expoente indica quantos fatores iguais existem.", expandHint: "O expoente indica quantas vezes a base deve aparecer como fator.", evaluateHint: "Multiplica fatores iguais. Exemplo: 3² = 3 × 3 = 9. Para uma base positiva, a⁰ = 1.", multiplyHint: "Mesma base: mantém a base e soma os expoentes. aᵐ × aⁿ = aᵐ⁺ⁿ.", divideHint: "Mesma base: mantém a base e subtrai os expoentes. aᵐ : aⁿ = aᵐ⁻ⁿ.",
 };

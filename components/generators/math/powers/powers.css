@@ -21,13 +21,24 @@
 .powers-sheet .powers-key > div { display: block; padding: 10px 0; border-bottom: 1px solid #e2e8f0; break-inside: avoid; overflow-wrap: anywhere; }
 @media (max-width: 620px) { .powers-answer { margin-left: 0; } }
 @media print {
-  .powers-task { padding: 2mm 0; }
-  .powers-heading { gap: 3mm; line-height: 1.4; }
-  .powers-heading strong { font-size: 10pt; }
-  .powers-hint { margin: 1.5mm 0; font-size: 8pt; line-height: 1.4; }
-  .powers-answer { margin: 2mm 0 0 6mm; gap: 3mm; font-size: 10pt; }
-  .powers-power-answer { min-height: 11mm; gap: 1mm; }
-  .powers-base-blank { width: 8mm; height: 8mm; margin-top: 3mm; }
-  .powers-exponent-blank { width: 5mm; height: 5mm; }
-  .powers-answer-space { height: 6mm; }
+  .powers-sheet .length-brand { margin-bottom: 2mm; }
+  .powers-sheet h2 { font-size: 14pt; line-height: 1.2; margin: 0 0 2.5mm; }
+  .powers-sheet .length-instructions { font-size: 8.5pt; line-height: 1.3; margin-bottom: 2.5mm; }
+  .powers-sheet .length-identity { margin-bottom: 2mm; }
+  .powers-sheet .length-identity span { padding: 1.5mm; }
+  .powers-sheet .powers-tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8mm; row-gap: 2mm; grid-auto-rows: minmax(var(--powers-next-row), auto); }
+  .powers-sheet .length-page:first-child .powers-tasks { grid-auto-rows: minmax(var(--powers-first-row), auto); }
+  .powers-task { padding: .8mm 0; }
+  .powers-heading { gap: 1.5mm; line-height: 1.1; }
+  .powers-heading .length-number { width: 4mm; }
+  .powers-heading strong { font-size: 9pt; }
+  .powers-hint { margin: .5mm 0; font-size: 8pt; line-height: 1.2; }
+  .powers-answer { margin: 1mm 0 0 5.5mm; gap: 2mm; font-size: 9pt; line-height: 1.2; }
+  .powers-power-answer { min-height: 9.5mm; gap: 1mm; }
+  .powers-base-blank { width: 8mm; height: 7mm; margin-top: 2.5mm; }
+  .powers-exponent-blank { width: 5mm; height: 4.5mm; }
+  .powers-answer-space { flex: 1; width: auto; height: 5.5mm; }
+  .powers-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8mm; }
+  .powers-key h2 { grid-column: 1 / -1; }
+  .powers-sheet .powers-key > div { font-size: 9pt; line-height: 1.35; padding: 1mm 0; min-width: 0; }
 }
