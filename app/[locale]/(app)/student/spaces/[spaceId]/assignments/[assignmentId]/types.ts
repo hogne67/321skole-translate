@@ -13,6 +13,7 @@ import type { PlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import type { WordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import type { VolumeWorksheet } from "@/lib/math/volume/worksheet";
 import type { PythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
+import type { ScaleWorksheet } from "@/lib/math/scale/worksheet";
 import type { CoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import type { StatisticsWorksheet } from "@/lib/math/statistics/worksheet";
 import type { ClockWorksheet } from "@/lib/math/clock/worksheet";
@@ -42,7 +43,7 @@ export type Lesson = {
     readingTestConfig?: ReadingTestConfig | null;
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | PythagorasWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | PythagorasWorksheet | ScaleWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -85,7 +86,7 @@ export type AssignmentDoc = {
     textSize?: TextSize;
     allowAnswerPaste?: boolean;
 
-    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | PythagorasWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
+    mathWorksheet?: MathWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | PythagorasWorksheet | ScaleWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;
     measurementWorksheet?: LengthWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
@@ -150,7 +151,7 @@ export type TeacherFeedback = {
 };
 
 export type AutoGradeEntry = {
-    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "algebra" | "powers" | "factorization" | "place_value" | "word_problems" | "volume" | "pythagoras" | "coordinates" | "statistics" | "clock" | "number_line";
+    type: "mcq" | "truefalse" | "arithmetic" | "length" | "measurement" | "comparison" | "percentage" | "equations" | "algebra" | "powers" | "factorization" | "place_value" | "word_problems" | "volume" | "pythagoras" | "scale" | "coordinates" | "statistics" | "clock" | "number_line";
     isCorrect: boolean;
     studentAnswer: unknown;
     correctAnswer: unknown;

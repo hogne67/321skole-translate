@@ -76,6 +76,7 @@
       "openDigital": "Open Task",
       "openPreview": "Open preview",
       "subtypes": {
+        "scale": "Scale and similarity",
         "pythagoras": "Pythagoras",
         "volume": "Volume and solids",
       "algebra": "Simplifying algebraic expressions",

@@ -76,6 +76,7 @@
       "openDigital": "Åpne oppgave",
       "openPreview": "Åpne preview",
       "subtypes": {
+        "scale": "Målestokk og formlikhet",
         "pythagoras": "Pytagoras",
         "volume": "Volum og romfigurer",
       "algebra": "Forenkling av algebraiske uttrykk",
