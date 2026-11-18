@@ -152,6 +152,7 @@ export type AssignmentDoc = {
     lessonType?: string;
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
+    grammarAudioEnabled?: boolean;
 
     sourceText?: string;
     text?: string;
@@ -188,6 +189,7 @@ export type Lesson = {
     lessonType?: string;
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
+    grammarAudioEnabled?: boolean;
 
     mathWorksheet?: MathWorksheet | FractionWorksheet | ArithmeticWorksheet | LengthWorksheet | ComparisonWorksheet | PercentageWorksheet | EquationWorksheet | AlgebraWorksheet | PowersWorksheet | FactorizationWorksheet | PlaceValueWorksheet | WordProblemsWorksheet | VolumeWorksheet | PythagorasWorksheet | CoordinatesWorksheet | StatisticsWorksheet | ClockWorksheet | NumberLineWorksheet | null;
     lengthWorksheet?: LengthWorksheet | null;

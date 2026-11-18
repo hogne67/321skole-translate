@@ -1556,7 +1556,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGrammarTest ? <div><h2 className="text-lg font-semibold">{lessonTitle}</h2>{grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answersMap} disabled showResults/> : <p role="alert">Kunne ikke lese oppgavene i denne prøven.</p>}</div> : null}
+            {isGrammarTest ? <div><h2 className="text-lg font-semibold">{lessonTitle}</h2><p>Lydstøtte i prøven: {assignment?.grammarAudioEnabled===true?"På":"Av"}</p>{grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answersMap} disabled showResults audioEnabled={assignment?.grammarAudioEnabled===true} audioSource={spaceId&&assignmentId?{spaceId,assignmentId}:undefined}/> : <p role="alert">Kunne ikke lese oppgavene i denne prøven.</p>}</div> : null}
             {!isGrammarTest && !isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isAlgebraAssignment && !isPowersAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isVolumeAssignment && !isPythagorasAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}

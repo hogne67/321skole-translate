@@ -8,6 +8,14 @@ The first version generates exactly ten Norwegian Bokmål gap sentences. Choose 
 
 The teacher can edit all ten items, preview dropdowns, and print a learner sheet and separate key. Teacher edits require teacher review. Learner-preview answers stay in component state.
 
+Optional audio is off for existing and newly generated tests. The teacher enables it before saving and sharing. `grammarAudioEnabled` is copied into the Space assignment snapshot; changing the original requires saving and sharing again. The teacher's submission view shows whether audio was allowed.
+
+`/api/grammar-tests/audio` accepts a task identity and mode, not a client-supplied sentence or answer. Before submission, it reads the two sides separately and the player inserts a one-second pause. The voice model never receives the gap. After submission/correction, the endpoint can read the full sentence using the snapshot's correct answer. The saved-test owner can preview both modes. Every request checks login, account state, source access and the teacher's audio flag; student solution requests additionally require a submitted/reviewed/approved submission. School/anonymous students use their Space, not personal-tool access.
+
+The general `/api/tts` route now requires authentication too; all four existing callers send the Firebase token, and Space callers send the Space identity. It does not serve arbitrary grammar audio for a Space assignment.
+
+Both routes enforce atomic server-side limits: 60 requests/minute and 600/day (150/day for anonymous Space accounts). Actual voice-generation attempts reserve character usage: 150,000/day for authors, 50,000/day for individual students, 12,000/day for anonymous Space accounts. One private operational counter per account stores counts and current time windows, without text, answers or task identities. A bounded per-account process cache retains audio for up to ten minutes and avoids repeat provider charges; every request still checks access and the request limit. Text is limited to 4,000 characters per voice call. Playback is manual, one sentence at a time; stop, changing task/source/mode and logout cancel the current sequence.
+
 Saving creates a private `lessons` document with `lessonType: grammar_test`, beta metadata, standard MCQ tasks and a revision token. Reopening and updates require the owner; concurrent revisions cannot overwrite newer edits. Existing account, verification and school/student restrictions apply.
 
 To collect answers: save → share to Space → pupil selects answers → Send til lærer. Spaces stores its ordinary frozen assignment snapshot and submission. The student submission API recomputes grammar marks from the snapshot, and the teacher view independently derives marks from the same tasks. Wrong answers and unanswered items are separate. Existing teacher feedback and review actions remain available. There is no new aggregated learner profile or external message delivery.

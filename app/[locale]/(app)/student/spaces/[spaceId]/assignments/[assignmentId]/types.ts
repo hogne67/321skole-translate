@@ -57,6 +57,7 @@ export type Lesson = {
 export type SourceType = "myContent" | "library";
 
 export type AssignmentDoc = {
+    grammarAudioEnabled?: boolean;
     status?: "active" | "archived" | string;
     sourceType?: SourceType;
     sourceId?: string;

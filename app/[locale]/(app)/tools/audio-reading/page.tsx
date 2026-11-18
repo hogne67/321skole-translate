@@ -1,4 +1,5 @@
 "use client";
+import { speechHeaders } from "@/lib/audio/headers.client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -317,7 +318,7 @@ export default function AudioReadingToolPage() {
       stopTextAudio();
       const res = await fetch("/api/tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await speechHeaders(),
         body: JSON.stringify({
           lessonId: savedId || activityId || "audio-reading-beta",
           lang: selectedLesson?.language || locale,

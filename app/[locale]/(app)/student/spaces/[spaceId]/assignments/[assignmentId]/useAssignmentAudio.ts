@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SentenceSeg, TtsLang } from "./types";
+import { speechHeaders } from "@/lib/audio/headers.client";
 
 type Params = {
+    spaceId?: string;
     assignmentId?: string;
     playbackRate: number;
     originalSegs: SentenceSeg[];
@@ -12,6 +14,7 @@ type Params = {
 };
 
 export function useAssignmentAudio({
+    spaceId,
     assignmentId,
     playbackRate,
     originalSegs,
@@ -135,9 +138,10 @@ export function useAssignmentAudio({
             const res = await fetch("/api/tts", {
                 signal: controller.signal,
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: await speechHeaders(),
                 body: JSON.stringify({
                     lessonId: assignmentId,
+                    spaceId,
                     lang,
                     text: clean,
                     voice: "marin",

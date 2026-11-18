@@ -30,7 +30,7 @@ export async function saveGrammar(decoded:DecodedIdToken,body:unknown){
     if(value.id!=null){const previous=owned(lesson.data(),uid);if(value.revision!==previous.grammarRevision)throw new GrammarSaveError(409,"Prøven er endret. Åpne den på nytt før du lagrer.");}
     else if(lesson.exists)throw new GrammarSaveError(409,"Prøven finnes allerede.");
     tx.set(ref,{ownerId:uid,title:test.title,language:test.language,level:test.level,topic:test.topic,lessonType:"grammar_test",textType:"grammar_test",source:"grammar-test-generator",beta:true,
-      tasks:test.tasks,sourceText:"",description:"Velg riktig ord eller form i hver setning.",grammarTest:test,grammarRevision:revision,
+      tasks:test.tasks,sourceText:"",description:"Velg riktig ord eller form i hver setning.",grammarTest:test,grammarRevision:revision,grammarAudioEnabled:test.audioEnabled,
       status:"draft",visibility:"private",publishVisibility:"private",showInLibrary:false,published:false,deletedAt:null,activePublishedId:null,
       createdAt:lesson.data()?.createdAt??FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()});
   });

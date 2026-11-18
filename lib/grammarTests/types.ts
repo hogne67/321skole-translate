@@ -5,7 +5,7 @@ export const GRAMMAR_FOCUSES = ["mixed_words", "og_aa", "den_det", "verb", "noun
 export type GrammarLevel = typeof GRAMMAR_LEVELS[number];
 export type GrammarFocus = typeof GRAMMAR_FOCUSES[number];
 export type GrammarTask = { id: string; order: number; type: "mcq"; prompt: string; options: string[]; correctAnswer: string; explanation: string; focus: Exclude<GrammarFocus,"mixed_words"> };
-export type GrammarTest = { version: 1; title: string; language: "nb"; level: GrammarLevel; focus: GrammarFocus; topic: string; tasks: GrammarTask[] };
+export type GrammarTest = { version: 1; title: string; language: "nb"; level: GrammarLevel; focus: GrammarFocus; topic: string; tasks: GrammarTask[]; audioEnabled: boolean };
 export const FOCUS_LABELS: Record<GrammarFocus,string> = { mixed_words:"Og/å og den/det", og_aa:"Og eller å", den_det:"Den eller det", verb:"Riktig form av verbet", noun:"Riktig form av substantivet" };
 export function validGrammarId(value: unknown): value is string { return typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value) && !["__proto__","constructor","prototype"].includes(value); }
 export function grammarEditHref(locale:string,id:string){ return `/${locale}/tools/grammar-tests?edit=${encodeURIComponent(id)}`; }
@@ -36,7 +36,8 @@ export function parseGrammarTest(raw:unknown):GrammarTest|null {
   const title=text(raw.title,160),topic=typeof raw.topic==="string"&&raw.topic.length<=1500?raw.topic.trim():null,tasks=parseGrammarTasks(raw.tasks);
   if(!title||topic===null||!tasks)return null;
   if(raw.focus==="mixed_words" ? tasks.filter(task=>task.focus==="og_aa").length!==5||tasks.filter(task=>task.focus==="den_det").length!==5 : tasks.some(task=>task.focus!==raw.focus))return null;
-  return {version:1,title,topic,tasks,language:"nb",level:raw.level as GrammarLevel,focus:raw.focus as GrammarFocus};
+  if(raw.audioEnabled!==undefined&&typeof raw.audioEnabled!=="boolean")return null;
+  return {version:1,title,topic,tasks,language:"nb",level:raw.level as GrammarLevel,focus:raw.focus as GrammarFocus,audioEnabled:raw.audioEnabled===true};
 }
 /** Always grade against the assignment's own tasks, never a client-supplied key or score. */
 export function gradeGrammar(tasks:GrammarTask[],raw:unknown):AutoGrade {

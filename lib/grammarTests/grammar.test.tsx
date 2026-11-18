@@ -5,10 +5,22 @@ import { grammarFixture } from "./fixtures";
 import { GRAMMAR_LEVELS,gradeGrammar,parseGrammarTest } from "./types";
 import { LEVEL_GUIDANCE,parseGenerated,reviewAccepted } from "./generation";
 import {grammarTargets} from "./targets";
+import {grammarSpeechParts,GRAMMAR_GAP_PAUSE_MS} from "./audio";
 import GrammarTestPlayer from "../../components/assessments/GrammarTestPlayer";
 import ReadingTestWorksheet from "../../components/assessments/ReadingTestWorksheet";
 test("ten mixed word-choice sentences work for every selectable level",()=>{
   for(const level of GRAMMAR_LEVELS){assert.ok(LEVEL_GUIDANCE[level]);assert.equal(parseGrammarTest({...grammarFixture(),level})?.tasks.length,10);}
+});
+test("legacy tests have audio off, explicit teacher choice survives parsing",()=>{
+  const test=grammarFixture(),{audioEnabled:unused,...legacy}=test;
+  assert.equal(unused,false);assert.equal(parseGrammarTest(legacy)?.audioEnabled,false);
+  assert.equal(parseGrammarTest({...test,audioEnabled:true})?.audioEnabled,true);
+  assert.equal(parseGrammarTest({...test,audioEnabled:"true"}),null);
+});
+test("gap audio omits the missing word; corrected audio uses the canonical key",()=>{
+  const task=grammarFixture().tasks[0];
+  assert.deepEqual(grammarSpeechParts(task,"gap"),["Jeg liker",GRAMMAR_GAP_PAUSE_MS,"lese bøker."]);
+  assert.deepEqual(grammarSpeechParts(task,"solution"),["Jeg liker å lese bøker."]);
 });
 test("reject incomplete, duplicate or ambiguous-key structures",()=>{
   const original=grammarFixture();

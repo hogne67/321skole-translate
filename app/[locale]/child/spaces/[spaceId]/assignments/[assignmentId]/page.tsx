@@ -1,5 +1,6 @@
 // app/[locale]/child/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
+import { speechHeaders } from "@/lib/audio/headers.client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
@@ -584,9 +585,10 @@ export default function ChildAssignmentPage() {
 
             const res = await fetch("/api/tts", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: await speechHeaders(),
                 body: JSON.stringify({
                     lessonId: assignmentId,
+                    spaceId,
                     lang: ttsLang,
                     text: clean,
                     voice: "marin",

@@ -1,5 +1,6 @@
 // app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
+import { speechHeaders } from "@/lib/audio/headers.client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
@@ -1366,7 +1367,7 @@ export default function StudentLessonPage() {
 
       const res = await fetch("/api/tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await speechHeaders(),
         body: JSON.stringify({
           lessonId,
           lang,

@@ -58,6 +58,7 @@ type SourceLessonData = {
   lessonType?: string;
   taskType?: string;
   readingTestConfig?: unknown;
+  grammarAudioEnabled?: boolean;
   textSize?: string;
 
   mathWorksheet?: unknown;
@@ -146,6 +147,7 @@ function pickSourceLessonData(
     lessonType: nonEmptyOrUndefined(d.lessonType),
     taskType: nonEmptyOrUndefined(d.taskType),
     readingTestConfig: d.readingTestConfig ?? null,
+    grammarAudioEnabled: d.grammarAudioEnabled === true,
     textSize: nonEmptyOrUndefined(d.textSize),
     allowAnswerPaste: isAnswerPasteAllowed(d.allowAnswerPaste),
 
@@ -450,6 +452,7 @@ export async function POST(
           ? "math_fractions"
           : source.taskType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
+        grammarAudioEnabled: source.grammarAudioEnabled === true,
         textSize: source.textSize ?? null,
         allowAnswerPaste: isAnswerPasteAllowed(source.allowAnswerPaste),
 

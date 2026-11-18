@@ -136,6 +136,7 @@ export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
         lessonType: a.lessonType,
         taskType: a.taskType,
         readingTestConfig: a.readingTestConfig ?? null,
+        grammarAudioEnabled: a.grammarAudioEnabled === true,
 
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,

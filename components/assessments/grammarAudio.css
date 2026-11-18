@@ -1,0 +1,9 @@
+.grammar-tool .grammar-audio-setting { display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #b8ccdc; border-radius:9px; background:white; }
+.grammar-tool .grammar-audio-setting input { width:20px; height:20px; margin:0; padding:0; accent-color:#1959a0; flex:none; }
+.grammar-player .grammar-audio-bar { padding:10px 14px; background:#edf5ff; border:1px solid #b7d7fa; border-radius:9px; font-size:14px; }
+.grammar-player .grammar-audio-bar p { margin:3px 0; }
+.grammar-player .grammar-audio-button,.grammar-player .grammar-audio-bar button { font:inherit; font-size:14px; margin-top:8px; border:1px solid #a6bdd0; background:white; color:#183d65; border-radius:8px; padding:8px 12px; cursor:pointer; }
+.grammar-player .grammar-audio-button:focus-visible,.grammar-player .grammar-audio-bar button:focus-visible { outline:3px solid #74b9f5; outline-offset:2px; }
+.grammar-player .grammar-audio-button:disabled { opacity:.6; cursor:default; }
+.grammar-player .grammar-audio-button[aria-pressed="true"] { background:#e1efff; }
+@media print { .grammar-audio-button,.grammar-audio-bar { display:none!important; } }

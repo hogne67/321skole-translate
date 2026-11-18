@@ -695,6 +695,7 @@ export default function StudentAssignmentPage() {
     nextSentence,
     playTTS,
   } = useAssignmentAudio({
+    spaceId,
     assignmentId,
     playbackRate,
     originalSegs: activeSectionOriginalSegs ?? originalSegs,
@@ -2232,7 +2233,7 @@ export default function StudentAssignmentPage() {
           onPlay={(text, language) => { void playTTS(text, toTtsLang(language), sameMathLanguage(language, algebraWorksheet?.language ?? powersWorksheet?.language ?? factorizationWorksheet?.language ?? placeValueWorksheet?.language ?? wordProblemsWorksheet?.language ?? volumeWorksheet?.language ?? pythagorasWorksheet?.language ?? coordinatesWorksheet?.language ?? statisticsWorksheet?.language ?? clockWorksheet?.language ?? numberLineWorksheet?.language ?? equationWorksheet?.language ?? percentageWorksheet?.language ?? comparisonWorksheet?.language ?? lengthWorksheet?.language ?? geometryWorksheet?.language ?? fractionWorksheet?.language ?? arithmeticWorksheet?.language ?? lesson.language ?? "no") ? "original" : "translation"); }}
           t={tString}
         >
-        {isGrammarTest ? grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answers} onChange={setAnswers} disabled={lock || submitted || submitting} showResults={submitted}/> : <p role="alert">Kunne ikke åpne grammatikkprøven. Be læreren dele den på nytt.</p> : null}
+        {isGrammarTest ? grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answers} onChange={setAnswers} disabled={lock || submitted || submitting} showResults={submitted} audioEnabled={assignment?.grammarAudioEnabled===true} audioSource={{spaceId,assignmentId}}/> : <p role="alert">Kunne ikke åpne grammatikkprøven. Be læreren dele den på nytt.</p> : null}
         {isReadingTest ? (
           <ReadingTestPlayer
             title={mainTitle}

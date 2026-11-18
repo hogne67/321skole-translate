@@ -1,62 +1,29 @@
-// app/api/tts/route.ts
-import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getAdmin } from "@/lib/firebaseAdmin";
 import { normalizeAudioLanguage } from "@/lib/audio/language";
-
-export const runtime = "nodejs"; // audio binary -> node runtime (ikke edge)
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-function hasStringMessage(x: unknown): x is { message: string } {
-  return (
-    typeof x === "object" &&
-    x !== null &&
-    "message" in x &&
-    typeof (x as Record<string, unknown>).message === "string"
-  );
-}
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === "string") return err;
-  if (hasStringMessage(err)) return err.message;
-  return "TTS failed";
-}
-
+import { speechAccount,speechBody,speechFailure,SpeechError,reserveSpeechUsage,synthesizeSpeech,assertPersonalSpeechAccess } from "@/lib/audio/speech.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { validGrammarId } from "@/lib/grammarTests/types";
+export const runtime = "nodejs";
+export const maxDuration = 45;
 export async function POST(req: Request) {
   try {
-    const body: unknown = await req.json();
-
-    const b = (body ?? {}) as Record<string, unknown>;
-    const lessonId = String(b.lessonId ?? "").trim();
-    const text = String(b.text ?? "").trim();
-    const lang = normalizeAudioLanguage(String(b.lang ?? "no"));
-    const voice = String(b.voice ?? "marin").trim();
-
-    if (!lessonId) return NextResponse.json({ error: "Missing lessonId" }, { status: 400 });
-    if (!text) return NextResponse.json({ error: "Missing text" }, { status: 400 });
-
-    const audioRes = await openai.audio.speech.create({
-      model: "gpt-4o-mini-tts",
-      voice,
-      input: text,
-      response_format: "mp3",
-    });
-
-    const arrayBuffer = await audioRes.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const dataUrl = `data:audio/mpeg;base64,${base64}`;
-
-    return NextResponse.json({
-      url: dataUrl,
-      lang,
-      voice,
-      bytes: base64.length,
-    });
-  } catch (e: unknown) {
-    console.error("TTS error:", e);
-    return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
-  }
+    const account = await speechAccount(req), body = await speechBody(req);
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    if (!text || text.length > 4000 || !validGrammarId(body.lessonId)) throw new SpeechError(400,"Velg en oppgave og tekst på opptil 4000 tegn.");
+    const { db } = getAdmin();
+    if (body.spaceId !== undefined) {
+      if (!validGrammarId(body.spaceId)) throw new SpeechError(400,"Ugyldig Space.");
+      const access = await getSpaceAccess(db,body.spaceId,account.uid);
+      if (!access.canRead) throw new SpeechError(403,"Du har ikke tilgang til denne oppgaven.");
+      const assignment = (await db.doc(`spaces/${body.spaceId}/lessons/${body.lessonId}`).get()).data();
+      if (!assignment || assignment.status === "archived") throw new SpeechError(404,"Oppgaven finnes ikke.");
+      if (assignment.lessonType === "grammar_test") throw new SpeechError(403,"Bruk lydknappen i grammatikkoppgaven.");
+    } else {
+      await assertPersonalSpeechAccess(account);
+    }
+    const language = normalizeAudioLanguage(typeof body.lang === "string" ? body.lang : "no");
+    await reserveSpeechUsage(account,"request");
+    const url = await synthesizeSpeech(account,text,language,AbortSignal.any([req.signal,AbortSignal.timeout(38_000)]));
+    return Response.json({url,lang:language,voice:"marin"},{headers:{"Cache-Control":"private,no-store"}});
+  } catch (error) { return speechFailure(error); }
 }
