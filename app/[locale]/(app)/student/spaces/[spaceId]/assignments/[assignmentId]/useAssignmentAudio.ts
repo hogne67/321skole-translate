@@ -115,7 +115,7 @@ export function useAssignmentAudio({
         seekToSentence(activeTextMode, nextIdx);
     }
 
-    async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation") {
+    async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation", purpose?: "teacher_feedback") {
         if (!assignmentId) return;
 
         const clean = text.trim();
@@ -142,6 +142,7 @@ export function useAssignmentAudio({
                 body: JSON.stringify({
                     lessonId: assignmentId,
                     spaceId,
+                    purpose,
                     lang,
                     text: clean,
                     voice: "marin",

@@ -95,6 +95,12 @@ test("the general TTS route requires login and preserves ordinary Space audio wi
   assert.equal((await tts(request("owner",{...body,spaceId:undefined,text:"Synthetic author preview"}))).status,200);
   const {scope}=await sharedAudioTest(false,"Generic bypass");
   assert.equal((await tts(request("pupil",{...body,lessonId:scope.assignmentId}))).status,403);
+  const feedbackRequest={...body,lessonId:scope.assignmentId,purpose:"teacher_feedback",text:"Synthetic feedback playback"};
+  assert.equal((await tts(request("pupil",feedbackRequest))).status,403);
+  const submissionId=`room_${scope.assignmentId}_pupil`;
+  await db.doc(`spaces/room/lessons/${scope.assignmentId}/submissions/${submissionId}`).set({uid:"pupil",participantId:"pupil",spaceId:"room",assignmentId:scope.assignmentId,status:"reviewed",teacherFeedback:{text:"Synthetic feedback"}});
+  assert.equal((await tts(request("pupil",feedbackRequest))).status,200);
+  assert.equal((await tts(request("outsider",feedbackRequest))).status,403);
   await db.doc("users/anonymous").set({role:"student"});await db.doc("spaceMembers/room_anonymous").set({spaceId:"room",uid:"anonymous",participantId:"anonymous",role:"student",status:"active",active:true});
   assert.equal((await tts(request("anonymous",{...body,text:"Synthetic anonymous Space audio"}))).status,200);
 });

@@ -1,7 +1,7 @@
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { normalizeAudioLanguage } from "@/lib/audio/language";
 import { speechAccount,speechBody,speechFailure,SpeechError,reserveSpeechUsage,synthesizeSpeech,assertPersonalSpeechAccess } from "@/lib/audio/speech.server";
-import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { getSpaceAccess,ownsSpaceSubmission,submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 import { validGrammarId } from "@/lib/grammarTests/types";
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -17,7 +17,15 @@ export async function POST(req: Request) {
       if (!access.canRead) throw new SpeechError(403,"Du har ikke tilgang til denne oppgaven.");
       const assignment = (await db.doc(`spaces/${body.spaceId}/lessons/${body.lessonId}`).get()).data();
       if (!assignment || assignment.status === "archived") throw new SpeechError(404,"Oppgaven finnes ikke.");
-      if (assignment.lessonType === "grammar_test") throw new SpeechError(403,"Bruk lydknappen i grammatikkoppgaven.");
+      if (assignment.lessonType === "grammar_test") {
+        if (body.purpose !== "teacher_feedback") throw new SpeechError(403,"Bruk lydknappen i grammatikkoppgaven.");
+        const id=`${body.spaceId}_${body.lessonId}_${access.participantId}`;
+        const submission=(await db.doc(`spaces/${body.spaceId}/lessons/${body.lessonId}/submissions/${id}`).get()).data();
+        const feedback=submission?.teacherFeedback;
+        if (!submission || !ownsSpaceSubmission(submission,account.uid,access.participantId) || !submissionBelongsToPath(submission,body.spaceId,body.lessonId)
+          || !["submitted","reviewed","approved","needs_work"].includes(String(submission.status)) || typeof feedback?.text!=="string" || !feedback.text.trim())
+          throw new SpeechError(403,"Lærerens tilbakemelding er ikke tilgjengelig for opplesing ennå.");
+      }
     } else {
       await assertPersonalSpeechAccess(account);
     }

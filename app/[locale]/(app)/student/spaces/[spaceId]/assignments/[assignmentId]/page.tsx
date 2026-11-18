@@ -868,7 +868,7 @@ export default function StudentAssignmentPage() {
     setTeacherFeedbackTtsBusy("teacherFeedback");
 
     try {
-      await playTTS(text, originalLangForTTS, "original");
+      await playTTS(text, originalLangForTTS, "original", "teacher_feedback");
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
@@ -881,7 +881,7 @@ export default function StudentAssignmentPage() {
     setTeacherFeedbackTtsBusy("teacherFeedbackTranslation");
 
     try {
-      await playTTS(text, toTtsLang(targetLang), "translation");
+      await playTTS(text, toTtsLang(targetLang), "translation", "teacher_feedback");
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
