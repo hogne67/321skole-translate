@@ -71,6 +71,7 @@ import PlaceValueWorksheetView from "@/components/generators/math/place-value/Pl
 import WordProblemsWorksheetView from "@/components/generators/math/word-problems/WordProblemsWorksheetView";
 import VolumeWorksheetView from "@/components/generators/math/volume/VolumeWorksheetView";
 import PythagorasWorksheetView from "@/components/generators/math/pythagoras/PythagorasWorksheetView";
+import SequencesWorksheetView from "@/components/generators/math/sequences/SequencesWorksheetView";
 import ScaleWorksheetView from "@/components/generators/math/scale/ScaleWorksheetView";
 import CoordinatesWorksheetView from "@/components/generators/math/coordinates/CoordinatesWorksheetView";
 import { sanitizeAlgebraWorksheet } from "@/lib/math/algebra/worksheet";
@@ -80,6 +81,7 @@ import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeVolumeWorksheet } from "@/lib/math/volume/worksheet";
 import { sanitizePythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
+import { sanitizeSequencesWorksheet } from "@/lib/math/sequences/worksheet";
 import { sanitizeScaleWorksheet } from "@/lib/math/scale/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import StatisticsWorksheetView from "@/components/generators/math/statistics/StatisticsWorksheetView";
@@ -553,6 +555,7 @@ function Inner() {
   const wordProblemsWorksheet = useMemo(() => sanitizeWordProblemsWorksheet(lesson?.mathWorksheet) ?? sanitizeWordProblemsWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const volumeWorksheet = useMemo(() => sanitizeVolumeWorksheet(lesson?.mathWorksheet) ?? sanitizeVolumeWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const pythagorasWorksheet = useMemo(() => sanitizePythagorasWorksheet(lesson?.mathWorksheet) ?? sanitizePythagorasWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
+  const sequencesWorksheet = useMemo(() => sanitizeSequencesWorksheet(lesson?.mathWorksheet) ?? sanitizeSequencesWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const scaleWorksheet = useMemo(() => sanitizeScaleWorksheet(lesson?.mathWorksheet) ?? sanitizeScaleWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const coordinatesWorksheet = useMemo(() => sanitizeCoordinatesWorksheet(lesson?.mathWorksheet) ?? sanitizeCoordinatesWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
   const isAlgebraAssignment = !!algebraWorksheet || assignment?.contentType === "algebra_worksheet";
@@ -562,6 +565,7 @@ function Inner() {
   const isWordProblemsAssignment = !!wordProblemsWorksheet || assignment?.contentType === "word_problems_worksheet";
   const isVolumeAssignment = !!volumeWorksheet || assignment?.contentType === "volume_worksheet";
   const isPythagorasAssignment = !!pythagorasWorksheet || assignment?.contentType === "pythagoras_worksheet";
+  const isSequencesAssignment = !!sequencesWorksheet || assignment?.contentType === "sequences_worksheet";
   const isScaleAssignment = !!scaleWorksheet || assignment?.contentType === "scale_worksheet";
   const isCoordinatesAssignment = !!coordinatesWorksheet || assignment?.contentType === "coordinates_worksheet";
   const statisticsWorksheet = useMemo(() => sanitizeStatisticsWorksheet(lesson?.mathWorksheet) ?? sanitizeStatisticsWorksheet(sub?.mathWorksheet), [lesson?.mathWorksheet, sub?.mathWorksheet]);
@@ -1083,7 +1087,7 @@ function Inner() {
     isGeometryAssignment && !isFractionAssignment ? null : readAutoGrade(sub);
 
   const showPartialAutoCount = fractionWorksheet?.topic === "calculation" ||
-    isEquationAssignment || isPercentageAssignment || isAlgebraAssignment || isVolumeAssignment || isPythagorasAssignment || isScaleAssignment;
+    isEquationAssignment || isPercentageAssignment || isAlgebraAssignment || isVolumeAssignment || isPythagorasAssignment || isSequencesAssignment || isScaleAssignment || isSequencesAssignment;
 
   const geometryAuto =
     isGeometryAssignment && !isFractionAssignment ? readGeometryAuto(sub) : null;
@@ -1530,7 +1534,7 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isAlgebraAssignment || isPowersAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isVolumeAssignment || isPythagorasAssignment || isScaleAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isAlgebraAssignment || isPowersAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isVolumeAssignment || isPythagorasAssignment || isSequencesAssignment || isScaleAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div className="grid gap-1">
                 <div className="break-words text-lg font-semibold text-slate-900">
                   {lessonTitle}
@@ -1561,7 +1565,7 @@ function Inner() {
             ) : null}
 
             {isGrammarTest ? <div><h2 className="text-lg font-semibold">{lessonTitle}</h2><p>Lydstøtte i prøven: {assignment?.grammarAudioEnabled===true?"På":"Av"}</p>{grammarTasks ? <GrammarTestPlayer tasks={grammarTasks} answers={answersMap} disabled showResults audioEnabled={assignment?.grammarAudioEnabled===true} audioSource={spaceId&&assignmentId?{spaceId,assignmentId}:undefined}/> : <p role="alert">Kunne ikke lese oppgavene i denne prøven.</p>}</div> : null}
-            {!isGrammarTest && !isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isAlgebraAssignment && !isPowersAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isVolumeAssignment && !isPythagorasAssignment && !isScaleAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
+            {!isGrammarTest && !isGeometryAssignment && !isFractionAssignment && !isArithmeticAssignment && !isLengthAssignment && !isAlgebraAssignment && !isPowersAssignment && !isFactorizationAssignment && !isPlaceValueAssignment && !isWordProblemsAssignment && !isVolumeAssignment && !isPythagorasAssignment && !isSequencesAssignment && !isScaleAssignment && !isCoordinatesAssignment && !isStatisticsAssignment && !isClockAssignment && !isNumberLineAssignment && !isComparisonAssignment && !isEquationAssignment && !isPercentageAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevelLabel}
@@ -1577,7 +1581,7 @@ function Inner() {
               />
             ) : null}
 
-            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isAlgebraAssignment || isPowersAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isVolumeAssignment || isPythagorasAssignment || isScaleAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
+            {isGeometryAssignment || isFractionAssignment || isArithmeticAssignment || isLengthAssignment || isAlgebraAssignment || isPowersAssignment || isFactorizationAssignment || isPlaceValueAssignment || isWordProblemsAssignment || isVolumeAssignment || isPythagorasAssignment || isSequencesAssignment || isScaleAssignment || isCoordinatesAssignment || isStatisticsAssignment || isClockAssignment || isNumberLineAssignment || isComparisonAssignment || isEquationAssignment || isPercentageAssignment ? (
               <div>
                 <div className="mb-3 text-base font-semibold text-slate-900">
                   {isGeometryAssignment
@@ -1621,6 +1625,8 @@ function Inner() {
                   <VolumeWorksheetView worksheet={volumeWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isPythagorasAssignment && pythagorasWorksheet ? (
                   <PythagorasWorksheetView worksheet={pythagorasWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
+                ) : isSequencesAssignment && sequencesWorksheet ? (
+                  <SequencesWorksheetView worksheet={sequencesWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isScaleAssignment && scaleWorksheet ? (
                   <ScaleWorksheetView worksheet={scaleWorksheet} answersByTaskId={answersMap} readOnly showAutoCheck />
                 ) : isCoordinatesAssignment && coordinatesWorksheet ? (

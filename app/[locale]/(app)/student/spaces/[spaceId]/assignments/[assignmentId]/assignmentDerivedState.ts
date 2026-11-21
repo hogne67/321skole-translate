@@ -9,6 +9,7 @@ import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeVolumeWorksheet } from "@/lib/math/volume/worksheet";
 import { sanitizePythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
+import { sanitizeSequencesWorksheet } from "@/lib/math/sequences/worksheet";
 import { sanitizeScaleWorksheet } from "@/lib/math/scale/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
@@ -229,6 +230,7 @@ export function getAssignmentDerivedState(
     const wordProblemsWorksheet = sanitizeWordProblemsWorksheet(lesson?.mathWorksheet);
     const volumeWorksheet = sanitizeVolumeWorksheet(lesson?.mathWorksheet);
     const pythagorasWorksheet = sanitizePythagorasWorksheet(lesson?.mathWorksheet);
+    const sequencesWorksheet = sanitizeSequencesWorksheet(lesson?.mathWorksheet);
     const scaleWorksheet = sanitizeScaleWorksheet(lesson?.mathWorksheet);
     const coordinatesWorksheet = sanitizeCoordinatesWorksheet(lesson?.mathWorksheet);
     const isAlgebraAssignment = !!algebraWorksheet || [lesson?.contentType, assignment?.contentType].includes("algebra_worksheet");
@@ -238,6 +240,7 @@ export function getAssignmentDerivedState(
     const isWordProblemsAssignment = !!wordProblemsWorksheet || [lesson?.contentType, assignment?.contentType].includes("word_problems_worksheet");
     const isVolumeAssignment = !!volumeWorksheet || [lesson?.contentType, assignment?.contentType].includes("volume_worksheet");
     const isPythagorasAssignment = !!pythagorasWorksheet || [lesson?.contentType, assignment?.contentType].includes("pythagoras_worksheet");
+    const isSequencesAssignment = !!sequencesWorksheet || [lesson?.contentType, assignment?.contentType].includes("sequences_worksheet");
     const isScaleAssignment = !!scaleWorksheet || [lesson?.contentType, assignment?.contentType].includes("scale_worksheet");
     const isCoordinatesAssignment = !!coordinatesWorksheet || [lesson?.contentType, assignment?.contentType].includes("coordinates_worksheet");
     const statisticsWorksheet = sanitizeStatisticsWorksheet(lesson?.mathWorksheet);
@@ -257,6 +260,7 @@ export function getAssignmentDerivedState(
         wordProblemsWorksheet,
         volumeWorksheet,
         pythagorasWorksheet,
+        sequencesWorksheet,
         scaleWorksheet,
         coordinatesWorksheet,
         isAlgebraAssignment,
@@ -266,6 +270,7 @@ export function getAssignmentDerivedState(
         isWordProblemsAssignment,
         isVolumeAssignment,
         isPythagorasAssignment,
+        isSequencesAssignment,
         isScaleAssignment,
         isCoordinatesAssignment,
         statisticsWorksheet,

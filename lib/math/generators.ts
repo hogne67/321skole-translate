@@ -1,4 +1,5 @@
 export const MATH_GENERATORS = [
+  { id: "sequences", path: "sequences" },
   { id: "scale", path: "scale" },
   { id: "pythagoras", path: "pythagoras" },
   { id: "volume", path: "volume" },
@@ -22,6 +23,7 @@ export const MATH_GENERATORS = [
 ] as const;
 
 const nb = {
+  sequences: "Tallrekker og mønstre", sequencesDescription: "Fortsett rekker, finn manglende ledd og regler, og utforsk figurmønstre.",
   scale: "Målestokk og formlikhet", scaleDescription: "Regn mellom tegning og virkelighet, finn målestokk og sider i formlike figurer.",
   pythagoras: "Pytagoras", pythagorasDescription: "Finn hypotenusen eller en katet, undersøk trekanter og løs praktiske oppgaver.",
   volume: "Volum og romfigurer", volumeDescription: "Tell enhetskuber, beregn volum, finn manglende mål og løs praktiske oppgaver.",
@@ -46,6 +48,7 @@ const nb = {
 };
 type Copy = { [K in keyof typeof nb]: string };
 const en: Copy = {
+  sequences: "Sequences and patterns", sequencesDescription: "Continue sequences, find missing terms and rules, and explore growing shape patterns.",
   scale: "Scale and similarity", scaleDescription: "Calculate drawing and real-life lengths, find scales and sides in similar figures.",
   pythagoras: "Pythagoras", pythagorasDescription: "Find a hypotenuse or leg, check triangles and solve practical problems.",
   volume: "Volume and solids", volumeDescription: "Count unit cubes, calculate volume, find missing measurements and solve practical problems.",
@@ -69,6 +72,7 @@ const en: Copy = {
   fractionCalculation: "Fraction arithmetic", fractionCalculationDescription: "Four operations with equal or different denominators.",
 };
 const pt: Copy = {
+  sequences: "Sequências e padrões", sequencesDescription: "Continua sequências, encontra termos e regras e explora padrões de figuras.",
   scale: "Escalas e semelhança", scaleDescription: "Calcula medidas no desenho e na realidade, escalas e lados de figuras semelhantes.",
   pythagoras: "Teorema de Pitágoras", pythagorasDescription: "Encontra a hipotenusa ou um cateto, verifica triângulos e resolve problemas práticos.",
   volume: "Volume e sólidos geométricos", volumeDescription: "Contar cubos unitários, calcular volumes, encontrar medidas e resolver problemas práticos.",

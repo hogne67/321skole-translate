@@ -307,6 +307,7 @@ function deriveMathMeta(d: unknown): string[] {
   if (joined.includes("word_problems")) out.push("word_problems");
   if (joined.includes("math_volume") || joined.includes("volume_worksheet") || joined.includes("math-volume-generator")) out.push("volume");
   if (joined.includes("math_pythagoras") || joined.includes("pythagoras_worksheet") || joined.includes("math-pythagoras-generator")) out.push("pythagoras");
+  if (joined.includes("math_sequences") || joined.includes("sequences_worksheet") || joined.includes("math-sequences-generator")) out.push("sequences");
   if (joined.includes("math_scale") || joined.includes("scale_worksheet") || joined.includes("math-scale-generator")) out.push("scale");
   if (joined.includes("coordinates")) out.push("coordinates");
   if (joined.includes("statistics")) out.push("statistics");

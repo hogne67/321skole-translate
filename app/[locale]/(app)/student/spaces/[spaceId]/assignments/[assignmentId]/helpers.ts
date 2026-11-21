@@ -8,6 +8,7 @@ import { sanitizePlaceValueWorksheet } from "@/lib/math/place-value/worksheet";
 import { sanitizeWordProblemsWorksheet } from "@/lib/math/word-problems/worksheet";
 import { sanitizeVolumeWorksheet } from "@/lib/math/volume/worksheet";
 import { sanitizePythagorasWorksheet } from "@/lib/math/pythagoras/worksheet";
+import { sanitizeSequencesWorksheet } from "@/lib/math/sequences/worksheet";
 import { sanitizeScaleWorksheet } from "@/lib/math/scale/worksheet";
 import { sanitizeCoordinatesWorksheet } from "@/lib/math/coordinates/worksheet";
 import { sanitizeStatisticsWorksheet } from "@/lib/math/statistics/worksheet";
@@ -98,7 +99,7 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
 
     if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeAlgebraWorksheet(a.mathWorksheet) || !!sanitizePowersWorksheet(a.mathWorksheet) || !!sanitizeFactorizationWorksheet(a.mathWorksheet) || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeVolumeWorksheet(a.mathWorksheet) || !!sanitizePythagorasWorksheet(a.mathWorksheet) || !!sanitizeScaleWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasArithmeticWorksheet || hasPodcastWorkshop || !!a.measurementWorksheet || !!a.lengthWorksheet || !!sanitizeAlgebraWorksheet(a.mathWorksheet) || !!sanitizePowersWorksheet(a.mathWorksheet) || !!sanitizeFactorizationWorksheet(a.mathWorksheet) || !!sanitizePlaceValueWorksheet(a.mathWorksheet) || !!sanitizeWordProblemsWorksheet(a.mathWorksheet) || !!sanitizeVolumeWorksheet(a.mathWorksheet) || !!sanitizePythagorasWorksheet(a.mathWorksheet) || !!sanitizeSequencesWorksheet(a.mathWorksheet) || !!sanitizeScaleWorksheet(a.mathWorksheet) || !!sanitizeCoordinatesWorksheet(a.mathWorksheet) || !!sanitizeStatisticsWorksheet(a.mathWorksheet) || !!sanitizeClockWorksheet(a.mathWorksheet) || !!sanitizeNumberLineWorksheet(a.mathWorksheet) || !!sanitizeComparisonWorksheet(a.mathWorksheet) || !!sanitizePercentageWorksheet(a.mathWorksheet) || !!sanitizeEquationWorksheet(a.mathWorksheet);
 }
 
 export function assignmentToLesson(a: AssignmentDoc): Lesson {

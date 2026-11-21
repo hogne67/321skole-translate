@@ -76,6 +76,7 @@
       "openDigital": "Abrir atividade",
       "openPreview": "Abrir pré-visualização",
       "subtypes": {
+        "sequences": "Sequências e padrões",
         "scale": "Escalas e semelhança",
         "pythagoras": "Teorema de Pitágoras",
         "volume": "Volume e sólidos geométricos",

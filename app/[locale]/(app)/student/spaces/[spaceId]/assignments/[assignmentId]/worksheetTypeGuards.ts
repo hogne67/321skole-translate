@@ -44,6 +44,7 @@ export function isFractionWorksheet(value: unknown): value is FractionWorksheet 
         v.kind !== "word_problems" &&
         v.kind !== "volume" &&
         v.kind !== "pythagoras" &&
+        v.kind !== "sequences" &&
         v.kind !== "scale" &&
         v.kind !== "coordinates" &&
         v.kind !== "statistics" &&
