@@ -30,6 +30,12 @@
         }
       },
       "filters": {
+        "roomView": "Romvisning",
+        "views": {
+          "open": "Åpne rom",
+          "closed": "Lukkede rom",
+          "deleted": "Slettede rom"
+        },
         "label": "Filtre",
         "openOnly": "Åpne for nye elever",
         "showClosed": "Vis lukkede",
@@ -106,9 +112,11 @@
       "editTitleRequired": "Rommet må ha et navn.",
       "editTitleError": "Kunne ikke lagre navnet. Prøv igjen.",
       "overviewHint": "Åpne rommet for oppgaver, besvarelser og administrasjon.",
+      "deletedOverviewHint": "Gjenopprett et rom for å gjøre det synlig i Spaces igjen.",
       "addStudents": "Legg til elever"
     },
     "empty": {
+      "filterHint": "Prøv et annet søk eller en annen romvisning. Du kan også opprette et nytt rom.",
       "title": "Ingen spaces funnet.",
       "hint": "Opprett et med Nytt space, og del det via kode eller lenke."
     },
@@ -132,7 +140,7 @@
       "showActive": "Vis vanlige rom",
       "empty": "Du har ingen slettede rom.",
       "requirement": "Bare rom uten andre medlemmer eller elevbesvarelser kan slettes.",
-      "help": "Rommet skjules fra Spaces og deling. Du kan angre via «Vis slettede» i romoversikten.",
+      "help": "Rommet skjules fra Spaces og deling. Du kan angre via «Slettede rom» i romoversikten.",
       "restoreHelp": "Rommet blir synlig i Spaces igjen, med samme romkode og innhold som før.",
       "checking": "Sjekker medlemmer og elevbesvarelser …",
       "eligible": "Rommet har ingen andre medlemmer eller elevbesvarelser og kan slettes.",

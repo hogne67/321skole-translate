@@ -46,6 +46,7 @@ function asMillis(v: unknown): number {
 }
 
 type SortKey = "newest" | "oldest" | "title_az" | "title_za";
+type RoomView = "open" | "closed" | "deleted";
 
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
@@ -232,8 +233,8 @@ function TeacherSpacesInner() {
   }, [ownedRows, sharedRows]);
 
   const [search, setSearch] = useState("");
-  const [showClosed, setShowClosed] = useState(true);
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [roomView, setRoomView] = useState<RoomView>("open");
+  const showDeleted = roomView === "deleted";
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -311,8 +312,11 @@ function TeacherSpacesInner() {
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    let list = rows.filter(row => Boolean(row.data.deletedAt) === showDeleted
-      && (!showDeleted || getSpaceOwnerUid(row.data) === user?.uid));
+    let list = rows.filter((row) => {
+      if (roomView === "deleted") return Boolean(row.data.deletedAt) && getSpaceOwnerUid(row.data) === user?.uid;
+      if (row.data.deletedAt) return false;
+      return roomView === "open" ? row.data.isOpen === true : row.data.isOpen !== true;
+    });
 
     if (s) {
       list = list.filter((r) => {
@@ -320,10 +324,6 @@ function TeacherSpacesInner() {
         const code = (r.data.code ?? "").toString().toLowerCase();
         return title.includes(s) || code.includes(s);
       });
-    }
-
-    if (!showClosed && !showDeleted) {
-      list = list.filter((r) => Boolean(r.data.isOpen));
     }
 
     const sorted = [...list].sort((a, b) => {
@@ -340,7 +340,7 @@ function TeacherSpacesInner() {
     });
 
     return sorted;
-  }, [rows, search, showClosed, showDeleted, sortKey, user?.uid]);
+  }, [rows, search, roomView, sortKey, user?.uid]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -478,13 +478,15 @@ function TeacherSpacesInner() {
             <button
               type="button"
               onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              aria-controls="space-search-filters"
               className="inline-flex shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 sm:hidden"
             >
               {filtersOpen ? t("controls.filters.hide") : t("controls.filters.show")}
             </button>
           </div>
 
-          <div className={[filtersOpen ? "grid" : "hidden", "min-w-0 flex-1 grid-cols-1 gap-2 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)_auto] lg:max-w-3xl"].join(" ")}>
+          <div id="space-search-filters" className={[filtersOpen ? "grid" : "hidden", "min-w-0 flex-1 grid-cols-1 gap-2 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)] lg:max-w-3xl"].join(" ")}>
             <div className="min-w-0">
               <label className="sr-only" htmlFor="space-search">
                 {t("controls.search.label")}
@@ -515,40 +517,39 @@ function TeacherSpacesInner() {
               </select>
             </div>
 
-            <label
-              className={[
-                "inline-flex min-h-[42px] items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
-                showClosed
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-slate-300 bg-white text-slate-700",
-              ].join(" ")}
-              title={t("controls.filters.showClosedTitle")}
-            >
-              <input
-                id="showClosed"
-                type="checkbox"
-                checked={showClosed}
-                onChange={(e) => setShowClosed(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-400 accent-emerald-600"
-              />
-              <span className="whitespace-nowrap">{t("controls.filters.showClosed")}</span>
-            </label>
           </div>
         </div>
+        <fieldset className="m-0 mt-3 min-w-0 border-0 p-0">
+          <legend className="sr-only">{t("controls.filters.roomView")}</legend>
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-300 bg-white p-1 sm:w-fit">
+            {(["open", "closed", "deleted"] as const).map((view) => (
+              <label key={view} className="min-w-0 cursor-pointer">
+                <input
+                  type="radio"
+                  name="space-room-view"
+                  value={view}
+                  checked={roomView === view}
+                  onChange={() => setRoomView(view)}
+                  className="peer sr-only"
+                />
+                <span className={[
+                  "flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-center text-sm font-semibold leading-5 transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-emerald-600",
+                  roomView === view ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100",
+                ].join(" ")}>
+                  {t(`controls.filters.views.${view}`)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
-        <div className="mb-3 flex justify-end">
-          <button type="button" aria-pressed={showDeleted} onClick={() => setShowDeleted(value => !value)}
-            className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${showDeleted ? "border-amber-300 bg-amber-50 text-amber-950" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"}`}>
-            {t(showDeleted ? "deletion.showActive" : "deletion.showDeleted")}
-          </button>
-        </div>
         <div className="mb-3 flex min-w-0 items-center justify-between gap-3 sm:mb-4">
           <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("title")}</div>
+            <div className="text-base font-semibold text-slate-900">{t(`controls.filters.views.${roomView}`)}</div>
             <div className="mt-1 break-words text-sm text-slate-600">
-              {t("list.overviewHint")}
+              {t(showDeleted ? "list.deletedOverviewHint" : "list.overviewHint")}
             </div>
           </div>
           <Link
@@ -582,7 +583,7 @@ function TeacherSpacesInner() {
           {filtered.length === 0 && (
             <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:col-span-2 sm:p-6">
               {t(showDeleted ? "deletion.empty" : "empty.title")}
-              {!showDeleted ? <div className="mt-2">{t("empty.hint")}</div> : null}
+              {!showDeleted ? <div className="mt-2">{t("empty.filterHint")}</div> : null}
             </div>
           )}
         </div>

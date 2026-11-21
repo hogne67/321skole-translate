@@ -380,9 +380,10 @@ export default function ProducerPrintPage() {
             <h2 className="pdf-h2">{t("sections.readingText")}</h2>
             <div className={`pdf-reading is-${textSize}`}>
               {safeText(lesson.sourceText)
-                .split("\n")
+                .split(/\r\n?|\n/)
+                .filter((p) => p.trim())
                 .map((p, i) => (
-                  <p key={i}>{p.trim() ? p : "\u00A0"}</p>
+                  <p key={i}>{p}</p>
                 ))}
             </div>
           </section>
@@ -394,9 +395,10 @@ export default function ProducerPrintPage() {
               </h2>
               <div className={`pdf-reading is-${textSize}`}>
                 {highFrequencyReadingSentences
-                  .split("\n")
+                  .split(/\r\n?|\n/)
+                  .filter((p) => p.trim())
                   .map((p, i) => (
-                    <p key={i}>{p.trim() ? p : "\u00A0"}</p>
+                    <p key={i}>{p}</p>
                   ))}
               </div>
             </section>
@@ -407,9 +409,10 @@ export default function ProducerPrintPage() {
               <h2 className="pdf-h2">{t("sections.highFrequencyExplanation")}</h2>
               <div className="pdf-explanation">
                 {highFrequencyExplanation
-                  .split("\n")
+                  .split(/\r\n?|\n/)
+                  .filter((p) => p.trim())
                   .map((p, i) => (
-                    <p key={i}>{p.trim() ? p : "\u00A0"}</p>
+                    <p key={i}>{p}</p>
                   ))}
               </div>
             </section>

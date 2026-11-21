@@ -30,6 +30,12 @@
         }
       },
       "filters": {
+        "roomView": "Room view",
+        "views": {
+          "open": "Open rooms",
+          "closed": "Closed rooms",
+          "deleted": "Deleted rooms"
+        },
         "label": "Filters",
         "openOnly": "Open to new students",
         "showClosed": "Show closed",
@@ -106,9 +112,11 @@
       "editTitleRequired": "The room needs a name.",
       "editTitleError": "Could not save the name. Try again.",
       "overviewHint": "Open a room for assignments, submissions and administration.",
+      "deletedOverviewHint": "Restore a room to make it visible in Spaces again.",
       "addStudents": "Add pupils"
     },
     "empty": {
+      "filterHint": "Try another search or room view. You can also create a new room.",
       "title": "No spaces found.",
       "hint": "Create one with New space, then share it by code or link."
     },
@@ -132,7 +140,7 @@
       "showActive": "Show regular rooms",
       "empty": "You have no deleted rooms.",
       "requirement": "Only rooms without other members or student submissions can be deleted.",
-      "help": "The room is hidden from Spaces and sharing. You can undo this through ‘Show deleted’ in the room overview.",
+      "help": "The room is hidden from Spaces and sharing. You can undo this through ‘Deleted rooms’ in the room overview.",
       "restoreHelp": "The room will appear in Spaces again, with its original room code and content.",
       "checking": "Checking members and student submissions …",
       "eligible": "The room has no other members or student submissions and can be deleted.",

@@ -30,6 +30,12 @@
         }
       },
       "filters": {
+        "roomView": "Visualização das salas",
+        "views": {
+          "open": "Salas abertas",
+          "closed": "Salas fechadas",
+          "deleted": "Salas excluídas"
+        },
         "label": "Filtros",
         "openOnly": "Abertos a novos alunos",
         "showClosed": "Mostrar fechados",
@@ -106,9 +112,11 @@
       "editTitleRequired": "A sala precisa de um nome.",
       "editTitleError": "Não foi possível salvar o nome. Tente novamente.",
       "overviewHint": "Abra uma sala para acessar atividades, respostas e administração.",
+      "deletedOverviewHint": "Restaure uma sala para que ela volte a aparecer em Spaces.",
       "addStudents": "Adicionar alunos"
     },
     "empty": {
+      "filterHint": "Tente outra busca ou visualização das salas. Você também pode criar uma nova sala.",
       "title": "Nenhum space encontrado.",
       "hint": "Crie um com Novo space e compartilhe por código ou link."
     },
@@ -132,7 +140,7 @@
       "showActive": "Mostrar salas normais",
       "empty": "Você não tem salas excluídas.",
       "requirement": "Só é possível excluir salas sem outros membros ou respostas de alunos.",
-      "help": "A sala fica oculta em Spaces e no compartilhamento. Você pode desfazer isso em ‘Mostrar excluídas’ na lista de salas.",
+      "help": "A sala fica oculta em Spaces e no compartilhamento. Você pode desfazer isso em ‘Salas excluídas’ na lista de salas.",
       "restoreHelp": "A sala aparecerá novamente em Spaces, com o mesmo código e conteúdo.",
       "checking": "Verificando membros e respostas de alunos …",
       "eligible": "A sala não tem outros membros nem respostas de alunos e pode ser excluída.",
