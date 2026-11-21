@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
+import { getSpaceJoinCode } from "@/lib/spaceCode";
 
 type SpacePrintData = {
   title?: unknown;
@@ -160,7 +161,7 @@ function SpacePrintInner() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   const title = safeString(space?.title, "Space");
-  const code = safeString(space?.code, safeString(space?.joinCode));
+  const code = getSpaceJoinCode(space);
 
   const joinUrl = useMemo(() => {
     if (!code) return "";

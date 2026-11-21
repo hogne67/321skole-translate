@@ -2,8 +2,6 @@
   "teacherMembers": {
     "roster": {
       "title": "Add existing pupils",
-      "newTitle": "Create new pupils",
-      "newDescription": "Enter names of new pupils. Each new pupil uses one place. If pupils are already in another room, use Add existing pupils instead.",
       "description": "Choose pupils already in your other rooms. They get separate pupil codes here and still use just one pupil place with you.",
       "linkTitle": "Link to existing pupil",
       "linkDescription": "Select only if {name} is the same person as the pupil in another room. Linking changes the licence count. Room names, pupil codes and answers are kept.",
@@ -21,7 +19,8 @@
     },
     "title": "Members",
     "subtitle": "{spaceTitle}",
-    "showing": "Showing:",
+    "navigationLabel": "Room navigation",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
     "common": {
       "loading": "Loading…",
       "dash": "—"
@@ -33,13 +32,38 @@
       "spaceTitle": "Space"
     },
     "labels": {
-      "spaceId": "SpaceId"
+      "spaceId": "Room ID"
     },
     "actions": {
-      "backToSpace": "Back to space",
-      "allSpaces": "All spaces",
+      "backToSpace": "Back to room",
+      "allSpaces": "All rooms",
+      "printOptions": "Print",
       "printStudentCodes": "Print student codes",
-      "printGuardianInfo": "Guardian info"
+      "printGuardianInfo": "Guardian info",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details",
+      "editName": "Edit name",
+      "saveName": "Save",
+      "savingName": "Saving…",
+      "cancelEdit": "Cancel",
+      "removeStaff": "Remove access",
+      "removingStaff": "Removing…"
+    },
+    "staff": {
+      "email": "Email",
+      "accountHint": "The person you invite needs an existing account.",
+      "invite": "Invite",
+      "inviting": "Inviting…"
+    },
+    "roles": {
+      "member": "Member",
+      "student": "Student",
+      "teacher": "Teacher",
+      "co_teacher": "Co-teacher",
+      "observer": "Observer",
+      "substitute": "Substitute teacher",
+      "school_admin": "School administrator",
+      "parent": "Guardian"
     },
     "createStudent": {
       "title": "Add student",
@@ -83,19 +107,20 @@
       }
     },
     "search": {
-      "placeholder": "Search name / role / uid…"
+      "label": "Search members",
+      "placeholder": "Search by name or code…"
     },
     "table": {
       "name": "Name",
       "role": "Role",
       "joined": "Joined",
-      "type": "Type",
+      "type": "Access type",
       "studentCode": "Student code",
-      "uid": "UID"
+      "uid": "User ID"
     },
     "types": {
-      "anon": "Anon",
-      "signedIn": "Signed-in"
+      "anon": "Guest access",
+      "signedIn": "Account access"
     },
     "devices": {
       "count": "{count} registered accesses",
@@ -107,13 +132,13 @@
       "suffix": "on members."
     },
     "sections": {
-      "addTitle": "Add pupils",
-      "addDescription": "Create new pupils or add pupils you already have in other rooms.",
-      "manageTitle": "Manage pupils",
-      "manageDescription": "View the pupil list, edit names and manage pupil codes and room access."
+      "addTitle": "Add members",
+      "manageTitle": "Member list",
+      "memberDetails": "Technical details",
+      "roomDetails": "Room details"
     },
     "approval": {
-      "title": "Participant access requests",
+      "title": "Access requests",
       "description": "Approve only after checking who the request is for. Ask the participant to show the confirmation code on their screen.",
       "codeLabel": "Confirmation code from the participant (6 digits)",
       "approve": "Approve access",

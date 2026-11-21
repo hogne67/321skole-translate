@@ -5,9 +5,8 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { isCurrentSpaceSubstitute } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useId, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import SpaceRoomCard from "@/components/SpaceRoomCard";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -45,8 +44,6 @@ function asMillis(v: unknown): number {
   return 0;
 }
 
-type SortKey = "newest" | "oldest" | "title_az" | "title_za";
-type RoomView = "open" | "closed" | "deleted";
 
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
@@ -59,151 +56,6 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
-function FutureVideoSlot() {
-  return <div aria-hidden="true" className="hidden h-10 w-[156px] shrink-0 lg:block" />;
-}
-
-function getSpacesGuide(locale: string) {
-  if (locale === "en") {
-    return {
-      title: "Guide: Spaces",
-      imageUrl: "/guides/teacher-spaces-guide-en.png",
-      buttonLabel: "See quick guide",
-      closeLabel: "Close",
-      downloadLabel: "Download PNG",
-      description: "A visual guide to creating, sharing and following up Spaces.",
-    };
-  }
-
-  if (locale === "pt") {
-    return {
-      title: "Guia: Spaces",
-      imageUrl: "/guides/teacher-spaces-guide-pt-br.png",
-      buttonLabel: "Ver guia rápido",
-      closeLabel: "Fechar",
-      downloadLabel: "Baixar PNG",
-      description: "Um guia visual para criar, compartilhar e acompanhar Spaces.",
-    };
-  }
-
-  if (locale === "nb" || locale === "no") {
-    return {
-      title: "Guide: Spaces",
-      imageUrl: "/guides/teacher-spaces-guide-no.png",
-      buttonLabel: "Se hurtigguide",
-      closeLabel: "Lukk",
-      downloadLabel: "Last ned PNG",
-      description: "En visuell guide til å opprette, dele og følge opp Spaces.",
-    };
-  }
-
-  return null;
-}
-
-type SpacesGuide = NonNullable<ReturnType<typeof getSpacesGuide>>;
-
-const GUIDE_IMAGE_WIDTH = 1024;
-const GUIDE_IMAGE_HEIGHT = 1536;
-
-function SpacesGuidePoster({ guide }: { guide: SpacesGuide }) {
-  const [open, setOpen] = useState(false);
-  const titleId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        title={guide.buttonLabel}
-        className="inline-flex min-h-[70px] w-full min-w-0 max-w-none items-center justify-start gap-2 rounded-[20px] border border-blue-200 bg-white/90 p-2 text-left text-sm font-bold text-slate-900 shadow-[0_10px_24px_rgba(37,99,235,0.09)] transition hover:bg-white active:translate-y-px sm:min-h-[84px] sm:min-w-[250px] sm:gap-3 sm:p-2.5 lg:max-w-[340px]"
-      >
-        <span className="relative block aspect-video w-[76px] shrink-0 overflow-hidden rounded-[14px] bg-blue-100 sm:w-[92px]">
-          <Image src={guide.imageUrl} alt="" fill sizes="92px" className="object-cover" aria-hidden="true" />
-          <span className="absolute inset-0 bg-gradient-to-br from-white/0 to-blue-900/10" aria-hidden="true" />
-        </span>
-        <span className="min-w-0">
-          <span className="block break-words text-[13px] font-black leading-5 text-slate-950">{guide.buttonLabel}</span>
-          <span className="mt-0.5 hidden break-words text-[13px] font-medium leading-5 text-slate-500 sm:block">
-            {guide.description}
-          </span>
-        </span>
-      </button>
-
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/72 p-3 sm:p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 sm:p-5">
-              <div className="min-w-0">
-                <h2 id={titleId} className="break-words text-lg font-extrabold text-slate-950 sm:text-xl">
-                  {guide.title}
-                </h2>
-                <p className="mt-1 break-words text-sm text-slate-600">{guide.description}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-                aria-label={guide.closeLabel}
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="min-h-0 overflow-auto bg-slate-100 p-2 sm:p-4">
-              <Image
-                src={guide.imageUrl}
-                alt={guide.title}
-                width={GUIDE_IMAGE_WIDTH}
-                height={GUIDE_IMAGE_HEIGHT}
-                className="mx-auto h-auto w-full max-w-[1024px] rounded-xl bg-white object-contain shadow-sm"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-4 py-3 sm:px-5">
-              <a
-                href={guide.imageUrl}
-                download
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              >
-                {guide.downloadLabel}
-              </a>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
-              >
-                {guide.closeLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
 
 export default function TeacherSpacesPage() {
   return (
@@ -219,7 +71,6 @@ function TeacherSpacesInner() {
   const locale = useLocale();
   const substituteText = useTranslations("schoolAdmin.substitutes");
   const [substituteRooms, setSubstituteRooms] = useState<{ id: string; title: string }[]>([]);
-  const spacesGuide = getSpacesGuide(locale);
 
   const { user, profile, loading } = useUserProfile();
   const isGuestPreview = Boolean(user?.isAnonymous);
@@ -232,11 +83,6 @@ function TeacherSpacesInner() {
     return Array.from(map.values());
   }, [ownedRows, sharedRows]);
 
-  const [search, setSearch] = useState("");
-  const [roomView, setRoomView] = useState<RoomView>("open");
-  const showDeleted = roomView === "deleted";
-  const [sortKey, setSortKey] = useState<SortKey>("newest");
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [memberCount, setMemberCount] = useState<Record<string, number | undefined>>({});
   const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
@@ -310,42 +156,18 @@ function TeacherSpacesInner() {
     });
   }, [user?.uid, canUseTeacherSpaces]);
 
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    let list = rows.filter((row) => {
-      if (roomView === "deleted") return Boolean(row.data.deletedAt) && getSpaceOwnerUid(row.data) === user?.uid;
-      if (row.data.deletedAt) return false;
-      return roomView === "open" ? row.data.isOpen === true : row.data.isOpen !== true;
-    });
-
-    if (s) {
-      list = list.filter((r) => {
-        const title = (r.data.title ?? "").toString().toLowerCase();
-        const code = (r.data.code ?? "").toString().toLowerCase();
-        return title.includes(s) || code.includes(s);
-      });
-    }
-
-    const sorted = [...list].sort((a, b) => {
-      if (sortKey === "title_az" || sortKey === "title_za") {
-        const at = (a.data.title ?? "").toString().toLowerCase();
-        const bt = (b.data.title ?? "").toString().toLowerCase();
-        const cmp = at.localeCompare(bt, "en");
-        return sortKey === "title_az" ? cmp : -cmp;
-      }
-
-      const am = asMillis(a.data.createdAt);
-      const bm = asMillis(b.data.createdAt);
-      return sortKey === "newest" ? bm - am : am - bm;
-    });
-
-    return sorted;
-  }, [rows, search, roomView, sortKey, user?.uid]);
+  const { rooms, deletedRooms } = useMemo(() => {
+    const newestFirst = [...rows].sort((a, b) => asMillis(b.data.createdAt) - asMillis(a.data.createdAt));
+    return {
+      rooms: newestFirst.filter((row) => !row.data.deletedAt),
+      deletedRooms: newestFirst.filter((row) => row.data.deletedAt && getSpaceOwnerUid(row.data) === user?.uid),
+    };
+  }, [rows, user?.uid]);
 
   useEffect(() => {
     if (!user?.uid) return;
 
-    const visible = filtered.slice(0, 50);
+    const visible = rooms.slice(0, 50);
     visible.forEach((r) => {
       if (memberCount[r.id] !== undefined) return;
       if (memberCountBusy[r.id]) return;
@@ -370,7 +192,7 @@ function TeacherSpacesInner() {
         .finally(() => setMemberCountBusy((m) => ({ ...m, [r.id]: false })));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered, user?.uid]);
+  }, [rooms, user?.uid]);
 
   if (loading) {
     return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
@@ -380,16 +202,10 @@ function TeacherSpacesInner() {
     if (isGuestPreview) {
       return (
         <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-          <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0 flex-1">
-                <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
-                <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("guestPreview.subtitle")}</p>
-              </div>
-
-              {spacesGuide ? <SpacesGuidePoster guide={spacesGuide} /> : <FutureVideoSlot />}
-            </div>
-          </div>
+          <header className="rounded-2xl border border-solid border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-950">{t("title")}</h1>
+            <p className="mb-0 mt-1 text-sm text-slate-600">{t("guestPreview.subtitle")}</p>
+          </header>
 
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -451,144 +267,60 @@ function TeacherSpacesInner() {
           </Link>
         </li>)}</ul>
       </section> : null}
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
-            </div>
-            <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("subtitle")}</p>
-          </div>
-
-          <div className="flex w-full min-w-0 flex-wrap gap-2 sm:items-center lg:w-auto lg:justify-end">
-            {spacesGuide ? <SpacesGuidePoster guide={spacesGuide} /> : <FutureVideoSlot />}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-4">
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-900">{t("controls.filters.label")}</div>
-            <div className="mt-1 break-words text-xs text-slate-600">
-              {t("controls.filters.showing", { n: filtered.length })}
-            </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-expanded={filtersOpen}
-              aria-controls="space-search-filters"
-              className="inline-flex shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 sm:hidden"
-            >
-              {filtersOpen ? t("controls.filters.hide") : t("controls.filters.show")}
-            </button>
-          </div>
-
-          <div id="space-search-filters" className={[filtersOpen ? "grid" : "hidden", "min-w-0 flex-1 grid-cols-1 gap-2 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)] lg:max-w-3xl"].join(" ")}>
-            <div className="min-w-0">
-              <label className="sr-only" htmlFor="space-search">
-                {t("controls.search.label")}
-              </label>
-              <input
-                id="space-search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("controls.search.placeholder")}
-                className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-              />
-            </div>
-
-            <div className="min-w-0">
-              <label className="sr-only" htmlFor="space-sort">
-                {t("controls.sort.label")}
-              </label>
-              <select
-                id="space-sort"
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
-                className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-              >
-                <option value="newest">{t("controls.sort.options.newest")}</option>
-                <option value="oldest">{t("controls.sort.options.oldest")}</option>
-                <option value="title_az">{t("controls.sort.options.title_az")}</option>
-                <option value="title_za">{t("controls.sort.options.title_za")}</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-        <fieldset className="m-0 mt-3 min-w-0 border-0 p-0">
-          <legend className="sr-only">{t("controls.filters.roomView")}</legend>
-          <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-300 bg-white p-1 sm:w-fit">
-            {(["open", "closed", "deleted"] as const).map((view) => (
-              <label key={view} className="min-w-0 cursor-pointer">
-                <input
-                  type="radio"
-                  name="space-room-view"
-                  value={view}
-                  checked={roomView === view}
-                  onChange={() => setRoomView(view)}
-                  className="peer sr-only"
-                />
-                <span className={[
-                  "flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-center text-sm font-semibold leading-5 transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-emerald-600",
-                  roomView === view ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100",
-                ].join(" ")}>
-                  {t(`controls.filters.views.${view}`)}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-
-      <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
-        <div className="mb-3 flex min-w-0 items-center justify-between gap-3 sm:mb-4">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t(`controls.filters.views.${roomView}`)}</div>
-            <div className="mt-1 break-words text-sm text-slate-600">
-              {t(showDeleted ? "list.deletedOverviewHint" : "list.overviewHint")}
-            </div>
+      <header className="rounded-2xl border border-solid border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0 flex-1 basis-64">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-950">{t("title")}</h1>
+            <p className="mb-0 mt-1 text-sm text-slate-600">{t("subtitle")}</p>
           </div>
           <Link
             href={withLocale(locale, "/teacher/spaces/new")}
             title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
             className={[
-              "inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold shadow-sm no-underline hover:shadow-md sm:px-4",
+              "inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700",
               canCreateSpace
-                ? "bg-green-600 text-white hover:bg-green-500"
-                : "border border-slate-300 bg-white text-slate-800",
+                ? "bg-emerald-800 text-white hover:bg-emerald-900"
+                : "border border-solid border-slate-300 bg-white text-slate-800",
             ].join(" ")}
           >
             <span className="sm:hidden">{canCreateSpace ? t("newSpaceShort") : t("newSpaceLockedShort")}</span>
             <span className="hidden sm:inline">{canCreateSpace ? t("newSpace") : t("newSpaceLocked")}</span>
           </Link>
         </div>
+      </header>
 
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-          {filtered.map((row) => (
-            <SpaceRoomCard
-              key={row.id}
-              spaceId={row.id}
-              title={row.data.title}
-              memberCount={memberCount[row.id]}
-              loading={Boolean(memberCountBusy[row.id])}
-              canDelete={getSpaceOwnerUid(row.data) === user?.uid}
-              deleted={Boolean(row.data.deletedAt)}
-            />
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:col-span-2 sm:p-6">
-              {t(showDeleted ? "deletion.empty" : "empty.title")}
-              {!showDeleted ? <div className="mt-2">{t("empty.filterHint")}</div> : null}
-            </div>
-          )}
-        </div>
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        {rooms.map((row) => (
+          <SpaceRoomCard
+            key={row.id}
+            spaceId={row.id}
+            title={row.data.title}
+            memberCount={memberCount[row.id]}
+            loading={Boolean(memberCountBusy[row.id])}
+            canDelete={getSpaceOwnerUid(row.data) === user?.uid}
+            closed={row.data.isOpen !== true}
+          />
+        ))}
+        {rooms.length === 0 ? (
+          <p className="m-0 rounded-2xl border border-solid border-slate-200 bg-white p-4 text-sm text-slate-600 sm:col-span-2">
+            {t("empty.title")}
+          </p>
+        ) : null}
       </div>
 
+      {deletedRooms.length > 0 ? (
+        <details className="group rounded-2xl border border-solid border-slate-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden">
+            {t("deletion.sectionTitle")}
+            <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
+          </summary>
+          <div className="grid min-w-0 gap-3 px-4 pb-4 sm:grid-cols-2">
+            {deletedRooms.map((row) => (
+              <SpaceRoomCard key={row.id} spaceId={row.id} title={row.data.title} canDelete deleted />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

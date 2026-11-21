@@ -19,6 +19,14 @@
       "notMember": "You are not a member of this space.",
       "verifyFailed": "Could not verify access."
     },
+    "errors": {
+      "readSubmissionsFailed": "Could not load submissions.",
+      "noManageAccess": "You do not have permission to edit assignments in this room.",
+      "updateAssignmentFailed": "Could not update the assignment."
+    },
+    "fallback": {
+      "untitledTask": "Untitled assignment"
+    },
     "denied": {
       "title": "No access",
       "subtitle": "You do not have access to this space.",
@@ -27,7 +35,6 @@
       "joinLinkLabel": "Join link:"
     },
     "overview": {
-      "subtitle": "Here you can see all assigned assignments in the space and their submission status.",
       "code": "Code:",
       "copyCodeTitle": "Copy code",
       "copied": "Copied ✅",
@@ -44,8 +51,7 @@
       "subtitle": "Assignments are assigned from My Content. Here you can follow status, messages, due dates and submissions in this space.",
       "assignTask": "Assign new task",
       "showArchived": "Show archived tasks",
-      "emptyHtml": "No assignments yet. Go to <b>My Content</b> to assign tasks to this space.",
-      "count": "{count} · {label}"
+      "emptyHtml": "No assignments yet. Go to <b>My Content</b> to assign tasks to this room."
     },
     "writingStation": {
       "title": "321 studio",
@@ -154,16 +160,25 @@
     "administration": {
       "disableLessonAiFeedback": "Turn off AI feedback suggestions for Lessons submissions in this Space",
       "disableWritingAi": "Turn off AI help and AI suggestions for writing activities in this Space",
-      "title": "Manage space",
-      "accessTitle": "Room access",
+      "title": "Room settings",
+      "accessTitle": "Share room",
       "acceptNewStudents": "Allow new students to join",
       "ownerOnly": "Only the owner or an administrator can change the name and access settings.",
       "saved": "Changes saved.",
       "saveFailed": "Could not save the change. Please try again.",
       "copyFailed": "Could not copy. Please try again.",
       "qrFailed": "Could not generate the QR code. Please try again.",
-      "personalAccess": "Create pupils and their names under Add pupils. Pupils use a personal QR or room code + pupil code. The same code connects to the same pupil and history across browsers and accounts.",
-      "sharedEntrance": "Shared room entrance: The room link and room QR identify only the room. Pupils must also enter their personal pupil code."
+      "sharedEntrance": "The room link and QR code fill in the room code. Each student also enters their personal student code. A new sign-in to the room needs approval.",
+      "backToRooms": "All rooms",
+      "roomCode": "Room code",
+      "codeMissing": "Unavailable",
+      "addStudent": "Add student",
+      "memberList": "Member list",
+      "editRoomName": "Edit room name",
+      "hideRoomQr": "Hide room QR code",
+      "codeCopied": "Room code copied.",
+      "linkCopied": "Room link copied.",
+      "nameSaved": "Room name saved."
     }
   }
 }

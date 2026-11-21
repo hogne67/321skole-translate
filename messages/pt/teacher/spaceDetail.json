@@ -19,6 +19,14 @@
       "notMember": "Você não é membro deste space.",
       "verifyFailed": "Não foi possível verificar o acesso."
     },
+    "errors": {
+      "readSubmissionsFailed": "Não foi possível carregar as respostas.",
+      "noManageAccess": "Você não tem permissão para editar atividades nesta sala.",
+      "updateAssignmentFailed": "Não foi possível atualizar a atividade."
+    },
+    "fallback": {
+      "untitledTask": "Atividade sem título"
+    },
     "denied": {
       "title": "Sem acesso",
       "subtitle": "Você não tem acesso a este space.",
@@ -27,7 +35,6 @@
       "joinLinkLabel": "Link de entrada:"
     },
     "overview": {
-      "subtitle": "Aqui você pode ver todas as atividades atribuídas no space e o status das respostas.",
       "code": "Código:",
       "copyCodeTitle": "Copiar código",
       "copied": "Copiado ✅",
@@ -44,8 +51,7 @@
       "subtitle": "As atividades são atribuídas em Meu conteúdo. Aqui você acompanha status, mensagens, prazos e respostas neste space.",
       "assignTask": "Atribuir nova atividade",
       "showArchived": "Mostrar atividades arquivadas",
-      "emptyHtml": "Ainda não há atividades. Vá para <b>Meu conteúdo</b> para atribuir atividades a este space.",
-      "count": "{count} · {label}"
+      "emptyHtml": "Ainda não há atividades. Vá para <b>Meu conteúdo</b> para atribuir atividades a esta sala."
     },
     "writingStation": {
       "title": "321 studio",
@@ -154,16 +160,25 @@
     "administration": {
       "disableLessonAiFeedback": "Desativar sugestões de feedback por IA para entregas do Lessons neste espaço",
       "disableWritingAi": "Desativar a ajuda e as sugestões de IA para atividades de escrita neste espaço",
-      "title": "Administrar Space",
-      "accessTitle": "Acesso à sala",
+      "title": "Configurações da sala",
+      "accessTitle": "Compartilhar sala",
       "acceptNewStudents": "Permitir a entrada de novos alunos",
       "ownerOnly": "Somente o proprietário ou um administrador pode alterar o nome e as configurações de acesso.",
       "saved": "Alterações salvas.",
       "saveFailed": "Não foi possível salvar a alteração. Tente novamente.",
       "copyFailed": "Não foi possível copiar. Tente novamente.",
       "qrFailed": "Não foi possível gerar o código QR. Tente novamente.",
-      "personalAccess": "Crie os alunos e os nomes em Adicionar alunos. Os alunos usam um QR pessoal ou o código da sala + código de aluno. O mesmo código liga ao mesmo aluno e histórico noutros navegadores e contas.",
-      "sharedEntrance": "Entrada comum da sala: A ligação e o QR da sala identificam apenas a sala. O aluno também deve introduzir o seu código pessoal."
+      "sharedEntrance": "O link e o QR da sala preenchem o código da sala. Cada aluno também insere seu código pessoal. Um novo acesso à sala precisa de aprovação.",
+      "backToRooms": "Todas as salas",
+      "roomCode": "Código da sala",
+      "codeMissing": "Indisponível",
+      "addStudent": "Adicionar aluno",
+      "memberList": "Lista de membros",
+      "editRoomName": "Editar nome da sala",
+      "hideRoomQr": "Ocultar QR da sala",
+      "codeCopied": "Código da sala copiado.",
+      "linkCopied": "Link da sala copiado.",
+      "nameSaved": "Nome da sala salvo."
     }
   }
 }

@@ -19,6 +19,14 @@
       "notMember": "Du er ikke medlem av dette spacet.",
       "verifyFailed": "Kunne ikke bekrefte tilgang."
     },
+    "errors": {
+      "readSubmissionsFailed": "Kunne ikke lese besvarelsene.",
+      "noManageAccess": "Du har ikke tilgang til å endre oppgaver i dette rommet.",
+      "updateAssignmentFailed": "Kunne ikke oppdatere oppgaven."
+    },
+    "fallback": {
+      "untitledTask": "Oppgave uten tittel"
+    },
     "denied": {
       "title": "Ingen tilgang",
       "subtitle": "Du har ikke tilgang til dette spacet.",
@@ -27,7 +35,6 @@
       "joinLinkLabel": "Bli med-lenke:"
     },
     "overview": {
-      "subtitle": "Her kan du se alle tildelte oppgaver i spacet og status for besvarelsene.",
       "code": "Kode:",
       "copyCodeTitle": "Kopier kode",
       "copied": "Kopiert ✅",
@@ -44,8 +51,7 @@
       "subtitle": "Oppgaver tildeles fra Mitt innhold. Her kan du følge med på status, beskjeder, frister og besvarelser i dette spacet.",
       "assignTask": "Tildel ny oppgave",
       "showArchived": "Vis arkiverte oppgaver",
-      "emptyHtml": "Ingen oppgaver ennå. Gå til <b>Mitt innhold</b> for å tildele oppgaver til dette spacet.",
-      "count": "{count} · {label}"
+      "emptyHtml": "Ingen oppgaver ennå. Gå til <b>Mitt innhold</b> for å tildele oppgaver til rommet."
     },
     "writingStation": {
       "title": "321 studio",
@@ -154,16 +160,25 @@
     "administration": {
       "disableLessonAiFeedback": "Slå av KI-forslag på Lessons-besvarelser i dette rommet",
       "disableWritingAi": "Slå av KI-hjelp og KI-forslag for skriveaktiviteter i dette rommet",
-      "title": "Administrer space",
-      "accessTitle": "Tilgang til rommet",
+      "title": "Rominnstillinger",
+      "accessTitle": "Del rommet",
       "acceptNewStudents": "Tillat nye elever å bli med",
       "ownerOnly": "Bare eieren eller en administrator kan endre navn og tilgang.",
       "saved": "Endringene er lagret.",
       "saveFailed": "Kunne ikke lagre endringen. Prøv igjen.",
       "copyFailed": "Kunne ikke kopiere. Prøv igjen.",
       "qrFailed": "Kunne ikke lage QR-koden. Prøv igjen.",
-      "personalAccess": "Du oppretter elevene og navnene under Legg til elever. Elevene bruker personlig elev-QR eller romkode + elevkode. Samme kode gir samme elev og historikk på nye nettlesere og kontoer.",
-      "sharedEntrance": "Felles rominngang: Romlenken og rom-QR identifiserer bare rommet. Eleven må også oppgi personlig elevkode."
+      "sharedEntrance": "Romlenken og rom-QR fyller inn romkoden. Eleven oppgir også sin personlige elevkode. En ny innlogging i rommet må godkjennes.",
+      "backToRooms": "Alle rom",
+      "roomCode": "Romkode",
+      "codeMissing": "Mangler",
+      "addStudent": "Legg til elev",
+      "memberList": "Medlemsliste",
+      "editRoomName": "Rediger romnavn",
+      "hideRoomQr": "Skjul rom-QR",
+      "codeCopied": "Romkoden er kopiert.",
+      "linkCopied": "Romlenken er kopiert.",
+      "nameSaved": "Romnavnet er lagret."
     }
   }
 }

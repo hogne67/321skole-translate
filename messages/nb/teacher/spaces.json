@@ -15,36 +15,6 @@
       "close": "Lukk",
       "title": "Opplæring: spaces"
     },
-    "controls": {
-      "search": {
-        "label": "Søk",
-        "placeholder": "Tittel eller kode…"
-      },
-      "sort": {
-        "label": "Sorter",
-        "options": {
-          "newest": "Nyeste",
-          "oldest": "Eldste",
-          "title_az": "Tittel (A–Å)",
-          "title_za": "Tittel (Å–A)"
-        }
-      },
-      "filters": {
-        "roomView": "Romvisning",
-        "views": {
-          "open": "Åpne rom",
-          "closed": "Lukkede rom",
-          "deleted": "Slettede rom"
-        },
-        "label": "Filtre",
-        "openOnly": "Åpne for nye elever",
-        "showClosed": "Vis lukkede",
-        "show": "Vis filtre",
-        "hide": "Skjul filtre",
-        "showClosedTitle": "Vis rom som er lukket for nye elever",
-        "showing": "Viser: {n}"
-      }
-    },
     "access": {
       "title": "Spaces er for lærere",
       "subtitle": "Logg inn med en lærerbruker for å opprette og administrere egne rom. Elever blir med via kode eller lenke."
@@ -112,11 +82,9 @@
       "editTitleRequired": "Rommet må ha et navn.",
       "editTitleError": "Kunne ikke lagre navnet. Prøv igjen.",
       "overviewHint": "Åpne rommet for oppgaver, besvarelser og administrasjon.",
-      "deletedOverviewHint": "Gjenopprett et rom for å gjøre det synlig i Spaces igjen.",
       "addStudents": "Legg til elever"
     },
     "empty": {
-      "filterHint": "Prøv et annet søk eller en annen romvisning. Du kan også opprette et nytt rom.",
       "title": "Ingen spaces funnet.",
       "hint": "Opprett et med Nytt space, og del det via kode eller lenke."
     },
@@ -131,6 +99,7 @@
       "imageAlt": "QR-kode"
     },
     "deletion": {
+      "sectionTitle": "Slettede rom",
       "delete": "Slett rom",
       "deleteNamed": "Slett rommet {title}",
       "restore": "Gjenopprett",

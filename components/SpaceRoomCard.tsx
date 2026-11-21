@@ -5,12 +5,13 @@ import { ArrowUpRight, DoorOpen, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import SpaceDeletionAction from "./SpaceDeletionAction";
 
-export default function SpaceRoomCard({ spaceId, title, memberCount, loading = false, canDelete = false, deleted = false }: {
+export default function SpaceRoomCard({ spaceId, title, memberCount, loading = false, canDelete = false, closed = false, deleted = false }: {
   spaceId: string;
   title: string;
   memberCount?: number;
   loading?: boolean;
   canDelete?: boolean;
+  closed?: boolean;
   deleted?: boolean;
 }) {
   const t = useTranslations("spaces");
@@ -36,7 +37,10 @@ export default function SpaceRoomCard({ spaceId, title, memberCount, loading = f
         </span>
         {!canDelete ? <ArrowUpRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-emerald-700" aria-hidden="true" /> : null}
       </div>
-      <h2 className="mt-5 break-words text-lg font-bold text-slate-900">{title || t("list.untitled")}</h2>
+      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="m-0 min-w-0 break-words text-lg font-bold text-slate-900">{title || t("list.untitled")}</h2>
+        {closed ? <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{t("list.closed")}</span> : null}
+      </div>
       <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
         <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>{t("list.members")} <span className="font-semibold text-slate-700">{loading ? "…" : memberCount ?? "—"}</span></span>

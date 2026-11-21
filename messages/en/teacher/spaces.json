@@ -15,36 +15,6 @@
       "close": "Close",
       "title": "Guide: spaces"
     },
-    "controls": {
-      "search": {
-        "label": "Search",
-        "placeholder": "Title or code…"
-      },
-      "sort": {
-        "label": "Sort",
-        "options": {
-          "newest": "Newest",
-          "oldest": "Oldest",
-          "title_az": "Title (A–Z)",
-          "title_za": "Title (Z–A)"
-        }
-      },
-      "filters": {
-        "roomView": "Room view",
-        "views": {
-          "open": "Open rooms",
-          "closed": "Closed rooms",
-          "deleted": "Deleted rooms"
-        },
-        "label": "Filters",
-        "openOnly": "Open to new students",
-        "showClosed": "Show closed",
-        "show": "Show filters",
-        "hide": "Hide filters",
-        "showClosedTitle": "Show rooms closed to new students",
-        "showing": "Showing: {n}"
-      }
-    },
     "access": {
       "title": "Spaces are for teachers",
       "subtitle": "Sign in with a teacher account to create and manage your own rooms. Students join by code or link."
@@ -112,11 +82,9 @@
       "editTitleRequired": "The room needs a name.",
       "editTitleError": "Could not save the name. Try again.",
       "overviewHint": "Open a room for assignments, submissions and administration.",
-      "deletedOverviewHint": "Restore a room to make it visible in Spaces again.",
       "addStudents": "Add pupils"
     },
     "empty": {
-      "filterHint": "Try another search or room view. You can also create a new room.",
       "title": "No spaces found.",
       "hint": "Create one with New space, then share it by code or link."
     },
@@ -131,6 +99,7 @@
       "imageAlt": "QR code"
     },
     "deletion": {
+      "sectionTitle": "Deleted rooms",
       "delete": "Delete room",
       "deleteNamed": "Delete room {title}",
       "restore": "Restore",

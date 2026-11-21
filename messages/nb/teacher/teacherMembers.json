@@ -2,8 +2,6 @@
   "teacherMembers": {
     "roster": {
       "title": "Hent eksisterende elever",
-      "newTitle": "Opprett nye elever",
-      "newDescription": "Skriv navn på nye elever. Hver ny elev bruker én elevplass. Har du elevene i et annet rom, bruk Hent eksisterende elever i stedet.",
       "description": "Velg elever du allerede har i andre rom. De får egne elevkoder her, men bruker fortsatt bare én elevplass hos deg.",
       "linkTitle": "Koble til eksisterende elev",
       "linkDescription": "Velg bare hvis {name} er samme person som eleven i et annet rom. Koblingen endrer lisensens elevtelling. Navn, elevkoder og besvarelser i rommene beholdes.",
@@ -21,7 +19,8 @@
     },
     "title": "Medlemmer",
     "subtitle": "{spaceTitle}",
-    "showing": "Viser:",
+    "navigationLabel": "Romnavigasjon",
+    "memberCount": "{count, plural, one {# medlem} other {# medlemmer}}",
     "common": {
       "loading": "Laster…",
       "dash": "—"
@@ -33,13 +32,38 @@
       "spaceTitle": "Space"
     },
     "labels": {
-      "spaceId": "SpaceId"
+      "spaceId": "Rom-ID"
     },
     "actions": {
-      "backToSpace": "Tilbake til space",
-      "allSpaces": "Alle spaces",
+      "backToSpace": "Tilbake til rommet",
+      "allSpaces": "Alle rom",
+      "printOptions": "Utskrift",
       "printStudentCodes": "Skriv ut elevkoder",
-      "printGuardianInfo": "Foresattinfo"
+      "printGuardianInfo": "Foresattinfo",
+      "showDetails": "Vis detaljer",
+      "hideDetails": "Skjul detaljer",
+      "editName": "Rediger navn",
+      "saveName": "Lagre",
+      "savingName": "Lagrer…",
+      "cancelEdit": "Avbryt",
+      "removeStaff": "Fjern tilgang",
+      "removingStaff": "Fjerner…"
+    },
+    "staff": {
+      "email": "E-post",
+      "accountHint": "Personen du inviterer, må ha en konto fra før.",
+      "invite": "Inviter",
+      "inviting": "Inviterer…"
+    },
+    "roles": {
+      "member": "Medlem",
+      "student": "Elev",
+      "teacher": "Lærer",
+      "co_teacher": "Medlærer",
+      "observer": "Observatør",
+      "substitute": "Vikar",
+      "school_admin": "Skoleadministrator",
+      "parent": "Foresatt"
     },
     "createStudent": {
       "title": "Legg til elev",
@@ -83,19 +107,20 @@
       }
     },
     "search": {
-      "placeholder": "Søk navn / rolle / uid…"
+      "label": "Søk i medlemslisten",
+      "placeholder": "Søk etter navn eller kode…"
     },
     "table": {
       "name": "Navn",
       "role": "Rolle",
       "joined": "Ble med",
-      "type": "Type",
+      "type": "Tilgangstype",
       "studentCode": "Elevkode",
-      "uid": "UID"
+      "uid": "Bruker-ID"
     },
     "types": {
-      "anon": "Anonym",
-      "signedIn": "Innlogget"
+      "anon": "Gjestetilgang",
+      "signedIn": "Med konto"
     },
     "devices": {
       "count": "{count} registrerte tilganger",
@@ -107,13 +132,13 @@
       "suffix": "på medlemmer."
     },
     "sections": {
-      "addTitle": "Legg til elever",
-      "addDescription": "Opprett nye elever eller hent elever du allerede har i andre rom.",
-      "manageTitle": "Administrer elever",
-      "manageDescription": "Se elevlisten, rediger navn og administrer elevkoder og tilgang til rommet."
+      "addTitle": "Legg til medlemmer",
+      "manageTitle": "Medlemsliste",
+      "memberDetails": "Tekniske detaljer",
+      "roomDetails": "Romdetaljer"
     },
     "approval": {
-      "title": "Forespørsler om deltakertilgang",
+      "title": "Tilgangsforespørsler",
       "description": "Godkjenn bare når du har kontrollert hvem forespørselen gjelder. Be deltakeren vise bekreftelseskoden på sin skjerm.",
       "codeLabel": "Bekreftelseskoden fra deltakeren (6 siffer)",
       "approve": "Godkjenn tilgang",

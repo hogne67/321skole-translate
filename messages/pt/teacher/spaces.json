@@ -15,36 +15,6 @@
       "close": "Fechar",
       "title": "Guia: spaces"
     },
-    "controls": {
-      "search": {
-        "label": "Buscar",
-        "placeholder": "Título ou código…"
-      },
-      "sort": {
-        "label": "Ordenar",
-        "options": {
-          "newest": "Mais recente",
-          "oldest": "Mais antigo",
-          "title_az": "Título (A–Z)",
-          "title_za": "Título (Z–A)"
-        }
-      },
-      "filters": {
-        "roomView": "Visualização das salas",
-        "views": {
-          "open": "Salas abertas",
-          "closed": "Salas fechadas",
-          "deleted": "Salas excluídas"
-        },
-        "label": "Filtros",
-        "openOnly": "Abertos a novos alunos",
-        "showClosed": "Mostrar fechados",
-        "show": "Mostrar filtros",
-        "hide": "Ocultar filtros",
-        "showClosedTitle": "Mostrar salas fechadas para novos alunos",
-        "showing": "Mostrando: {n}"
-      }
-    },
     "access": {
       "title": "Spaces são para professores",
       "subtitle": "Entre com uma conta de professor para criar e gerenciar suas salas. Alunos entram por código ou link."
@@ -112,11 +82,9 @@
       "editTitleRequired": "A sala precisa de um nome.",
       "editTitleError": "Não foi possível salvar o nome. Tente novamente.",
       "overviewHint": "Abra uma sala para acessar atividades, respostas e administração.",
-      "deletedOverviewHint": "Restaure uma sala para que ela volte a aparecer em Spaces.",
       "addStudents": "Adicionar alunos"
     },
     "empty": {
-      "filterHint": "Tente outra busca ou visualização das salas. Você também pode criar uma nova sala.",
       "title": "Nenhum space encontrado.",
       "hint": "Crie um com Novo space e compartilhe por código ou link."
     },
@@ -131,6 +99,7 @@
       "imageAlt": "QR code"
     },
     "deletion": {
+      "sectionTitle": "Salas excluídas",
       "delete": "Excluir sala",
       "deleteNamed": "Excluir a sala {title}",
       "restore": "Restaurar",

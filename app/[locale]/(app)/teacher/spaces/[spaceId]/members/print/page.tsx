@@ -7,6 +7,7 @@ import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "fire
 import { useEffect, useMemo, useState } from "react";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
+import { getSpaceJoinCode } from "@/lib/spaceCode";
 import { useLocale } from "next-intl";
 
 type SpacePrintData = {
@@ -148,19 +149,8 @@ function getOrigin() {
   return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 function safeString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-function readSpaceCode(data: SpacePrintData | null): string {
-  const direct = safeString(data?.code, safeString(data?.joinCode));
-  if (direct) return direct;
-  const join = data?.join;
-  return isRecord(join) ? safeString(join.code) : "";
 }
 
 function safeFilenamePart(value: string) {
@@ -251,7 +241,7 @@ function StudentAccessPrintInner() {
   const [qrByUrl, setQrByUrl] = useState<Record<string, string>>({});
 
   const title = safeString(space?.title, "Space");
-  const code = readSpaceCode(space);
+  const code = getSpaceJoinCode(space);
 
   const rows = useMemo<StudentAccessRow[]>(() => {
     if (!code) return [];

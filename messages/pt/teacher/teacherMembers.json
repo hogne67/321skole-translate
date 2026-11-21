@@ -2,8 +2,6 @@
   "teacherMembers": {
     "roster": {
       "title": "Adicionar alunos existentes",
-      "newTitle": "Criar novos alunos",
-      "newDescription": "Introduza os nomes dos novos alunos. Cada novo aluno ocupa uma vaga. Se os alunos já estiverem noutra sala, use Adicionar alunos existentes.",
       "description": "Escolha alunos que já estão nas suas outras salas. Recebem códigos próprios nesta sala e continuam a ocupar apenas uma vaga consigo.",
       "linkTitle": "Ligar a aluno existente",
       "linkDescription": "Selecione apenas se {name} for a mesma pessoa que o aluno noutra sala. A ligação altera a contagem da licença. Os nomes, códigos e respostas nas salas são mantidos.",
@@ -21,7 +19,8 @@
     },
     "title": "Membros",
     "subtitle": "{spaceTitle}",
-    "showing": "Mostrando:",
+    "navigationLabel": "Navegação da sala",
+    "memberCount": "{count, plural, =0 {0 membros} one {# membro} other {# membros}}",
     "common": {
       "loading": "Carregando…",
       "dash": "—"
@@ -33,13 +32,38 @@
       "spaceTitle": "Space"
     },
     "labels": {
-      "spaceId": "SpaceId"
+      "spaceId": "ID da sala"
     },
     "actions": {
-      "backToSpace": "Voltar para o space",
-      "allSpaces": "Todos os spaces",
+      "backToSpace": "Voltar para a sala",
+      "allSpaces": "Todas as salas",
+      "printOptions": "Impressão",
       "printStudentCodes": "Imprimir códigos dos alunos",
-      "printGuardianInfo": "Informação aos responsáveis"
+      "printGuardianInfo": "Informação aos responsáveis",
+      "showDetails": "Mostrar detalhes",
+      "hideDetails": "Ocultar detalhes",
+      "editName": "Editar nome",
+      "saveName": "Salvar",
+      "savingName": "Salvando…",
+      "cancelEdit": "Cancelar",
+      "removeStaff": "Remover acesso",
+      "removingStaff": "Removendo…"
+    },
+    "staff": {
+      "email": "E-mail",
+      "accountHint": "A pessoa convidada precisa ter uma conta.",
+      "invite": "Convidar",
+      "inviting": "Convidando…"
+    },
+    "roles": {
+      "member": "Membro",
+      "student": "Aluno",
+      "teacher": "Professor",
+      "co_teacher": "Professor auxiliar",
+      "observer": "Observador",
+      "substitute": "Professor substituto",
+      "school_admin": "Administrador escolar",
+      "parent": "Responsável"
     },
     "createStudent": {
       "title": "Adicionar aluno",
@@ -83,19 +107,20 @@
       }
     },
     "search": {
-      "placeholder": "Buscar nome / função / uid…"
+      "label": "Buscar na lista de membros",
+      "placeholder": "Buscar por nome ou código…"
     },
     "table": {
       "name": "Nome",
       "role": "Função",
       "joined": "Entrou",
-      "type": "Tipo",
+      "type": "Tipo de acesso",
       "studentCode": "Código do aluno",
-      "uid": "UID"
+      "uid": "ID do usuário"
     },
     "types": {
-      "anon": "Anônimo",
-      "signedIn": "Conectado"
+      "anon": "Acesso de convidado",
+      "signedIn": "Acesso com conta"
     },
     "devices": {
       "count": "{count} acessos registados",
@@ -107,13 +132,13 @@
       "suffix": "nos membros."
     },
     "sections": {
-      "addTitle": "Adicionar alunos",
-      "addDescription": "Crie novos alunos ou adicione alunos que já tem noutras salas.",
-      "manageTitle": "Gerir alunos",
-      "manageDescription": "Consulte a lista de alunos, edite nomes e gira códigos de aluno e acesso à sala."
+      "addTitle": "Adicionar membros",
+      "manageTitle": "Lista de membros",
+      "memberDetails": "Detalhes técnicos",
+      "roomDetails": "Detalhes da sala"
     },
     "approval": {
-      "title": "Pedidos de acesso de participantes",
+      "title": "Pedidos de acesso",
       "description": "Aprove apenas depois de confirmar a quem pertence o pedido. Peça ao participante que mostre o código de confirmação no seu ecrã.",
       "codeLabel": "Código de confirmação do participante (6 dígitos)",
       "approve": "Aprovar acesso",

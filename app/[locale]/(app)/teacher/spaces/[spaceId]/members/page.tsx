@@ -3,6 +3,7 @@
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import Link from "next/link";
+import { ArrowLeft, ChevronDown, Printer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
@@ -10,6 +11,7 @@ import TeacherPupilPicker from "@/components/TeacherPupilPicker";
 import SpaceAccessRequests, { type SpaceAccessRequest } from "@/components/SpaceAccessRequests";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
+import { getSpaceJoinCode } from "@/lib/spaceCode";
 import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -37,7 +39,12 @@ type MemberRow = {
   deviceCount?: number;
 };
 
-const INITIAL_BULK_STUDENT_COUNT = 15;
+const actionClass = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-60";
+const secondaryButton = `${actionClass} border-slate-300 bg-white text-slate-800 hover:bg-slate-50`;
+const primaryButton = `${actionClass} border-emerald-800 bg-emerald-800 text-white hover:bg-emerald-900`;
+const dangerButton = `${actionClass} border-red-200 bg-white text-red-700 hover:bg-red-50`;
+const fieldClass = "box-border min-h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-sky-700";
+const disclosureClass = "flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 [&::-webkit-details-marker]:hidden";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -168,7 +175,7 @@ function Inner() {
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
-  const [spaceCode, setSpaceCode] = useState<string | null>(null);
+  const [spaceCode, setSpaceCode] = useState("");
   const [canManageStaff, setCanManageStaff] = useState(false);
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
@@ -178,10 +185,6 @@ function Inner() {
   const [inviteBusy, setInviteBusy] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
-  const [bulkStudentNames, setBulkStudentNames] = useState<string[]>(
-    () => Array.from({ length: INITIAL_BULK_STUDENT_COUNT }, () => "")
-  );
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [nameBusyId, setNameBusyId] = useState<string | null>(null);
@@ -211,16 +214,6 @@ function Inner() {
     setSpaceTitle((prev) => (prev === "" || prev === t("fallbacks.spaceTitle") ? t("fallbacks.spaceTitle") : prev));
   }, [t]);
 
-  function readSpaceCode(data: unknown): string | null {
-    if (!isRecord(data)) return null;
-    const code = safeString(data.code) || safeString(data.joinCode);
-    if (code) return code;
-
-    const join = data.join;
-    if (!isRecord(join)) return null;
-    return safeString(join.code);
-  }
-
   function buildStudentJoinLink(studentCode: string): string | null {
     if (!spaceCode || !studentCode || studentCode === t("common.dash")) return null;
     if (typeof window === "undefined") return null;
@@ -242,7 +235,7 @@ function Inner() {
         const title = data && isRecord(data) ? safeString(data["title"]) : null;
         const ownerId = getSpaceOwnerUid(data);
         if (title) setSpaceTitle(title);
-        setSpaceCode(readSpaceCode(data));
+        setSpaceCode(getSpaceJoinCode(data));
         setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
       })
       .catch(() => {
@@ -357,65 +350,6 @@ function Inner() {
     }
   }
 
-  function updateBulkStudentName(index: number, value: string) {
-    setBulkStudentNames((current) => current.map((name, i) => (i === index ? value : name)));
-  }
-
-  function addBulkStudentRows() {
-    setBulkStudentNames((current) => [...current, ...Array.from({ length: 5 }, () => "")]);
-  }
-
-  async function createStudentWithName(displayName: string) {
-    if (!spaceId || !user || !displayName || !canManageStaff) {
-      throw new Error(t("createStudent.messages.failed"));
-    }
-
-    const token = await user.getIdToken();
-    const response = await fetch(`/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/create-student`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ displayName }),
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-      ok?: boolean;
-      error?: string;
-      member?: { displayName?: string; studentCode?: string };
-    };
-
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || t("createStudent.messages.failed"));
-    }
-
-    return data.member;
-  }
-
-  async function createBulkStudents() {
-    const names = bulkStudentNames.map((name) => name.replace(/\s+/g, " ").trim()).filter(Boolean);
-    if (!spaceId || !user || !canManageStaff || names.length === 0) return;
-
-    setBulkBusy(true);
-    setInviteMessage(null);
-    setInviteError(null);
-
-    try {
-      const created: string[] = [];
-      for (const name of names) {
-        const member = await createStudentWithName(name);
-        created.push(member?.displayName || name);
-      }
-
-      setBulkStudentNames(Array.from({ length: INITIAL_BULK_STUDENT_COUNT }, () => ""));
-      setInviteMessage(`${created.length} elever er lagt til.`);
-    } catch (error: unknown) {
-      setInviteError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBulkBusy(false);
-    }
-  }
-
   async function inviteStaff() {
     const email = inviteEmail.trim().toLowerCase();
     if (!spaceId || !user || !email || !canManageStaff) return;
@@ -464,7 +398,25 @@ function Inner() {
     setInviteError(null);
 
     try {
-      const member = await createStudentWithName(displayName);
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/teacher/spaces/${encodeURIComponent(spaceId)}/members/create-student`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ displayName }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        member?: { displayName?: string; studentCode?: string };
+      };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || t("createStudent.messages.failed"));
+      }
+      const member = data.member;
 
       setStudentName("");
       setInviteMessage(
@@ -613,185 +565,153 @@ function Inner() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="m-0 text-2xl font-semibold">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("subtitle", { spaceTitle })} · {t("labels.spaceId")}:{" "}
-            <span className="font-mono text-xs">{spaceId}</span>
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 no-underline hover:bg-emerald-100"
-          >
-            {t("actions.printStudentCodes")}
-          </Link>
-          <Link
-            href={withLocale(locale, `/teacher/spaces/${spaceId}/members/guardian-print`)}
-            className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-900 no-underline hover:bg-sky-100"
-          >
-            {t("actions.printGuardianInfo")}
-          </Link>
+    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
+      <header className="mb-5">
+        <nav aria-label={t("navigationLabel")} className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <Link
             href={withLocale(locale, `/teacher/spaces/${spaceId}`)}
-            className="rounded-xl border px-3 py-2 text-sm no-underline hover:shadow-sm"
+            className="inline-flex items-center gap-2 font-medium text-slate-700 hover:text-slate-950"
           >
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
             {t("actions.backToSpace")}
           </Link>
-          <Link
-            href={withLocale(locale, "/teacher/spaces")}
-            className="rounded-xl border px-3 py-2 text-sm no-underline hover:shadow-sm"
-          >
+          <Link href={withLocale(locale, "/teacher/spaces")} className="font-medium text-slate-700 hover:text-slate-950">
             {t("actions.allSpaces")}
           </Link>
+        </nav>
+
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="m-0 text-2xl font-semibold text-slate-950 sm:text-3xl">{t("title")}</h1>
+            <p className="mb-0 mt-1 break-words text-sm text-slate-600">{t("subtitle", { spaceTitle })}</p>
+          </div>
+
+          <details className="group relative">
+            <summary className={`${secondaryButton} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+              <Printer aria-hidden="true" className="h-4 w-4" />
+              {t("actions.printOptions")}
+              <ChevronDown aria-hidden="true" className="h-4 w-4 group-open:rotate-180" />
+            </summary>
+            <ul className="m-0 mt-2 list-none rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-sm sm:absolute sm:right-0 sm:z-10 sm:w-max sm:max-w-64">
+              <li>
+                <Link
+                  href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
+                  className="block rounded-lg px-3 py-2 font-medium text-slate-800 no-underline hover:bg-slate-50"
+                >
+                  {t("actions.printStudentCodes")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={withLocale(locale, `/teacher/spaces/${spaceId}/members/guardian-print`)}
+                  className="block rounded-lg px-3 py-2 font-medium text-slate-800 no-underline hover:bg-slate-50"
+                >
+                  {t("actions.printGuardianInfo")}
+                </Link>
+              </li>
+            </ul>
+          </details>
         </div>
-      </div>
+      </header>
+
+      {canManageStaff && user && spaceId ? <SpaceAccessRequests spaceId={spaceId} user={user} requests={accessRequests} /> : null}
 
       {canManageStaff ? (
-        <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border bg-white p-4 shadow-sm">
-          <h2 id="add-students-heading" className="mb-1 text-lg font-semibold">{t("sections.addTitle")}</h2>
-          <p className="mb-4 text-sm text-slate-600">{t("sections.addDescription")}</p>
-          <div className="grid gap-3">
+        <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
+            <div className="relative min-w-0">
+              <select
+                aria-label={t("table.role")}
+                value={singleRole}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
+                }}
+                className={`${fieldClass} appearance-none pr-8`}
+              >
+                <option value="student">{t("roles.student")}</option>
+                <option value="co_teacher">{t("roles.co_teacher")}</option>
+                <option value="observer">{t("roles.observer")}</option>
+              </select>
+              <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+            </div>
+
+            {singleRole === "student" ? (
+              <input
+                aria-label={t("createStudent.placeholder")}
+                value={studentName}
+                onChange={(event) => setStudentName(event.target.value)}
+                placeholder={t("createStudent.placeholder")}
+                className={fieldClass}
+              />
+            ) : (
+              <input
+                aria-label={t("staff.email")}
+                aria-describedby="staff-account-hint"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder={t("staff.email")}
+                type="email"
+                className={fieldClass}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
+              disabled={
+                singleRole === "student"
+                  ? studentBusy || !studentName.trim()
+                  : inviteBusy || !inviteEmail.trim()
+              }
+              className={primaryButton}
+            >
+              {singleRole === "student"
+                ? t(studentBusy ? "createStudent.actions.working" : "createStudent.title")
+                : t(inviteBusy ? "staff.inviting" : "staff.invite")}
+            </button>
+          </div>
+          {singleRole !== "student" ? (
+            <p id="staff-account-hint" className="mb-0 mt-2 text-sm text-slate-600">{t("staff.accountHint")}</p>
+          ) : null}
+
+          <div className="mt-3">
             <TeacherPupilPicker spaceId={spaceId} />
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-bold text-slate-950">{t("roster.newTitle")}</div>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    {t("roster.newDescription")}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {bulkStudentNames.map((name, index) => (
-                  <input
-                    key={index}
-                    value={name}
-                    onChange={(event) => updateBulkStudentName(index, event.target.value)}
-                    placeholder={`Elev ${index + 1}`}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
-                    disabled={bulkBusy}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={addBulkStudentRows}
-                disabled={bulkBusy}
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
-              >
-                Legg til flere rader
-              </button>
-              <button
-                type="button"
-                onClick={() => void createBulkStudents()}
-                disabled={bulkBusy || !bulkStudentNames.some((name) => name.trim())}
-                className="ml-auto rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {bulkBusy ? "Legger til..." : "Legg til elever"}
-              </button>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-              <div className="text-sm font-bold text-slate-950">Legg til ny elev/lærer</div>
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                Bruk denne når du legger til én person senere. Elever får elevkode. Lærere inviteres med e-post og må være registrert.
-              </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto]">
-                <select
-                  value={singleRole}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
-                  }}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                >
-                  <option value="student">Elev</option>
-                  <option value="co_teacher">Co-teacher</option>
-                  <option value="observer">Observer</option>
-                </select>
-
-                {singleRole === "student" ? (
-                  <input
-                    value={studentName}
-                    onChange={(event) => setStudentName(event.target.value)}
-                    placeholder="Elevnavn"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                  />
-                ) : (
-                  <input
-                    value={inviteEmail}
-                    onChange={(event) => setInviteEmail(event.target.value)}
-                    placeholder="laerer@skole.no"
-                    type="email"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                  />
-                )}
-
-                <button
-                  type="button"
-                  onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
-                  disabled={
-                    singleRole === "student"
-                      ? studentBusy || !studentName.trim()
-                      : inviteBusy || !inviteEmail.trim()
-                  }
-                  className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {singleRole === "student"
-                    ? studentBusy
-                      ? t("createStudent.actions.working")
-                      : "Legg til elev"
-                    : inviteBusy
-                      ? "Inviterer..."
-                      : "Inviter lærer"}
-                </button>
-              </div>
-              {inviteMessage ? <div className="mt-2 text-sm font-medium text-emerald-700">{inviteMessage}</div> : null}
-              {inviteError ? <div className="mt-2 text-sm font-medium text-red-600">{inviteError}</div> : null}
-            </div>
           </div>
         </section>
       ) : null}
 
-      {canManageStaff && user && spaceId ? <SpaceAccessRequests spaceId={spaceId} user={user} requests={accessRequests} /> : null}
-      <section id="manage-students" aria-labelledby="manage-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border bg-white p-4 shadow-sm">
-        <h2 id="manage-students-heading" className="mb-1 text-lg font-semibold">{t("sections.manageTitle")}</h2>
-        <p className="mb-4 text-sm text-slate-600">{t("sections.manageDescription")}</p>
-        {inviteMessage ? <p role="status" className="mb-3 text-sm font-medium text-emerald-700">{inviteMessage}</p> : null}
-        {inviteError ? <p role="alert" className="mb-3 text-sm font-medium text-red-600">{inviteError}</p> : null}
+      <section id="manage-students" aria-labelledby="manage-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            {t("showing")} <b>{filtered.length}</b>
+          <div>
+            <h2 id="manage-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.manageTitle")}</h2>
+            <p className="mb-0 mt-1 text-sm text-slate-600">{t("memberCount", { count: filtered.length })}</p>
           </div>
-          <div className="w-full sm:w-72">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("search.placeholder")}
-              className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-            />
-          </div>
+          <input
+            type="search"
+            aria-label={t("search.label")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={t("search.placeholder")}
+            className={`${fieldClass} sm:w-64`}
+          />
         </div>
+
+        <p role="status" className={inviteMessage ? "mb-0 mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900" : "sr-only"}>{inviteMessage}</p>
+        {inviteError ? <p role="alert" className="mb-0 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{inviteError}</p> : null}
 
         <div className="mt-3 grid gap-2">
           {filtered.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-muted-foreground">
+            <p className="m-0 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600">
               {t("empty")}
-            </div>
+            </p>
           ) : (
             filtered.map((r) => {
               const name = String(r.data.displayName ?? t("common.dash"));
               const staffRole = String(r.data.staffRole ?? "");
               const role = staffRole || String(r.data.role ?? "member");
+              const roleLabel = t.has(`roles.${role}`) ? t(`roles.${role}`) : role;
               const joined = fmt(asDate(r.data.createdAt));
               const isAnon = Boolean(r.data.isAnon);
               const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
@@ -799,6 +719,7 @@ function Inner() {
               const isStudent = role === "student";
               const deviceCount = r.deviceCount ?? 1;
               const isOpen = expandedMemberId === r.id;
+              const detailsId = `member-details-${r.id}`;
               const canRemoveStaff = Boolean(
                 canManageStaff &&
                 uid &&
@@ -807,120 +728,84 @@ function Inner() {
               );
 
               return (
-                <article key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
+                <article key={r.id} className="rounded-xl border border-slate-200 bg-white">
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                    <div className="min-w-0 flex-1 basis-32">
                       {editingNameId === r.id ? (
                         <div className="flex flex-wrap items-center gap-2">
                           <input
+                            aria-label={t("createStudent.placeholder")}
                             value={nameDraft}
                             onChange={(event) => setNameDraft(event.target.value)}
-                            className="min-w-[220px] flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm outline-none focus:border-emerald-500"
+                            className={`${fieldClass} flex-1 basis-40`}
                             autoFocus
                           />
                           <button
                             type="button"
                             onClick={() => void saveStudentName(r.id)}
                             disabled={nameBusyId === r.id || !nameDraft.trim()}
-                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
+                            className={primaryButton}
                           >
-                            {nameBusyId === r.id ? "Lagrer..." : "Lagre"}
+                            {t(nameBusyId === r.id ? "actions.savingName" : "actions.saveName")}
                           </button>
-                          <button
-                            type="button"
-                            onClick={cancelEditingName}
-                            disabled={nameBusyId === r.id}
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                          >
-                            Avbryt
+                          <button type="button" onClick={cancelEditingName} disabled={nameBusyId === r.id} className={secondaryButton}>
+                            {t("actions.cancelEdit")}
                           </button>
                         </div>
                       ) : (
-                        <div className="min-w-0">
-                          <div className="break-words text-base font-semibold text-slate-950">{name}</div>
-                          <div className="mt-1 flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                              {role}
-                            </span>
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isAnon ? "bg-slate-100 text-slate-700" : "bg-emerald-50 text-emerald-800"}`}>
-                              {isAnon ? t("types.anon") : t("types.signedIn")}
-                            </span>
-                            {deviceCount > 1 ? (
-                              <span title={t("devices.description")} className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
-                                {t("devices.count", { count: deviceCount })}
-                              </span>
-                            ) : null}
-                          </div>
+                        <div>
+                          <h3 className="m-0 break-words text-base font-semibold text-slate-950">{name}</h3>
+                          <p className="mb-0 mt-1 text-xs text-slate-600">{roleLabel}</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {isStudent && canManageStaff && editingNameId !== r.id ? (
-                        <button
-                          type="button"
-                          onClick={() => startEditingName(r.id, name)}
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                        >
-                          Rediger navn
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => setExpandedMemberId(isOpen ? null : r.id)}
-                        className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
-                        aria-expanded={isOpen}
-                      >
-                        {isOpen ? "Lukk" : "Åpne"}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedMemberId(isOpen ? null : r.id)}
+                      className={secondaryButton}
+                      aria-expanded={isOpen}
+                      aria-controls={isOpen ? detailsId : undefined}
+                    >
+                      {t(isOpen ? "actions.hideDetails" : "actions.showDetails")}
+                      <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
                   </div>
 
                   {isOpen ? (
-                    <div className="mt-3 border-t border-slate-100 pt-3">
-                      {isStudent && canManageStaff ? <div className="mb-3"><TeacherPupilPicker spaceId={spaceId} targetMemberId={r.id} targetName={name} /></div> : null}
-                      {deviceCount > 1 ? <p className="mb-3 text-xs text-slate-600">{t("devices.description")}</p> : null}
-                      <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-500">{t("table.joined")}</div>
-                          <div className="mt-1 text-slate-900">{joined}</div>
+                    <div id={detailsId} className="grid gap-3 border-t border-slate-200 p-3">
+                      {isStudent ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
+                          <dl className="m-0">
+                            <dt className="text-xs font-semibold text-slate-600">{t("table.studentCode")}</dt>
+                            <dd className="mb-0 ml-0 mt-1 font-mono text-base font-semibold text-slate-950">{studentCode}</dd>
+                          </dl>
+                          {canManageStaff && studentCode !== t("common.dash") ? (
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={() => void copyStudentLink(studentCode)} className={secondaryButton}>
+                                {t("studentCode.actions.copyLink")}
+                              </button>
+                              <button type="button" onClick={() => void copyStudentCode(studentCode)} className={secondaryButton}>
+                                {t("studentCode.actions.copy")}
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-                        <div>
-                          <div className="text-xs font-semibold text-slate-500">{t("table.studentCode")}</div>
-                          <div className="mt-1 font-mono text-sm font-semibold text-slate-900">{studentCode}</div>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <div className="text-xs font-semibold text-slate-500">{t("table.uid")}</div>
-                          <div className="mt-1 break-all font-mono text-xs text-slate-700">{uid}</div>
-                        </div>
-                      </div>
+                      ) : null}
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {isStudent && canManageStaff ? (
-                          <>
-                            {studentCode !== t("common.dash") ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => void copyStudentCode(studentCode)}
-                                  className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                  {t("studentCode.actions.copy")}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => void copyStudentLink(studentCode)}
-                                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-                                >
-                                  {t("studentCode.actions.copyLink")}
-                                </button>
-                              </>
+                      {isStudent && canManageStaff ? (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {editingNameId !== r.id ? (
+                              <button type="button" onClick={() => startEditingName(r.id, name)} className={secondaryButton}>
+                                {t("actions.editName")}
+                              </button>
                             ) : null}
                             <button
                               type="button"
                               onClick={() => void updateStudentCode(r.id, studentCode === t("common.dash") ? "ensure" : "regenerate")}
                               disabled={studentCodeBusyId === r.id || removingMemberId === r.id}
-                              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                              className={secondaryButton}
                             >
                               {studentCodeBusyId === r.id
                                 ? t("studentCode.actions.working")
@@ -932,26 +817,49 @@ function Inner() {
                               type="button"
                               onClick={() => void removeStudent(r.id, name)}
                               disabled={removingMemberId === r.id}
-                              className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+                              className={`${dangerButton} sm:ml-auto`}
                             >
-                              {removingMemberId === r.id
-                                ? t("removeStudent.actions.removing")
-                                : t("removeStudent.actions.remove")}
+                              {removingMemberId === r.id ? t("removeStudent.actions.removing") : t("removeStudent.actions.remove")}
                             </button>
-                          </>
-                        ) : null}
+                          </div>
+                          <TeacherPupilPicker spaceId={spaceId} targetMemberId={r.id} targetName={name} />
+                        </>
+                      ) : null}
 
-                        {canRemoveStaff ? (
-                          <button
-                            type="button"
-                            onClick={() => removeStaff(uid)}
-                            disabled={removingUid === uid}
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                          >
-                            {removingUid === uid ? "Fjerner..." : "Fjern tilgang"}
+                      {canRemoveStaff ? (
+                        <div>
+                          <button type="button" onClick={() => removeStaff(uid)} disabled={removingUid === uid} className={dangerButton}>
+                            {t(removingUid === uid ? "actions.removingStaff" : "actions.removeStaff")}
                           </button>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
+
+                      <details className="group rounded-lg border border-slate-200">
+                        <summary className={disclosureClass}>
+                          {t("sections.memberDetails")}
+                          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
+                        </summary>
+                        <dl className="m-0 grid gap-3 border-t border-slate-200 p-3 text-sm sm:grid-cols-[auto_auto_minmax(0,1fr)]">
+                          <div>
+                            <dt className="text-xs font-semibold text-slate-600">{t("table.type")}</dt>
+                            <dd className="mb-0 ml-0 mt-1 text-slate-950">{t(isAnon ? "types.anon" : "types.signedIn")}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold text-slate-600">{t("table.joined")}</dt>
+                            <dd className="mb-0 ml-0 mt-1 text-slate-950">{joined}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold text-slate-600">{t("table.uid")}</dt>
+                            <dd className="mb-0 ml-0 mt-1 break-all font-mono text-xs text-slate-950">{uid}</dd>
+                          </div>
+                          {deviceCount > 1 ? (
+                            <div className="sm:col-span-3">
+                              <dt className="font-semibold text-slate-800">{t("devices.count", { count: deviceCount })}</dt>
+                              <dd className="mb-0 ml-0 mt-1 text-xs text-slate-600">{t("devices.description")}</dd>
+                            </div>
+                          ) : null}
+                        </dl>
+                      </details>
                     </div>
                   ) : null}
                 </article>
@@ -960,6 +868,17 @@ function Inner() {
           )}
         </div>
       </section>
+
+      <details className="group mt-3 rounded-xl border border-slate-200 bg-white">
+        <summary className={disclosureClass}>
+          {t("sections.roomDetails")}
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
+        </summary>
+        <dl className="m-0 border-t border-slate-200 p-3">
+          <dt className="text-xs font-semibold text-slate-600">{t("labels.spaceId")}</dt>
+          <dd className="mb-0 ml-0 mt-1 break-all font-mono text-xs text-slate-800">{spaceId}</dd>
+        </dl>
+      </details>
     </div>
   );
 }

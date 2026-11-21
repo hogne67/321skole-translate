@@ -3,6 +3,15 @@ export function normalizeSpaceCode(input: string) {
   return input.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+export function getSpaceJoinCode(space: { code?: unknown; joinCode?: unknown; join?: unknown } | null | undefined): string {
+  const join = space?.join;
+  const nestedCode = join && typeof join === "object" && "code" in join ? join.code : undefined;
+  for (const value of [space?.code, space?.joinCode, nestedCode]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
 export function generateSpaceCode(length = 6) {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   const digits = "23456789";

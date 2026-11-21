@@ -568,42 +568,19 @@ function Inner() {
 
   return (
     <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-        <div className="min-w-0">
-          <Link
-            className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-4 hover:text-slate-950"
-            href={withLocale(locale, "/teacher/spaces")}
-          >
-            {t("actions.back")}
-          </Link>
-
-          <div className="min-w-0 flex-1">
-            <h1 className="mt-3 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
-            <div className="mt-1 break-words text-sm text-slate-600">{t("overview.subtitle")}</div>
-          </div>
-        </div>
-      </div>
+      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space} canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} canDelete={isSpaceOwnerNow} />
 
       {saveErr && (
-        <div className="w-full min-w-0 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="w-full min-w-0 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
           {saveErr}
         </div>
       )}
 
-      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space}
-        canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} canDelete={isSpaceOwnerNow} />
-
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
+      <section aria-labelledby="space-assignments-heading" className="min-w-0 rounded-2xl border border-solid border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
-            <div className="mt-1 break-words text-sm text-slate-600">
-              {t("assignments.count", {
-                count: visibleSpaceTasks.length,
-                label: t("assignments.title"),
-              })}
-            </div>
-          </div>
+          <h2 id="space-assignments-heading" className="m-0 text-lg font-semibold text-slate-950">
+            {t("assignments.title")} <span className="font-normal text-slate-600">({visibleSpaceTasks.length})</span>
+          </h2>
 
           <label
             className={[
@@ -619,7 +596,7 @@ function Inner() {
               onChange={(e) => setShowArchived(e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 accent-amber-600"
             />
-            <span className="whitespace-nowrap">{t("assignments.showArchived")}</span>
+            <span>{t("assignments.showArchived")}</span>
           </label>
         </div>
 
@@ -918,8 +895,7 @@ function Inner() {
             })
           )}
         </div>
-      </div>
-
+      </section>
     </div>
   );
 }
