@@ -44,6 +44,12 @@
     },
     "list": {
       "untitled": "Uten navn",
+      "roomView": "Romvisning",
+      "views": {
+        "open": "Åpne rom",
+        "closed": "Lukkede rom",
+        "deleted": "Slettede rom"
+      },
       "open": "Åpen",
       "closed": "Lukket",
       "openTitle": "Space er åpent",
@@ -85,6 +91,8 @@
       "addStudents": "Legg til elever"
     },
     "empty": {
+      "open": "Du har ingen åpne rom.",
+      "closed": "Du har ingen lukkede rom.",
       "title": "Ingen spaces funnet.",
       "hint": "Opprett et med Nytt space, og del det via kode eller lenke."
     },

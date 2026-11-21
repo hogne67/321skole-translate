@@ -44,6 +44,12 @@
     },
     "list": {
       "untitled": "Sem título",
+      "roomView": "Visualização das salas",
+      "views": {
+        "open": "Salas abertas",
+        "closed": "Salas fechadas",
+        "deleted": "Salas excluídas"
+      },
       "open": "Aberto",
       "closed": "Fechado",
       "openTitle": "O space está aberto",
@@ -85,6 +91,8 @@
       "addStudents": "Adicionar alunos"
     },
     "empty": {
+      "open": "Você não tem salas abertas.",
+      "closed": "Você não tem salas fechadas.",
       "title": "Nenhum space encontrado.",
       "hint": "Crie um com Novo space e compartilhe por código ou link."
     },

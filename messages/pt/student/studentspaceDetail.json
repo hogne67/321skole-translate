@@ -4,10 +4,13 @@
     "actions": {
       "open": "Abrir",
       "backToMySpaces": "← Voltar para Meus spaces",
-      "backMySpacesShort": "← Meus spaces"
+      "backMySpacesShort": "← Meus spaces",
+      "openTask": "Abrir atividade",
+      "openNamed": "Abrir atividade «{title}»"
     },
     "header": {
-      "classCode": "Código da turma"
+      "classCode": "Código da sala",
+      "untitled": "Sala sem nome"
     },
     "missing": {
       "title": "Space não encontrado",
@@ -35,23 +38,24 @@
       "archiving": "Movendo…"
     },
     "archive": {
-      "title": "Arquivo",
+      "title": "Respostas arquivadas",
       "loginToSee": "Faça login para ver seu arquivo.",
       "none": "Nenhuma entrega arquivada ainda.",
-      "message": "✉️ mensagem",
       "restore": "Restaurar",
       "restoring": "Restaurando…",
-      "restoreHint": "Mover de volta para Minhas entregas"
+      "restoreHint": "Retirar esta resposta do arquivo"
     },
     "all": {
-      "title": "Todas as atividades neste space",
-      "showArchived": "Mostrar arquivadas",
-      "none": "Nenhuma atividade aqui ainda.",
-      "archivedTag": "(arquivada)",
+      "title": "Atividades",
+      "none": "Não há atividades ativas nesta sala.",
       "typeWriting": "Escrita",
-      "yourStatus": "Seu status:",
-      "message": "✉️ mensagem",
-      "notSubmitted": "Você ainda não enviou esta atividade."
+      "message": "Mensagem do professor",
+      "notSubmitted": "Ainda não enviada",
+      "archivedTitle": "Atividades arquivadas",
+      "untitled": "Atividade sem título",
+      "details": "Detalhes da atividade",
+      "teacherNote": "Recado do professor",
+      "lastUpdated": "Última atualização em {date}"
     },
     "writingStation": {
       "title": "Estação de escrita",

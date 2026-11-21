@@ -44,6 +44,12 @@
     },
     "list": {
       "untitled": "Untitled space",
+      "roomView": "Room view",
+      "views": {
+        "open": "Open rooms",
+        "closed": "Closed rooms",
+        "deleted": "Deleted rooms"
+      },
       "open": "Open",
       "closed": "Closed",
       "openTitle": "Space is open",
@@ -85,6 +91,8 @@
       "addStudents": "Add pupils"
     },
     "empty": {
+      "open": "You have no open rooms.",
+      "closed": "You have no closed rooms.",
       "title": "No spaces found.",
       "hint": "Create one with New space, then share it by code or link."
     },

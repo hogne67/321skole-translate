@@ -53,7 +53,8 @@
       "logout": "Logg ut av delt PC",
       "logoutConfirm": "Du blir logget ut av denne nettleseren. Besvarelsene dine blir bevart. Neste elev må bruke sin egen elevkode eller elevlenke.",
       "loggingOut": "Logger ut…",
-      "signedOut": "Du er logget ut. Neste elev kan bruke sin egen elevkode eller elevlenke. Husker du ikke elevkoden? Spør læreren."
+      "signedOut": "Du er logget ut. Neste elev kan bruke sin egen elevkode eller elevlenke. Husker du ikke elevkoden? Spør læreren.",
+      "endFailed": "Kunne ikke avslutte økten. Prøv igjen."
     },
     "approval": {
       "title": "Læreren må godkjenne tilgangen",

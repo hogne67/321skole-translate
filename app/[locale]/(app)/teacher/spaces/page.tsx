@@ -6,7 +6,6 @@ import { isCurrentSpaceSubstitute } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
 import SpaceRoomCard from "@/components/SpaceRoomCard";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -18,6 +17,8 @@ import { useLocale, useTranslations } from "next-intl";
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
 type Row = { id: string; data: SpaceDocSafe };
 type TimestampLike = { toMillis: () => number };
+const roomViews = ["open", "closed", "deleted"] as const;
+type RoomView = (typeof roomViews)[number];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -76,6 +77,7 @@ function TeacherSpacesInner() {
   const isGuestPreview = Boolean(user?.isAnonymous);
   const [ownedRows, setOwnedRows] = useState<Row[]>([]);
   const [sharedRows, setSharedRows] = useState<Row[]>([]);
+  const [roomView, setRoomView] = useState<RoomView>("open");
   const rows = useMemo(() => {
     const map = new Map<string, Row>();
     for (const row of sharedRows) map.set(row.id, row);
@@ -156,18 +158,19 @@ function TeacherSpacesInner() {
     });
   }, [user?.uid, canUseTeacherSpaces]);
 
-  const { rooms, deletedRooms } = useMemo(() => {
-    const newestFirst = [...rows].sort((a, b) => asMillis(b.data.createdAt) - asMillis(a.data.createdAt));
-    return {
-      rooms: newestFirst.filter((row) => !row.data.deletedAt),
-      deletedRooms: newestFirst.filter((row) => row.data.deletedAt && getSpaceOwnerUid(row.data) === user?.uid),
-    };
-  }, [rows, user?.uid]);
+  const visibleRooms = useMemo(() => {
+    return rows
+      .filter(({ data }) => {
+        if (roomView === "deleted") return Boolean(data.deletedAt) && getSpaceOwnerUid(data) === user?.uid;
+        return !data.deletedAt && (data.isOpen === true) === (roomView === "open");
+      })
+      .sort((a, b) => asMillis(b.data.createdAt) - asMillis(a.data.createdAt));
+  }, [rows, roomView, user?.uid]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || roomView === "deleted") return;
 
-    const visible = rooms.slice(0, 50);
+    const visible = visibleRooms.slice(0, 50);
     visible.forEach((r) => {
       if (memberCount[r.id] !== undefined) return;
       if (memberCountBusy[r.id]) return;
@@ -192,7 +195,7 @@ function TeacherSpacesInner() {
         .finally(() => setMemberCountBusy((m) => ({ ...m, [r.id]: false })));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rooms, user?.uid]);
+  }, [visibleRooms, roomView, user?.uid]);
 
   if (loading) {
     return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
@@ -289,8 +292,29 @@ function TeacherSpacesInner() {
         </div>
       </header>
 
+      <div
+        role="group"
+        aria-label={t("list.roomView")}
+        className="box-border grid w-full grid-cols-3 gap-1 rounded-xl border border-solid border-slate-200 bg-white p-1 shadow-sm sm:w-fit"
+      >
+        {roomViews.map((view) => (
+          <button
+            key={view}
+            type="button"
+            aria-pressed={roomView === view}
+            onClick={() => setRoomView(view)}
+            className={[
+              "min-h-11 rounded-lg border-0 px-2 py-2 text-center text-sm font-semibold leading-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 sm:px-4",
+              roomView === view ? "bg-slate-900 text-white" : "bg-transparent text-slate-700 hover:bg-slate-100",
+            ].join(" ")}
+          >
+            {t(`list.views.${view}`)}
+          </button>
+        ))}
+      </div>
+
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        {rooms.map((row) => (
+        {visibleRooms.map((row) => (
           <SpaceRoomCard
             key={row.id}
             spaceId={row.id}
@@ -299,28 +323,15 @@ function TeacherSpacesInner() {
             loading={Boolean(memberCountBusy[row.id])}
             canDelete={getSpaceOwnerUid(row.data) === user?.uid}
             closed={row.data.isOpen !== true}
+            deleted={roomView === "deleted"}
           />
         ))}
-        {rooms.length === 0 ? (
+        {visibleRooms.length === 0 ? (
           <p className="m-0 rounded-2xl border border-solid border-slate-200 bg-white p-4 text-sm text-slate-600 sm:col-span-2">
-            {t("empty.title")}
+            {t(roomView === "deleted" ? "deletion.empty" : `empty.${roomView}`)}
           </p>
         ) : null}
       </div>
-
-      {deletedRooms.length > 0 ? (
-        <details className="group rounded-2xl border border-solid border-slate-200 bg-white">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden">
-            {t("deletion.sectionTitle")}
-            <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
-          </summary>
-          <div className="grid min-w-0 gap-3 px-4 pb-4 sm:grid-cols-2">
-            {deletedRooms.map((row) => (
-              <SpaceRoomCard key={row.id} spaceId={row.id} title={row.data.title} canDelete deleted />
-            ))}
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }

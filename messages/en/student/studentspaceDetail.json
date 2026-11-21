@@ -4,10 +4,13 @@
     "actions": {
       "open": "Open",
       "backToMySpaces": "← Back to My spaces",
-      "backMySpacesShort": "← My spaces"
+      "backMySpacesShort": "← My spaces",
+      "openTask": "Open assignment",
+      "openNamed": "Open assignment “{title}”"
     },
     "header": {
-      "classCode": "Class code"
+      "classCode": "Room code",
+      "untitled": "Unnamed room"
     },
     "missing": {
       "title": "Space not found",
@@ -35,23 +38,24 @@
       "archiving": "Moving…"
     },
     "archive": {
-      "title": "Archive",
+      "title": "Archived submissions",
       "loginToSee": "Log in to see your archive.",
       "none": "No archived submissions yet.",
-      "message": "✉️ message",
       "restore": "Restore",
       "restoring": "Restoring…",
-      "restoreHint": "Move back to My submissions"
+      "restoreHint": "Move this submission out of the archive"
     },
     "all": {
-      "title": "All assignments in this space",
-      "showArchived": "Show archived",
-      "none": "No assignments here yet.",
-      "archivedTag": "(archived)",
+      "title": "Assignments",
+      "none": "There are no active assignments in this room.",
       "typeWriting": "Writing",
-      "yourStatus": "Your status:",
-      "message": "✉️ message",
-      "notSubmitted": "You haven’t submitted this yet."
+      "message": "Message from your teacher",
+      "notSubmitted": "Not submitted",
+      "archivedTitle": "Archived assignments",
+      "untitled": "Untitled assignment",
+      "details": "Assignment details",
+      "teacherNote": "Note from your teacher",
+      "lastUpdated": "Last updated {date}"
     },
     "writingStation": {
       "title": "Writing Station",

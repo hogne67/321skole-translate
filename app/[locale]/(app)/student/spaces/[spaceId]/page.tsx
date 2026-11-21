@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, ChevronDown, MessageSquare } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -26,6 +27,12 @@ import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 import { getSubmissionStatus } from "@/lib/submissions/status";
+
+const actionClass = "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
+const openTaskClass = `${actionClass} bg-emerald-800 text-white hover:bg-emerald-900`;
+const secondaryAction = `${actionClass} border border-solid border-slate-300 bg-white text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60`;
+const taskCardClass = "min-w-0 rounded-xl border border-solid border-slate-200 bg-white p-4 shadow-sm";
+const summaryClass = "flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -88,14 +95,14 @@ function pillStyle(st: ReturnType<typeof normalizeStatus>) {
     return {
       border: "1px solid rgba(245,158,11,0.60)",
       background: "rgba(245,158,11,0.18)",
-      color: "rgba(180,83,9,1)",
+      color: "rgba(146,64,14,1)",
     };
   }
   if (st === "approved") {
     return {
       border: "1px solid rgba(46,204,113,0.60)",
       background: "rgba(46,204,113,0.16)",
-      color: "rgba(5,150,105,1)",
+      color: "rgba(6,95,70,1)",
     };
   }
   if (st === "draft") {
@@ -312,7 +319,6 @@ export default function StudentSpaceDetailPage() {
 
   const [assignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
   const [assignErr, setAssignErr] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
 
   const [writingActivities, setWritingActivities] = useState<Array<{ id: string; data: WritingActivityDoc }>>([]);
   const [writingErr, setWritingErr] = useState<string | null>(null);
@@ -389,7 +395,7 @@ export default function StudentSpaceDetailPage() {
     }
   }
 
-  function DueBadge({ status }: { status: ReturnType<typeof dueStatus> }) {
+  function renderDueBadge(status: ReturnType<typeof dueStatus>) {
     if (status === "overdue") {
       return (
         <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
@@ -717,10 +723,8 @@ export default function StudentSpaceDetailPage() {
     };
   }, [spaceId, uid, currentParticipantId, writingActivities]);
 
-  const visibleAssignments = useMemo(() => {
-    const list = showArchived ? assignments : assignments.filter((x) => !isArchived(x.data));
-
-    return [...list].sort((a, b) => {
+  const sortedAssignments = useMemo(() => {
+    return [...assignments].sort((a, b) => {
       const getDue = (d: unknown) => {
         if (!d || typeof d !== "object" || !("toDate" in d)) return null;
         return (d as { toDate: () => Date }).toDate().getTime();
@@ -745,23 +749,19 @@ export default function StudentSpaceDetailPage() {
 
       return (db ?? 0) - (da ?? 0);
     });
-  }, [assignments, showArchived]);
+  }, [assignments]);
 
-  const visibleWritingActivities = useMemo(() => {
-    const list = showArchived
-      ? writingActivities
-      : writingActivities.filter((x) => String(x.data.status ?? "").toLowerCase() !== "archived");
+  const sortedWritingActivities = useMemo(() => {
+    return [...writingActivities].sort((a, b) => toMillisAny(b.data.assignedAt || b.data.createdAt) - toMillisAny(a.data.assignedAt || a.data.createdAt));
+  }, [writingActivities]);
 
-    return [...list].sort((a, b) => toMillisAny(b.data.assignedAt || b.data.createdAt) - toMillisAny(a.data.assignedAt || a.data.createdAt));
-  }, [showArchived, writingActivities]);
-
-  const visibleSpaceTasks = useMemo<SpaceTaskItem[]>(() => {
+  const { activeTasks, archivedTasks } = useMemo(() => {
     const items: SpaceTaskItem[] = [
-      ...visibleAssignments.map((assignment) => ({ kind: "assignment" as const, ...assignment })),
-      ...visibleWritingActivities.map((activity) => ({ kind: "writing" as const, ...activity })),
+      ...sortedAssignments.map((assignment) => ({ kind: "assignment" as const, ...assignment })),
+      ...sortedWritingActivities.map((activity) => ({ kind: "writing" as const, ...activity })),
     ];
 
-    return items.sort((a, b) => {
+    items.sort((a, b) => {
       const getDue = (v: unknown) => {
         if (!v || typeof v !== "object" || !("toDate" in v)) return null;
         return (v as { toDate: () => Date }).toDate().getTime();
@@ -776,17 +776,24 @@ export default function StudentSpaceDetailPage() {
         if (time - now < 48 * 60 * 60 * 1000) return 1;
         return 2;
       };
-      const dateOf = (item: SpaceTaskItem) =>
-        item.kind === "assignment"
-          ? toMillisAny(item.data.updatedAt || item.data.assignedAt || item.data.createdAt)
-          : toMillisAny(item.data.updatedAt || item.data.assignedAt || item.data.createdAt);
+      const dateOf = (item: SpaceTaskItem) => toMillisAny(item.data.updatedAt || item.data.assignedAt || item.data.createdAt);
 
       const sa = score(a);
       const sb = score(b);
       if (sa !== sb) return sa - sb;
       return dateOf(b) - dateOf(a);
     });
-  }, [visibleAssignments, visibleWritingActivities]);
+
+    const activeTasks: SpaceTaskItem[] = [];
+    const archivedTasks: SpaceTaskItem[] = [];
+    for (const task of items) {
+      const archived = task.kind === "assignment"
+        ? isArchived(task.data)
+        : String(task.data.status ?? "").toLowerCase() === "archived";
+      (archived ? archivedTasks : activeTasks).push(task);
+    }
+    return { activeTasks, archivedTasks };
+  }, [sortedAssignments, sortedWritingActivities]);
 
   const latestByAssignment = useMemo(() => {
     const m = new Map<string, SpaceSubRow>();
@@ -813,19 +820,13 @@ export default function StudentSpaceDetailPage() {
 
   const archivedSubs = useMemo(() => grouped.filter((g) => g.latest.studentArchived === true), [grouped]);
 
-  function titleFor(assignmentId: string) {
-    const s = latestByAssignment.get(assignmentId);
-    return s?.title ?? assignmentId;
-  }
-
   function metaForRow(r: SpaceSubRow | null) {
     if (!r) return null;
     const parts = [safeString(r.level), safeString(r.language)].filter(Boolean);
     return parts.length ? parts.join(" • ") : null;
   }
 
-  const spaceRec: Record<string, unknown> = isRecord(space) ? (space as Record<string, unknown>) : {};
-  const spaceCode = safeString(spaceRec.code);
+  const spaceCode = safeString(space?.code) ?? safeString(space?.joinCode);
 
   async function moveToArchive(row: SpaceSubRow) {
     if (!uid) return;
@@ -941,285 +942,217 @@ export default function StudentSpaceDetailPage() {
 
   if (!space) return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
 
-  return (
-    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <SpacePupilIdentity spaceId={spaceId} />
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
-              {safeString(space.title) ?? safeString(spaceRec.title) ?? t("header.untitled")}
-            </h1>
-            <div className="mt-2 break-words text-sm text-slate-600">
-              {t("header.classCode")}: <b>{spaceCode ?? "—"}</b>
+  function renderTask(task: SpaceTaskItem) {
+    const writing = task.kind === "writing" ? task.data : null;
+    const lesson = task.kind === "assignment" ? task.data : null;
+    const title = safeString(task.data.title) ?? t(writing ? "writingStation.fallbackTitle" : "all.untitled");
+    const mine = lesson && uid ? latestByAssignment.get(task.id) : null;
+    const mineWriting = writing && uid ? latestWritingByActivity.get(task.id) : null;
+    const latest = mine ?? mineWriting;
+    const latestDate = latest ? fmtDate(latest.updatedAtMs || latest.createdAtMs) : null;
+    const status = mine
+      ? { value: mine.status, ...statusUi(mine.status) }
+      : mineWriting
+        ? {
+            value: normalizeStatus(mineWriting.status),
+            label: writingStatusLabel(locale, mineWriting.status),
+            hint: writingStatusHint(locale, mineWriting.status),
+          }
+        : null;
+    const href = writing
+      ? `/student/spaces/${spaceId}/writing/${task.id}`
+      : `/student/spaces/${spaceId}/assignments/${task.id}${mine ? `?sid=${mine.id}` : ""}`;
+    const note = lesson ? safeString(lesson.studentMessage) : null;
+    const snippet = lesson ? assignmentSnippet(lesson) : null;
+    const deadline = lesson ? fmtDueDate(lesson.dueAt) : null;
+    const writingMeta = writing ? [
+      safeString(writing.genre) ?? t("writingStation.genre.story"),
+      safeString(writing.level),
+      safeString(writing.language),
+      safeString(writing.theme),
+      fmtDate(toMillisAny(writing.assignedAt || writing.createdAt)),
+    ].filter(Boolean).join(" · ") : null;
+
+    return (
+      <article key={`${task.kind}-${task.id}`} className={taskCardClass}>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-64">
+            <h3 className="m-0 break-words text-lg font-semibold text-slate-950">{title}</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+              {writing ? <span className="text-xs font-medium text-slate-600">{t("all.typeWriting")}</span> : null}
+              {status ? (
+                <StatusPill status={status.value} label={status.label} hint={status.hint} />
+              ) : (
+                <span className="text-sm text-slate-600">{t("all.notSubmitted")}</span>
+              )}
+              {latest?.hasTeacherMessage ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-900">
+                  <MessageSquare aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                  {t("all.message")}
+                </span>
+              ) : null}
             </div>
           </div>
-
-          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
-            <Link
-              href="/student/spaces"
-              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
-            >
-              {t("actions.backMySpacesShort")}
-            </Link>
-          </div>
+          <Link href={href} aria-label={t("actions.openNamed", { title })} className={openTaskClass}>
+            {t("actions.openTask")}
+            <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
+          </Link>
         </div>
-      </div>
+
+        {deadline ? (
+          <p className="mb-0 mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-700">
+            <span className="font-semibold">{t("due.label")}</span>
+            <span>{deadline}</span>
+            {renderDueBadge(dueStatus(lesson?.dueAt))}
+          </p>
+        ) : null}
+
+        {note ? (
+          <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            <p className="m-0 font-semibold">{t("all.teacherNote")}</p>
+            <p className="mb-0 mt-1 whitespace-pre-wrap break-words">{note}</p>
+          </div>
+        ) : null}
+
+        {writing || snippet || mine || latestDate ? (
+          <details className="group/task-info mt-3 rounded-lg border border-solid border-slate-200 bg-slate-50">
+            <summary className={summaryClass}>
+              {t("all.details")}
+              <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open/task-info:rotate-180" />
+            </summary>
+            <div className="space-y-2 border-0 border-t border-solid border-slate-200 p-3 text-sm text-slate-700">
+              {snippet ? <p className="m-0 whitespace-pre-wrap break-words">{snippet}</p> : null}
+              {writing ? (
+                <>
+                  <p className="m-0 break-words">{writingMeta}</p>
+                  <p className="m-0">{writing.aiPolicy?.enabled === false ? t("writingStation.ai.off") : t("writingStation.ai.on")}</p>
+                </>
+              ) : null}
+              {latestDate ? <p className="m-0">{t("all.lastUpdated", { date: latestDate })}</p> : null}
+              {mine ? (
+                <button
+                  type="button"
+                  onClick={() => void moveToArchive(mine)}
+                  disabled={archivingId === mine.id}
+                  className={secondaryAction}
+                  title={t("mine.archiveHint")}
+                >
+                  {archivingId === mine.id ? t("mine.archiving") : t("mine.moveToArchive")}
+                </button>
+              ) : null}
+            </div>
+          </details>
+        ) : null}
+      </article>
+    );
+  }
+
+  const taskError = [assignErr, writingErr].filter(Boolean).join("\n");
+
+  return (
+    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <header className="space-y-3 rounded-2xl border border-solid border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <Link href="/student/spaces" className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-4 hover:text-slate-950">
+          {t("actions.backMySpacesShort")}
+        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="m-0 min-w-0 flex-1 basis-60 break-words text-2xl font-semibold text-slate-950 sm:text-3xl">
+            {safeString(space.title) ?? t("header.untitled")}
+          </h1>
+          {spaceCode ? (
+            <p className="m-0 flex max-w-full flex-wrap items-center gap-x-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">
+              <span>{t("header.classCode")}</span>
+              <b className="break-all font-mono text-slate-950">{spaceCode}</b>
+            </p>
+          ) : null}
+        </div>
+        <SpacePupilIdentity spaceId={spaceId} />
+      </header>
 
       {archiveMsg ? (
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm">
+        <p role="status" className="m-0 rounded-lg border border-solid border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
           {archiveMsg}
-        </div>
+        </p>
       ) : null}
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-base font-semibold text-slate-900">{t("all.title")}</div>
-
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-            {t("all.showArchived")}
-          </label>
-        </div>
-
-        {assignErr || writingErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{[assignErr, writingErr].filter(Boolean).join("\n")}</div>
-        ) : visibleSpaceTasks.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
-            {t("all.none")}
-          </div>
+      <section aria-labelledby="room-tasks-heading" className="space-y-3">
+        <h2 id="room-tasks-heading" className="m-0 text-xl font-semibold text-slate-950">{t("all.title")}</h2>
+        {taskError ? (
+          <p role="alert" className="m-0 whitespace-pre-wrap rounded-xl bg-red-50 p-3 text-sm text-red-700">{taskError}</p>
+        ) : activeTasks.length === 0 ? (
+          <p className="m-0 rounded-xl border border-solid border-slate-200 bg-white p-4 text-sm text-slate-600">{t("all.none")}</p>
         ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {visibleSpaceTasks.map((it) => {
-              if (it.kind === "writing") {
-                const archived = String(it.data.status ?? "").toLowerCase() === "archived";
-                const assignedAt = fmtDate(toMillisAny(it.data.assignedAt || it.data.createdAt));
-                const title = safeString(it.data.title) ?? t("writingStation.fallbackTitle");
-                const mineWriting = uid ? latestWritingByActivity.get(it.id) : null;
-                const mineWritingDate = mineWriting ? fmtDate(mineWriting.updatedAtMs || mineWriting.createdAtMs) : null;
+          <div className="grid min-w-0 gap-3">{activeTasks.map(renderTask)}</div>
+        )}
+      </section>
+
+      {!taskError && archivedTasks.length > 0 ? (
+        <details className="group/archive rounded-xl border border-solid border-slate-200 bg-white">
+          <summary className={summaryClass}>
+            {t("all.archivedTitle")}
+            <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open/archive:rotate-180" />
+          </summary>
+          <div className="grid min-w-0 gap-3 px-3 pb-3">{archivedTasks.map(renderTask)}</div>
+        </details>
+      ) : null}
+
+      <details className="group/archive rounded-xl border border-solid border-slate-200 bg-white">
+        <summary className={summaryClass}>
+          {t("archive.title")}
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open/archive:rotate-180" />
+        </summary>
+        <div className="px-3 pb-3">
+          {!uid ? (
+            <p className="m-0 text-sm text-slate-600">{t("archive.loginToSee")}</p>
+          ) : subsLoading ? (
+            <p role="status" className="m-0 text-sm text-slate-600">{t("loading")}</p>
+          ) : subsErr ? (
+            <p role="alert" className="m-0 whitespace-pre-wrap text-sm text-red-700">{subsErr}</p>
+          ) : archivedSubs.length === 0 ? (
+            <p className="m-0 text-sm text-slate-600">{t("archive.none")}</p>
+          ) : (
+            <div className="grid min-w-0 gap-3">
+              {archivedSubs.map(({ assignmentId, latest: row }) => {
+                const title = row.title ?? t("all.untitled");
+                const href = `/student/spaces/${spaceId}/assignments/${assignmentId}?sid=${row.id}`;
+                const date = fmtDate(row.studentArchivedAtMs || row.updatedAtMs || row.createdAtMs);
+                const metadata = metaForRow(row);
+                const ui = statusUi(row.status);
 
                 return (
-                  <div
-                    key={`writing-${it.id}`}
-                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 flex flex-wrap items-center gap-2">
-                          <div className="break-words text-base font-semibold text-slate-900">{title}</div>
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                            {t("all.typeWriting")}
-                          </span>
-                          {archived ? (
-                            <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
-                          ) : null}
+                  <article key={assignmentId} className={taskCardClass}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 basis-64">
+                        <h3 className="m-0 break-words text-base font-semibold text-slate-950">{title}</h3>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          <StatusPill status={row.status} label={ui.label} hint={ui.hint} />
+                          {row.hasTeacherMessage ? <span className="font-semibold text-emerald-900">{t("all.message")}</span> : null}
+                          {metadata ? <span>{metadata}</span> : null}
+                          {date ? <span>{date}</span> : null}
                         </div>
-
-                        <Link
-                          href={`/student/spaces/${spaceId}/writing/${it.id}`}
-                          className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
-                        >
-                          {t("actions.open")}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={href} aria-label={t("actions.openNamed", { title })} className={secondaryAction}>
+                          {t("actions.openTask")}
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => void restoreFromArchive(row)}
+                          disabled={archivingId === row.id}
+                          className={secondaryAction}
+                          title={t("archive.restoreHint")}
+                        >
+                          {archivingId === row.id ? t("archive.restoring") : t("archive.restore")}
+                        </button>
                       </div>
-
-                      <div className="mt-2 break-words text-sm text-slate-600">
-                        {safeString(it.data.genre) ?? t("writingStation.genre.story")}
-                        {it.data.level ? ` · ${it.data.level}` : ""}
-                        {it.data.language ? ` · ${it.data.language}` : ""}
-                        {it.data.theme ? ` · ${it.data.theme}` : ""}
-                        {assignedAt ? ` · ${assignedAt}` : ""}
-                      </div>
-
-                      <div className="mt-3 text-xs text-emerald-800">
-                        {it.data.aiPolicy?.enabled === false ? t("writingStation.ai.off") : t("writingStation.ai.on")}
-                      </div>
-
-                      {mineWriting ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-slate-500">{t("all.yourStatus")}</span>
-                          <StatusPill
-                            status={normalizeStatus(mineWriting.status)}
-                            label={writingStatusLabel(locale, mineWriting.status)}
-                            hint={writingStatusHint(locale, mineWriting.status)}
-                          />
-                          {mineWriting.hasTeacherMessage ? (
-                            <span className="text-xs font-medium text-slate-700">{t("all.message")}</span>
-                          ) : null}
-                          {mineWritingDate ? <span className="text-xs text-slate-500">{mineWritingDate}</span> : null}
-                        </div>
-                      ) : (
-                        <div className="mt-3 text-xs text-slate-500">{t("all.notSubmitted")}</div>
-                      )}
                     </div>
-                  </div>
+                  </article>
                 );
-              }
-
-              const title = safeString(it.data.title) ?? it.id;
-              const snippet = assignmentSnippet(it.data);
-              const archived = isArchived(it.data);
-              const due = dueStatus(it.data.dueAt);
-
-              const mine = uid ? latestByAssignment.get(it.id) : null;
-
-              const href = mine
-                ? `/student/spaces/${spaceId}/assignments/${it.id}?sid=${mine.id}`
-                : `/student/spaces/${spaceId}/assignments/${it.id}`;
-
-              const mineUi = mine ? statusUi(mine.status) : null;
-              const mineDate = mine ? fmtDate(mine.updatedAtMs || mine.createdAtMs) : null;
-
-              return (
-                <div
-                  key={it.id}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
-                >
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 flex flex-wrap items-center gap-2">
-                        <div className="break-words text-base font-semibold text-slate-900">{title}</div>
-
-                        <DueBadge status={due} />
-
-                        {archived ? (
-                          <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
-                        ) : null}
-                      </div>
-
-                      <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:justify-end">
-                        <Link
-                          href={href}
-                          className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
-                        >
-                          {t("actions.open")}
-                        </Link>
-
-                        {mine ? (
-                          <button
-                            type="button"
-                            onClick={() => moveToArchive(mine)}
-                            disabled={archivingId === mine.id}
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-                            title={t("mine.archiveHint")}
-                          >
-                            {archivingId === mine.id ? t("mine.archiving") : t("mine.moveToArchive")}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {safeString(it.data.studentMessage) || it.data.dueAt ? (
-                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                        {safeString(it.data.studentMessage) ? <div>{safeString(it.data.studentMessage)}</div> : null}
-
-                        {fmtDueDate(it.data.dueAt) ? (
-                          <div
-                            className={[
-                              "mt-2 text-xs font-semibold",
-                              due === "overdue"
-                                ? "text-red-700"
-                                : due === "soon"
-                                  ? "text-yellow-800"
-                                  : "text-amber-800",
-                            ].join(" ")}
-                          >
-                            {t("due.label")}: {fmtDueDate(it.data.dueAt)}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-
-                    {mine ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-slate-500">{t("all.yourStatus")}</span>
-                        <StatusPill status={mine.status} label={mineUi!.label} hint={mineUi!.hint} />
-                        {mine.hasTeacherMessage ? (
-                          <span className="text-xs font-medium text-slate-700">{t("all.message")}</span>
-                        ) : null}
-                        {mineDate ? <span className="text-xs text-slate-500">{mineDate}</span> : null}
-                      </div>
-                    ) : (
-                      <div className="mt-3 text-xs text-slate-500">{t("all.notSubmitted")}</div>
-                    )}
-
-                    {snippet ? <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{snippet}</div> : null}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
-        <div className="text-base font-semibold text-slate-900">{t("archive.title")}</div>
-
-        {!uid ? (
-          <div className="mt-4 text-sm text-slate-600">{t("archive.loginToSee")}</div>
-        ) : subsLoading ? (
-          <div className="mt-4 text-sm text-slate-600">{t("loading")}</div>
-        ) : subsErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{subsErr}</div>
-        ) : archivedSubs.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
-            {t("archive.none")}
-          </div>
-        ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {archivedSubs.map((g) => {
-              const r = g.latest;
-              const href = `/student/spaces/${spaceId}/assignments/${g.assignmentId}?sid=${r.id}`;
-              const dateStr = fmtDate(r.studentArchivedAtMs || r.updatedAtMs || r.createdAtMs);
-              const ui = statusUi(r.status);
-
-              return (
-                <div
-                  key={g.assignmentId}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
-                >
-                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-base font-semibold text-slate-900">
-                        {r.title ?? titleFor(g.assignmentId)}
-                      </div>
-
-                      {metaForRow(r) ? <div className="mt-2 text-sm text-slate-600">{metaForRow(r)}</div> : null}
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <StatusPill status={r.status} label={ui.label} hint={ui.hint} />
-                        {dateStr ? <span className="text-xs text-slate-500">{dateStr}</span> : null}
-                        {r.hasTeacherMessage ? (
-                          <span className="text-xs font-medium text-slate-700">{t("archive.message")}</span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:justify-end">
-                      <button
-                        type="button"
-                        onClick={() => restoreFromArchive(r)}
-                        disabled={archivingId === r.id}
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-                        title={t("archive.restoreHint")}
-                      >
-                        {archivingId === r.id ? t("archive.restoring") : t("archive.restore")}
-                      </button>
-
-                      <Link
-                        href={href}
-                        className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
-                      >
-                        {t("actions.open")}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              })}
+            </div>
+          )}
+        </div>
+      </details>
     </div>
   );
 }

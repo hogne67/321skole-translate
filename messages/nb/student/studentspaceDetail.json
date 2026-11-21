@@ -4,10 +4,13 @@
     "actions": {
       "open": "Åpne",
       "backToMySpaces": "← Tilbake til Mine spaces",
-      "backMySpacesShort": "← Mine spaces"
+      "backMySpacesShort": "← Mine spaces",
+      "openTask": "Åpne oppgave",
+      "openNamed": "Åpne oppgave «{title}»"
     },
     "header": {
-      "classCode": "Klassekode"
+      "classCode": "Romkode",
+      "untitled": "Rom uten navn"
     },
     "missing": {
       "title": "Space ikke funnet",
@@ -35,23 +38,24 @@
       "archiving": "Flytter…"
     },
     "archive": {
-      "title": "Arkiv",
+      "title": "Arkiverte besvarelser",
       "loginToSee": "Logg inn for å se arkivet ditt.",
       "none": "Ingen arkiverte innleveringer ennå.",
-      "message": "✉️ melding",
       "restore": "Gjenopprett",
       "restoring": "Gjenoppretter…",
-      "restoreHint": "Flytt tilbake til Mine innleveringer"
+      "restoreHint": "Flytt besvarelsen ut av arkivet"
     },
     "all": {
-      "title": "Alle oppgaver i dette spacet",
-      "showArchived": "Vis arkiverte",
-      "none": "Ingen oppgaver her ennå.",
-      "archivedTag": "(arkivert)",
+      "title": "Oppgaver",
+      "none": "Ingen aktive oppgaver i dette rommet.",
       "typeWriting": "Skriving",
-      "yourStatus": "Din status:",
-      "message": "✉️ melding",
-      "notSubmitted": "Du har ikke levert denne ennå."
+      "message": "Melding fra lærer",
+      "notSubmitted": "Ikke levert",
+      "archivedTitle": "Arkiverte oppgaver",
+      "untitled": "Oppgave uten tittel",
+      "details": "Oppgavedetaljer",
+      "teacherNote": "Beskjed fra lærer",
+      "lastUpdated": "Sist oppdatert {date}"
     },
     "writingStation": {
       "title": "Tekst",

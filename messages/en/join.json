@@ -53,7 +53,8 @@
       "logout": "Sign out of shared computer",
       "logoutConfirm": "You will be signed out of this browser. Your answers are kept. The next pupil must use their own pupil code or link.",
       "loggingOut": "Signing out…",
-      "signedOut": "You are signed out. The next pupil can use their own pupil code or link. Forgotten your pupil code? Ask your teacher."
+      "signedOut": "You are signed out. The next pupil can use their own pupil code or link. Forgotten your pupil code? Ask your teacher.",
+      "endFailed": "Could not end the session. Please try again."
     },
     "approval": {
       "title": "Your teacher must approve access",
