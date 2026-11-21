@@ -2,6 +2,35 @@
   "content": {
     "title": "Meu conteúdo",
     "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, baixar PDF, editar e muito mais.",
+    "student": {
+      "assignments": "Atividades atribuídas",
+      "ownWork": "Meus trabalhos",
+      "noOwnWork": "Você ainda não salvou nenhum trabalho próprio.",
+      "noOwnMatches": "Nenhum resultado nos seus trabalhos.",
+      "loading": "Carregando atividades atribuídas …",
+      "loadFailed": "Não foi possível carregar todas as atividades das salas.",
+      "retry": "Tentar novamente",
+      "chooseRoom": "Abra uma sala em Meus Spaces para escolher as atividades que quer ver aqui.",
+      "mySpaces": "Meus Spaces",
+      "joinHint": "Você recebeu um código de aluno ou um link do professor?",
+      "join": "Entrar com código",
+      "noAssignments": "Ainda não há atividades ativas nesta sala.",
+      "archived": "Atividades arquivadas",
+      "untitledRoom": "Sala sem nome",
+      "untitledTask": "Atividade sem título",
+      "due": "Prazo {date}",
+      "openTask": "Abrir atividade",
+      "continueTask": "Continuar",
+      "status": {
+        "todo": "A fazer",
+        "draft": "Rascunho",
+        "submitted": "Entregue",
+        "reviewed": "Avaliado",
+        "needsWork": "Precisa de revisão",
+        "planningSubmitted": "Plano enviado",
+        "planningReviewed": "Plano avaliado"
+      }
+    },
     "parent": {
       "title": "Conteúdo da família",
       "subtitle": "Aqui você encontra atividades que pode abrir, organizar e compartilhar com os Spaces dos seus filhos.",

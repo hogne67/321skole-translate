@@ -22,7 +22,9 @@ import QRCode from "qrcode";
 
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { getStudentAccessMode } from "@/lib/studentAccessMode";
 import { loadMyContent, type ContentItem } from "@/lib/contentFeed";
+import StudentContentAssignments from "@/components/StudentContentAssignments";
 import { fetchPosterContentItems } from "@/lib/learningPosters/contentClient";
 import LearningPosterContentCard from "@/components/learning-posters/LearningPosterContentCard";
 import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
@@ -385,14 +387,25 @@ type LoadMyContentArgs = {
   isAnon: boolean;
   mode: "student" | "teacher" | "creator";
   locale: string;
+  includeSpaceContent: boolean;
 };
 
 export default function ContentClient() {
+  const viewer = useUserProfile();
+  const t = useTranslations("content");
+  if (viewer.loading) {
+    return <p role="status" className="mx-auto max-w-5xl px-4 text-sm text-slate-600">{t("states.loadingContent")}</p>;
+  }
+
+  const sessionKey = viewer.user ? `${viewer.user.uid}:${viewer.user.isAnonymous}` : "signed-out";
+  return <ContentView key={sessionKey} viewer={viewer} />;
+}
+
+function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile } = useUserProfile();
+  const { user, profile } = viewer;
 
-  const isAuthReady = user !== undefined;
   const isAnon = !!user?.isAnonymous;
   const uid = user?.uid ?? null;
 
@@ -406,6 +419,12 @@ export default function ContentClient() {
   const isCreator = role === "creator";
   const isParent = role === "parent";
   const isStudent = role === "student";
+  const usesSchoolAccount = (typeof profile?.schoolId === "string" && !!profile.schoolId.trim() && profile.schoolStatus === "active")
+    || user?.providerData.some((provider) => provider.providerId === "oidc.feide") === true;
+  const hasOwnWork = !isStudent || (
+    !!user && profile?.role === "student" && profile.disabled !== true && !usesSchoolAccount
+    && getStudentAccessMode(profile, { isAnonymous: isAnon }) === "self_study"
+  );
   const canUsePublishActions = isTeacher || isActivePartner;
 
   const contentMode: "student" | "teacher" | "creator" = isTeacher ? "teacher" : isCreator ? "creator" : "student";
@@ -698,7 +717,7 @@ export default function ContentClient() {
 
   async function refresh() {
     const sequence = ++refreshSequence.current;
-    if (!uid) {
+    if (!uid || !hasOwnWork) {
       setItems([]);
       setNotes([]);
       setWarnings([]);
@@ -711,7 +730,7 @@ export default function ContentClient() {
     setErr(null);
 
     try {
-      const args: LoadMyContentArgs = { db, mode: contentMode, uid, isAnon, locale };
+      const args: LoadMyContentArgs = { db, mode: contentMode, uid, isAnon, locale, includeSpaceContent: !isStudent };
       const [contentResult, posterResult] = await Promise.allSettled([
         loadMyContent(args),
         !isAnon && (isTeacher || isCreator || isParent) ? fetchPosterContentItems(uid, locale) : Promise.resolve([]),
@@ -735,7 +754,7 @@ export default function ContentClient() {
     void refresh();
     return invalidateRefresh;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthReady, uid, isAnon, role, locale, invalidateRefresh]);
+  }, [uid, isAnon, role, locale, hasOwnWork, invalidateRefresh]);
 
   useEffect(() => {
     if (!canUsePublishActions || mySpaces.length === 0 || !items.some(usesSpaceSharingStatus)) {
@@ -2440,8 +2459,10 @@ export default function ContentClient() {
     return `${label} (${counts.lesson + counts.writing + counts.poster + counts.submission + counts.space})`;
   }
 
+  const contentFilters = (["library", "math", "lesson", "writing", "poster", "submission", "space"] as const)
+    .filter(ft => (ft !== "poster" || isTeacher || isCreator || isParent) && (ft !== "space" || !isStudent));
   const mobileFilterActions: ActionItem[] = [
-    ...(["library", "math", "lesson", "writing", "poster", "submission", "space"] as const).filter(ft => ft !== "poster" || isTeacher || isCreator || isParent).map((ft) => ({
+    ...contentFilters.map((ft) => ({
       key: `mobile-filter-${ft}`,
       label: labelWithCount(ft),
       onClick: () => setFilter(ft),
@@ -2453,21 +2474,9 @@ export default function ContentClient() {
     },
   ];
 
-  return (
-    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3">
-          <div className="min-w-0">
-            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
-              {isParent ? t("parent.title") : t("title")}
-            </h1>
-            <p className="mt-2 break-words text-sm text-slate-600">
-              {isParent ? t("parent.subtitle") : t("subtitle")}
-            </p>
-          </div>
-        </div>
-      </section>
-
+  const ownContent = hasOwnWork ? (
+    <>
+      {isStudent ? <h2 className="m-0 text-xl font-semibold text-slate-950">{t("student.ownWork")}</h2> : null}
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="min-w-0">
           <input
@@ -2479,7 +2488,7 @@ export default function ContentClient() {
 
           <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
             <div className="flex flex-wrap gap-2">
-              {(["all", "library", "math", "lesson", "writing", "poster", "submission", "space"] as const).filter(ft => ft !== "poster" || isTeacher || isCreator || isParent).map((ft) => (
+              {(["all", ...contentFilters] as const).map((ft) => (
                 <button
                   key={ft}
                   onClick={() => setFilter(ft)}
@@ -2562,9 +2571,11 @@ export default function ContentClient() {
 
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="min-w-0">
-          <div className="text-base font-semibold text-slate-900">
-            {isParent ? t("parent.contentTitle") : t("title")}
-          </div>
+          {!isStudent ? (
+            <div className="text-base font-semibold text-slate-900">
+              {isParent ? t("parent.contentTitle") : t("title")}
+            </div>
+          ) : null}
           <div className="mt-1 text-sm text-slate-600">
             {filtered.length} {t("labels.items")}
           </div>
@@ -2575,7 +2586,7 @@ export default function ContentClient() {
 
           {!loading && filtered.length === 0 ? (
             <div className="rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-600 shadow-sm sm:p-4">
-              {emptyHint}
+              {isStudent ? t(items.length === 0 ? "student.noOwnWork" : "student.noOwnMatches") : emptyHint}
             </div>
           ) : null}
 
@@ -3167,6 +3178,23 @@ export default function ContentClient() {
           </div>
         </div>
       ) : null}
+    </>
+  ) : null;
+
+  return (
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <header className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+        <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
+          {isParent ? t("parent.title") : t("title")}
+        </h1>
+        {!isStudent ? (
+          <p className="mt-2 break-words text-sm text-slate-600">
+            {isParent ? t("parent.subtitle") : t("subtitle")}
+          </p>
+        ) : null}
+      </header>
+      {isStudent ? <StudentContentAssignments uid={uid} isAnonymous={isAnon} hasOwnWork={hasOwnWork} /> : null}
+      {ownContent}
     </main>
   );
 }

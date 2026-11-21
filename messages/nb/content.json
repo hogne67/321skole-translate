@@ -2,6 +2,35 @@
   "content": {
     "title": "Mitt innhold",
     "subtitle": "Her kan du administrere alt: publisere, dele, laste ned PDF, redigere og mer.",
+    "student": {
+      "assignments": "Tildelte oppgaver",
+      "ownWork": "Eget arbeid",
+      "noOwnWork": "Du har ikke lagret noe eget arbeid ennå.",
+      "noOwnMatches": "Ingen treff i eget arbeid.",
+      "loading": "Laster tildelte oppgaver …",
+      "loadFailed": "Kunne ikke hente alle romoppgavene.",
+      "retry": "Prøv igjen",
+      "chooseRoom": "Åpne et rom fra Mine spaces for å velge hvilke oppgaver du vil se her.",
+      "mySpaces": "Mine spaces",
+      "joinHint": "Har du fått elevkode eller lenke fra læreren?",
+      "join": "Bli med med kode",
+      "noAssignments": "Ingen aktive oppgaver i dette rommet ennå.",
+      "archived": "Arkiverte oppgaver",
+      "untitledRoom": "Rom uten navn",
+      "untitledTask": "Oppgave uten tittel",
+      "due": "Frist {date}",
+      "openTask": "Åpne oppgave",
+      "continueTask": "Fortsett",
+      "status": {
+        "todo": "Å gjøre",
+        "draft": "Kladd",
+        "submitted": "Levert",
+        "reviewed": "Vurdert",
+        "needsWork": "Må forbedres",
+        "planningSubmitted": "Plan sendt",
+        "planningReviewed": "Plan vurdert"
+      }
+    },
     "parent": {
       "title": "Familieinnhold",
       "subtitle": "Her finner du oppgaver du kan åpne, organisere og dele til barnas Spaces.",

@@ -2,6 +2,35 @@
   "content": {
     "title": "My content",
     "subtitle": "Here you can manage everything: publish, share, PDF, edit and more.",
+    "student": {
+      "assignments": "Assigned work",
+      "ownWork": "My own work",
+      "noOwnWork": "You haven’t saved any work of your own yet.",
+      "noOwnMatches": "No matches in your own work.",
+      "loading": "Loading assigned work …",
+      "loadFailed": "Could not load all room assignments.",
+      "retry": "Try again",
+      "chooseRoom": "Open a room from My Spaces to choose which assignments to see here.",
+      "mySpaces": "My Spaces",
+      "joinHint": "Did your teacher give you a pupil code or link?",
+      "join": "Join with a code",
+      "noAssignments": "There are no active assignments in this room yet.",
+      "archived": "Archived assignments",
+      "untitledRoom": "Untitled room",
+      "untitledTask": "Untitled assignment",
+      "due": "Due {date}",
+      "openTask": "Open assignment",
+      "continueTask": "Continue",
+      "status": {
+        "todo": "To do",
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "reviewed": "Reviewed",
+        "needsWork": "Needs revision",
+        "planningSubmitted": "Plan submitted",
+        "planningReviewed": "Plan reviewed"
+      }
+    },
     "parent": {
       "title": "Family content",
       "subtitle": "Here you will find tasks you can open, organize, and share to your children’s Spaces.",

@@ -1088,8 +1088,9 @@ export async function loadMyContent(opts: {
   uid?: string | null;
   isAnon?: boolean;
   locale?: string;
+  includeSpaceContent?: boolean;
 }) {
-  const { db, mode, uid, isAnon, locale = "no" } = opts;
+  const { db, mode, uid, isAnon, locale = "no", includeSpaceContent = true } = opts;
 
   if (!uid || isAnon) {
     return {
@@ -1106,13 +1107,14 @@ export async function loadMyContent(opts: {
     mode === "teacher" || mode === "creator" ? fetchMyWritingActivities(db, uid, locale) : Promise.resolve([] as ContentItem[]),
     fetchMySubmissions(db, uid, mode, locale),
     fetchMyPracticeSubmissions(db, uid, mode, locale),
-    mode === "student" ? fetchMySpaceSubmissions(db, uid, locale, warnings) : Promise.resolve([] as ContentItem[]),
-    fetchMySpaces(db, uid, mode, locale),
+    includeSpaceContent && mode === "student" ? fetchMySpaceSubmissions(db, uid, locale, warnings) : Promise.resolve([] as ContentItem[]),
+    includeSpaceContent ? fetchMySpaces(db, uid, mode, locale) : Promise.resolve([] as ContentItem[]),
   ]);
 
   const seen = new Set<string>();
 
   const merged = [...lessons, ...writingActivities, ...submissions, ...practiceSubs, ...spaceSubs, ...spaces].filter((it) => {
+    if (!includeSpaceContent && (it.type === "space" || (it.type === "submission" && it.spaceId))) return false;
     const k = `${it.type}:${it.id}`;
     if (seen.has(k)) return false;
     seen.add(k);
@@ -1125,7 +1127,7 @@ export async function loadMyContent(opts: {
     return tb - ta;
   });
 
-  if (items.length === 0) {
+  if (items.length === 0 && includeSpaceContent) {
     warnings.push(
       "Fant ingen dokumenter i feeden ennå. Hvis dette er uventet: sjekk at du er innlogget (ikke anon), og at spaceSubmissions finnes."
     );
