@@ -147,6 +147,7 @@ export default function StudentContentAssignments({
         <SpacePupilIdentity
           key={JSON.stringify([sessionKey, selectedRoom?.spaceId, selectedRoom?.participantId])}
           spaceId={selectedRoom?.spaceId ?? null}
+          returnToContent
         />
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3">

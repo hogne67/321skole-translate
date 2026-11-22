@@ -502,6 +502,13 @@ function HeroSection(props: { t: TFn; locale: string }) {
             {props.t("hero.lead")}
           </p>
 
+          <Link
+            href={localizedPath(props.locale, "/join?next=content")}
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-800 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            {props.t("hero.ctaStudentCode")}
+          </Link>
+
           {/* 📱 IMAGE (MOBILE ONLY) */}
           <div className="mt-6 block md:hidden rounded-2xl overflow-hidden border border-white/20 bg-white/10 p-2">
             <div className="relative aspect-[4/5] w-full">

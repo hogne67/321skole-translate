@@ -16,10 +16,24 @@ export default function JoinClient() {
   const initialCode = params.get("code") ?? "";
   const initialStudentCode = params.get("studentCode") ?? "";
   const signedOut = params.get("signedOut") === "1";
-  return <JoinForm key={JSON.stringify([initialCode, initialStudentCode, signedOut])} initialCode={initialCode} initialStudentCode={initialStudentCode} signedOut={signedOut} />;
+  const openContent = params.get("next") === "content";
+  return (
+    <JoinForm
+      key={JSON.stringify([initialCode, initialStudentCode, signedOut, openContent])}
+      initialCode={initialCode}
+      initialStudentCode={initialStudentCode}
+      signedOut={signedOut}
+      openContent={openContent}
+    />
+  );
 }
 
-function JoinForm({ initialCode, initialStudentCode, signedOut }: { initialCode: string; initialStudentCode: string; signedOut: boolean }) {
+function JoinForm({ initialCode, initialStudentCode, signedOut, openContent }: {
+  initialCode: string;
+  initialStudentCode: string;
+  signedOut: boolean;
+  openContent: boolean;
+}) {
   const t = useTranslations("join");
   const locale = useLocale();
   const router = useRouter();
@@ -61,11 +75,11 @@ function JoinForm({ initialCode, initialStudentCode, signedOut }: { initialCode:
       if (data.cancelled) setPreview(null);
       else if (!data.preview) {
         saveLastStudentSpaceId(data.spaceId);
-        router.replace(`/${locale}/student/spaces/${data.spaceId}`);
+        router.replace(openContent ? `/${locale}/content` : `/${locale}/student/spaces/${data.spaceId}`);
       } else setPreview(data);
     } catch (e) { if (!controller.signal.aborted) { setPreview(null); setError(e instanceof Error ? e.message : t("errors.joinFailed")); } }
     finally { if (activeRequest.current === controller) { activeRequest.current = null; setBusy(false); } }
-  }, [code, studentCode, locale, router, t]);
+  }, [code, studentCode, locale, openContent, router, t]);
 
   useEffect(() => () => { activeRequest.current?.abort(); activeRequest.current = null; }, []);
 

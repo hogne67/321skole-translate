@@ -14,7 +14,10 @@ const actionClass =
 const secondaryAction = `${actionClass} border border-solid border-emerald-200 bg-white text-emerald-950 hover:bg-emerald-100`;
 const primaryAction = `${actionClass} border-0 bg-emerald-800 text-white hover:bg-emerald-900`;
 
-export default function SpacePupilIdentity({ spaceId }: { spaceId: string | null }) {
+export default function SpacePupilIdentity({ spaceId, returnToContent = false }: {
+  spaceId: string | null;
+  returnToContent?: boolean;
+}) {
   const { user } = useUserProfile();
   const locale = useLocale();
   const t = useTranslations("join");
@@ -40,7 +43,8 @@ export default function SpacePupilIdentity({ spaceId }: { spaceId: string | null
       await signOut(auth);
       clearLastStudentSpaceId();
       // Reload to discard the previous pupil's in-memory page and data state.
-      window.location.replace(`/${locale}/join?signedOut=1`);
+      const next = returnToContent ? "&next=content" : "";
+      window.location.replace(`/${locale}/join?signedOut=1${next}`);
     } catch { setError(true); setBusy(false); }
   }
   return (
