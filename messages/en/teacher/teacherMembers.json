@@ -1,6 +1,33 @@
 {
   "teacherMembers": {
+    "schoolPupil": {
+      "fullName": "Full name (teachers)",
+      "displayName": "First name or alias",
+      "displayNamePlaceholder": "First name if left blank",
+      "loading": "Loading student profile…",
+      "save": "Save names",
+      "create": "Create student profile",
+      "convert": "Create a shared school profile for this pupil",
+      "rotate": "Issue new student code",
+      "rotateConfirmation": "Issue a new code for all rooms? This ends sessions opened with the old code.",
+      "saved": "Names saved.",
+      "issued": "Personal student code",
+      "issuedHint": "Give the code to the pupil. It works in every room at this school they are a member of.",
+      "closeCode": "Close code",
+      "copied": "Student code copied.",
+      "errors": {
+        "failed": "Could not load or update the student profile.",
+        "pupil_full_name_required": "Enter the pupil’s full name.",
+        "pupil_display_name_required": "Use a first name or alias as the display name.",
+        "pupil_forbidden": "You do not have access to this student profile.",
+        "pupil_not_found": "Student profile could not be found in this room.",
+        "pupil_room_unavailable": "This room is unavailable.",
+        "pupil_already_linked": "The pupil already has a different registration in this room.",
+        "pupil_code_unavailable": "Could not issue a code right now. Try again."
+      }
+    },
     "roster": {
+      "schoolDescription": "Add pupils who are already registered at this school to this room.",
       "title": "Add existing pupils",
       "description": "Choose pupils already in your other rooms. They get separate pupil codes here and still use just one pupil place with you.",
       "linkTitle": "Link to existing pupil",

@@ -543,7 +543,7 @@ service cloud.firestore {
   function safeSchoolMembershipUpdate() {
     let changed = request.resource.data.diff(resource.data).affectedKeys();
     let names = ["displayName", "studentName", "updatedAt", "nameUpdatedAt", "nameUpdatedByUid"];
-    return changed.hasOnly(names) || (
+    return resource.data.get("schoolPupilId", "") == "" && (changed.hasOnly(names) || (
       resource.data.get("role", "") == "student"
       && !isOwnerMembership()
       && changed.hasOnly(names.concat(["status", "active", "archived", "removedAt", "removedBy"]))
@@ -558,7 +558,7 @@ service cloud.firestore {
       && request.resource.data.get("status", "") == "active"
       && request.resource.data.get("active", false) == true
       && request.resource.data.get("archived", true) == false
-    );
+    ));
   }
 
   function canReadMember() {

@@ -154,6 +154,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     if (safeString(member.spaceId) !== spaceId) return json({ error: "Member is not in this space" }, 400);
     if (safeString(member.role) !== "student") return json({ error: "Only student members can have student codes" }, 400);
 
+    if (member.schoolPupilId) return json({ error: "Use the school pupil card" }, 409);
     const existingCode = safeString(member.studentCode);
     const nextCode = !regenerate && existingCode ? existingCode : await generateUniqueStudentCode(db, spaceId);
     const memberUid = safeString(member.uid) || safeString(member.userId);
@@ -161,7 +162,8 @@ export async function POST(req: Request, ctx: RouteContext) {
     const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
     const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
 
-    await db.runTransaction(async (tx) => {
+    const rotated = await db.runTransaction(async (tx) => {
+      if ((await tx.get(memberRef)).get("schoolPupilId")) return false;
       for (const targetDoc of targetDocs) {
         tx.set(targetDoc.ref, {
         participantId,
@@ -172,7 +174,9 @@ export async function POST(req: Request, ctx: RouteContext) {
         updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
       }
+      return true;
     });
+    if (!rotated) return json({ error: "Use the school pupil card" }, 409);
 
     return json({
       ok: true,

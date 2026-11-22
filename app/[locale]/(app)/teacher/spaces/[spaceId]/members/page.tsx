@@ -4,10 +4,11 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, Printer } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import TeacherPupilPicker from "@/components/TeacherPupilPicker";
+import SchoolSpacePupilCard, { SchoolPupilNameFields } from "@/components/SchoolSpacePupilCard";
 import SpaceAccessRequests, { type SpaceAccessRequest } from "@/components/SpaceAccessRequests";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
@@ -30,6 +31,8 @@ type MemberData = {
   isAnon?: boolean;
   studentCode?: string;
   studentCodeKey?: string;
+  schoolPupilId?: string;
+  schoolPupilRegistration?: boolean;
   createdAt?: unknown;
 };
 
@@ -94,6 +97,9 @@ function memberGroupKey(row: MemberRow): string {
 }
 
 function preferMemberRow(current: MemberRow, candidate: MemberRow): MemberRow {
+  if (Boolean(current.data.schoolPupilRegistration) !== Boolean(candidate.data.schoolPupilRegistration)) {
+    return candidate.data.schoolPupilRegistration ? candidate : current;
+  }
   const currentHasUid = !!memberUid(current);
   const candidateHasUid = !!memberUid(candidate);
   if (!currentHasUid && candidateHasUid) return candidate;
@@ -176,7 +182,13 @@ function Inner() {
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
   const [spaceCode, setSpaceCode] = useState("");
+  const [schoolRoomId, setSchoolRoomId] = useState<string | null>(null);
+  const schoolRoom = Boolean(spaceId && schoolRoomId === spaceId);
+  const [pupilNames, setPupilNames] = useState({ fullName: "", displayName: "" });
+  const [issuedCode, setIssuedCode] = useState<{ spaceId: string; uid: string; value: string } | null>(null);
   const [canManageStaff, setCanManageStaff] = useState(false);
+  const visibleCode = canManageStaff && issuedCode?.spaceId === spaceId && issuedCode?.uid === user?.uid ? issuedCode?.value : undefined;
+  const issuedCodePanel = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<MemberRow[]>([]);
   const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
   const [search, setSearch] = useState("");
@@ -236,6 +248,7 @@ function Inner() {
         const ownerId = getSpaceOwnerUid(data);
         if (title) setSpaceTitle(title);
         setSpaceCode(getSpaceJoinCode(data));
+        setSchoolRoomId(safeString(data?.schoolId) ? spaceId : null);
         setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
       })
       .catch(() => {
@@ -389,9 +402,26 @@ function Inner() {
     }
   }
 
+  useEffect(() => {
+    if (visibleCode) issuedCodePanel.current?.focus();
+  }, [visibleCode]);
+
+  function showIssuedCode(code: string) {
+    if (spaceId && user) setIssuedCode({ spaceId, uid: user.uid, value: code });
+  }
+
+  async function copyIssuedCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setInviteMessage(t("schoolPupil.copied"));
+    } catch {
+      setInviteError(t("studentCode.messages.copyFailed"));
+    }
+  }
+
   async function createStudent() {
     const displayName = studentName.replace(/\s+/g, " ").trim();
-    if (!spaceId || !user || !displayName || !canManageStaff) return;
+    if (!spaceId || !user || !canManageStaff || !(schoolRoom ? pupilNames.fullName.trim() : displayName)) return;
 
     setStudentBusy(true);
     setInviteMessage(null);
@@ -405,7 +435,7 @@ function Inner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ displayName }),
+        body: JSON.stringify(schoolRoom ? pupilNames : { displayName }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -414,9 +444,15 @@ function Inner() {
       };
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || t("createStudent.messages.failed"));
+        const key = "schoolPupil.errors." + data.error;
+        throw new Error(schoolRoom && t.has(key) ? t(key) : data.error || t("createStudent.messages.failed"));
       }
       const member = data.member;
+      if (schoolRoom && member?.studentCode) {
+        setPupilNames({ fullName: "", displayName: "" });
+        showIssuedCode(member.studentCode);
+        return;
+      }
 
       setStudentName("");
       setInviteMessage(
@@ -619,7 +655,7 @@ function Inner() {
       {canManageStaff ? (
         <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
-          <div className="mt-3 grid gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
+          <div className="mt-3 grid items-end gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
             <div className="relative min-w-0">
               <select
                 aria-label={t("table.role")}
@@ -637,7 +673,9 @@ function Inner() {
               <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             </div>
 
-            {singleRole === "student" ? (
+            {singleRole === "student" && schoolRoom ? (
+              <SchoolPupilNameFields names={pupilNames} onChange={setPupilNames} disabled={studentBusy} />
+            ) : singleRole === "student" ? (
               <input
                 aria-label={t("createStudent.placeholder")}
                 value={studentName}
@@ -662,7 +700,7 @@ function Inner() {
               onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
               disabled={
                 singleRole === "student"
-                  ? studentBusy || !studentName.trim()
+                  ? studentBusy || !(schoolRoom ? pupilNames.fullName.trim() : studentName.trim())
                   : inviteBusy || !inviteEmail.trim()
               }
               className={primaryButton}
@@ -677,7 +715,7 @@ function Inner() {
           ) : null}
 
           <div className="mt-3">
-            <TeacherPupilPicker spaceId={spaceId} />
+            <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} />
           </div>
         </section>
       ) : null}
@@ -699,6 +737,19 @@ function Inner() {
         </div>
 
         <p role="status" className={inviteMessage ? "mb-0 mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900" : "sr-only"}>{inviteMessage}</p>
+        {visibleCode ? (
+          <div ref={issuedCodePanel} tabIndex={-1} className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-emerald-50 p-3" role="status">
+            <div>
+              <p className="m-0 text-sm font-semibold">{t("schoolPupil.issued")}</p>
+              <p className="my-1 font-mono text-lg font-semibold tracking-wide">{visibleCode}</p>
+              <p className="m-0 text-sm text-slate-600">{t("schoolPupil.issuedHint")}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={secondaryButton} onClick={() => void copyIssuedCode(visibleCode)}>{t("studentCode.actions.copy")}</button>
+              <button type="button" className={secondaryButton} onClick={() => setIssuedCode(null)}>{t("schoolPupil.closeCode")}</button>
+            </div>
+          </div>
+        ) : null}
         {inviteError ? <p role="alert" className="mb-0 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{inviteError}</p> : null}
 
         <div className="mt-3 grid gap-2">
@@ -717,6 +768,7 @@ function Inner() {
               const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
               const studentCode = String(r.data.studentCode ?? t("common.dash"));
               const isStudent = role === "student";
+              const schoolPupil = Boolean(r.data.schoolPupilId);
               const deviceCount = r.deviceCount ?? 1;
               const isOpen = expandedMemberId === r.id;
               const detailsId = `member-details-${r.id}`;
@@ -774,7 +826,7 @@ function Inner() {
 
                   {isOpen ? (
                     <div id={detailsId} className="grid gap-3 border-t border-slate-200 p-3">
-                      {isStudent ? (
+                      {isStudent && !schoolPupil ? (
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
                           <dl className="m-0">
                             <dt className="text-xs font-semibold text-slate-600">{t("table.studentCode")}</dt>
@@ -795,13 +847,14 @@ function Inner() {
 
                       {isStudent && canManageStaff ? (
                         <>
+                          {schoolRoom ? <SchoolSpacePupilCard key={r.id} spaceId={spaceId} memberId={r.id} registered={schoolPupil} onCodeIssued={showIssuedCode} /> : null}
                           <div className="flex flex-wrap items-center gap-2">
-                            {editingNameId !== r.id ? (
+                            {!schoolPupil && editingNameId !== r.id ? (
                               <button type="button" onClick={() => startEditingName(r.id, name)} className={secondaryButton}>
                                 {t("actions.editName")}
                               </button>
                             ) : null}
-                            <button
+                            {!schoolPupil ? <button
                               type="button"
                               onClick={() => void updateStudentCode(r.id, studentCode === t("common.dash") ? "ensure" : "regenerate")}
                               disabled={studentCodeBusyId === r.id || removingMemberId === r.id}
@@ -812,7 +865,7 @@ function Inner() {
                                 : studentCode === t("common.dash")
                                   ? t("studentCode.actions.create")
                                   : t("studentCode.actions.regenerate")}
-                            </button>
+                            </button> : null}
                             <button
                               type="button"
                               onClick={() => void removeStudent(r.id, name)}
@@ -822,7 +875,7 @@ function Inner() {
                               {removingMemberId === r.id ? t("removeStudent.actions.removing") : t("removeStudent.actions.remove")}
                             </button>
                           </div>
-                          <TeacherPupilPicker spaceId={spaceId} targetMemberId={r.id} targetName={name} />
+                          {!schoolPupil ? <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} targetMemberId={r.id} targetName={name} /> : null}
                         </>
                       ) : null}
 

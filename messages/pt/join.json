@@ -10,7 +10,7 @@
       "studentCode": {
         "label": "Código do aluno",
         "placeholder": "ex.: S7K4P",
-        "tip": "Use o código de aluno do professor. O professor deve aprovar uma nova sessão antes de esta aceder a trabalhos anteriores."
+        "tip": "Use o código pessoal de aluno que recebeu do professor."
       }
     },
     "actions": {
@@ -23,6 +23,7 @@
       "checkingExisting": "Verificando se este dispositivo já entrou…"
     },
     "errors": {
+      "studentCodeAttempts": "Muitas tentativas. Aguarde um pouco e tente novamente.",
       "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",
       "studentCodeRequired": "Esta sala exige código pessoal de aluno. Use o link ou o código de aluno enviado pelo professor.",

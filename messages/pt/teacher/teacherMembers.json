@@ -1,6 +1,33 @@
 {
   "teacherMembers": {
+    "schoolPupil": {
+      "fullName": "Nome completo (professores)",
+      "displayName": "Primeiro nome ou apelido",
+      "displayNamePlaceholder": "Primeiro nome se o campo ficar vazio",
+      "loading": "Carregando ficha do aluno…",
+      "save": "Salvar nomes",
+      "create": "Criar ficha do aluno",
+      "convert": "Criar ficha escolar para este aluno",
+      "rotate": "Gerar novo código do aluno",
+      "rotateConfirmation": "Gerar um novo código para todas as salas? Isso encerra as sessões abertas com o código anterior.",
+      "saved": "Nomes salvos.",
+      "issued": "Código pessoal do aluno",
+      "issuedHint": "Entregue o código ao aluno. Ele vale para todas as salas da escola em que o aluno é membro.",
+      "closeCode": "Fechar código",
+      "copied": "Código do aluno copiado.",
+      "errors": {
+        "failed": "Não foi possível carregar ou atualizar a ficha.",
+        "pupil_full_name_required": "Digite o nome completo do aluno.",
+        "pupil_display_name_required": "Use um primeiro nome ou apelido como nome de exibição.",
+        "pupil_forbidden": "Você não tem acesso a esta ficha.",
+        "pupil_not_found": "A ficha não foi encontrada nesta sala.",
+        "pupil_room_unavailable": "Esta sala está indisponível.",
+        "pupil_already_linked": "O aluno já possui outro vínculo nesta sala.",
+        "pupil_code_unavailable": "Não foi possível gerar um código agora. Tente novamente."
+      }
+    },
     "roster": {
+      "schoolDescription": "Adicione a esta sala alunos já cadastrados na escola.",
       "title": "Adicionar alunos existentes",
       "description": "Escolha alunos que já estão nas suas outras salas. Recebem códigos próprios nesta sala e continuam a ocupar apenas uma vaga consigo.",
       "linkTitle": "Ligar a aluno existente",

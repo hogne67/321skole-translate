@@ -4,8 +4,8 @@ import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
 
-type Pupil = { id: string; sourceMemberId: string; displayName: string; spaces: { spaceId: string; title: string; displayName: string }[] };
-export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName }: { spaceId: string; targetMemberId?: string; targetName?: string }) {
+type Pupil = { id: string; sourceMemberId: string; fullName?: string; displayName: string; spaces: { spaceId: string; title: string; displayName: string }[] };
+export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName, schoolRoom }: { spaceId: string; targetMemberId?: string; targetName?: string; schoolRoom?: boolean }) {
   const t = useTranslations("teacherMembers.roster");
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -48,7 +48,7 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
     finally { setBusy(false); }
   }
   const rooms = [...new Map(pupils.flatMap(p => p.spaces).map(s => [s.spaceId, s.title])).entries()];
-  const visible = pupils.filter(p => (!room || p.spaces.some(s => s.spaceId === room)) && `${p.displayName} ${p.spaces.map(s => `${s.title} ${s.displayName}`).join(" ")}`.toLowerCase().includes(search.toLowerCase()));
+  const visible = pupils.filter(p => (!room || p.spaces.some(s => s.spaceId === room)) && `${p.fullName ?? ""} ${p.displayName} ${p.spaces.map(s => `${s.title} ${s.displayName}`).join(" ")}`.toLowerCase().includes(search.toLowerCase()));
   return <div className="rounded-xl border border-slate-200 bg-slate-50 text-sm">
     <button
       type="button"
@@ -62,7 +62,7 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 ${open ? "rotate-180" : ""}`} />
     </button>
     {open ? <div id={panelId} className="space-y-3 border-t border-slate-200 p-3">
-      <p>{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t("description")}</p>
+      <p>{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t(schoolRoom ? "schoolDescription" : "description")}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <input aria-label={t("search")} placeholder={t("search")} value={search} onChange={e => setSearch(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2" />
         <select aria-label={t("room")} value={room} onChange={e => setRoom(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2">
@@ -74,7 +74,7 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       <div className="max-h-72 space-y-2 overflow-y-auto">
         {visible.map(p => <label key={p.id} className="flex items-start gap-2 rounded-lg border bg-white p-2">
           <input type={targetMemberId ? "radio" : "checkbox"} name={targetMemberId ? `link-${targetMemberId}` : undefined} disabled={busy} checked={selected.includes(p.sourceMemberId)} onChange={e => setSelected(targetMemberId ? [p.sourceMemberId] : e.target.checked ? [...selected, p.sourceMemberId] : selected.filter(id => id !== p.sourceMemberId))} />
-          <span><strong>{p.displayName}</strong><span className="block text-xs text-slate-600">{p.spaces.map(s => `${s.title}: ${s.displayName}`).join(" · ")}</span></span>
+          <span><strong>{p.fullName || p.displayName}</strong><span className="block text-xs text-slate-600">{p.spaces.map(s => `${s.title}: ${s.displayName}`).join(" · ")}</span></span>
         </label>)}
         {!busy && !visible.length ? <p>{t("empty")}</p> : null}
       </div>

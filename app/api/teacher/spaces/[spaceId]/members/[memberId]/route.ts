@@ -159,13 +159,15 @@ export async function PATCH(req: Request, ctx: RouteContext) {
       });
     }
 
+    if (member.schoolPupilId) return json({ error: "Use the school pupil card" }, 409);
     const activeParticipantDocs = await getActiveStudentDocsForParticipant(db, spaceId, participantId);
     const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
 
     const displayName = cleanName(safeString(body.displayName));
     if (!displayName) return json({ error: "Display name is required" }, 400);
 
-    await db.runTransaction(async (tx) => {
+    const edited = await db.runTransaction(async (tx) => {
+      if ((await tx.get(memberRef)).get("schoolPupilId")) return false;
       const pupilRecord = await tx.get(db.collection("spaceMembers").doc(`${spaceId}_${participantId}`));
       const nameTargets = pupilRecord.exists && pupilRecord.data()?.teacherManaged === true &&
         !targetDocs.some(doc => doc.id === pupilRecord.id) ? [...targetDocs, pupilRecord] : targetDocs;
@@ -182,7 +184,9 @@ export async function PATCH(req: Request, ctx: RouteContext) {
           { merge: true }
         );
       }
+      return true;
     });
+    if (!edited) return json({ error: "Use the school pupil card" }, 409);
 
     return json({
       ok: true,

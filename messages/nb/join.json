@@ -10,7 +10,7 @@
       "studentCode": {
         "label": "Elevkode",
         "placeholder": "f.eks. S7K4P",
-        "tip": "Bruk elevkoden fra læreren. En ny innlogging må godkjennes av læreren før du får tilgang til tidligere arbeid."
+        "tip": "Bruk den personlige elevkoden du fikk av læreren."
       }
     },
     "actions": {
@@ -23,6 +23,7 @@
       "checkingExisting": "Sjekker om denne enheten allerede er med…"
     },
     "errors": {
+      "studentCodeAttempts": "For mange kodeforsøk. Vent litt og prøv igjen.",
       "spaceNotFound": "Fant ikke rom med denne koden. Sjekk at koden er riktig.",
       "authTimeout": "Tidsavbrudd ved innlogging.",
       "studentCodeRequired": "Dette rommet krever personlig elevkode. Bruk elevlenken eller elevkoden du fikk av læreren.",

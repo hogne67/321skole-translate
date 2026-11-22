@@ -10,7 +10,7 @@
       "studentCode": {
         "label": "Student code",
         "placeholder": "e.g. S7K4P",
-        "tip": "Use the student code from your teacher. Your teacher must approve a new sign-in before it can access earlier work."
+        "tip": "Use the personal student code you received from your teacher."
       }
     },
     "actions": {
@@ -23,6 +23,7 @@
       "checkingExisting": "Checking whether this device is already joined…"
     },
     "errors": {
+      "studentCodeAttempts": "Too many code attempts. Wait a little and try again.",
       "spaceNotFound": "No space found with this code. Check that the code is correct.",
       "authTimeout": "Timed out while waiting for auth user.",
       "studentCodeRequired": "This room requires a personal student code. Use the student link or student code from your teacher.",

@@ -1,6 +1,33 @@
 {
   "teacherMembers": {
+    "schoolPupil": {
+      "fullName": "Fullt navn (lærere)",
+      "displayName": "Fornavn eller alias",
+      "displayNamePlaceholder": "Fornavn hvis feltet er tomt",
+      "loading": "Henter elevkortet…",
+      "save": "Lagre navn",
+      "create": "Opprett elevkort",
+      "convert": "Gi eleven et felles elevkort",
+      "rotate": "Gi ny elevkode",
+      "rotateConfirmation": "Gi eleven ny kode for alle rom? Det avslutter øktene som ble åpnet med den gamle koden.",
+      "saved": "Navnet er lagret.",
+      "issued": "Personlig elevkode",
+      "issuedHint": "Gi koden til eleven. Den virker i alle skolens rom der eleven er medlem.",
+      "closeCode": "Lukk kode",
+      "copied": "Elevkoden er kopiert.",
+      "errors": {
+        "failed": "Kunne ikke lagre eller hente elevkortet.",
+        "pupil_full_name_required": "Skriv inn elevens fulle navn.",
+        "pupil_display_name_required": "Bruk fornavn eller alias som visningsnavn.",
+        "pupil_forbidden": "Du har ikke tilgang til dette elevkortet.",
+        "pupil_not_found": "Fant ikke elevkortet i dette rommet.",
+        "pupil_room_unavailable": "Rommet er ikke tilgjengelig.",
+        "pupil_already_linked": "Eleven har allerede en annen kobling i dette rommet.",
+        "pupil_code_unavailable": "Kunne ikke lage kode akkurat nå. Prøv igjen."
+      }
+    },
     "roster": {
+      "schoolDescription": "Hent elever som allerede er registrert på skolen, og legg dem til i dette rommet.",
       "title": "Hent eksisterende elever",
       "description": "Velg elever du allerede har i andre rom. De får egne elevkoder her, men bruker fortsatt bare én elevplass hos deg.",
       "linkTitle": "Koble til eksisterende elev",

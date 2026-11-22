@@ -6,6 +6,8 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { documentId, hasSchoolPupilCodeFormat, joinSchoolPupil } from "@/lib/server/schoolSpacePupilCode";
+import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
 
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
@@ -38,14 +40,20 @@ export async function POST(req: NextRequest) {
     if (!spaceRef) return json({ error: "space_not_found" }, 404);
     const uid = decoded.uid;
     const room = spaceRef;
-    const result = await db.runTransaction<JoinReply>(async tx => {
+    const result = await runCapacityTransaction<JoinReply>(db, async tx => {
       const space = await tx.get(room);
       const data = space.data();
       if (!data || data.deletedAt || data.archived === true || data.status === "archived") return { error: "room_unavailable" } as const;
-      // isOpen was a legacy admission toggle. Valid personal codes admit existing pupils on new devices.
+      const schoolId = documentId(data.schoolId);
+      if (schoolId && hasSchoolPupilCodeFormat(studentCode) && body.cancel !== true) {
+        return joinSchoolPupil({ db, tx, schoolId, spaceId: room.id, room: data, uid, studentCode,
+          isAnonymous: decoded.firebase?.sign_in_provider === "anonymous", enter: body.submit === true || body.confirm === true });
+      }
+      // isOpen was a legacy admission toggle.
       const membershipRef = db.collection("spaceMembers").doc(`${room.id}_${uid}`);
       const existing = await tx.get(membershipRef);
-      const matching = await tx.get(db.collection("spaceMembers").where("studentCodeKey", "==", `${room.id}:${studentCode}`));
+      const matching = (await tx.get(db.collection("spaceMembers").where("studentCodeKey", "==", `${room.id}:${studentCode}`)))
+        .docs.filter(doc => !doc.get("schoolPupilId"));
       const existingData = existing.exists ? existing.data() as JoinMember : null;
       // Do not create an inactive canonical pupil record for the room owner:
       // that would also revoke the owner's existing management authority.
@@ -60,7 +68,7 @@ export async function POST(req: NextRequest) {
         return { ...reply, approvalRequired: false, cancelled: true };
       }
       if (existingData && !pending && !closedRequest && !isActiveSpaceMember(existingData)) return { error: "access_revoked" } as const;
-      const decision = evaluatePupilJoin(pending || closedRequest ? null : existingData, matching.docs.map(doc => doc.data() as JoinMember));
+      const decision = evaluatePupilJoin(pending || closedRequest ? null : existingData, matching.map(doc => doc.data() as JoinMember));
       if ("error" in decision) return decision;
       // A code identifies a requested pupil, but does not approve a new account.
       // Existing active memberships continue without any data migration.
@@ -104,7 +112,7 @@ export async function POST(req: NextRequest) {
       };
       // Preview is read-only. Switching requires a fresh guest UID after explicit confirmation.
       if (body.confirm !== true || decision.switchRequired) return { ...response, ok: true, preview: true };
-      const origin = matching.docs.find(doc => isActivePupil(doc.data() as JoinMember));
+      const origin = matching.find(doc => isActivePupil(doc.data() as JoinMember));
       tx.set(membershipRef, {
         spaceId: room.id, uid, participantId: decision.participantId, role: "student",
         ...(joinText(pupilRecord.data()?.teacherStudentId) ? { teacherStudentId: joinText(pupilRecord.data()?.teacherStudentId) } : {}),
@@ -115,7 +123,7 @@ export async function POST(req: NextRequest) {
         updatedAt: FieldValue.serverTimestamp(),
         ...(!existing.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
       }, { merge: true });
-      for (const access of matching.docs) {
+      for (const access of matching) {
         if (access.id !== membershipRef.id && isActivePupil(access.data() as JoinMember) && joinText(access.data().uid)) {
           tx.update(access.ref, { displayName, studentName: displayName });
         }
@@ -126,6 +134,7 @@ export async function POST(req: NextRequest) {
       }, { merge: true });
       return { ...response, ok: true, preview: false };
     });
+    if ("error" in result && result.error === "student_code_attempts") return json(result, 429);
     if ("error" in result) return json(result, ["identity_conflict", "request_not_pending"].includes(result.error) ? 409 : 403);
     if (!result.preview && decoded.firebase?.sign_in_provider !== "anonymous") {
       const profileRef = db.collection("users").doc(uid);

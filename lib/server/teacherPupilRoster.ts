@@ -10,6 +10,8 @@ import { isActiveTeacherPupil, teacherStudentIdentity } from "@/lib/teacherStude
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { documentId } from "@/lib/server/schoolSpacePupilCode";
+import { readSchoolPupilRoster, SchoolPupilError, writeSchoolPupil } from "@/lib/server/schoolSpacePupilRoster";
 
 const ownerFields = ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
@@ -27,6 +29,7 @@ async function access(req: Request, ctx: Context) {
   try { uid = (await auth.verifyIdToken(token, true)).uid; }
   catch (error) { throw new RosterError("Invalid token", accountErrorStatus(error) ?? 401); }
   const { spaceId } = await ctx.params;
+  if (!documentId(spaceId)) throw new RosterError("Room not found", 404);
   const [room, requester] = await Promise.all([db.doc(`spaces/${spaceId}`).get(), db.doc(`users/${uid}`).get()]);
   if (!room.exists) throw new RosterError("Room not found", 404);
   const data = room.data()!;
@@ -48,7 +51,7 @@ async function access(req: Request, ctx: Context) {
   const profile = ownerProfile.data() ?? {};
   const plan = getEffectivePlan(profile);
   const role = text(profile.role) || "teacher";
-  return { db, uid, owner, spaceId, spaces, authorizedSpaceIds, admin, room, limit: getBucketLimit(role as AppRole, plan, "members") };
+  return { db, uid, owner, spaceId, schoolId: documentId(data.schoolId), spaces, authorizedSpaceIds, admin, room, limit: getBucketLimit(role as AppRole, plan, "members") };
 }
 
 async function members(a: Awaited<ReturnType<typeof access>>, tx?: FirebaseFirestore.Transaction) {
@@ -62,7 +65,7 @@ async function members(a: Awaited<ReturnType<typeof access>>, tx?: FirebaseFires
 }
 
 function handleError(error: unknown) {
-  if (error instanceof RosterError) return json({ error: error.message }, error.status);
+  if (error instanceof RosterError || error instanceof SchoolPupilError) return json({ error: error.message }, error.status);
   console.error("Teacher pupil roster request failed", error);
   return json({ error: "Could not update pupil roster." }, 500);
 }
@@ -70,6 +73,7 @@ function handleError(error: unknown) {
 export async function getTeacherPupilRoster(req: Request, ctx: Context) {
   try {
     const a = await access(req, ctx);
+    if (a.schoolId) return json(await readSchoolPupilRoster(a, new URL(req.url).searchParams.get("memberId")));
     const roster = new Map<string, { id: string; sourceMemberId: string; displayName: string; spaces: { spaceId: string; title: string; displayName: string }[] }>();
     for (const doc of await members(a)) {
       const data = doc.data();
@@ -89,7 +93,18 @@ export async function createOrLinkTeacherPupil(req: Request, ctx: Context) {
   try {
     const a = await access(req, ctx);
     const rawBody = await req.json().catch(() => ({}));
-    const body = rawBody && typeof rawBody === "object" ? rawBody : {};
+    const body = rawBody && typeof rawBody === "object" && !Array.isArray(rawBody) ? rawBody : {};
+    if (a.schoolId) {
+      const result = await writeSchoolPupil(a, body, async tx => {
+        const lock = a.db.collection("teacherRosterLocks").doc(a.owner);
+        await tx.get(lock);
+        const active = (await members(a, tx)).filter(row => isActiveTeacherPupil(row.data()));
+        const currentPupils = new Set(active.map(row => teacherStudentIdentity(row.data())).filter(Boolean));
+        if (currentPupils.size >= a.limit) throw new RosterError("Elevgrensen er nådd. Hent en eksisterende elev eller oppgrader lisensen.", 403);
+        return lock;
+      });
+      return json({ ok: true, ...result });
+    }
     const sourceMemberId = text(body.sourceMemberId);
     const targetMemberId = text(body.targetMemberId);
     if (targetMemberId && !sourceMemberId) throw new RosterError("Select an existing pupil first.");
