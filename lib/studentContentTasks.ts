@@ -59,6 +59,33 @@ export async function loadStudentContentRoomChoice(db: Firestore, membership: Me
   return { ...membership, title: text(room.title) };
 }
 
+export type StudentReturnRooms = { codeRoomId: string | null; roomId: string | null };
+
+export async function loadStudentReturnRooms(
+  db: Firestore, uid: string, preferredRoomId: string | null,
+): Promise<StudentReturnRooms> {
+  const snapshot = await getDocsFromServer(query(collection(db, "spaceMembers"), where("uid", "==", uid)));
+  const rows = snapshot.docs.filter((row) => !row.metadata.hasPendingWrites);
+  const codeRows = rows.filter((row) => {
+    const member = row.data();
+    return member.schoolPupilCodeAccess === true || (!member.schoolPupilId && (
+      member.linkedByStudentCode === true
+      || (text(member.studentCode) !== null && (member.isAnon === true || Boolean(member.approvedAt)))
+    ));
+  });
+  const codeMemberIds = new Set(codeRows.map((row) => row.id));
+  const memberships = listStudentContentMemberships(rows, uid);
+  const choices = await Promise.allSettled(memberships.map((member) => loadStudentContentRoomChoice(db, member)));
+  const rooms = choices.flatMap((choice) => choice.status === "fulfilled" && choice.value ? [choice.value] : []);
+  const preferred = rooms.find((room) => room.spaceId === preferredRoomId);
+  const isCodeRoom = (room: StudentContentRoomChoice) => codeMemberIds.has(`${room.spaceId}_${uid}`);
+  const codeRoom = preferred && isCodeRoom(preferred) ? preferred : rooms.find(isCodeRoom);
+  return {
+    codeRoomId: codeRoom?.spaceId ?? null,
+    roomId: preferred?.spaceId ?? codeRoom?.spaceId ?? rooms[0]?.spaceId ?? null,
+  };
+}
+
 function millis(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (value instanceof Date) return value.getTime() || 0;

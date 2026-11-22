@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { recordUserLogin } from "@/lib/userProfile";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 import { listMySpaceIds } from "@/lib/spaceMembership";
 import { readGuestRole, saveGuestRole } from "@/lib/guestRole";
-import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { loadStudentReturnRooms, type StudentReturnRooms } from "@/lib/studentContentTasks";
+import { readLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { isSchoolInvitationPath } from "@/lib/schools/invitePaths";
 import { isPartnerInvitationPath } from "@/lib/partnerInvitationPaths";
 import { isCourseParticipantPath } from "@/lib/courses/participantPaths";
@@ -135,6 +137,41 @@ function isGuestPreviewPath(next: string, role: "teacher" | "parent", locale: st
   return clean === `/${locale}/parent` || clean === `/${locale}/parent/spaces`;
 }
 
+function redirectReturningCodeStudent(
+  user: User,
+  locale: string,
+  replace: (path: string) => void,
+) {
+  let cancelled = false;
+  function finish(rooms: StudentReturnRooms | null) {
+    const currentUser = auth.currentUser;
+    if (cancelled || currentUser?.uid !== user.uid || currentUser.isAnonymous !== user.isAnonymous) return;
+    cancelled = true;
+    window.clearTimeout(timer);
+
+    if (rooms?.codeRoomId) {
+      if (user.isAnonymous) {
+        saveGuestRole("student");
+        saveLastStudentSpaceId(rooms.roomId ?? rooms.codeRoomId);
+      }
+      replace(`/${locale}/content`);
+      return;
+    }
+
+    const role = user.isAnonymous ? readGuestRole() : "student";
+    const roomId = user.isAnonymous && role === "student" ? rooms?.roomId : null;
+    replace(roomId ? `/${locale}/student/spaces/${roomId}` : homeForRole(role, locale));
+  }
+
+  // A slow membership read should not leave the user on the redirect screen.
+  const timer = window.setTimeout(() => finish(null), 8000);
+  void loadStudentReturnRooms(db, user.uid, readLastStudentSpaceId()).then(finish, () => finish(null));
+  return () => {
+    cancelled = true;
+    window.clearTimeout(timer);
+  };
+}
+
 export default function PostLoginPage() {
   const { user, profile, loading } = useUserProfile();
   const loginRecordedRef = useRef(false);
@@ -144,6 +181,7 @@ export default function PostLoginPage() {
   const t = useTranslations("postLogin");
 
   const next = useMemo(() => normalizeNext(sp.get("next"), locale), [sp, locale]);
+  const returningFromHome = sp.get("from") === "home" && !next;
 
   useEffect(() => {
     if (loading) return;
@@ -170,6 +208,10 @@ export default function PostLoginPage() {
         saveGuestRole("student");
         router.replace(next);
         return;
+      }
+
+      if (returningFromHome) {
+        return redirectReturningCodeStudent(user, locale, (path) => router.replace(path));
       }
 
       const guestRole = readGuestRole();
@@ -243,8 +285,12 @@ export default function PostLoginPage() {
       return;
     }
 
+    if (returningFromHome && role === "student") {
+      return redirectReturningCodeStudent(user, locale, (path) => router.replace(path));
+    }
+
     router.replace(homeForRole(role, locale));
-  }, [loading, user, profile, router, locale, next]);
+  }, [loading, user, profile, router, locale, next, returningFromHome]);
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, opacity: 0.8 }}>

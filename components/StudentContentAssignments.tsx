@@ -14,7 +14,7 @@ import {
   type StudentContentRoomChoice,
   type StudentContentTask,
 } from "@/lib/studentContentTasks";
-import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { readLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 
 type RoomChoicesState = {
   sessionKey: string;
@@ -157,7 +157,11 @@ export default function StudentContentAssignments({
             {t("selectRoom")}
             <select
               value={selectedRoom?.spaceId ?? ""}
-              onChange={(event) => setSelection({ sessionKey, roomId: event.currentTarget.value })}
+              onChange={(event) => {
+                const roomId = event.currentTarget.value;
+                setSelection({ sessionKey, roomId });
+                if (isAnonymous && uid && isCurrentSession(uid, isAnonymous)) saveLastStudentSpaceId(roomId);
+              }}
               className="min-h-11 w-full min-w-0 rounded-lg border border-solid border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 sm:min-w-52"
             >
               <option value="" disabled={isAnonymous}>{t(isAnonymous ? "chooseRoom" : "allRooms")}</option>

@@ -14,7 +14,7 @@ export default function LandingAuthRedirect({ locale }: { locale: string }) {
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
-        router.replace(`/${locale}/post-login`);
+        router.replace(`/${locale}/post-login?from=home`);
       }
     });
 
