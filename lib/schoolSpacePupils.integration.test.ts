@@ -5,15 +5,15 @@ import { cert, deleteApp as deleteAdminApp, initializeApp as initializeAdminApp 
 import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
 import { deleteApp, initializeApp } from "firebase/app";
 import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signInAnonymously, signOut, type Auth } from "firebase/auth";
-import { connectFirestoreEmulator, doc, getDocFromServer, getFirestore, updateDoc } from "firebase/firestore";
+import { collection, connectFirestoreEmulator, doc, getDocFromServer, getDocsFromServer, getFirestore, query, updateDoc, where } from "firebase/firestore";
 import { NextRequest } from "next/server";
-import { loadStudentContentRoom } from "./studentContentTasks";
+import { listStudentContentMemberships, loadStudentContentRoom, loadStudentContentRoomChoice } from "./studentContentTasks";
 
 const projectId = "demo-school-space-pupils";
 const firestorePort = /^127\.0\.0\.1:(\d+)$/.exec(process.env.FIRESTORE_EMULATOR_HOST ?? "")?.[1];
 const authPort = /^127\.0\.0\.1:(\d+)$/.exec(process.env.FIREBASE_AUTH_EMULATOR_HOST ?? "")?.[1];
 
-test("school pupil code follows the pupil across teacher rooms, browsers and code rotation", {
+test("one school-code login opens all eligible rooms and follows drafts across browsers and code rotation", {
   skip: !firestorePort || !authPort || process.env.GOOGLE_CLOUD_PROJECT !== projectId,
 }, async t => {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs8", format: "pem" },
@@ -33,6 +33,9 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   const science = "science-" + suffix;
   const foreign = "foreign-room-" + suffix;
   const legacyRoom = "legacy-" + suffix;
+  const archived = "archived-" + suffix;
+  const deleted = "deleted-" + suffix;
+  const revoked = "revoked-" + suffix;
   const legacyParticipant = "older-pupil";
   const legacyMemberId = legacyRoom + "_" + legacyParticipant;
   const roomCode = (prefix: string) => prefix + suffix.toUpperCase();
@@ -67,11 +70,14 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
     [science, school, colleague.uid, "Naturfag", roomCode("NA")],
     [foreign, otherSchool, stranger.uid, "Ekstern skole", roomCode("FR")],
     [legacyRoom, school, teacher.uid, "Eldre elevrom", roomCode("LE")],
+    [archived, school, teacher.uid, "Arkivert rom", roomCode("AR")],
+    [deleted, school, teacher.uid, "Slettet rom", roomCode("DL")],
+    [revoked, school, teacher.uid, "Tilgang trukket tilbake", roomCode("RE")],
   ];
   await Promise.all(fixtures.map(([spaceId, schoolId, ownerId, title, code]) =>
     db.doc("spaces/" + spaceId).set({ ownerId, schoolId, title, code, isOpen: true })));
-  const assignmentId = "reading";
-  await db.doc("spaces/" + language + "/lessons/" + assignmentId).set({ title: "Les teksten", status: "active" });
+  const assignmentId = "counting";
+  await db.doc("spaces/" + maths + "/lessons/" + assignmentId).set({ title: "Tell figurene", status: "active" });
   await db.doc("spaceMembers/" + legacyMemberId).set({
     spaceId: legacyRoom, participantId: legacyParticipant, role: "student", displayName: "Gammel Nora",
     teacherManaged: true, status: "active", active: true, archived: false, isAnon: true,
@@ -107,6 +113,13 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
     return data;
   }
 
+  async function visibleRooms(as: { firestore: typeof desktop.firestore; uid: string }) {
+    const snapshot = await getDocsFromServer(query(collection(as.firestore, "spaceMembers"), where("uid", "==", as.uid)));
+    const memberships = listStudentContentMemberships(snapshot.docs, as.uid);
+    const rooms = await Promise.all(memberships.map(member => loadStudentContentRoomChoice(as.firestore, member)));
+    return rooms.filter(room => room !== null);
+  }
+
   const fullName = "Nora Syntetisk";
   const created = (await write(teacher.auth, language, { fullName, displayName: "Nora" })).member;
   const code: string = created.studentCode;
@@ -121,6 +134,27 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   const mathsMember = (await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId })).member;
   const sameMember = await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId });
   assert.equal(sameMember.reused, true);
+  for (const spaceId of [archived, deleted]) await write(teacher.auth, spaceId, { sourceMemberId: pupil.sourceMemberId });
+  const revokedMember = (await write(teacher.auth, revoked, { sourceMemberId: pupil.sourceMemberId })).member;
+  const existingMathEnrollment = await db.doc("spaceMembers/" + mathsMember.id).get();
+  await Promise.all([
+    db.doc("spaces/" + archived).update({ status: "ARCHIVED" }),
+    db.doc("spaces/" + deleted).update({ deletedAt: new Date() }),
+    // A room at a different school is excluded even if it has an inconsistent enrollment.
+    db.doc("spaceMembers/" + foreign + "_schoolpupil_" + pupil.id)
+      .set({ ...existingMathEnrollment.data(), spaceId: foreign }),
+    ...[desktop, phone].map(as => db.doc("spaceMembers/" + revoked + "_" + as.uid).set({
+      spaceId: revoked, uid: as.uid, role: "student", participantId: revokedMember.participantId,
+      schoolPupilId: pupil.id, schoolPupilSchoolId: school, active: false, archived: true, status: "revoked",
+    })),
+  ]);
+
+  const preview = await joinRoom(await request(desktop.auth, "/api/spaces/join", {
+    code: roomCode("NB"), studentCode: code,
+  }));
+  assert.equal(preview.status, 200);
+  assert.equal((await preview.json()).preview, true);
+  assert.deepEqual(await visibleRooms(desktop), []);
 
   const desktopAccess = await enter(desktop.auth, roomCode("NB"), code);
   assert.equal(desktopAccess.displayName, "Nora");
@@ -128,9 +162,13 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   assert.equal(desktopAccess.approvalRequired, undefined);
   assert.equal(JSON.stringify(desktopAccess).includes(fullName), false);
   assert.equal(desktopAccess.participantId, created.participantId);
-  const mathsAccess = await enter(desktop.auth, roomCode("MA"), code);
-  assert.equal(mathsAccess.participantId, mathsMember.participantId);
-  assert.equal(mathsAccess.preview, false);
+  const desktopRooms = await visibleRooms(desktop);
+  assert.deepEqual(desktopRooms.map(room => room.spaceId).sort(), [language, maths].sort());
+  assert.equal(desktopRooms.find(room => room.spaceId === maths)?.participantId, mathsMember.participantId);
+  for (const spaceId of [science, foreign, legacyRoom, archived, deleted]) {
+    assert.equal((await db.doc("spaceMembers/" + spaceId + "_" + desktop.uid).get()).exists, false);
+  }
+  assert.equal((await db.doc("spaceMembers/" + revoked + "_" + desktop.uid).get()).get("status"), "revoked");
   await enter(phone.auth, roomCode("NA"), code, 403);
   await enter(phone.auth, roomCode("FR"), code, 403);
   await write(stranger.auth, foreign, { sourceMemberId: pupil.sourceMemberId }, 404);
@@ -148,22 +186,25 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   await assert.rejects(updateDoc(doc(teacher.firestore, "spaceMembers", created.id), { displayName: "Klientendring" }), /permission/i);
 
   const response = await saveDraft(await request(desktop.auth, "/api/draft", {
-    payload: { uid: desktop.uid, participantId: created.participantId, status: "draft", title: "Les teksten", answers: { question: "Syntetisk svar" } },
-  }), { params: Promise.resolve({ spaceId: language, assignmentId }) });
+    payload: { uid: desktop.uid, participantId: mathsMember.participantId, status: "draft", title: "Tell figurene", answers: { question: "Syntetisk svar" } },
+  }), { params: Promise.resolve({ spaceId: maths, assignmentId }) });
   const saved = await response.json();
   assert.equal(response.status, 200, JSON.stringify(saved));
-  const draftPath = "spaces/" + language + "/lessons/" + assignmentId + "/submissions/" + saved.submissionId;
+  const draftPath = "spaces/" + maths + "/lessons/" + assignmentId + "/submissions/" + saved.submissionId;
   const phoneAccess = await enter(phone.auth, roomCode("NB"), code);
   assert.equal(phoneAccess.participantId, created.participantId);
-  const phoneContent = await loadStudentContentRoom(phone.firestore, { spaceId: language, participantId: created.participantId }, phone.uid);
+  const phoneMaths = (await visibleRooms(phone)).find(room => room.spaceId === maths);
+  assert.equal(phoneMaths?.participantId, mathsMember.participantId);
+  assert.ok(phoneMaths);
+  const phoneContent = await loadStudentContentRoom(phone.firestore, phoneMaths, phone.uid);
   assert.equal(phoneContent?.tasks.find(task => task.id === assignmentId)?.status, "draft");
   assert.deepEqual((await getDocFromServer(doc(phone.firestore, draftPath))).data()?.answers, { question: "Syntetisk svar" });
 
   const legacy = await enter(nextPupil.auth, roomCode("LE"), "A4B6C");
   assert.equal(legacy.approvalRequired, true);
   await write(teacher.auth, legacyRoom, { targetMemberId: legacyMemberId, sourceMemberId: pupil.sourceMemberId });
-  const converted = await enter(phone.auth, roomCode("LE"), code);
-  assert.equal(converted.participantId, legacyParticipant);
+  await enter(phone.auth, roomCode("NB"), code);
+  assert.equal((await visibleRooms(phone)).find(room => room.spaceId === legacyRoom)?.participantId, legacyParticipant);
   await enter(phone.auth, roomCode("LE"), "A4B6C", 403);
 
   const renamed = await write(colleague.auth, maths, {
@@ -187,7 +228,7 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   assert.equal(reopened.displayName, "No");
   assert.equal(reopened.participantId, created.participantId);
   assert.equal((await getDocFromServer(doc(phone.firestore, draftPath))).exists(), true);
-  assert.equal((await enter(phone.auth, roomCode("MA"), rotatedCode)).participantId, mathsMember.participantId);
+  assert.equal((await visibleRooms(phone)).find(room => room.spaceId === maths)?.participantId, mathsMember.participantId);
 
   const removed = await patchMember(await request(colleague.auth, "/api/members", { action: "remove" }, "PATCH"), {
     params: Promise.resolve({ spaceId: maths, memberId: mathsMember.id }),
@@ -195,6 +236,7 @@ test("school pupil code follows the pupil across teacher rooms, browsers and cod
   assert.equal(removed.status, 200);
   await enter(phone.auth, roomCode("MA"), rotatedCode, 403);
   assert.equal((await enter(phone.auth, roomCode("NB"), rotatedCode)).preview, false);
+  assert.deepEqual((await visibleRooms(phone)).map(room => room.spaceId).sort(), [language, legacyRoom].sort());
 
   await signOut(phone.auth);
   await assert.rejects(getDocFromServer(doc(phone.firestore, draftPath)), /permission/i);

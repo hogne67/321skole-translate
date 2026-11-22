@@ -18,7 +18,7 @@ export function documentId(value: unknown) {
 }
 
 export function availableSchoolRoom(data: FirebaseFirestore.DocumentData | undefined) {
-  return data && !data.deletedAt && data.archived !== true && data.status !== "archived";
+  return data && !data.deletedAt && data.archived !== true && joinText(data.status).toLowerCase() !== "archived";
 }
 
 export function schoolPupilRegistrationId(spaceId: string, pupilId: string) {
@@ -49,8 +49,70 @@ type JoinSchoolPupilInput = {
   enter: boolean;
 };
 
+
+type SchoolRoomEnrollment = {
+  spaceId: string;
+  participantId: string;
+  teacherStudentId: string;
+};
+
+function activeSchoolEnrollment(
+  snapshot: FirebaseFirestore.DocumentSnapshot,
+  schoolId: string,
+  pupilId: string,
+): SchoolRoomEnrollment | null {
+  const member = snapshot.data();
+  if (!member || member.role !== "student" || member.schoolPupilRegistration !== true
+    || member.schoolPupilSchoolId !== schoolId || member.schoolPupilId !== pupilId || !isActiveSpaceMember(member)) return null;
+
+  const spaceId = documentId(member.spaceId);
+  const participantId = joinText(member.participantId);
+  if (!spaceId || !participantId || snapshot.id !== schoolPupilRegistrationId(spaceId, pupilId)) return null;
+  return { spaceId, participantId, teacherStudentId: joinText(member.teacherStudentId) || pupilId };
+}
+
+function canUseMembership(
+  prior: FirebaseFirestore.DocumentData | undefined,
+  enrollment: SchoolRoomEnrollment,
+  schoolId: string,
+  pupilId: string,
+) {
+  if (!prior) return true;
+  if (prior.role !== "student" || prior.participantId !== enrollment.participantId) return false;
+  const samePupil = prior.schoolPupilId === pupilId && prior.schoolPupilSchoolId === schoolId;
+  if ((prior.schoolPupilId || prior.schoolPupilSchoolId) && !samePupil) return false;
+  return isActiveSpaceMember(prior)
+    || (samePupil && (prior.status === "school_code_rotated" || prior.status === "removed"));
+}
+
+async function readOtherRoomMemberships(input: JoinSchoolPupilInput, pupilId: string) {
+  const { db, tx, schoolId, spaceId, uid } = input;
+  const members = db.collection("spaceMembers");
+  const registrations = await tx.get(members
+    .where("schoolPupilSchoolId", "==", schoolId)
+    .where("schoolPupilId", "==", pupilId)
+    .where("schoolPupilRegistration", "==", true));
+  const enrollments = registrations.docs
+    .map(row => activeSchoolEnrollment(row, schoolId, pupilId))
+    .filter((row): row is SchoolRoomEnrollment => row !== null && row.spaceId !== spaceId);
+  if (!enrollments.length) return [];
+
+  const spaces = db.collection("spaces");
+  const [rooms, existing] = await Promise.all([
+    tx.getAll(...enrollments.map(row => spaces.doc(row.spaceId))),
+    tx.getAll(...enrollments.map(row => members.doc(row.spaceId + "_" + uid))),
+  ]);
+
+  return enrollments.flatMap((enrollment, index) => {
+    const room = rooms[index].data();
+    if (!availableSchoolRoom(room) || room?.schoolId !== schoolId || getSpaceOwnerUid(room) === uid) return [];
+    return [{ enrollment, membership: existing[index] }];
+  });
+}
+
 export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
   const { db, tx, schoolId, spaceId, room, uid, isAnonymous, studentCode, enter } = input;
+  if (!availableSchoolRoom(room) || room.schoolId !== schoolId) return { error: "room_unavailable" } as const;
   const school = db.collection("schools").doc(schoolId);
   const attempt = school.collection("spacePupilAttempts").doc(uid);
   const attemptData = (await tx.get(attempt)).data();
@@ -72,14 +134,12 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
     school.collection("spacePupils").doc(pupilId),
     db.collection("spaceMembers").doc(schoolPupilRegistrationId(spaceId, pupilId)),
   );
-  const data = registration.data();
-  if (pupil.get("codeHash") !== hash || !data || !isActiveSpaceMember(data)
-    || data.role !== "student" || data.schoolPupilId !== pupilId || data.schoolPupilSchoolId !== schoolId) {
+  const enrollment = activeSchoolEnrollment(registration, schoolId, pupilId);
+  const displayName = joinText(pupil.get("displayName"));
+  if (pupil.get("codeHash") !== hash || !enrollment || enrollment.spaceId !== spaceId || !displayName) {
     return { error: "invalid_student_code" } as const;
   }
-  const displayName = joinText(pupil.get("displayName"));
-  const participantId = joinText(data.participantId);
-  if (!displayName || !participantId) return { error: "invalid_student_code" } as const;
+  const { participantId } = enrollment;
 
   const membership = db.collection("spaceMembers").doc(spaceId + "_" + uid);
   const binding = db.collection("spacePupilSessions").doc(uid);
@@ -96,7 +156,7 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
   const switchRequired = Boolean(
     (priorBinding.exists && (boundPupil !== pupilId || priorBinding.get("schoolId") !== schoolId))
     || otherIdentity
-    || (prior && isActiveSpaceMember(prior) && (prior.role !== "student" || prior.participantId !== participantId))
+    || (isActiveSpaceMember(prior) && !canUseMembership(prior, enrollment, schoolId, pupilId))
     || getSpaceOwnerUid(room) === uid
     || (accountRole && accountRole !== "student") || profile.get("roles.admin") === true || profile.get("roles.teacher") === true,
   );
@@ -106,23 +166,34 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
     switchRequired, signedInAccount: !isAnonymous, preview: !enter || switchRequired,
   };
   if (response.preview) return response;
-  if (prior && !isActiveSpaceMember(prior)
-    && !(prior.schoolPupilId === pupilId && prior.schoolPupilSchoolId === schoolId
-      && prior.participantId === participantId && (prior.status === "school_code_rotated" || prior.status === "removed"))) {
-    return { error: "access_revoked" } as const;
+  if (!canUseMembership(prior, enrollment, schoolId, pupilId)) return { error: "access_revoked" } as const;
+
+  const otherMemberships = await readOtherRoomMemberships(input, pupilId);
+  const conflict = otherMemberships.find(({ enrollment, membership }) => {
+    const prior = membership.data();
+    return isActiveSpaceMember(prior) && !canUseMembership(prior, enrollment, schoolId, pupilId);
+  });
+  if (conflict) {
+    return { ...response, switchRequired: true, preview: true, currentDisplayName: joinText(conflict.membership.get("displayName")) || null };
   }
 
-  // Leave an existing non-code school account membership independent of code rotation.
-  const accountMembership = !!prior && isActiveSpaceMember(prior) && prior.schoolPupilCodeAccess !== true;
+  const targets = [{ enrollment, membership: priorMembership }, ...otherMemberships];
   tx.set(binding, { schoolId, pupilId });
-  tx.set(membership, {
-    spaceId, uid, participantId, role: "student", displayName, studentName: displayName,
-    schoolPupilSchoolId: schoolId, schoolPupilId: pupilId, teacherStudentId: data.teacherStudentId || pupilId,
-    active: true, archived: false, status: "active", isAnon: isAnonymous,
-    schoolPupilCodeAccess: !accountMembership,
-    updatedAt: FieldValue.serverTimestamp(),
-    ...(!priorMembership.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
-  }, { merge: true });
+  for (const { enrollment, membership } of targets) {
+    const prior = membership.data();
+    if (!canUseMembership(prior, enrollment, schoolId, pupilId)) continue;
+    // Leave an existing non-code school account membership independent of code rotation.
+    const accountMembership = !!prior && isActiveSpaceMember(prior) && prior.schoolPupilCodeAccess !== true;
+    tx.set(membership.ref, {
+      spaceId: enrollment.spaceId, uid, participantId: enrollment.participantId,
+      role: "student", displayName, studentName: displayName,
+      schoolPupilSchoolId: schoolId, schoolPupilId: pupilId, teacherStudentId: enrollment.teacherStudentId,
+      active: true, archived: false, status: "active", isAnon: isAnonymous,
+      schoolPupilCodeAccess: !accountMembership,
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(!membership.exists ? { createdAt: FieldValue.serverTimestamp() } : {}),
+    }, { merge: true });
+  }
   if (attemptData) tx.delete(attempt);
   return response;
 }
