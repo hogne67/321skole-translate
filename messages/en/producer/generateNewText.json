@@ -66,6 +66,8 @@
         "stage": "Reading stage",
         "oneSyllable": "One syllable",
         "oneAndTwoSyllables": "One and two syllables",
+        "oneToThreeSyllables": "One, two and three syllables",
+        "divisionHelp": "Write one sentence per line. Words you divide with hyphens appear in both forms in the preview.",
         "topicExample": "For example, a trip, an ice cream or a cat",
         "openTasks": "Open questions",
         "posterHelp": "Add a learning poster in the editor after saving your draft."

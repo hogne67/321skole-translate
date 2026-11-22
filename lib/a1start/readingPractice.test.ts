@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { normalizeCreateLessonInput } from "../lessons/input";
 import { getTextTypeLabel, normalizeTextTypeKey } from "../textTypes";
-import { READING_PRACTICE_TASK_DEFAULTS, READING_PRACTICE_TEXT_TYPES } from "./readingPractice";
-import { buildReadingPracticeTasksPrompt, checkReadingPracticeText, completeReadingPracticeTasks, readReadingPracticeTasks } from "./readingPracticeGeneration";
-import { getReadingPracticeStage, readingPracticeSpokenText, splitReadingPracticeWordParts } from "./readingPracticeText";
+import { isReadingPracticeStage, READING_PRACTICE_TASK_DEFAULTS, READING_PRACTICE_TEXT_TYPES, showsReadingPracticeWordDivisions } from "./readingPractice";
+import { buildReadingPracticeTasksPrompt, buildReadingPracticeTextPrompt, checkReadingPracticeText, completeReadingPracticeTasks, readReadingPracticeTasks } from "./readingPracticeGeneration";
+import { getReadingPracticeStage, readingPracticeSpokenText, readingPracticeWordPairs, splitReadingPracticeWordParts } from "./readingPracticeText";
 import { activeLessonSentenceIndex, lessonSentenceStartTime, readLessonSentenceStarts, splitLessonSentences } from "../audio/lessonSentenceTiming";
 
 test("one-syllable drafts preserve line breaks and allow common diphthongs", () => {
@@ -26,6 +26,12 @@ test("the mixed stage requires both word lengths and rejects longer or syllable-
 });
 
 const catText = "Jeg ser en katt.\nDen er grå.\nDen har myk pels.\nKatt-en får mat.\nDen **drikk-er** vann.\nSå **ma-ler** den.\nDen vil **so-ve**.\nDen er trøtt.";
+const tableText = "Jeg ser en banan.\nDen er gul.\nJeg ser en tomat.\nDen er rød.\nJeg tar bananen.\nSå tar jeg tomaten.\nJeg tar en bit.";
+const dividedTableText = tableText
+  .replace("banan.", "ba-nan.")
+  .replace("tomat.", "to-mat.")
+  .replace("bananen.", "**ba-na-nen**.")
+  .replace("tomaten.", "to-ma-ten.");
 const modelTasks = {
   multipleChoice: [
     { q: "Hva får jeg?", options: ["is", "saft"], answerIndex: 0 },
@@ -36,6 +42,39 @@ const modelTasks = {
     { statement: "Jeg får saft.", answer: false },
   ],
 };
+
+test("the third reading stage uses På bordet as a model and allows one or two distinct three-syllable words", () => {
+  const stage = "one_to_three_syllables";
+  const check = (text: string) => checkReadingPracticeText({ title: "På bordet", text }, stage);
+  assert.ok(isReadingPracticeStage(stage));
+  assert.ok(showsReadingPracticeWordDivisions(stage));
+  assert.match(buildReadingPracticeTextPrompt(stage, ""), /Jeg tar bananen\.\nSå tar jeg tomaten\./);
+  assert.deepEqual(check(tableText).problems, []);
+  assert.deepEqual(check(tableText.replace("tomaten", "bananen")).problems, []);
+  assert.match(check(tableText.replace("bananen", "en banan").replace("tomaten", "en tomat")).problems.join(" "), /trestavelsesord/);
+  assert.match(check(tableText.replace("Jeg tar en bit.", "Jeg ser en ananas.")).problems.join(" "), /trestavelsesord/);
+  assert.match(check(tableText.replace("bananen", "bananene")).problems.join(" "), /bananene/);
+});
+
+test("the pasted På bordet draft keeps its divisions and derives a word list without adding to the audio", () => {
+  const textType = READING_PRACTICE_TEXT_TYPES.one_to_three_syllables;
+  const draft = normalizeCreateLessonInput({ title: "På bordet", sourceText: dividedTableText, level: "A1_START", language: "nb", textType });
+  assert.equal(draft.sourceText, dividedTableText);
+  assert.equal(draft.textType, textType);
+  assert.equal(getReadingPracticeStage(draft.texttype, "nb"), "one_to_three_syllables");
+  const label = getTextTypeLabel(textType, "nb");
+  assert.equal(label, "Lesetrening – Én, to og tre stavelser");
+  assert.equal(normalizeTextTypeKey(label), textType);
+  assert.equal(readingPracticeSpokenText(draft.sourceText), tableText);
+  assert.equal(readingPracticeSpokenText("Vi ser en e-le-fant. Så ser vi en a-na-nas."), "Vi ser en elefant. Så ser vi en ananas.");
+  assert.equal(splitLessonSentences(readingPracticeSpokenText(draft.sourceText)).length, 7);
+  assert.deepEqual(readingPracticeWordPairs(`${draft.sourceText}\nBa-na-nen er gul.`), [
+    { divided: "ba-nan", whole: "banan" },
+    { divided: "to-mat", whole: "tomat" },
+    { divided: "ba-na-nen", whole: "bananen" },
+    { divided: "to-ma-ten", whole: "tomaten" },
+  ]);
+});
 
 test("the default task pack has two multiple choice, two true/false, and one picture question", () => {
   assert.deepEqual(READING_PRACTICE_TASK_DEFAULTS, { mcq: 2, trueFalse: 2, facts: 0, reflection: 1 });
@@ -86,6 +125,14 @@ test("the mixed-stage draft preserves pasted divisions and the task prompt uses 
 test("Katten shows divided words and the spoken text has whole words through the final line", () => {
   const divisions = splitReadingPracticeWordParts(catText).filter(part => part.divided);
   assert.deepEqual(divisions.map(part => part.display), ["Katt-en", "drikk-er", "ma-ler", "so-ve"]);
+  assert.ok(showsReadingPracticeWordDivisions("one_and_two_syllables"));
+  assert.equal(showsReadingPracticeWordDivisions("one_syllable"), false);
+  assert.deepEqual(readingPracticeWordPairs(catText), [
+    { divided: "Katt-en", whole: "Katten" },
+    { divided: "drikk-er", whole: "drikker" },
+    { divided: "ma-ler", whole: "maler" },
+    { divided: "so-ve", whole: "sove" },
+  ]);
   const spoken = readingPracticeSpokenText(catText);
   const sentences = splitLessonSentences(spoken);
   assert.equal(sentences.length, 8);

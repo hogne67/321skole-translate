@@ -1,6 +1,9 @@
 // app/(app)/producer/[id]/preview/page.tsx
 "use client";
 import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
+import ReadingPracticeText, { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
+import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
+import { getReadingPracticeStage } from "@/lib/a1start/readingPracticeText";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -26,6 +29,9 @@ type Lesson = {
   title: string;
   level?: string;
   sourceText: string;
+  language?: string;
+  textType?: string;
+  texttype?: string;
   highFrequencyWord?: string;
   highFrequencyReadingSentences?: string;
   highFrequencyExplanation?: string;
@@ -155,6 +161,8 @@ export default function ProducerLessonPreviewPage() {
 
   const textSize = normalizeTextSize(lesson.textSize);
   const readingTextStyle = getReadingTextStyle(textSize);
+  const readingPracticeStage = getReadingPracticeStage(lesson.textType ?? lesson.texttype, lesson.language);
+  const showWordDivisions = showsReadingPracticeWordDivisions(readingPracticeStage);
   const coverImageUrl = typeof lesson.coverImageUrl === "string" ? lesson.coverImageUrl.trim() : "";
   const showHighFrequencySections = isA1StartLevel(lesson.level);
   const highFrequencyReadingSentences =
@@ -262,8 +270,9 @@ export default function ProducerLessonPreviewPage() {
         <div>
           <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("fields.text")}</div>
           <div style={{ whiteSpace: "pre-wrap", color: "#0f172a", ...readingTextStyle }}>
-            {lesson.sourceText}
+            {showWordDivisions ? <ReadingPracticeText text={lesson.sourceText} /> : lesson.sourceText}
           </div>
+          {showWordDivisions && <ReadingPracticeWordList text={lesson.sourceText} textStyle={readingTextStyle} />}
         </div>
 
         {highFrequencyReadingSentences ? (

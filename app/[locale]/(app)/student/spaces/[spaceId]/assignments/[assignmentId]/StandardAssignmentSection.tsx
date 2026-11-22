@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import StudentAssignmentTextSection from "./StudentAssignmentTextSection";
 import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
+import type { ReadingPracticeStage } from "@/lib/a1start/readingPractice";
 import AssignmentTasksHeader from "./AssignmentTasksHeader";
 import AssignmentTaskCard from "./AssignmentTaskCard";
 import type {
@@ -24,7 +25,7 @@ type Props = {
     textSizeOptions?: TextSize[];
     onTextSizeChange?: (value: TextSize) => void;
     sourceTextSafe: string;
-    showWordDivisions?: boolean;
+    readingPracticeStage: ReadingPracticeStage | null;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
     translatedSectionMap: Map<string, string>;
@@ -118,7 +119,7 @@ export default function StandardAssignmentSection({
     textSizeOptions,
     onTextSizeChange,
     sourceTextSafe,
-    showWordDivisions,
+    readingPracticeStage,
     translatedText,
     lessonTextSections,
     translatedSectionMap,
@@ -169,7 +170,7 @@ export default function StandardAssignmentSection({
             {sourceTextSafe.trim() ? (
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
-                    showWordDivisions={showWordDivisions}
+                    readingPracticeStage={readingPracticeStage}
                     textSize={textSize}
                     textSizeOptions={textSizeOptions}
                     onTextSizeChange={onTextSizeChange}

@@ -66,6 +66,8 @@
         "stage": "Etapa de leitura",
         "oneSyllable": "Uma sílaba",
         "oneAndTwoSyllables": "Uma e duas sílabas",
+        "oneToThreeSyllables": "Uma, duas e três sílabas",
+        "divisionHelp": "Escreva uma frase por linha. As palavras separadas com hífen aparecem nas duas formas na prévia.",
         "topicExample": "Por exemplo, um passeio, um sorvete ou um gato",
         "openTasks": "Perguntas abertas",
         "posterHelp": "Adicione um cartaz de aprendizagem no editor após salvar o rascunho."

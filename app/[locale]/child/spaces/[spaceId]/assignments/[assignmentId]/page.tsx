@@ -18,8 +18,9 @@ import {
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
+import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
 import { activeLessonSentenceIndex, readLessonSentenceStarts, splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
-import ReadingPracticeText from "@/components/student/ReadingPracticeText";
+import ReadingPracticeText, { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
 
 type TtsLang = "no" | "en" | "pt-BR";
 type AudioMode = "text" | "task" | "option" | "feedback";
@@ -531,7 +532,7 @@ export default function ChildAssignmentPage() {
 
     const sourceText = assignment ? firstLongText(assignment) : "";
     const readingStage = getReadingPracticeStage(assignment?.textType ?? assignment?.texttype, assignment?.language);
-    const showWordDivisions = readingStage === "one_and_two_syllables";
+    const showWordDivisions = showsReadingPracticeWordDivisions(readingStage);
 
     const sentences = useMemo(() => {
         if (readingStage) return splitLessonSentences(sourceText);
@@ -944,6 +945,7 @@ export default function ChildAssignmentPage() {
                                 key={i}
                                 className={[
                                     "rounded-xl px-1 py-0.5 transition-all duration-300",
+                                    showWordDivisions ? "block" : "",
                                     i === activeSentence ? "bg-yellow-200 text-slate-900" : "",
                                 ].join(" ")}
                             >
@@ -951,6 +953,7 @@ export default function ChildAssignmentPage() {
                             </span>
                         ))}
                     </div>
+                    {showWordDivisions && <ReadingPracticeWordList text={sourceText} />}
                 </section>
             ) : null}
 

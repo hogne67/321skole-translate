@@ -13,6 +13,7 @@ import {
   READING_PRACTICE_MODE,
   READING_PRACTICE_TASK_DEFAULTS,
   READING_PRACTICE_TEXT_TYPES,
+  showsReadingPracticeWordDivisions,
   supportsReadingPractice,
   type ReadingPracticeStage,
 } from "@/lib/a1start/readingPractice";
@@ -2021,6 +2022,7 @@ export default function NewTextPage() {
                         >
                           <option value="one_syllable">{t("a1Start.readingPractice.oneSyllable")}</option>
                           <option value="one_and_two_syllables">{t("a1Start.readingPractice.oneAndTwoSyllables")}</option>
+                          <option value="one_to_three_syllables">{t("a1Start.readingPractice.oneToThreeSyllables")}</option>
                         </select>
                       </label>
                       <label style={{ gridColumn: isNarrow ? "auto" : "span 2" }}>
@@ -2459,7 +2461,8 @@ export default function NewTextPage() {
                       opacity: 0.75,
                     }}
                   >
-                    <span>{t("builder.textHelp")}</span>
+                    <span>{t(isA1StartReadingPractice && showsReadingPracticeWordDivisions(readingStage)
+                      ? "a1Start.readingPractice.divisionHelp" : "builder.textHelp")}</span>
                     <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
                   </div>
                 </label>

@@ -13,6 +13,9 @@ import { logUsageEvent } from "@/lib/usageClient";
 import SavedReadingTestPrintView from "@/components/assessments/SavedReadingTestPrintView";
 import { isReadingTestPrintLesson, readingTestPrintContent } from "@/lib/readingTests/print";
 import { getReadingTestPrintCopy } from "@/lib/readingTests/printCopy";
+import ReadingPracticeText, { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
+import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
+import { getReadingPracticeStage } from "@/lib/a1start/readingPracticeText";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type AnswerSpace = "short" | "medium" | "long";
@@ -34,6 +37,8 @@ type Lesson = {
   title: string;
   level?: string;
   sourceText: string;
+  textType?: string;
+  texttype?: string;
   highFrequencyWord?: string;
   highFrequencyReadingSentences?: string;
   highFrequencyExplanation?: string;
@@ -237,6 +242,9 @@ export default function ProducerPrintPage() {
     : null, [lesson, locale]);
 
   const textSize = normalizeTextSize(lesson?.textSize);
+  const sourceText = safeText(lesson?.sourceText);
+  const readingStage = getReadingPracticeStage(lesson?.textType ?? lesson?.texttype, lesson?.language);
+  const showWordDivisions = showsReadingPracticeWordDivisions(readingStage);
   const showHighFrequencySections = isA1StartLevel(lesson?.level);
   const highFrequencyWord = showHighFrequencySections ? highFrequencyWordFromLesson(lesson) : "";
   const highFrequencyReadingSentences = showHighFrequencySections
@@ -282,7 +290,7 @@ export default function ProducerPrintPage() {
   }
 
   return (
-    <main className="pdf-print-root">
+    <main className={showWordDivisions ? "pdf-print-root pdf-reading-practice" : "pdf-print-root"}>
       <div className="pdf-shell">
         <div className="no-print topbar">
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -376,15 +384,16 @@ export default function ProducerPrintPage() {
             </div>
           </section>
 
-          <section className="pdf-section">
+          <section className="pdf-section pdf-text-section">
             <h2 className="pdf-h2">{t("sections.readingText")}</h2>
             <div className={`pdf-reading is-${textSize}`}>
-              {safeText(lesson.sourceText)
+              {sourceText
                 .split(/\r\n?|\n/)
                 .filter((p) => p.trim())
                 .map((p, i) => (
-                  <p key={i}>{p}</p>
+                  <p key={i}>{showWordDivisions ? <ReadingPracticeText text={p} /> : p}</p>
                 ))}
+              {showWordDivisions && <ReadingPracticeWordList text={sourceText} />}
             </div>
           </section>
 
@@ -753,6 +762,28 @@ export default function ProducerPrintPage() {
           white-space: pre-wrap;
         }
 
+        .pdf-reading .reading-practice-words {
+          margin-top: 3mm;
+          padding-top: 2mm;
+          border-top: 1px solid #cbd5e1;
+          break-inside: avoid;
+        }
+
+        .pdf-reading .reading-practice-words h3 {
+          margin: 0 0 1.5mm;
+          font-size: 0.92em;
+        }
+
+        .pdf-reading .reading-practice-words ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.75mm 4mm;
+          margin: 0;
+          padding: 0;
+          font-size: inherit;
+          list-style: none;
+        }
+
         .pdf-reading-extra {
           padding: 5mm;
           border: 1px solid #bfdbfe;
@@ -898,6 +929,32 @@ export default function ProducerPrintPage() {
             border-radius: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
+          }
+
+          .pdf-reading-practice .pdf-identity {
+            margin-top: 5mm;
+          }
+
+          .pdf-reading-practice .pdf-banner {
+            max-width: 126mm;
+            margin: 4mm auto;
+          }
+
+          .pdf-reading-practice .pdf-before-reading {
+            margin-bottom: 4mm;
+            padding: 3mm;
+          }
+
+          .pdf-reading-practice .pdf-text-section {
+            margin-top: 4mm;
+          }
+
+          .pdf-reading-practice .pdf-reading {
+            line-height: 1.5;
+          }
+
+          .pdf-reading-practice .pdf-reading p {
+            margin-bottom: 1.4mm;
           }
 
           a {

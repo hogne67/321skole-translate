@@ -115,6 +115,7 @@ import { isMathWorksheet } from "./worksheetTypeGuards";
 import { translateOne } from "./translationHelpers";
 import { segmentSentences } from "./audioHelpers";
 import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
+import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
 import { splitLessonTextSections, type LessonTextSectionKey } from "./lessonTextSections";
 
 import { SmartImage } from "./AssignmentUiAtoms";
@@ -619,7 +620,7 @@ export default function StudentAssignmentPage() {
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isGrammarTest || isPodcastWorkshop ? "" : sourceTextSafe;
   const readingPracticeStage = getReadingPracticeStage(lesson?.textType, lesson?.language);
-  const showWordDivisions = readingPracticeStage === "one_and_two_syllables";
+  const showWordDivisions = showsReadingPracticeWordDivisions(readingPracticeStage);
   const spokenSourceText = useMemo(
     () => showWordDivisions ? readingPracticeSpokenText(displayedSourceTextSafe) : displayedSourceTextSafe,
     [displayedSourceTextSafe, showWordDivisions],
@@ -2469,7 +2470,7 @@ export default function StudentAssignmentPage() {
             textSizeOptions={STUDENT_TEXT_SIZE_OPTIONS}
             onTextSizeChange={setStudentTextSize}
             sourceTextSafe={displayedSourceTextSafe}
-            showWordDivisions={showWordDivisions}
+            readingPracticeStage={readingPracticeStage}
             translatedText={translatedText}
             lessonTextSections={lessonTextSections}
             translatedSectionMap={translatedSectionMap}

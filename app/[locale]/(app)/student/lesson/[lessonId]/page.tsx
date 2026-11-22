@@ -2,11 +2,12 @@
 "use client";
 import { speechHeaders } from "@/lib/audio/headers.client";
 import { activeLessonSentenceIndex, lessonSentenceStartTime, readLessonSentenceStarts, splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
+import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
 import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
-import ReadingPracticeText from "@/components/student/ReadingPracticeText";
+import ReadingPracticeText, { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
 import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -1204,7 +1205,7 @@ export default function StudentLessonPage() {
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
   const readingPracticeStage = getReadingPracticeStage(lesson?.textType, lesson?.language);
-  const showWordDivisions = readingPracticeStage === "one_and_two_syllables";
+  const showWordDivisions = showsReadingPracticeWordDivisions(readingPracticeStage);
   const spokenSourceText = useMemo(
     () => showWordDivisions ? readingPracticeSpokenText(displayedSourceTextSafe) : displayedSourceTextSafe,
     [displayedSourceTextSafe, showWordDivisions],
@@ -2797,6 +2798,7 @@ export default function StudentLessonPage() {
         ) : (
           <div style={cardStyle}>
             {renderFollowText("text_original", originalSegs, (displayedSourceTextSafe ?? "").trim())}
+            {showWordDivisions && <ReadingPracticeWordList text={displayedSourceTextSafe} textStyle={readingTextStyle} />}
           </div>
         )}
       </section>

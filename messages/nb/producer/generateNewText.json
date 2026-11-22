@@ -66,6 +66,8 @@
         "stage": "Lesetrinn",
         "oneSyllable": "Én stavelse",
         "oneAndTwoSyllables": "Én og to stavelser",
+        "oneToThreeSyllables": "Én, to og tre stavelser",
+        "divisionHelp": "Skriv én setning per linje. Ord du deler med bindestrek, vises både delt og samlet i forhåndsvisningen.",
         "topicExample": "For eksempel en tur, is eller en katt",
         "openTasks": "Åpne oppgaver",
         "posterHelp": "Legg til en læringsplakat i editoren etter at du har lagret kladden."

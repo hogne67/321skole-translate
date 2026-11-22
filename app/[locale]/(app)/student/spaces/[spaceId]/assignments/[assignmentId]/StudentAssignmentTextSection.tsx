@@ -1,6 +1,8 @@
 "use client";
 
 import type React from "react";
+import { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
+import { showsReadingPracticeWordDivisions, type ReadingPracticeStage } from "@/lib/a1start/readingPractice";
 import FollowTextView from "./FollowTextView";
 import type { SentenceSeg, TranslatingState, TtsLang } from "./types";
 import { playButtonStyle, softBlueButtonStyle } from "./assignmentStyles";
@@ -28,7 +30,7 @@ function textSizeLabel(value: TextSize): string {
 
 type Props = {
     sourceTextSafe: string;
-    showWordDivisions?: boolean;
+    readingPracticeStage: ReadingPracticeStage | null;
     textSize: TextSize;
     textSizeOptions?: TextSize[];
     onTextSizeChange?: (value: TextSize) => void;
@@ -73,7 +75,7 @@ type Props = {
 
 export default function StudentAssignmentTextSection({
     sourceTextSafe,
-    showWordDivisions,
+    readingPracticeStage,
     textSize,
     textSizeOptions,
     onTextSizeChange,
@@ -101,6 +103,7 @@ export default function StudentAssignmentTextSection({
     onSeekSentence,
 }: Props) {
     const showSectionCards = lessonTextSections.length >= 2;
+    const showWordDivisions = showsReadingPracticeWordDivisions(readingPracticeStage);
     const readingTextStyle = getReadingTextStyle(textSize);
     const renderTextSizeControl = () =>
         textSizeOptions && onTextSizeChange ? (
@@ -282,6 +285,7 @@ export default function StudentAssignmentTextSection({
                         clickToSeekLabel={t("text.clickToSeek")}
                         onSeek={onSeekSentence}
                     />
+                    {showWordDivisions && <ReadingPracticeWordList text={sourceTextSafe} textStyle={readingTextStyle} />}
                 </div>
                 )}
             </section>

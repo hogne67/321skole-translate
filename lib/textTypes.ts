@@ -76,10 +76,13 @@ const TEXT_TYPE_ALIASES: Record<string, TextTypeKey> = {
   "escada de leitura sonora": "sound_reading_ladder",
   "lesetrening – én stavelse": READING_PRACTICE_TEXT_TYPES.one_syllable,
   "lesetrening – én og to stavelser": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
+  "lesetrening – én, to og tre stavelser": READING_PRACTICE_TEXT_TYPES.one_to_three_syllables,
   "reading practice – one syllable": READING_PRACTICE_TEXT_TYPES.one_syllable,
   "reading practice – one and two syllables": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
+  "reading practice – one, two and three syllables": READING_PRACTICE_TEXT_TYPES.one_to_three_syllables,
   "prática de leitura – uma sílaba": READING_PRACTICE_TEXT_TYPES.one_syllable,
   "prática de leitura – uma e duas sílabas": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
+  "prática de leitura – uma, duas e três sílabas": READING_PRACTICE_TEXT_TYPES.one_to_three_syllables,
   other: "other",
   annet: "other",
   outro: "other",
@@ -132,6 +135,7 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       sound_reading_ladder: "Lydtrening",
       [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Lesetrening – Én stavelse",
       [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Lesetrening – Én og to stavelser",
+      [READING_PRACTICE_TEXT_TYPES.one_to_three_syllables]: "Lesetrening – Én, to og tre stavelser",
       other: "Annet",
     },
     en: {
@@ -151,6 +155,7 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       sound_reading_ladder: "Sound training",
       [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Reading practice – One syllable",
       [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Reading practice – One and two syllables",
+      [READING_PRACTICE_TEXT_TYPES.one_to_three_syllables]: "Reading practice – One, two and three syllables",
       other: "Other",
     },
     pt: {
@@ -170,6 +175,7 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       sound_reading_ladder: "Treino de som",
       [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Prática de leitura – Uma sílaba",
       [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Prática de leitura – Uma e duas sílabas",
+      [READING_PRACTICE_TEXT_TYPES.one_to_three_syllables]: "Prática de leitura – Uma, duas e três sílabas",
       other: "Outro",
     },
   };
