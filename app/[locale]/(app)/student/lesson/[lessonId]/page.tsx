@@ -1,9 +1,12 @@
 // app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 import { speechHeaders } from "@/lib/audio/headers.client";
+import { activeLessonSentenceIndex, lessonSentenceStartTime, readLessonSentenceStarts, splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
+import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import AnswerTextarea from "@/components/student/AnswerTextarea";
+import ReadingPracticeText from "@/components/student/ReadingPracticeText";
 import StudentPosterAttachments from "@/components/learning-posters/StudentPosterAttachments";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -62,6 +65,7 @@ type Lesson = {
   coverImageUrl?: string;
   learningPosterAttachments?: unknown;
   lessonType?: string;
+  textType?: string;
   taskType?: string;
   imageTasks?: unknown;
   readingTestConfig?: unknown;
@@ -112,6 +116,8 @@ type PublishedLessonDoc = {
   coverImageUrl?: string;
   learningPosterAttachments?: unknown;
   lessonType?: string;
+  textType?: string;
+  texttype?: string;
   taskType?: string;
   imageTasks?: unknown;
   readingTestConfig?: unknown;
@@ -135,6 +141,8 @@ type PrivateLessonDoc = {
   coverImageUrl?: string;
   learningPosterAttachments?: unknown;
   lessonType?: string;
+  textType?: string;
+  texttype?: string;
   taskType?: string;
   imageTasks?: unknown;
   readingTestConfig?: unknown;
@@ -546,6 +554,7 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
     learningPosterAttachments: d.learningPosterAttachments,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
+    textType: typeof d.textType === "string" ? d.textType : typeof d.texttype === "string" ? d.texttype : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
     readingTestConfig: d.readingTestConfig,
@@ -596,6 +605,7 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
     learningPosterAttachments: d.learningPosterAttachments,
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
+    textType: typeof d.textType === "string" ? d.textType : typeof d.texttype === "string" ? d.texttype : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
     readingTestConfig: d.readingTestConfig,
@@ -803,10 +813,7 @@ function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[
   const clean = (fullText || "").replace(/\r\n/g, "\n").trim();
   if (!clean) return { clean: "", segs: [] };
 
-  const parts = clean
-    .split(/(?<=[.!?])\s+|\n+/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const parts = splitLessonSentences(clean);
 
   if (parts.length === 0) return { clean, segs: [] };
 
@@ -1158,6 +1165,8 @@ export default function StudentLessonPage() {
   }, [feedback]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRequest = useRef<AbortController | null>(null);
+  const sentenceStarts = useRef<number[] | undefined>(undefined);
   const activeSentenceRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
   const [ttsBusy, setTtsBusy] = useState<null | AudioMode>(null);
   const [playbackRate, setPlaybackRate] = useState(readSavedPlaybackRate);
@@ -1194,6 +1203,12 @@ export default function StudentLessonPage() {
   );
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+  const readingPracticeStage = getReadingPracticeStage(lesson?.textType, lesson?.language);
+  const showWordDivisions = readingPracticeStage === "one_and_two_syllables";
+  const spokenSourceText = useMemo(
+    () => showWordDivisions ? readingPracticeSpokenText(displayedSourceTextSafe) : displayedSourceTextSafe,
+    [displayedSourceTextSafe, showWordDivisions],
+  );
   const showPreReadingPrompt =
     !!imageUrl &&
     !isImageWriting &&
@@ -1290,6 +1305,10 @@ export default function StudentLessonPage() {
   }, [locale, lessonId]);
 
   function stopAudio() {
+    audioRequest.current?.abort();
+    audioRequest.current = null;
+    sentenceStarts.current = undefined;
+    setTtsBusy(null);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -1353,10 +1372,13 @@ export default function StudentLessonPage() {
     );
   }
 
-  async function playTTS(text: string, lang: TtsLang, mode: AudioMode) {
+  async function playTTS(text: string, lang: TtsLang, mode: AudioMode, readingPassage = false) {
     if (!lessonId) return;
     const clean = (text || "").trim();
     if (!clean) return;
+    audioRequest.current?.abort();
+    const request = new AbortController();
+    audioRequest.current = request;
     setTtsBusy(mode);
 
     try {
@@ -1367,12 +1389,14 @@ export default function StudentLessonPage() {
 
       const res = await fetch("/api/tts", {
         method: "POST",
+        signal: request.signal,
         headers: await speechHeaders(),
         body: JSON.stringify({
           lessonId,
           lang,
           text: clean,
           voice: "marin",
+          readingPassage: readingPassage || undefined,
         }),
       });
 
@@ -1384,16 +1408,18 @@ export default function StudentLessonPage() {
         throw new Error(`TTS API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
       }
 
-      const d = data as { error?: unknown; url?: unknown };
+      const d = data as { error?: unknown; url?: unknown; sentenceStarts?: unknown };
 
       if (!res.ok) throw new Error(d?.error ? String(d.error) : `TTS error (HTTP ${res.status})`);
 
       const url = String(d?.url ?? "").trim();
       if (!url) throw new Error("TTS returned no url");
+      if (audioRequest.current !== request || request.signal.aborted) return;
 
       const a = new Audio(url);
       a.playbackRate = playbackRate;
       audioRef.current = a;
+      sentenceStarts.current = readingPassage ? readLessonSentenceStarts(d.sentenceStarts) : undefined;
 
       setActiveTextMode(mode);
       setActiveSentenceIndex(0);
@@ -1401,26 +1427,31 @@ export default function StudentLessonPage() {
       setDuration(0);
 
       a.addEventListener("ended", () => {
+        if (audioRef.current !== a) return;
         setActiveSentenceIndex(null);
         setActiveTextMode(null);
       });
 
       await a.play();
     } catch (e: unknown) {
+      if (audioRequest.current !== request || request.signal.aborted) return;
       console.error("TTS error:", e);
       setActiveSentenceIndex(null);
       setActiveTextMode(null);
     } finally {
-      setTtsBusy(null);
+      if (audioRequest.current === request) {
+        audioRequest.current = null;
+        setTtsBusy(null);
+      }
     }
   }
 
   async function playOriginalTextAudio() {
     if (!requireAudioLogin("text_original")) return;
-    const txt = (displayedSourceTextSafe || "").trim();
+    const txt = spokenSourceText.trim();
     if (!txt) return;
     setActiveSoundSectionKey(null);
-    await playTTS(txt, originalLangForTTS, "text_original");
+    await playTTS(txt, originalLangForTTS, "text_original", readingPracticeStage !== null);
   }
 
   async function playPreReadingPromptAudio() {
@@ -1486,6 +1517,13 @@ export default function StudentLessonPage() {
     if (!txt) return;
     await playTTS(txt, translationLangForTTS, "feedback_translation");
   }
+
+  useEffect(() => () => {
+    audioRequest.current?.abort();
+    audioRequest.current = null;
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, [lessonId]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
@@ -1561,17 +1599,13 @@ export default function StudentLessonPage() {
       const d = a.duration;
       if (!d || !isFinite(d)) return;
 
-      const tt = a.currentTime;
-      const ratio = Math.max(0, Math.min(1, tt / d));
-
       const segs = activeTextMode === "text_translation"
         ? textFollow.translation.segs
         : activeSoundSectionSegs ?? textFollow.original.segs;
 
       if (!segs || segs.length === 0) return;
 
-      let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
-      if (idx === -1) idx = segs.length - 1;
+      const idx = activeLessonSentenceIndex(segs, a.currentTime, d, sentenceStarts.current);
 
       setActiveSentenceIndex((prev) => (prev === idx ? prev : idx));
     };
@@ -1596,7 +1630,7 @@ export default function StudentLessonPage() {
     const d = a.duration;
     if (!d || !isFinite(d)) return;
 
-    const target = segs[idx].startRatio * d;
+    const target = lessonSentenceStartTime(segs, idx, d, sentenceStarts.current);
     a.currentTime = Math.max(0, Math.min(d - 0.05, target));
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
@@ -1710,6 +1744,7 @@ export default function StudentLessonPage() {
               coverImageUrl: rawData.coverImageUrl,
               learningPosterAttachments: rawData.learningPosterAttachments,
               lessonType: rawData.lessonType,
+              textType: rawData.textType,
               taskType: rawData.taskType,
               imageTasks: rawData.imageTasks,
               readingTestConfig: rawData.readingTestConfig,
@@ -1767,6 +1802,7 @@ export default function StudentLessonPage() {
             coverImageUrl: rawPrivate.coverImageUrl,
             learningPosterAttachments: rawPrivate.learningPosterAttachments,
             lessonType: rawPrivate.lessonType,
+            textType: rawPrivate.textType,
             taskType: rawPrivate.taskType,
             imageTasks: rawPrivate.imageTasks,
             readingTestConfig: rawPrivate.readingTestConfig,
@@ -2116,7 +2152,7 @@ export default function StudentLessonPage() {
   }
 
   async function onTranslateText() {
-    const base = displayedSourceTextSafe;
+    const base = spokenSourceText;
     if (!base.trim()) return;
 
     setTranslating("text");
@@ -2271,9 +2307,12 @@ export default function StudentLessonPage() {
     fallbackText: string
   ) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
+    const highlightDivisions = mode === "text_original" && showWordDivisions;
 
     if (!segs || segs.length === 0) {
-      return <span style={{ whiteSpace: "pre-wrap", ...readingTextStyle }}>{fallbackText}</span>;
+      return <span style={{ whiteSpace: "pre-wrap", ...readingTextStyle }}>
+        {highlightDivisions ? <ReadingPracticeText text={fallbackText} /> : fallbackText}
+      </span>;
     }
 
     return (
@@ -2321,7 +2360,7 @@ export default function StudentLessonPage() {
               }}
               title={canSeek ? t("text.clickToSeek") : undefined}
             >
-              {s.text}
+              {highlightDivisions ? <ReadingPracticeText text={s.text} /> : s.text}
             </span>
           );
         })}

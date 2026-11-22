@@ -30,6 +30,8 @@ export type Lesson = {
     language?: string;
     sourceText?: string;
     text?: string;
+    textType?: string;
+    texttype?: string;
     highFrequencyWord?: string;
     highFrequencyReadingSentences?: string;
     highFrequencyExplanation?: string;
@@ -74,6 +76,8 @@ export type AssignmentDoc = {
 
     sourceText?: string;
     text?: string;
+    textType?: string;
+    texttype?: string;
     highFrequencyWord?: string;
     highFrequencyReadingSentences?: string;
     highFrequencyExplanation?: string;

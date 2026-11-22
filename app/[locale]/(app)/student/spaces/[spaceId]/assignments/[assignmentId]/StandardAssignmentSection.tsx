@@ -24,6 +24,7 @@ type Props = {
     textSizeOptions?: TextSize[];
     onTextSizeChange?: (value: TextSize) => void;
     sourceTextSafe: string;
+    showWordDivisions?: boolean;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
     translatedSectionMap: Map<string, string>;
@@ -117,6 +118,7 @@ export default function StandardAssignmentSection({
     textSizeOptions,
     onTextSizeChange,
     sourceTextSafe,
+    showWordDivisions,
     translatedText,
     lessonTextSections,
     translatedSectionMap,
@@ -167,6 +169,7 @@ export default function StandardAssignmentSection({
             {sourceTextSafe.trim() ? (
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
+                    showWordDivisions={showWordDivisions}
                     textSize={textSize}
                     textSizeOptions={textSizeOptions}
                     onTextSizeChange={onTextSizeChange}

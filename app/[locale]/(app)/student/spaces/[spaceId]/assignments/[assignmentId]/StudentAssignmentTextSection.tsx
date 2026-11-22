@@ -28,6 +28,7 @@ function textSizeLabel(value: TextSize): string {
 
 type Props = {
     sourceTextSafe: string;
+    showWordDivisions?: boolean;
     textSize: TextSize;
     textSizeOptions?: TextSize[];
     onTextSizeChange?: (value: TextSize) => void;
@@ -72,6 +73,7 @@ type Props = {
 
 export default function StudentAssignmentTextSection({
     sourceTextSafe,
+    showWordDivisions,
     textSize,
     textSizeOptions,
     onTextSizeChange,
@@ -228,6 +230,7 @@ export default function StudentAssignmentTextSection({
                                         mode="original"
                                         segs={sectionSegs}
                                         fallbackText={section.text}
+                                        showWordDivisions={showWordDivisions}
                                         textStyle={readingTextStyle}
                                         activeTextMode={isSectionActive ? activeTextMode : null}
                                         activeSentenceIndex={activeSentenceIndex}
@@ -270,6 +273,7 @@ export default function StudentAssignmentTextSection({
                         mode="original"
                         segs={originalSegs}
                         fallbackText={sourceTextSafe}
+                        showWordDivisions={showWordDivisions}
                         textStyle={readingTextStyle}
                         activeTextMode={activeTextMode}
                         activeSentenceIndex={activeSentenceIndex}

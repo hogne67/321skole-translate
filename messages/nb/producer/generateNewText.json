@@ -58,7 +58,17 @@
       "types": {
         "patternSentences": "Mønstersetninger",
         "highFrequencyWords": "Høyfrekvente ord",
-        "soundReadingLadder": "Lydtrening"
+        "soundReadingLadder": "Lydtrening",
+        "readingPractice": "Lesetrening"
+      },
+      "readingPractice": {
+        "description": "Bruk egen tekst eller lag et KI-forslag med korte setninger på bokmål.",
+        "stage": "Lesetrinn",
+        "oneSyllable": "Én stavelse",
+        "oneAndTwoSyllables": "Én og to stavelser",
+        "topicExample": "For eksempel en tur, is eller en katt",
+        "openTasks": "Åpne oppgaver",
+        "posterHelp": "Legg til en læringsplakat i editoren etter at du har lagret kladden."
       },
       "wordClasses": {
         "preposition": "Preposisjon",

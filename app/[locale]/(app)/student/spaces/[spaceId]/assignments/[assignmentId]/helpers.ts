@@ -110,6 +110,7 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         language: a.language,
         sourceText: a.sourceText,
         text: a.text,
+        textType: a.textType ?? a.texttype,
         highFrequencyWord: a.highFrequencyWord,
         highFrequencyReadingSentences: a.highFrequencyReadingSentences,
         highFrequencyExplanation: a.highFrequencyExplanation,

@@ -17,6 +17,9 @@ import {
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import type { SpaceDoc } from "@/lib/spacesClient";
+import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
+import { activeLessonSentenceIndex, readLessonSentenceStarts, splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
+import ReadingPracticeText from "@/components/student/ReadingPracticeText";
 
 type TtsLang = "no" | "en" | "pt-BR";
 type AudioMode = "text" | "task" | "option" | "feedback";
@@ -527,13 +530,16 @@ export default function ChildAssignmentPage() {
     }, [assignment?.tasks]);
 
     const sourceText = assignment ? firstLongText(assignment) : "";
+    const readingStage = getReadingPracticeStage(assignment?.textType ?? assignment?.texttype, assignment?.language);
+    const showWordDivisions = readingStage === "one_and_two_syllables";
 
     const sentences = useMemo(() => {
+        if (readingStage) return splitLessonSentences(sourceText);
         return sourceText
             .split(/(?<=[.!?])\s+/)
             .map((s) => s.trim())
             .filter(Boolean);
-    }, [sourceText]);
+    }, [readingStage, sourceText]);
 
     const img = assignment ? pickImageUrl(assignment) : null;
     const title = safeString(assignment?.title) ?? t("fallbacks.assignmentTitle");
@@ -574,7 +580,8 @@ export default function ChildAssignmentPage() {
 
     async function playTTS(text: string, mode: AudioMode, label: string) {
         const useFullPlayer = mode === "text" || mode === "feedback";
-        const clean = text.trim();
+        const readingPassage = mode === "text" && readingStage !== null;
+        const clean = (readingPassage && showWordDivisions ? readingPracticeSpokenText(text) : text).trim();
         if (!clean) return;
 
         setTtsBusy(mode);
@@ -592,6 +599,7 @@ export default function ChildAssignmentPage() {
                     lang: ttsLang,
                     text: clean,
                     voice: "marin",
+                    readingPassage: readingPassage || undefined,
                 }),
             });
 
@@ -604,7 +612,7 @@ export default function ChildAssignmentPage() {
                 throw new Error(`TTS API returned non-JSON (HTTP ${res.status})`);
             }
 
-            const d = data as { error?: unknown; url?: unknown };
+            const d = data as { error?: unknown; url?: unknown; sentenceStarts?: unknown };
 
             if (!res.ok) throw new Error(d?.error ? String(d.error) : `TTS error ${res.status}`);
 
@@ -624,6 +632,10 @@ export default function ChildAssignmentPage() {
             setActiveAudioLabel(label);
             setCurrentTime(0);
             setDuration(0);
+            const sentenceStarts = readingPassage ? readLessonSentenceStarts(d.sentenceStarts) : undefined;
+            const timings = sentenceStarts?.length === sentences.length
+                ? sentences.map((_, index) => ({ startRatio: index / sentences.length }))
+                : [];
 
             const onPlay = () => setIsPlaying(true);
             const onPause = () => setIsPlaying(false);
@@ -631,6 +643,10 @@ export default function ChildAssignmentPage() {
                 setCurrentTime(a.currentTime || 0);
 
                 if (mode === "text" && a.duration && sentences.length > 0) {
+                    if (timings.length > 0) {
+                        setActiveSentence(activeLessonSentenceIndex(timings, a.currentTime, a.duration, sentenceStarts));
+                        return;
+                    }
                     const progress = a.currentTime / a.duration;
                     const adjustedProgress = Math.min(1, Math.max(0, progress + 0.02));
                     const idx = Math.min(
@@ -931,7 +947,7 @@ export default function ChildAssignmentPage() {
                                     i === activeSentence ? "bg-yellow-200 text-slate-900" : "",
                                 ].join(" ")}
                             >
-                                {sentence}{" "}
+                                {showWordDivisions ? <ReadingPracticeText text={sentence} /> : sentence}{" "}
                             </span>
                         ))}
                     </div>

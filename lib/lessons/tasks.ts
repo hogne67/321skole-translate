@@ -1,6 +1,17 @@
 import { LessonError, onlyKeys, record, requiredString, stringField } from "./validation";
 
 export type LessonTaskType = "truefalse" | "mcq" | "open";
+
+export const LESSON_TASK_COUNT_LIMITS = { mcq: 20, trueFalse: 30, facts: 10, reflection: 20 } as const;
+export type LessonTaskCounts = Record<keyof typeof LESSON_TASK_COUNT_LIMITS, number>;
+
+export type GeneratedLessonTasks = {
+  multipleChoice: Array<{ q: string; options: string[]; answerIndex: number }>;
+  trueFalse: Array<{ statement: string; answer: boolean }>;
+  writeFacts: string[];
+  reflectionQuestions: string[];
+};
+
 export const lessonTasksJsonSchema = {
   type: "array", maxItems: 200, items: {
     type: "object", additionalProperties: false, required: ["type", "prompt"], properties: {

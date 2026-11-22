@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SentenceSeg, TtsLang } from "./types";
 import { speechHeaders } from "@/lib/audio/headers.client";
+import { activeLessonSentenceIndex, lessonSentenceStartTime, readLessonSentenceStarts } from "@/lib/audio/lessonSentenceTiming";
 
 type Params = {
     spaceId?: string;
@@ -24,6 +25,7 @@ export function useAssignmentAudio({
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const audioRequest = useRef<AbortController | null>(null);
     const requestVersion = useRef(0);
+    const sentenceStarts = useRef<number[] | undefined>(undefined);
 
     const [ttsBusy, setTtsBusy] = useState<null | "original" | "translation">(null);
     const [ttsErr, setTtsErr] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function useAssignmentAudio({
         requestVersion.current += 1;
         audioRequest.current?.abort();
         audioRequest.current = null;
+        sentenceStarts.current = undefined;
         setTtsBusy(null);
         if (audioRef.current) {
             audioRef.current.pause();
@@ -73,7 +76,7 @@ export function useAssignmentAudio({
         const d = a.duration;
         if (!d || !Number.isFinite(d)) return;
 
-        const target = segs[idx].startRatio * d;
+        const target = lessonSentenceStartTime(segs, idx, d, sentenceStarts.current);
         a.currentTime = Math.max(0, Math.min(d - 0.05, target));
 
         setActiveTextMode(mode);
@@ -115,7 +118,10 @@ export function useAssignmentAudio({
         seekToSentence(activeTextMode, nextIdx);
     }
 
-    async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation", purpose?: "teacher_feedback") {
+    async function playTTS(
+        text: string, lang: TtsLang, mode: "original" | "translation",
+        options?: { purpose?: "teacher_feedback"; readingPassage?: boolean },
+    ) {
         if (!assignmentId) return;
 
         const clean = text.trim();
@@ -142,7 +148,8 @@ export function useAssignmentAudio({
                 body: JSON.stringify({
                     lessonId: assignmentId,
                     spaceId,
-                    purpose,
+                    purpose: options?.purpose,
+                    readingPassage: options?.readingPassage || undefined,
                     lang,
                     text: clean,
                     voice: "marin",
@@ -158,7 +165,7 @@ export function useAssignmentAudio({
                 throw new Error(`TTS API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
             }
 
-            const d = data as { error?: unknown; url?: unknown };
+            const d = data as { error?: unknown; url?: unknown; sentenceStarts?: unknown };
             if (!res.ok) throw new Error(d?.error ? String(d.error) : `TTS error (HTTP ${res.status})`);
 
             const url = String(d?.url ?? "").trim();
@@ -168,6 +175,7 @@ export function useAssignmentAudio({
             const a = new Audio(url);
             a.playbackRate = playbackRate;
             audioRef.current = a;
+            sentenceStarts.current = options?.readingPassage ? readLessonSentenceStarts(d.sentenceStarts) : undefined;
 
             setActiveTextMode(mode);
             setActiveSentenceIndex(0);
@@ -175,6 +183,7 @@ export function useAssignmentAudio({
             setDuration(0);
 
             a.addEventListener("ended", () => {
+                if (audioRef.current !== a) return;
                 setActiveSentenceIndex(null);
                 setActiveTextMode(null);
             });
@@ -247,12 +256,10 @@ export function useAssignmentAudio({
             const d = a.duration;
             if (!d || !Number.isFinite(d)) return;
 
-            const ratio = Math.max(0, Math.min(1, a.currentTime / d));
             const segs = activeTextMode === "translation" ? translationSegs : originalSegs;
             if (!segs.length) return;
 
-            let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
-            if (idx === -1) idx = segs.length - 1;
+            const idx = activeLessonSentenceIndex(segs, a.currentTime, d, sentenceStarts.current);
 
             setActiveSentenceIndex((prev) => (prev === idx ? prev : idx));
         };

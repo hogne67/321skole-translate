@@ -104,6 +104,42 @@ test("the general TTS route requires login and preserves ordinary Space audio wi
   await db.doc("users/anonymous").set({role:"student"});await db.doc("spaceMembers/room_anonymous").set({spaceId:"room",uid:"anonymous",participantId:"anonymous",role:"student",status:"active",active:true});
   assert.equal((await tts(request("anonymous",{...body,text:"Synthetic anonymous Space audio"}))).status,200);
 });
+test("a reading passage includes every sentence in order on first play and replay", async t => {
+  const sentences = [
+    "Jeg ser en katt.", "Den er grå.", "Den har myk pels.", "Katten får mat.",
+    "Den drikker vann.", "Så maler den.", "Den vil sove.", "Den er trøtt.",
+  ];
+  const clips = sentences.map((_, index) => new Uint8Array(24_000 + index * 2_400).fill(index + 1));
+  const mockedSpeech = t.mock.method(Speech.prototype, "create", async (input: { input: string; response_format?: string }) => {
+    assert.equal(input.response_format, "pcm");
+    const index = sentences.indexOf(input.input);
+    assert.ok(index >= 0, `Unexpected speech input: ${input.input}`);
+    speechInputs.push(input.input);
+    return new Response(clips[index]);
+  });
+  const body = { lessonId: "reading-test", text: sentences.join("\n"), lang: "nb", readingPassage: true };
+  const first = await tts(request("owner", body));
+  assert.equal(first.status, 200, first.ok ? undefined : await first.text());
+  const audio = await first.json();
+  const prefix = "data:audio/wav;base64,";
+  assert.ok(audio.url.startsWith(prefix));
+  const wav = Buffer.from(audio.url.slice(prefix.length), "base64");
+  const pcm = Buffer.concat(clips);
+  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
+  assert.equal(wav.readUInt32LE(4), wav.length - 8);
+  assert.equal(wav.readUInt32LE(40), pcm.length);
+  assert.deepEqual(wav.subarray(44), pcm);
+  assert.deepEqual(audio.sentenceStarts, clips.map((_, index) => (
+    clips.slice(0, index).reduce((bytes, clip) => bytes + clip.length, 0) / 48_000
+  )));
+  assert.deepEqual([...speechInputs].sort(), [...sentences].sort());
+
+  const replay = await tts(request("owner", body));
+  assert.equal(replay.status, 200);
+  assert.deepEqual(await replay.json(), audio);
+  assert.equal(mockedSpeech.mock.callCount(), sentences.length);
+});
+
 test("parallel requests cannot exceed character or request limits",async()=>{
   const account={uid:"pupil",role:"student",anonymous:false},limit=speechLimits(account).dayCharacters;
   await reserveSpeechUsage(account,"characters",limit-5);

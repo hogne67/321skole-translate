@@ -143,7 +143,8 @@
       "producerName": "Ditt navn (fra profil)",
       "textType": "f.eks. artikkel, e-post, dialog…",
       "topic": "Valgfritt. La stå tomt for å unngå at KI-prompt vises.",
-      "customPrompt": "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljert, ren komposisjon"
+      "customPrompt": "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljert, ren komposisjon",
+      "readingPosterPrompt": "Beskriv hva som skal vises i hver av de seks rutene."
     },
     "help": {
       "producerName": "Dette hentes fra profilen din (users/{uid}).",
@@ -165,6 +166,10 @@
       "realistic": "Realistisk",
       "writePrompt": "Skriv prompt",
       "useTextAsInspiration": "Bruk teksten som inspirasjon",
+      "readingPoster": "Læringsplakat · 6 ruter",
+      "suggestReadingPosterPrompt": "Foreslå seks motiver med KI",
+      "replaceReadingPosterPrompt": "Bytt ut med KI-forslag",
+      "suggestingReadingPosterPrompt": "Foreslår motiver …",
       "generateImage": "Generer bilde",
       "generating": "Genererer...",
       "limitReached": "Grense nådd",

@@ -8,7 +8,14 @@ import Image from "next/image";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
-import { normalizeLessonTasks, type LessonTask, type LessonTaskType } from "@/lib/lessons/tasks";
+import { LESSON_TASK_COUNT_LIMITS, normalizeLessonTasks, type GeneratedLessonTasks, type LessonTask, type LessonTaskCounts, type LessonTaskType } from "@/lib/lessons/tasks";
+import {
+  READING_PRACTICE_MODE,
+  READING_PRACTICE_TASK_DEFAULTS,
+  READING_PRACTICE_TEXT_TYPES,
+  supportsReadingPractice,
+  type ReadingPracticeStage,
+} from "@/lib/a1start/readingPractice";
 import type { CSSProperties } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -25,25 +32,13 @@ import { Check, FileText, Sparkles, X } from "lucide-react";
 const GUIDE_IMAGE_WIDTH = 1024;
 const GUIDE_IMAGE_HEIGHT = 1536;
 
-type MCQ = {
-  q: string;
-  options: [string, string, string, string];
-  answerIndex: 0 | 1 | 2 | 3;
-};
-type TF = { statement: string; answer: boolean };
-
 type ContentPack = {
   title: string;
   level: string;
   language: string;
   topic: string;
   text: string;
-  tasks: {
-    multipleChoice: MCQ[];
-    trueFalse: TF[];
-    writeFacts: string[];
-    reflectionQuestions: string[];
-  };
+  tasks: GeneratedLessonTasks;
 };
 
 type TaskType = LessonTaskType;
@@ -230,7 +225,7 @@ type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type A1StartTense = "present" | "past" | "future";
 type A1StartSentenceCount = 8 | 11 | 14 | 17 | 20;
 type A1StartHighFrequencyLength = 50 | 100 | 150;
-type A1StartType = "pattern_sentences" | "high_frequency_words" | "sound_reading_ladder";
+type A1StartType = "pattern_sentences" | "high_frequency_words" | "sound_reading_ladder" | typeof READING_PRACTICE_MODE;
 type A1StartWordClass = keyof typeof A1_START_HIGH_FREQUENCY_WORDS;
 
 const A1_START_HIGH_FREQUENCY_WORDS = {
@@ -510,15 +505,15 @@ const GENERATOR_TEXT_TYPE_KEYS = [
 
 const LEVEL_DEFAULTS: Record<
   LevelKey,
-  { textLength: number; trueFalse: number; mcq: number; facts: number; reflection: number }
+  { textLength: number; tasks: LessonTaskCounts }
 > = {
-  A1_START: { textLength: 10, trueFalse: 0, mcq: 0, facts: 0, reflection: 1 },
-  A1: { textLength: 80, trueFalse: 3, mcq: 3, facts: 2, reflection: 1 },
-  A2: { textLength: 140, trueFalse: 6, mcq: 4, facts: 3, reflection: 1 },
-  B1: { textLength: 200, trueFalse: 8, mcq: 6, facts: 3, reflection: 2 },
-  B2: { textLength: 260, trueFalse: 10, mcq: 6, facts: 6, reflection: 2 },
-  C1: { textLength: 300, trueFalse: 10, mcq: 8, facts: 6, reflection: 3 },
-  C2: { textLength: 300, trueFalse: 10, mcq: 8, facts: 6, reflection: 3 },
+  A1_START: { textLength: 10, tasks: { mcq: 0, trueFalse: 0, facts: 0, reflection: 1 } },
+  A1: { textLength: 80, tasks: { mcq: 3, trueFalse: 3, facts: 2, reflection: 1 } },
+  A2: { textLength: 140, tasks: { mcq: 4, trueFalse: 6, facts: 3, reflection: 1 } },
+  B1: { textLength: 200, tasks: { mcq: 6, trueFalse: 8, facts: 3, reflection: 2 } },
+  B2: { textLength: 260, tasks: { mcq: 6, trueFalse: 10, facts: 6, reflection: 2 } },
+  C1: { textLength: 300, tasks: { mcq: 8, trueFalse: 10, facts: 6, reflection: 3 } },
+  C2: { textLength: 300, tasks: { mcq: 8, trueFalse: 10, facts: 6, reflection: 3 } },
 };
 
 function safePlan(plan: unknown): PlanKey {
@@ -817,13 +812,13 @@ export default function NewTextPage() {
   const textTypeValue = textTypePreset === "other" ? textTypeLabel : textTypePreset;
 
   const [textLength, setTextLength] = useState<number>(LEVEL_DEFAULTS.A2.textLength);
-  const [mcqCount, setMcqCount] = useState<number>(LEVEL_DEFAULTS.A2.mcq);
-  const [trueFalseCount, setTrueFalseCount] = useState<number>(LEVEL_DEFAULTS.A2.trueFalse);
-  const [factsCount, setFactsCount] = useState<number>(LEVEL_DEFAULTS.A2.facts);
-  const [reflectionCount, setReflectionCount] = useState<number>(LEVEL_DEFAULTS.A2.reflection);
+  const [standardTaskCounts, setStandardTaskCounts] = useState<LessonTaskCounts>(LEVEL_DEFAULTS.A2.tasks);
+  const [readingTaskCounts, setReadingTaskCounts] = useState<LessonTaskCounts>(READING_PRACTICE_TASK_DEFAULTS);
   const [a1StartVerb, setA1StartVerb] = useState("er");
   const [a1StartCustomVerb, setA1StartCustomVerb] = useState("");
   const [a1StartType, setA1StartType] = useState<A1StartType>("pattern_sentences");
+  const [readingStage, setReadingStage] = useState<ReadingPracticeStage>("one_syllable");
+  const [readingTopic, setReadingTopic] = useState("");
   const [a1StartWordClass, setA1StartWordClass] = useState<A1StartWordClass>("conjunction");
   const [a1StartWord, setA1StartWord] = useState("og");
   const [a1StartHighFrequencyLength, setA1StartHighFrequencyLength] =
@@ -845,8 +840,19 @@ export default function NewTextPage() {
   const effectiveA1StartVerb = a1StartUsesCustomVerb
     ? a1StartCustomVerb.trim()
     : a1StartVerb.trim();
-  const isA1StartHighFrequency = a1StartType === "high_frequency_words";
-  const isA1StartSoundLadder = a1StartType === "sound_reading_ladder";
+  const isA1Start = level === "A1_START";
+  const isReadingPracticeLanguage = supportsReadingPractice(language);
+  const selectedA1StartType = a1StartType === READING_PRACTICE_MODE && !isReadingPracticeLanguage
+    ? "pattern_sentences"
+    : a1StartType;
+  const isA1StartHighFrequency = selectedA1StartType === "high_frequency_words";
+  const isA1StartSoundLadder = selectedA1StartType === "sound_reading_ladder";
+  const isA1StartReadingPractice = isA1Start && selectedA1StartType === READING_PRACTICE_MODE;
+  const taskCounts = isA1StartReadingPractice ? readingTaskCounts : standardTaskCounts;
+  const setTaskCounts = isA1StartReadingPractice ? setReadingTaskCounts : setStandardTaskCounts;
+  const isA1StartPattern = selectedA1StartType === "pattern_sentences";
+  const missingA1StartVerb = isA1Start && !isA1StartHighFrequency && !isA1StartReadingPractice && !effectiveA1StartVerb;
+  const showA1StartTaskCounts = !isA1StartSoundLadder && !isA1StartReadingPractice;
   const isHighFrequencyLanguage = ["nb", "no", "en", "pt-br"].includes(language.toLocaleLowerCase());
   const isSoundLadderLanguage = ["nb", "no", "nn", "en", "pt-br"].includes(language.toLocaleLowerCase());
   const a1StartWords = getA1StartHighFrequencyWords(a1StartWordClass, language);
@@ -886,12 +892,14 @@ export default function NewTextPage() {
   const [statusLoading, setStatusLoading] = useState(false);
 
   const busy = loadingText || loadingTasks || saving;
-  const isA1Start = level === "A1_START";
-  const effectiveTextType = isA1Start ? a1StartType : textTypeLabel;
-  const effectiveTextTypeValue = isA1Start ? a1StartType : textTypeValue;
-  const effectiveA1StartTopic = isA1StartHighFrequency || isA1StartSoundLadder
-    ? effectiveA1StartHighFrequencyTheme
-    : effectiveA1StartPatternTopic;
+  const a1StartTextType = isA1StartReadingPractice ? READING_PRACTICE_TEXT_TYPES[readingStage] : selectedA1StartType;
+  const effectiveTextType = isA1Start ? a1StartTextType : textTypeLabel;
+  const effectiveTextTypeValue = isA1Start ? a1StartTextType : textTypeValue;
+  const effectiveA1StartTopic = isA1StartReadingPractice
+    ? readingTopic.trim()
+    : isA1StartHighFrequency || isA1StartSoundLadder
+      ? effectiveA1StartHighFrequencyTheme
+      : effectiveA1StartPatternTopic;
   const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
 
   useEffect(() => {
@@ -976,15 +984,13 @@ export default function NewTextPage() {
   useEffect(() => {
     const d = LEVEL_DEFAULTS[level];
     setTextLength(d.textLength);
-    setTrueFalseCount(d.trueFalse);
-    setMcqCount(d.mcq);
-    setFactsCount(Math.max(0, Math.min(10, d.facts)));
-    setReflectionCount(d.reflection);
+    setStandardTaskCounts(d.tasks);
   }, [level]);
 
   const a1StartConfig = isA1Start
     ? {
-      type: a1StartType,
+      type: selectedA1StartType,
+      ...(isA1StartReadingPractice ? { readingStage } : {}),
       verb: effectiveA1StartVerb,
       tense: a1StartTense,
       sentenceCount: a1StartSentenceCount,
@@ -1122,13 +1128,14 @@ export default function NewTextPage() {
         correctAnswer: correct,
       });
     }
-    const factsN = Math.max(0, Math.min(10, factsCount));
-    if (factsN > 0) {
+    const factsPrompt = buildFactsPrompt(taskCounts.facts);
+    const factPrompts = isA1StartReadingPractice ? p.tasks.writeFacts : factsPrompt ? [factsPrompt] : [];
+    for (const prompt of factPrompts) {
       tasks.push({
         id: newId(),
         order: order++,
         type: "open",
-        prompt: buildFactsPrompt(factsN),
+        prompt,
       });
     }
 
@@ -1221,7 +1228,7 @@ export default function NewTextPage() {
     setSavedId(null);
 
     try {
-      if (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) {
+      if (missingA1StartVerb) {
         throw new Error(t("a1Start.errors.verbRequired"));
       }
 
@@ -1368,12 +1375,7 @@ export default function NewTextPage() {
           topic: effectiveTopic,
           textType: effectiveTextType,
           text: sourceText,
-          tasks: {
-            mcq: mcqCount,
-            trueFalse: trueFalseCount,
-            facts: factsCount,
-            reflection: reflectionCount,
-          },
+          tasks: taskCounts,
           a1Start: a1StartConfig,
         }),
       });
@@ -1429,7 +1431,7 @@ export default function NewTextPage() {
         } else {
           setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
         }
-      } else {
+      } else if (!isA1StartReadingPractice) {
         setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
       }
     } catch (e: unknown) {
@@ -1869,6 +1871,7 @@ export default function NewTextPage() {
                   {t("fields.level")}
                   <select
                     value={level}
+                    disabled={isA1StartReadingPractice && busy}
                     onChange={(e) => {
                       const nextLevel = e.target.value as LevelKey;
                       setLevel(nextLevel);
@@ -1893,6 +1896,7 @@ export default function NewTextPage() {
                   {t("fields.language")}
                   <select
                     value={language}
+                    disabled={isA1StartReadingPractice && busy}
                     onChange={(e) => {
                       const nextLanguage = e.target.value;
                       setLanguage(nextLanguage);
@@ -1970,11 +1974,13 @@ export default function NewTextPage() {
                   {t("a1Start.title")}
                 </h3>
                 <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>
-                  {isA1StartSoundLadder
-                    ? t("a1Start.soundLadderDescription")
-                    : isA1StartHighFrequency
-                      ? t("a1Start.highFrequencyDescription")
-                      : t("a1Start.description")}
+                  {isA1StartReadingPractice
+                    ? t("a1Start.readingPractice.description")
+                    : isA1StartSoundLadder
+                      ? t("a1Start.soundLadderDescription")
+                      : isA1StartHighFrequency
+                        ? t("a1Start.highFrequencyDescription")
+                        : t("a1Start.description")}
                 </div>
                 <div
                   style={{
@@ -1986,7 +1992,8 @@ export default function NewTextPage() {
                   <label>
                     {t("a1Start.fields.type")}
                     <select
-                      value={a1StartType}
+                      value={selectedA1StartType}
+                      disabled={busy}
                       onChange={(e) => setA1StartType(e.target.value as A1StartType)}
                       style={fieldStyle}
                     >
@@ -1997,9 +2004,38 @@ export default function NewTextPage() {
                       <option value="sound_reading_ladder" disabled={!isSoundLadderLanguage}>
                         {t("a1Start.types.soundReadingLadder")}
                       </option>
+                      <option value={READING_PRACTICE_MODE} disabled={!isReadingPracticeLanguage}>
+                        {t("a1Start.types.readingPractice")}
+                      </option>
                     </select>
                   </label>
-                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
+                  {isA1StartReadingPractice && (
+                    <>
+                      <label>
+                        {t("a1Start.readingPractice.stage")}
+                        <select
+                          value={readingStage}
+                          onChange={e => setReadingStage(e.target.value as ReadingPracticeStage)}
+                          disabled={busy}
+                          style={fieldStyle}
+                        >
+                          <option value="one_syllable">{t("a1Start.readingPractice.oneSyllable")}</option>
+                          <option value="one_and_two_syllables">{t("a1Start.readingPractice.oneAndTwoSyllables")}</option>
+                        </select>
+                      </label>
+                      <label style={{ gridColumn: isNarrow ? "auto" : "span 2" }}>
+                        {t("a1Start.fields.topic")}
+                        <input
+                          value={readingTopic}
+                          onChange={e => setReadingTopic(e.target.value)}
+                          disabled={busy}
+                          placeholder={t("a1Start.readingPractice.topicExample")}
+                          style={fieldStyle}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {isA1StartPattern && <label>
                     {t("a1Start.fields.verb")}
                     <select
                       value={a1StartVerb}
@@ -2020,7 +2056,7 @@ export default function NewTextPage() {
                       />
                     )}
                   </label>}
-                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
+                  {isA1StartPattern && <label>
                     {t("a1Start.fields.tense")}
                     <select
                       value={a1StartTense}
@@ -2032,7 +2068,7 @@ export default function NewTextPage() {
                       <option value="future">{t("a1Start.tenses.future")}</option>
                     </select>
                   </label>}
-                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
+                  {isA1StartPattern && <label>
                     {t("a1Start.fields.sentenceCount")}
                     <select
                       value={a1StartSentenceCount}
@@ -2130,7 +2166,7 @@ export default function NewTextPage() {
                       </label>
                     </>
                   )}
-                  <label style={{ gridColumn: isNarrow ? "auto" : "1 / -1" }}>
+                  {!isA1StartReadingPractice && <label style={{ gridColumn: isNarrow ? "auto" : "1 / -1" }}>
                     {t("a1Start.fields.topic")}
                     {isA1StartHighFrequency || isA1StartSoundLadder ? (
                       <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
@@ -2183,8 +2219,8 @@ export default function NewTextPage() {
                         </div>
                       </div>
                     )}
-                  </label>
-                  {!isA1StartSoundLadder && (
+                  </label>}
+                  {showA1StartTaskCounts && (
                     <div
                       style={{
                         gridColumn: isNarrow ? "auto" : "1 / -1",
@@ -2196,7 +2232,7 @@ export default function NewTextPage() {
                       {t("a1Start.taskSelectionTitle")}
                     </div>
                   )}
-                  {!isA1StartSoundLadder && <label>
+                  {showA1StartTaskCounts && <label>
                     {t("a1Start.fields.trueFalseCount")}
                     <select
                       value={a1StartTrueFalseCount}
@@ -2208,7 +2244,7 @@ export default function NewTextPage() {
                       ))}
                     </select>
                   </label>}
-                  {!isA1StartSoundLadder && <label>
+                  {showA1StartTaskCounts && <label>
                     {t("a1Start.fields.imageSentenceCount")}
                     <select
                       value={a1StartImageSentenceCount}
@@ -2220,7 +2256,7 @@ export default function NewTextPage() {
                       ))}
                     </select>
                   </label>}
-                  {!isA1StartSoundLadder && <label>
+                  {showA1StartTaskCounts && <label>
                     {isA1StartHighFrequency
                       ? t("a1Start.fields.wordSentenceCount")
                       : t("a1Start.fields.verbSentenceCount")}
@@ -2234,6 +2270,11 @@ export default function NewTextPage() {
                       ))}
                     </select>
                   </label>}
+                  {isA1StartReadingPractice && (
+                    <div style={{ gridColumn: "1 / -1", fontSize: 13, lineHeight: 1.5 }}>
+                      {t("a1Start.readingPractice.posterHelp")}
+                    </div>
+                  )}
                   {isA1StartSoundLadder && (
                     <div
                       style={{
@@ -2324,12 +2365,12 @@ export default function NewTextPage() {
                   <button
                     className="actionBtn"
                     onClick={requestTextSuggestion}
-                    disabled={busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb)}
+                    disabled={busy || missingA1StartVerb}
                     style={{
                       ...buttonPrimary,
                       width: isNarrow ? "100%" : "auto",
-                      opacity: busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) ? 0.7 : 1,
-                      cursor: busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) ? "not-allowed" : "pointer",
+                      opacity: busy || missingA1StartVerb ? 0.7 : 1,
+                      cursor: busy || missingA1StartVerb ? "not-allowed" : "pointer",
                     }}
                   >
                     {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
@@ -2608,7 +2649,7 @@ export default function NewTextPage() {
               </div>
             )}
 
-            {!isA1Start && <div
+            {(!isA1Start || isA1StartReadingPractice) && <div
               style={{
                 display: "grid",
                 gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, 1fr)",
@@ -2616,57 +2657,29 @@ export default function NewTextPage() {
                 marginTop: textApproved ? 10 : 14,
               }}
             >
-              <label>
-                {t("tasks.mcq")}
-                <input
-                  type="number"
-                  value={mcqCount}
-                  onChange={(e) => setMcqCount(Number(e.target.value))}
-                  style={fieldStyle}
-                  min={0}
-                  max={20}
-                  disabled={!hasText}
-                />
-              </label>
-              <label>
-                {t("tasks.trueFalse")}
-                <input
-                  type="number"
-                  value={trueFalseCount}
-                  onChange={(e) => setTrueFalseCount(Number(e.target.value))}
-                  style={fieldStyle}
-                  min={0}
-                  max={30}
-                  disabled={!hasText}
-                />
-              </label>
-              <label>
-                {t("tasks.facts")}
-                <input
-                  type="number"
-                  value={factsCount}
-                  onChange={(e) => setFactsCount(Math.max(0, Math.min(10, Number(e.target.value))))}
-                  style={fieldStyle}
-                  min={0}
-                  max={10}
-                  disabled={!hasText}
-                />
-                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  {t("tasks.factsSingleBoxHelp")}
-                </div>
-              </label>
-              <label>
-                {t("tasks.reflection")}
-                <input
-                  type="number"
-                  value={reflectionCount}
-                  onChange={(e) => setReflectionCount(Number(e.target.value))}
-                  style={fieldStyle}
-                  min={0}
-                  max={20}
-                  disabled={!hasText}
-                />
-              </label>
+              {(["mcq", "trueFalse", "facts", "reflection"] as const).map(kind => (
+                <label key={kind}>
+                  {isA1StartReadingPractice && kind === "reflection" ? t("a1Start.readingPractice.openTasks") : t(`tasks.${kind}`)}
+                  <input
+                    type="number"
+                    value={taskCounts[kind]}
+                    onChange={e => {
+                      const value = Number(e.target.value);
+                      if (Number.isFinite(value)) {
+                        const count = Math.max(0, Math.min(LESSON_TASK_COUNT_LIMITS[kind], Math.round(value)));
+                        setTaskCounts(previous => ({ ...previous, [kind]: count }));
+                      }
+                    }}
+                    style={fieldStyle}
+                    min={0}
+                    max={LESSON_TASK_COUNT_LIMITS[kind]}
+                    disabled={!hasText || busy}
+                  />
+                  {kind === "facts" && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                    {t("tasks.factsSingleBoxHelp")}
+                  </div>}
+                </label>
+              ))}
             </div>}
 
             {hasText && (

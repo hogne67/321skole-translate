@@ -58,7 +58,17 @@
       "types": {
         "patternSentences": "Pattern sentences",
         "highFrequencyWords": "High-frequency words",
-        "soundReadingLadder": "Sound training"
+        "soundReadingLadder": "Sound training",
+        "readingPractice": "Reading practice"
+      },
+      "readingPractice": {
+        "description": "Use your own text or generate a draft with short sentences in Norwegian Bokmål.",
+        "stage": "Reading stage",
+        "oneSyllable": "One syllable",
+        "oneAndTwoSyllables": "One and two syllables",
+        "topicExample": "For example, a trip, an ice cream or a cat",
+        "openTasks": "Open questions",
+        "posterHelp": "Add a learning poster in the editor after saving your draft."
       },
       "wordClasses": {
         "preposition": "Preposition",

@@ -58,7 +58,17 @@
       "types": {
         "patternSentences": "Frases-modelo",
         "highFrequencyWords": "Palavras de alta frequência",
-        "soundReadingLadder": "Treino de som"
+        "soundReadingLadder": "Treino de som",
+        "readingPractice": "Prática de leitura"
+      },
+      "readingPractice": {
+        "description": "Use seu próprio texto ou gere um rascunho com frases curtas em norueguês bokmål.",
+        "stage": "Etapa de leitura",
+        "oneSyllable": "Uma sílaba",
+        "oneAndTwoSyllables": "Uma e duas sílabas",
+        "topicExample": "Por exemplo, um passeio, um sorvete ou um gato",
+        "openTasks": "Perguntas abertas",
+        "posterHelp": "Adicione um cartaz de aprendizagem no editor após salvar o rascunho."
       },
       "wordClasses": {
         "preposition": "Preposição",

@@ -4,8 +4,9 @@ import sharp from "sharp";
 import { type Firestore } from "firebase-admin/firestore";
 import { getFeatureDecisionFromProfile, getQuotaBucket } from "../featureAccess";
 import type { getAdmin } from "../firebaseAdmin";
+import { buildCoverImagePrompt, normalizeCoverImagePromptMode } from "../lessons/coverImagePrompt";
 import { normalizePlan, normalizePosterSettings, posterLanguageName, sourceWarnings, posterGoalPrompt, posterSuggestionPrompt, type PosterPlan } from "./model";
-import { digest, readSource, ownedPoster, savePoster, suggestPoster, generatePosterImages, withPosterQuota, posterAccount, type PosterAccount } from "./server";
+import { digest, readSource, ownedPoster, savePoster, suggestPoster, suggestReadingCoverPrompt, generatePosterImages, withPosterQuota, posterAccount, type PosterAccount } from "./server";
 import { renderPosterSvg } from "./render";
 import { renderPosterPng } from "./render.server";
 
@@ -95,6 +96,44 @@ test("source excerpts are checked, and exercise answers are excluded from AI inp
   assert.ok(!prompt.includes("secret-answer-never-send"));
   assert.throws(() => normalizePlan({ ...plan, kind: "sounds", focus: "" }), /invalid_input/);
   assert.throws(() => normalizePlan({ ...plan, items: Array(7).fill(plan.items[0]) }), /invalid_input/);
+});
+
+test("a reading cover suggests six editable scenes and sends the teacher's edits to the image model", async () => {
+  const f = fixture();
+  const source = await readSource(f.account.db, f.account.uid, {
+    title: "Katten",
+    text: "Jeg ser en katt. Den er grå. Den har myk pels. Katt-en får mat. Den **drikk-er** vann. Så **ma-ler** den. Den vil **so-ve**.",
+  });
+  const scenes = [
+    "En grå katt sitter på gulvet.",
+    "Et nærbilde av den myke, grå pelsen.",
+    "Katten får mat i en skål.",
+    "Katten drikker vann.",
+    "Katten maler, med «prr» i en snakkeboble.",
+    "Katten ligger med lukkede øyne.",
+  ];
+  const draft = await suggestReadingCoverPrompt(f.account, source, undefined, async prompt => {
+    assert.ok(prompt.includes("Katten får mat. Den drikker vann. Så maler den. Den vil sove."));
+    return { scenes };
+  });
+  assert.deepEqual(draft.split("\n").slice(2), scenes.map((scene, index) => `Rute ${index + 1}. ${scene}`));
+  assert.equal(f.usage()[getQuotaBucket("ai_generate_text")], 1);
+  assert.equal(f.usage()[getQuotaBucket("ai_image_generate")], undefined);
+
+  const customPrompt = draft.replace("«prr»", "«prr, prr»");
+  const promptMode = normalizeCoverImagePromptMode("readingPoster");
+  const imagePrompt = buildCoverImagePrompt({ style: "illustration", promptMode, customPrompt });
+  assert.match(imagePrompt, /three columns and two rows/);
+  assert.match(imagePrompt, /short sound in a speech bubble/);
+  assert.ok(imagePrompt.endsWith(customPrompt));
+  assert.doesNotMatch(imagePrompt, /No collage|No split panels/);
+  assert.match(buildCoverImagePrompt({ style: "illustration", promptMode: normalizeCoverImagePromptMode(undefined), customPrompt: "A cat" }), /Clean single-scene cover image/);
+
+  await assert.rejects(
+    suggestReadingCoverPrompt(f.account, source, undefined, async () => ({ scenes: scenes.slice(0, 5) })),
+    { reason: "generation_failed", status: 502 },
+  );
+  assert.equal(f.usage()[getQuotaBucket("ai_generate_text")], 1);
 });
 
 test("chosen language applies to every authored field; AI can formulate an empty goal", () => {

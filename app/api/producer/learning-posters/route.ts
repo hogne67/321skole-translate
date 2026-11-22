@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizePosterSettings, PosterError, type PosterPlan } from "@/lib/learningPosters/model";
-import { digest, generatePosterImages, ownedPoster, posterAccount, readSource, savePoster, suggestPoster, suggestPosterGoal, withPosterQuota } from "@/lib/learningPosters/server";
+import { assertSourceAccess, digest, generatePosterImages, ownedPoster, posterAccount, readSource, savePoster, suggestPoster, suggestPosterGoal, suggestReadingCoverPrompt, withPosterQuota } from "@/lib/learningPosters/server";
 import { renderPosterPng } from "@/lib/learningPosters/render.server";
 import { listPosterLessons } from "@/lib/learningPosters/sources.server";
 import { listFinishedPosters, listLinkedPosters, posterImageData, posterThumbnail } from "@/lib/learningPosters/content.server";
@@ -93,6 +93,14 @@ export async function POST(req: Request) {
     }
     if (!data.source || typeof data.source !== "object" || Array.isArray(data.source)) throw new PosterError("invalid_source");
     const supplied = data.source as Record<string, unknown>;
+    if (data.action === "reading-cover-prompt") {
+      if (typeof data.lessonId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(data.lessonId)) throw new PosterError("invalid_input");
+      const lesson = await account.db.collection("lessons").doc(data.lessonId).get();
+      assertSourceAccess(lesson.data(), account.uid);
+      const source = await readSource(account.db, account.uid, { text: supplied.text, title: supplied.title });
+      const prompt = await suggestReadingCoverPrompt(account, source, req.signal);
+      return NextResponse.json({ ok: true, prompt }, { headers: { "Cache-Control": "private, no-store" } });
+    }
     const source = await readSource(account.db, account.uid, supplied);
     if (source.lessonId && supplied.hash !== source.hash) throw new PosterError("source_changed", 409);
     if (data.action === "suggest" || data.action === "suggest-goal") {

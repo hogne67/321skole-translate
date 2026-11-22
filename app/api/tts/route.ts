@@ -1,6 +1,6 @@
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { normalizeAudioLanguage } from "@/lib/audio/language";
-import { speechAccount,speechBody,speechFailure,SpeechError,reserveSpeechUsage,synthesizeSpeech,assertPersonalSpeechAccess } from "@/lib/audio/speech.server";
+import { speechAccount,speechBody,speechFailure,SpeechError,reserveSpeechUsage,synthesizeSpeech,synthesizeReadingPassage,assertPersonalSpeechAccess } from "@/lib/audio/speech.server";
 import { getSpaceAccess,ownsSpaceSubmission,submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 import { validGrammarId } from "@/lib/grammarTests/types";
 export const runtime = "nodejs";
@@ -31,7 +31,10 @@ export async function POST(req: Request) {
     }
     const language = normalizeAudioLanguage(typeof body.lang === "string" ? body.lang : "no");
     await reserveSpeechUsage(account,"request");
-    const url = await synthesizeSpeech(account,text,language,AbortSignal.any([req.signal,AbortSignal.timeout(38_000)]));
-    return Response.json({url,lang:language,voice:"marin"},{headers:{"Cache-Control":"private,no-store"}});
+    const signal = AbortSignal.any([req.signal, AbortSignal.timeout(38_000)]);
+    const audio = body.readingPassage === true && language === "no" && body.purpose !== "teacher_feedback"
+      ? await synthesizeReadingPassage(account, text, language, signal)
+      : { url: await synthesizeSpeech(account, text, language, signal) };
+    return Response.json({...audio,lang:language,voice:"marin"},{headers:{"Cache-Control":"private,no-store"}});
   } catch (error) { return speechFailure(error); }
 }

@@ -8,6 +8,7 @@ import { getAdmin } from "../firebaseAdmin";
 import { getFeatureDecisionFromProfile, getQuotaBucket, type FeatureKey } from "../featureAccess";
 import { needsEmailVerification } from "../emailVerificationGuard";
 import { isPosterReadingLesson, readSavedPosterLesson } from "./sources.server";
+import { formatReadingCoverPrompt, readingCoverSuggestionPrompt } from "./readingCoverPrompt";
 import { normalizePlan, normalizedText, PosterError, posterGoalPrompt, posterImagePrompt, posterSuggestionPrompt, sourceWarnings,
   type LearningPoster, type PosterPlan, type PosterSource } from "./model";
 
@@ -136,6 +137,30 @@ export async function suggestPosterGoal(account: PosterAccount, source: PosterSo
     return output.goal.trim();
   });
 }
+
+async function requestReadingCoverScenes(prompt: string, signal?: AbortSignal): Promise<unknown> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 25_000, maxRetries: 0 });
+  const response = await openai.chat.completions.create({
+    store: false,
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    messages: [{ role: "system", content: prompt }],
+    response_format: { type: "json_schema", json_schema: { name: "reading_cover_scenes", strict: true,
+      schema: { type: "object", properties: { scenes: { type: "array", items: { type: "string" } } },
+        required: ["scenes"], additionalProperties: false } } },
+  }, { signal });
+  return JSON.parse(response.choices[0]?.message.content || "null");
+}
+
+export async function suggestReadingCoverPrompt(
+  account: PosterAccount, source: PosterSource, signal?: AbortSignal,
+  createSuggestion: (prompt: string, signal?: AbortSignal) => Promise<unknown> = requestReadingCoverScenes,
+) {
+  signal?.throwIfAborted();
+  return withPosterQuota(account, "ai_generate_text", async () => (
+    formatReadingCoverPrompt(await createSuggestion(readingCoverSuggestionPrompt(source), signal))
+  ));
+}
+
 export async function savePoster(account: PosterAccount, input: { id?: string; source: PosterSource; plan: unknown; approved?: boolean }) {
   const plan = normalizePlan(input.plan);
   if (sourceWarnings(plan, input.source.text).length) throw new PosterError("invalid_quote");

@@ -152,7 +152,8 @@
       "producerName": "Seu nome (do perfil)",
       "textType": "ex.: artigo, e-mail, diálogo…",
       "topic": "Opcional. Deixe em branco para evitar mostrar o prompt da IA.",
-      "customPrompt": "Exemplo: Uma sala de aula tranquila com alunos lendo, luz quente, detalhado, composição limpa"
+      "customPrompt": "Exemplo: Uma sala de aula tranquila com alunos lendo, luz quente, detalhado, composição limpa",
+      "readingPosterPrompt": "Descreva o que deve aparecer em cada um dos seis quadros."
     },
     "help": {
       "producerName": "Isso é obtido do seu perfil (users/{uid}).",
@@ -173,6 +174,10 @@
       "realistic": "Realista",
       "writePrompt": "Escrever prompt",
       "useTextAsInspiration": "Usar o texto como inspiração",
+      "readingPoster": "Cartaz didático · 6 quadros",
+      "suggestReadingPosterPrompt": "Sugerir seis cenas com IA",
+      "replaceReadingPosterPrompt": "Substituir pela sugestão da IA",
+      "suggestingReadingPosterPrompt": "Sugerindo cenas …",
       "generateImage": "Gerar imagem",
       "generating": "Gerando...",
       "limitReached": "Limite atingido",

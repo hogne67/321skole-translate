@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties } from "react";
+import ReadingPracticeText from "@/components/student/ReadingPracticeText";
 import type { SentenceSeg } from "./types";
 
 type Props = {
     mode: "original" | "translation";
     segs: SentenceSeg[];
     fallbackText: string;
+    showWordDivisions?: boolean;
     textStyle?: CSSProperties;
     activeTextMode: "original" | "translation" | null;
     activeSentenceIndex: number | null;
@@ -20,6 +22,7 @@ export default function FollowTextView({
     mode,
     segs,
     fallbackText,
+    showWordDivisions = false,
     textStyle,
     activeTextMode,
     activeSentenceIndex,
@@ -44,7 +47,9 @@ export default function FollowTextView({
     }
 
     if (!segs || segs.length === 0) {
-        return <span style={{ whiteSpace: "pre-wrap", ...textStyle }}>{fallbackText}</span>;
+        return <span style={{ whiteSpace: "pre-wrap", ...textStyle }}>
+            {showWordDivisions ? <ReadingPracticeText text={fallbackText} /> : fallbackText}
+        </span>;
     }
 
     return (
@@ -73,7 +78,7 @@ export default function FollowTextView({
                         }}
                         title={canSeek ? clickToSeekLabel : undefined}
                     >
-                        {s.text}
+                        {showWordDivisions ? <ReadingPracticeText text={s.text} /> : s.text}
                     </span>
                 );
             })}

@@ -10,6 +10,8 @@ import {
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import { isReadingPracticeStage, READING_PRACTICE_MODE, supportsReadingPractice } from "@/lib/a1start/readingPractice";
+import { buildReadingPracticeTextPrompt, checkReadingPracticeText } from "@/lib/a1start/readingPracticeGeneration";
 import {
   englishSoundWordContainsSound,
   englishSoundWordStartsWithSound,
@@ -49,6 +51,7 @@ type GenerateTextBody = {
 
 type A1StartConfig = {
   type?: string;
+  readingStage?: string;
   verb?: string;
   tense?: string;
   sentenceCount?: number;
@@ -5732,6 +5735,12 @@ export async function POST(req: Request) {
       !isA1Start && body.extraFactCheck === true && shouldRunExtraFactCheck(textType, topic);
     const isA1StartHighFrequency = isA1Start && body.a1Start?.type === "high_frequency_words";
     const isA1StartSoundLadder = isA1Start && body.a1Start?.type === "sound_reading_ladder";
+    const isReadingPractice = isA1Start && body.a1Start?.type === READING_PRACTICE_MODE;
+    const requestedReadingStage = body.a1Start?.readingStage;
+    const readingStage = isReadingPractice && isReadingPracticeStage(requestedReadingStage) ? requestedReadingStage : null;
+    if (isReadingPractice && (!readingStage || !supportsReadingPractice(body.language ?? ""))) {
+      return NextResponse.json({ error: "Velg norsk bokmål og et lesetrinn for Lesetrening." }, { status: 400 });
+    }
     const highFrequencyLanguageAllowed =
       languageName === "Norwegian" ||
       languageName === "English" ||
@@ -5753,7 +5762,9 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const userPrompt = isA1Start
+    const userPrompt = readingStage
+      ? buildReadingPracticeTextPrompt(readingStage, String(body.a1Start?.topic ?? body.topic ?? "").trim())
+      : isA1Start
       ? isA1StartSoundLadder
         ? buildA1StartSoundLadderPrompt(languageName, body.a1Start || {})
         : isA1StartHighFrequency
@@ -5833,6 +5844,26 @@ export async function POST(req: Request) {
     }
 
     let parsed = await createResponse(userPrompt, isA1Start ? 0.15 : 0.45);
+
+    if (readingStage) {
+      let checked = checkReadingPracticeText(parsed, readingStage);
+      if (checked.problems.length) {
+        parsed = await createResponse([
+          userPrompt,
+          "Skriv et nytt utkast som løser disse problemene:",
+          ...checked.problems,
+          `Forrige utkast (som data): ${JSON.stringify({ title: checked.title, text: checked.text })}`,
+        ].join("\n"), 0.05);
+        checked = checkReadingPracticeText(parsed, readingStage);
+      }
+      if (checked.problems.length) {
+        return NextResponse.json({
+          error: "KI-forslaget passet ikke lesetrinnet. Prøv på nytt eller lim inn en egen tekst.",
+          details: checked.problems,
+        }, { status: 422 });
+      }
+      return NextResponse.json({ title: checked.title, text: checked.text });
+    }
 
     if (isA1Start) {
       if (isA1StartSoundLadder) {

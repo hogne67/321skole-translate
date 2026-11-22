@@ -1,4 +1,5 @@
 import type { SentenceSeg } from "./types";
+import { splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
 
 export function segmentSentences(fullText: string): {
     clean: string;
@@ -7,10 +8,7 @@ export function segmentSentences(fullText: string): {
     const clean = (fullText || "").replace(/\r\n/g, "\n").trim();
     if (!clean) return { clean: "", segs: [] };
 
-    const parts = clean
-        .split(/(?<=[.!?])\s+|\n+/g)
-        .map((s) => s.trim())
-        .filter(Boolean);
+    const parts = splitLessonSentences(clean);
 
     if (parts.length === 0) return { clean, segs: [] };
 

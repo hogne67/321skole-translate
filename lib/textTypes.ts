@@ -1,3 +1,5 @@
+import { READING_PRACTICE_TEXT_TYPES } from "./a1start/readingPractice";
+
 export const TEXT_TYPE_KEYS = [
   "everydayStory",
   "factual",
@@ -13,6 +15,7 @@ export const TEXT_TYPE_KEYS = [
   "pattern_sentences",
   "high_frequency_words",
   "sound_reading_ladder",
+  ...Object.values(READING_PRACTICE_TEXT_TYPES),
   "other",
 ] as const;
 
@@ -71,6 +74,12 @@ const TEXT_TYPE_ALIASES: Record<string, TextTypeKey> = {
   lydtrening: "sound_reading_ladder",
   "treino de som": "sound_reading_ladder",
   "escada de leitura sonora": "sound_reading_ladder",
+  "lesetrening – én stavelse": READING_PRACTICE_TEXT_TYPES.one_syllable,
+  "lesetrening – én og to stavelser": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
+  "reading practice – one syllable": READING_PRACTICE_TEXT_TYPES.one_syllable,
+  "reading practice – one and two syllables": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
+  "prática de leitura – uma sílaba": READING_PRACTICE_TEXT_TYPES.one_syllable,
+  "prática de leitura – uma e duas sílabas": READING_PRACTICE_TEXT_TYPES.one_and_two_syllables,
   other: "other",
   annet: "other",
   outro: "other",
@@ -121,6 +130,8 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       pattern_sentences: "Mønstersetninger",
       high_frequency_words: "Høyfrekvente ord",
       sound_reading_ladder: "Lydtrening",
+      [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Lesetrening – Én stavelse",
+      [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Lesetrening – Én og to stavelser",
       other: "Annet",
     },
     en: {
@@ -138,6 +149,8 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       pattern_sentences: "Pattern sentences",
       high_frequency_words: "High-frequency words",
       sound_reading_ladder: "Sound training",
+      [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Reading practice – One syllable",
+      [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Reading practice – One and two syllables",
       other: "Other",
     },
     pt: {
@@ -155,6 +168,8 @@ export function getTextTypeLabel(key: TextTypeKey, locale: string): string {
       pattern_sentences: "Frases padrão",
       high_frequency_words: "Palavras de alta frequência",
       sound_reading_ladder: "Treino de som",
+      [READING_PRACTICE_TEXT_TYPES.one_syllable]: "Prática de leitura – Uma sílaba",
+      [READING_PRACTICE_TEXT_TYPES.one_and_two_syllables]: "Prática de leitura – Uma e duas sílabas",
       other: "Outro",
     },
   };

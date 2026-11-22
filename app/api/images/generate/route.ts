@@ -19,9 +19,7 @@ import {
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 import { authorizeSpaceFileScope, saveGeneratedSpaceImage, SpaceFileError } from "@/lib/spaceFiles.server";
 import type { SpaceFileScope } from "@/lib/spaceFiles";
-
-type CoverImageStyle = "illustration" | "realistic";
-type CoverImagePromptMode = "custom" | "fromText";
+import { buildCoverImagePrompt, normalizeCoverImagePromptMode, type CoverImagePromptMode, type CoverImageStyle } from "@/lib/lessons/coverImagePrompt";
 
 type GenerateImageBody = {
   context?: "student_writing_print" | "space_board";
@@ -106,58 +104,6 @@ function getMonthId(date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   return `${y}-${m}`;
-}
-
-function buildPrompt(
-  body: Required<Pick<GenerateImageBody, "style" | "promptMode">> & GenerateImageBody
-) {
-  const styleInstruction =
-    body.style === "realistic"
-      ? "Create a realistic, photographic-looking educational cover image."
-      : "Create a drawn illustrated educational cover image, clearly illustrated rather than photographic.";
-
-  const compositionInstruction =
-    "Landscape composition in 16:9. Clean single-scene cover image. No collage. No split panels. No text inside image. No letters, numbers, watermark, or logo.";
-
-  const safetyInstruction =
-    "Suitable for a school learning platform. Avoid copyrighted characters, famous branded products, and readable text inside the image.";
-
-  if (body.promptMode === "custom") {
-    const custom = (body.customPrompt || "").trim();
-    if (!custom) {
-      throw new Error("Missing customPrompt.");
-    }
-
-    return [
-      styleInstruction,
-      compositionInstruction,
-      safetyInstruction,
-      `Image brief: ${custom}`,
-    ].join("\n\n");
-  }
-
-  const sourceText = (body.sourceText || "").trim();
-  if (!sourceText) {
-    throw new Error("Missing sourceText.");
-  }
-
-  const title = (body.title || "").trim();
-  const level = (body.level || "").trim();
-  const language = (body.language || "").trim();
-  const trimmedText = sourceText.slice(0, 4000);
-
-  return [
-    styleInstruction,
-    compositionInstruction,
-    safetyInstruction,
-    "Use the lesson information below as inspiration for one strong cover image.",
-    title ? `Title: ${title}` : "",
-    level ? `Level: ${level}` : "",
-    language ? `Language: ${language}` : "",
-    `Lesson text:\n${trimmedText}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
 }
 
 export async function POST(req: NextRequest) {
@@ -252,10 +198,9 @@ export async function POST(req: NextRequest) {
     const style: CoverImageStyle =
       body.style === "realistic" ? "realistic" : "illustration";
 
-    const promptMode: CoverImagePromptMode =
-      body.promptMode === "fromText" ? "fromText" : "custom";
+    const promptMode = normalizeCoverImagePromptMode(body.promptMode);
 
-    const prompt = buildPrompt({
+    const prompt = buildCoverImagePrompt({
       ...body,
       style,
       promptMode,
@@ -286,8 +231,10 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(b64, "base64");
-    const croppedBuffer = await sharp(buffer)
-      .resize(1536, 864, { fit: "cover", position: "centre" })
+    const coverBuffer = await sharp(buffer)
+      .resize(1536, 864, promptMode === "readingPoster"
+        ? { fit: "contain", background: "#ffffff" }
+        : { fit: "cover", position: "centre" })
       .webp({ quality: 90 })
       .toBuffer();
 
@@ -297,14 +244,14 @@ export async function POST(req: NextRequest) {
     let storagePath: string;
     let imageUrl: string;
     if (privateScope) {
-      const saved = await saveGeneratedSpaceImage(uid, privateScope, croppedBuffer, () => auth.verifyIdToken(authToken, true));
+      const saved = await saveGeneratedSpaceImage(uid, privateScope, coverBuffer, () => auth.verifyIdToken(authToken, true));
       storagePath = saved.storagePath; imageUrl = saved.imageUrl;
     } else {
       const downloadToken = randomUUID();
       const titleSlug = safeSlug(body.title || "lesson");
       storagePath = `covers/${uid}/${lessonId}/ai-${Date.now()}-${titleSlug || "cover"}.webp`;
       const file = bucket.file(storagePath);
-      await file.save(croppedBuffer, {
+      await file.save(coverBuffer, {
       contentType: "image/webp",
       resumable: false,
       metadata: {

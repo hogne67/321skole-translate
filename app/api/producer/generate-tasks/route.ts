@@ -10,6 +10,9 @@ import {
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import { READING_PRACTICE_MODE, READING_PRACTICE_TASK_DEFAULTS, supportsReadingPractice } from "@/lib/a1start/readingPractice";
+import { buildReadingPracticeTasksPrompt, completeReadingPracticeTasks, readReadingPracticeTasks } from "@/lib/a1start/readingPracticeGeneration";
+import { LESSON_TASK_COUNT_LIMITS, type GeneratedLessonTasks as TasksOnly, type LessonTaskCounts } from "@/lib/lessons/tasks";
 
 export const runtime = "nodejs";
 
@@ -19,12 +22,7 @@ type GenerateTasksBody = {
   topic?: string;
   textType?: string;
   text?: string;
-  tasks?: {
-    mcq?: number;
-    trueFalse?: number;
-    facts?: number;
-    reflection?: number;
-  };
+  tasks?: Partial<LessonTaskCounts>;
   a1Start?: A1StartConfig;
 };
 
@@ -42,17 +40,6 @@ type A1StartConfig = {
   focusSound?: string;
   soundSentenceCount?: number;
   soundWordCount?: number;
-};
-
-type TasksOnly = {
-  multipleChoice: Array<{
-    q: string;
-    options: [string, string, string, string];
-    answerIndex: 0 | 1 | 2 | 3;
-  }>;
-  trueFalse: Array<{ statement: string; answer: boolean }>;
-  writeFacts: string[];
-  reflectionQuestions: string[];
 };
 
 type OpenAIErrorLike = { message?: string; code?: string | number };
@@ -436,13 +423,6 @@ function normalizeA1StartTrueFalseItems(
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { ok: false, error: "OPENAI_API_KEY mangler i .env.local" },
-        { status: 500 }
-      );
-    }
-
     const user = await getRequestUserContext(req);
 
     if (!user) {
@@ -477,12 +457,26 @@ export async function POST(req: Request) {
       );
     }
 
-    const mcq = clampCount(Number(body.tasks?.mcq ?? 6), 0, 20, 6);
-    const trueFalse = clampCount(Number(body.tasks?.trueFalse ?? 10), 0, 30, 10);
-    const facts = clampCount(Number(body.tasks?.facts ?? 6), 0, 10, 6);
-    const reflection = clampCount(Number(body.tasks?.reflection ?? 3), 0, 20, 3);
     const isA1Start = level === "A1_START";
     const isA1 = level.toUpperCase() === "A1";
+    const isReadingPractice = isA1Start && body.a1Start?.type === READING_PRACTICE_MODE;
+    if (isReadingPractice && !supportsReadingPractice(language)) {
+      return NextResponse.json({ ok: false, error: "Velg norsk bokmål for Lesetrening." }, { status: 400 });
+    }
+
+    const defaults = isReadingPractice ? READING_PRACTICE_TASK_DEFAULTS : { mcq: 6, trueFalse: 10, facts: 6, reflection: 3 };
+    const count = (kind: keyof LessonTaskCounts) => clampCount(
+      Number(body.tasks?.[kind] ?? defaults[kind]), 0, LESSON_TASK_COUNT_LIMITS[kind], defaults[kind],
+    );
+    const taskCounts = { mcq: count("mcq"), trueFalse: count("trueFalse"), facts: count("facts"), reflection: count("reflection") };
+    const { mcq, trueFalse, facts, reflection } = taskCounts;
+
+    if (isReadingPractice && mcq === 0 && trueFalse === 0 && reflection < 2) {
+      return NextResponse.json({ ok: true, tasks: completeReadingPracticeTasks(taskCounts) });
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ ok: false, error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
+    }
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -500,7 +494,9 @@ Do not default to the UI language, prompt language, instruction language, or top
 All task texts must be written only in the requested target language.
 `.trim();
 
-    const userPrompt = isA1Start
+    const userPrompt = isReadingPractice
+      ? buildReadingPracticeTasksPrompt(text, taskCounts)
+      : isA1Start
       ? buildA1StartTaskPrompt({
         languageName,
         text,
@@ -559,46 +555,52 @@ Counts:
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const resp = await client.responses.create({
-      store: false,
-      model,
-      text: { format: { type: "json_object" } },
-      input: [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
-      ],
-    });
-
-    const out = (resp.output_text || "").trim();
-    if (!out) {
-      return NextResponse.json(
-        { ok: false, error: "Tomt svar fra modellen." },
-        { status: 500 }
-      );
+    async function requestTasks(prompt: string) {
+      const response = await client.responses.create({
+        store: false,
+        model,
+        text: { format: { type: "json_object" } },
+        input: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+      });
+      return (response.output_text || "").trim();
     }
 
     let parsed: { tasks: TasksOnly };
-    try {
-      parsed = JSON.parse(out) as { tasks: TasksOnly };
-    } catch {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Modellen returnerte ikke gyldig JSON.",
-          raw: out.slice(0, 2000),
-        },
-        { status: 500 }
-      );
+    const out = await requestTasks(userPrompt);
+    if (isReadingPractice) {
+      const tasks = readReadingPracticeTasks(out, taskCounts) ?? readReadingPracticeTasks(await requestTasks(
+        `${userPrompt}\n\nForrige forsøk fulgte ikke oppgaveformatet. Sjekk antallet i hver liste, at oppgavene og svarvalgene er ulike, og at svarindeksene stemmer.`,
+      ), taskCounts);
+      if (!tasks) {
+        return NextResponse.json({ ok: false, error: "KI laget ikke alle oppgavene i riktig format. Prøv å lage oppgavene på nytt." }, { status: 422 });
+      }
+      parsed = { tasks };
+    } else {
+      if (!out) {
+        return NextResponse.json({ ok: false, error: "Tomt svar fra modellen." }, { status: 500 });
+      }
+      try {
+        parsed = JSON.parse(out) as { tasks: TasksOnly };
+      } catch {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Modellen returnerte ikke gyldig JSON.",
+            raw: out.slice(0, 2000),
+          },
+          { status: 500 }
+        );
+      }
+
+      if (!parsed?.tasks) {
+        return NextResponse.json({ ok: false, error: "Mangler 'tasks' i JSON-respons." }, { status: 500 });
+      }
     }
 
-    if (!parsed?.tasks) {
-      return NextResponse.json(
-        { ok: false, error: "Mangler 'tasks' i JSON-respons." },
-        { status: 500 }
-      );
-    }
-
-    if (isA1Start) {
+    if (isA1Start && !isReadingPractice) {
       const requestedTrueFalse = clampCount(Number(body.a1Start?.trueFalseCount ?? 5), 0, 10, 5);
       const requestedImageSentences = clampCount(Number(body.a1Start?.imageSentenceCount ?? 5), 0, 10, 5);
       const requestedVerbSentences = clampCount(Number(body.a1Start?.verbSentenceCount ?? 5), 0, 10, 5);

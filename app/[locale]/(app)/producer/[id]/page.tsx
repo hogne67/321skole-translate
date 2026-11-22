@@ -3,7 +3,7 @@
 
 import ExternalTrainingVideoNotice from "@/components/ExternalTrainingVideoNotice";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
@@ -24,7 +24,10 @@ import { LANGUAGES } from "@/lib/languages";
 import LessonFactCheck from "@/components/LessonFactCheck";
 import AnswerPasteSetting from "@/components/AnswerPasteSetting";
 import LessonPosterAction from "@/components/learning-posters/LessonPosterAction";
+import { supportsReadingPractice } from "@/lib/a1start/readingPractice";
+import { posterCopy } from "@/lib/learningPosters/copy";
 import { isAnswerPasteAllowed } from "@/lib/lessons/answerPaste";
+import { normalizeCoverImagePromptMode, type CoverImagePromptMode, type CoverImageStyle } from "@/lib/lessons/coverImagePrompt";
 import { getTextTypeLabel, normalizeTextTypeKey, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type TaskType = "truefalse" | "mcq" | "open";
@@ -36,8 +39,6 @@ type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type TextSize = "normal" | "large" | "xlarge";
 
 type CoverImageSource = "upload" | "ai";
-type CoverImageStyle = "illustration" | "realistic";
-type CoverImagePromptMode = "custom" | "fromText";
 
 type Task = {
   id: string;
@@ -150,10 +151,6 @@ function normalizeCoverImageSource(v: unknown): CoverImageSource {
 
 function normalizeCoverImageStyle(v: unknown): CoverImageStyle {
   return v === "realistic" ? "realistic" : "illustration";
-}
-
-function normalizeCoverImagePromptMode(v: unknown): CoverImagePromptMode {
-  return v === "fromText" ? "fromText" : "custom";
 }
 
 function getErrorMessage(err: unknown): string {
@@ -381,6 +378,13 @@ export default function ProducerLessonEditorPage() {
   const [aiCoverStyle, setAiCoverStyle] = useState<CoverImageStyle>("illustration");
   const [aiCoverPromptMode, setAiCoverPromptMode] = useState<CoverImagePromptMode>("custom");
   const [aiCoverPrompt, setAiCoverPrompt] = useState("");
+  const [suggestingCoverPrompt, setSuggestingCoverPrompt] = useState(false);
+  const [coverPromptError, setCoverPromptError] = useState("");
+  const coverPromptRequest = useRef<AbortController | null>(null);
+  const isReadingPoster = aiCoverPromptMode === "readingPoster";
+  const showReadingPoster = isReadingPoster || (showHighFrequencyFields && supportsReadingPractice(language));
+
+  useEffect(() => () => coverPromptRequest.current?.abort(), [lessonId, uid, sourceText, title, aiCoverPromptMode, coverImageSource]);
 
   const sortedTasks = useMemo(() => {
     const next = [...tasks];
@@ -606,6 +610,47 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
+  async function suggestReadingPosterPrompt() {
+    if (coverPromptRequest.current) return;
+    const copy = posterCopy(locale);
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user || user.isAnonymous || user.uid !== uid) {
+      setCoverPromptError(copy.login);
+      return;
+    }
+    const request = new AbortController();
+    coverPromptRequest.current = request;
+    setSuggestingCoverPrompt(true);
+    setCoverPromptError("");
+    try {
+      const token = await user.getIdToken();
+      request.signal.throwIfAborted();
+      const response = await fetch("/api/producer/learning-posters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "reading-cover-prompt", lessonId, source: { title, text: sourceText } }),
+        signal: request.signal,
+      });
+      const data = await response.json() as { ok?: boolean; prompt?: unknown; reason?: string };
+      const prompt = readString(data.prompt).trim();
+      if (request.signal.aborted || auth.currentUser?.uid !== user.uid) return;
+      if (!response.ok || !data.ok || !prompt) {
+        if (data.reason?.startsWith("quota")) setCoverPromptError(copy.quotaError);
+        else if (data.reason === "email_verification_required") setCoverPromptError(copy.verifyError);
+        else if (response.status === 401) setCoverPromptError(copy.login);
+        else setCoverPromptError(copy.genericError);
+        return;
+      }
+      setAiCoverPrompt(current => current === aiCoverPrompt ? prompt : current);
+    } catch {
+      if (!request.signal.aborted) setCoverPromptError(copy.genericError);
+    } finally {
+      coverPromptRequest.current = null;
+      setSuggestingCoverPrompt(false);
+    }
+  }
+
   async function generateAiCover() {
     setErr(null);
     setGeneratingCover(true);
@@ -628,7 +673,7 @@ export default function ProducerLessonEditorPage() {
         throw new Error("Missing auth token.");
       }
 
-      if (aiCoverPromptMode === "custom" && !aiCoverPrompt.trim()) {
+      if (aiCoverPromptMode !== "fromText" && !aiCoverPrompt.trim()) {
         throw new Error("Skriv et prompt for AI-bildet.");
       }
 
@@ -1438,6 +1483,7 @@ export default function ProducerLessonEditorPage() {
                     <button
                       type="button"
                       onClick={() => setAiCoverPromptMode("custom")}
+                      aria-pressed={aiCoverPromptMode === "custom"}
                       style={{
                         padding: "10px 12px",
                         borderRadius: 10,
@@ -1452,6 +1498,7 @@ export default function ProducerLessonEditorPage() {
                     <button
                       type="button"
                       onClick={() => setAiCoverPromptMode("fromText")}
+                      aria-pressed={aiCoverPromptMode === "fromText"}
                       style={{
                         padding: "10px 12px",
                         borderRadius: 10,
@@ -1462,22 +1509,55 @@ export default function ProducerLessonEditorPage() {
                     >
                       {t("cover.useTextAsInspiration")}
                     </button>
+                    {showReadingPoster && (
+                      <button
+                        type="button"
+                        onClick={() => setAiCoverPromptMode("readingPoster")}
+                        aria-pressed={isReadingPoster}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: isReadingPoster ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: "#fff",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {t("cover.readingPoster")}
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {aiCoverPromptMode === "custom" ? (
-                  <label style={{ display: "grid", gap: 6 }}>
-                    <div style={{ fontWeight: 800 }}>
-                      {t("fieldsExtra.prompt")}
-                    </div>
-                    <textarea
-                      value={aiCoverPrompt}
-                      onChange={(e) => setAiCoverPrompt(e.target.value)}
-                      rows={4}
-                      style={fieldStyle}
-                      placeholder={t("placeholdersExtra.customPrompt")}
-                    />
-                  </label>
+                {aiCoverPromptMode !== "fromText" ? (
+                  <>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <div style={{ fontWeight: 800 }}>
+                        {t("fieldsExtra.prompt")}
+                      </div>
+                      <textarea
+                        value={aiCoverPrompt}
+                        onChange={(e) => setAiCoverPrompt(e.target.value)}
+                        rows={isReadingPoster ? 9 : 4}
+                        style={fieldStyle}
+                        placeholder={t(isReadingPoster ? "placeholdersExtra.readingPosterPrompt" : "placeholdersExtra.customPrompt")}
+                      />
+                    </label>
+                    {isReadingPoster && (
+                      <div aria-busy={suggestingCoverPrompt}>
+                        <button
+                          type="button"
+                          onClick={() => void suggestReadingPosterPrompt()}
+                          disabled={suggestingCoverPrompt || generatingCover || !sourceText.trim()}
+                          style={fieldStyle}
+                        >
+                          {suggestingCoverPrompt
+                            ? t("cover.suggestingReadingPosterPrompt")
+                            : t(aiCoverPrompt.trim() ? "cover.replaceReadingPosterPrompt" : "cover.suggestReadingPosterPrompt")}
+                        </button>
+                        {coverPromptError && <p role="alert" style={{ ...smallHelpStyle, color: "#b91c1c" }}>{coverPromptError}</p>}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div
                     style={{
@@ -1512,7 +1592,7 @@ export default function ProducerLessonEditorPage() {
                   <button
                     type="button"
                     onClick={generateAiCover}
-                    disabled={generatingCover || imageLimitReached}
+                    disabled={generatingCover || suggestingCoverPrompt || imageLimitReached}
                     style={{
                       padding: "10px 14px",
                       borderRadius: 10,
@@ -1520,8 +1600,8 @@ export default function ProducerLessonEditorPage() {
                       background: "#2563eb",
                       color: "#fff",
                       fontWeight: 800,
-                      cursor: generatingCover || imageLimitReached ? "not-allowed" : "pointer",
-                      opacity: generatingCover || imageLimitReached ? 0.7 : 1,
+                      cursor: generatingCover || suggestingCoverPrompt || imageLimitReached ? "not-allowed" : "pointer",
+                      opacity: generatingCover || suggestingCoverPrompt || imageLimitReached ? 0.7 : 1,
                     }}
                   >
                     {generatingCover

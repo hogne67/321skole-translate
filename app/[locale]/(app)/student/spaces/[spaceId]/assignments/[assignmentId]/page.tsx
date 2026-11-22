@@ -114,6 +114,7 @@ import { normalizeGeometryAnswersByTaskId } from "./geometrySubmissionHelpers";
 import { isMathWorksheet } from "./worksheetTypeGuards";
 import { translateOne } from "./translationHelpers";
 import { segmentSentences } from "./audioHelpers";
+import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
 import { splitLessonTextSections, type LessonTextSectionKey } from "./lessonTextSections";
 
 import { SmartImage } from "./AssignmentUiAtoms";
@@ -617,6 +618,12 @@ export default function StudentAssignmentPage() {
   }, [assignmentId, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isGrammarTest || isPodcastWorkshop ? "" : sourceTextSafe;
+  const readingPracticeStage = getReadingPracticeStage(lesson?.textType, lesson?.language);
+  const showWordDivisions = readingPracticeStage === "one_and_two_syllables";
+  const spokenSourceText = useMemo(
+    () => showWordDivisions ? readingPracticeSpokenText(displayedSourceTextSafe) : displayedSourceTextSafe,
+    [displayedSourceTextSafe, showWordDivisions],
+  );
   const baseStudentTextSize = defaultAssignmentStudentTextSize(
     lesson?.textSize ?? assignment?.textSize,
     lesson?.level ?? assignment?.level
@@ -802,7 +809,7 @@ export default function StudentAssignmentPage() {
 
   async function onTranslateText() {
     const epoch = translationEpoch.current;
-    const base = String(lesson?.sourceText ?? lesson?.text ?? "");
+    const base = spokenSourceText;
     if (!base.trim()) return;
 
     setTranslateErr(null);
@@ -876,7 +883,7 @@ export default function StudentAssignmentPage() {
     setTeacherFeedbackTtsBusy("teacherFeedback");
 
     try {
-      await playTTS(text, originalLangForTTS, "original", "teacher_feedback");
+      await playTTS(text, originalLangForTTS, "original", { purpose: "teacher_feedback" });
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
@@ -889,7 +896,7 @@ export default function StudentAssignmentPage() {
     setTeacherFeedbackTtsBusy("teacherFeedbackTranslation");
 
     try {
-      await playTTS(text, toTtsLang(targetLang), "translation", "teacher_feedback");
+      await playTTS(text, toTtsLang(targetLang), "translation", { purpose: "teacher_feedback" });
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
@@ -1023,12 +1030,13 @@ export default function StudentAssignmentPage() {
         if (hasSnapshotContent(aDoc)) {
           resolvedLesson = assignmentToLesson(aDoc);
           const sourceId = String(aDoc.sourceId ?? "").trim();
-          const needsHighFrequencyFields =
+          const needsSourceMetadata =
             sourceId &&
             (!resolvedLesson.highFrequencyReadingSentences?.trim() ||
-              !resolvedLesson.highFrequencyExplanation?.trim());
+              !resolvedLesson.highFrequencyExplanation?.trim() ||
+              (resolvedLesson.level === "A1_START" && !resolvedLesson.textType));
 
-          if (needsHighFrequencyFields) {
+          if (needsSourceMetadata) {
             const srcType = (aDoc.sourceType ?? "library") as SourceType;
             let sourceLesson: Lesson | null = null;
 
@@ -1052,6 +1060,7 @@ export default function StudentAssignmentPage() {
             if (sourceLesson) {
               resolvedLesson = {
                 ...resolvedLesson,
+                textType: resolvedLesson.textType ?? sourceLesson.textType ?? sourceLesson.texttype,
                 highFrequencyWord: resolvedLesson.highFrequencyWord ?? sourceLesson.highFrequencyWord,
                 highFrequencyReadingSentences:
                   resolvedLesson.highFrequencyReadingSentences ?? sourceLesson.highFrequencyReadingSentences,
@@ -1102,6 +1111,7 @@ export default function StudentAssignmentPage() {
             language: aDoc.language ?? d.language,
             sourceText: d.sourceText,
             text: d.text,
+            textType: aDoc.textType ?? aDoc.texttype ?? d.textType ?? d.texttype,
             highFrequencyWord: aDoc.highFrequencyWord ?? d.highFrequencyWord,
             highFrequencyReadingSentences:
               aDoc.highFrequencyReadingSentences ?? d.highFrequencyReadingSentences,
@@ -2459,6 +2469,7 @@ export default function StudentAssignmentPage() {
             textSizeOptions={STUDENT_TEXT_SIZE_OPTIONS}
             onTextSizeChange={setStudentTextSize}
             sourceTextSafe={displayedSourceTextSafe}
+            showWordDivisions={showWordDivisions}
             translatedText={translatedText}
             lessonTextSections={lessonTextSections}
             translatedSectionMap={translatedSectionMap}
@@ -2480,7 +2491,8 @@ export default function StudentAssignmentPage() {
             onTranslateSection={onTranslateSection}
             onPlayTTS={async (text, lang, mode) => {
               setActiveTextSectionKey(null);
-              await playTTS(text, lang, mode);
+              const readingPassage = mode === "original" && readingPracticeStage !== null;
+              await playTTS(readingPassage ? spokenSourceText : text, lang, mode, { readingPassage });
             }}
             onPlaySectionTTS={async (key, text, lang, mode) => {
               setActiveTextSectionKey(key);

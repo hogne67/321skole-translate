@@ -152,7 +152,8 @@
       "producerName": "Your name (from profile)",
       "textType": "e.g. article, email, dialogue…",
       "topic": "Optional",
-      "customPrompt": "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
+      "customPrompt": "Example: A calm classroom scene with students reading, warm light, detailed, clean composition",
+      "readingPosterPrompt": "Describe what to show in each of the six panels."
     },
     "help": {
       "producerName": "This is taken from your profile (users/{uid}).",
@@ -173,6 +174,10 @@
       "realistic": "Realistic",
       "writePrompt": "Write prompt",
       "useTextAsInspiration": "Use text as inspiration",
+      "readingPoster": "Learning poster · 6 panels",
+      "suggestReadingPosterPrompt": "Suggest six scenes with AI",
+      "replaceReadingPosterPrompt": "Replace with AI suggestion",
+      "suggestingReadingPosterPrompt": "Suggesting scenes …",
       "generateImage": "Generate image",
       "generating": "Generating...",
       "limitReached": "Limit reached",
