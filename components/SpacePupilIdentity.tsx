@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ArrowLeftRight, LogOut, UserRound } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
@@ -14,82 +14,65 @@ const actionClass =
 const secondaryAction = `${actionClass} border border-solid border-emerald-200 bg-white text-emerald-950 hover:bg-emerald-100`;
 const primaryAction = `${actionClass} border-0 bg-emerald-800 text-white hover:bg-emerald-900`;
 
-export default function SpacePupilIdentity({ spaceId }: { spaceId: string }) {
+export default function SpacePupilIdentity({ spaceId }: { spaceId: string | null }) {
   const { user } = useUserProfile();
   const locale = useLocale();
   const t = useTranslations("join");
   const confirmationId = useId();
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [action, setAction] = useState<"switch" | "logout" | null>(null);
+  const memberId = spaceId && user?.uid ? `${spaceId}_${user.uid}` : null;
+  const [identity, setIdentity] = useState<{ memberId: string; name: string } | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => {
-    setName("");
-    if (!user?.uid) return;
-    const member = onSnapshot(doc(db, "spaceMembers", `${spaceId}_${user.uid}`), snapshot => {
+    if (!memberId) return;
+    return onSnapshot(doc(db, "spaceMembers", memberId), snapshot => {
       const d = snapshot.data();
-      setName(d?.role === "student" && d.active !== false && d.archived !== true ? String(d.displayName ?? "") : "");
-    }, () => setName(""));
-    const room = onSnapshot(doc(db, "spaces", spaceId), snapshot => {
-      setCode(String(snapshot.data()?.joinCode ?? snapshot.data()?.code ?? ""));
-    }, () => setCode(""));
-    return () => { member(); room(); };
-  }, [spaceId, user?.uid]);
-  if (!name) return null;
+      const name = d?.role === "student" && d.active !== false && d.archived !== true ? String(d.displayName ?? "") : "";
+      setIdentity({ memberId, name });
+    }, () => setIdentity(null));
+  }, [memberId]);
+  const name = identity?.memberId === memberId ? identity.name : "";
+  if (!user || (spaceId && !name)) return null;
   async function endSession() {
     setBusy(true); setError(false);
     try {
       await signOut(auth);
       clearLastStudentSpaceId();
       // Reload to discard the previous pupil's in-memory page and data state.
-      window.location.replace(action === "logout"
-        ? `/${locale}/join?signedOut=1`
-        : `/${locale}/join?code=${encodeURIComponent(code)}`);
+      window.location.replace(`/${locale}/join?signedOut=1`);
     } catch { setError(true); setBusy(false); }
   }
   return (
     <div className="min-w-0 rounded-xl border border-solid border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950 sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <UserRound aria-hidden="true" className="h-5 w-5 shrink-0 text-emerald-800" />
-          <p className="m-0 min-w-0 break-words text-base font-semibold leading-snug">{t("session.identity", { name })}</p>
-        </div>
-        <div className="flex min-w-0 flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy || !code}
-            onClick={() => setAction(action === "switch" ? null : "switch")}
-            aria-expanded={action === "switch"}
-            aria-controls={confirmationId}
-            className={secondaryAction}
-          >
-            <ArrowLeftRight aria-hidden="true" className="h-4 w-4 shrink-0" />
-            {t("session.change")}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setAction(action === "logout" ? null : "logout")}
-            aria-expanded={action === "logout"}
-            aria-controls={confirmationId}
-            className={secondaryAction}
-          >
-            <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
-            {t("session.logout")}
-          </button>
-        </div>
+      <div className={`flex flex-wrap items-center gap-3 ${name ? "justify-between" : "justify-end"}`}>
+        {name ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <UserRound aria-hidden="true" className="h-5 w-5 shrink-0 text-emerald-800" />
+            <p className="m-0 min-w-0 break-words text-base font-semibold leading-snug">{t("session.identity", { name })}</p>
+          </div>
+        ) : null}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setConfirming((previous) => !previous)}
+          aria-expanded={confirming}
+          aria-controls={confirmationId}
+          className={secondaryAction}
+        >
+          <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
+          {t("session.logout")}
+        </button>
       </div>
-      <div id={confirmationId} hidden={!action}>
-        {action ? (
+      <div id={confirmationId} hidden={!confirming}>
+        {confirming ? (
           <div className="mt-3 space-y-2 rounded-lg bg-white p-3">
-            <p className="m-0">{t(action === "logout" ? "session.logoutConfirm" : "session.confirm")}</p>
-            {action === "switch" && user && !user.isAnonymous ? <p className="m-0">{t("confirmation.signOut")}</p> : null}
+            <p className="m-0">{t("session.logoutConfirm")}</p>
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled={busy} onClick={() => void endSession()} className={primaryAction}>
-                {t(busy ? "session.loggingOut" : action === "logout" ? "session.logout" : "session.continue")}
+                {t(busy ? "session.loggingOut" : "session.logout")}
               </button>
-              <button type="button" disabled={busy} onClick={() => setAction(null)} className={secondaryAction}>
+              <button type="button" disabled={busy} onClick={() => setConfirming(false)} className={secondaryAction}>
                 {t("confirmation.cancel")}
               </button>
             </div>

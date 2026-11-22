@@ -5,7 +5,7 @@ import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { collection, doc, getDocFromServer, getDocsFromServer, query, setDoc, where, type Firestore } from "firebase/firestore";
-import { loadStudentContentRoom, selectStudentContentMemberships } from "./studentContentTasks";
+import { listStudentContentMemberships, loadStudentContentRoom, loadStudentContentRoomChoice } from "./studentContentTasks";
 
 const loopbackPort = /^127\.0\.0\.1:(\d+)$/.exec(process.env.FIRESTORE_EMULATOR_HOST ?? "")?.[1];
 const projectId = "demo-student-content";
@@ -21,9 +21,9 @@ function membership(uid: string, participantId: string, status = "active", room 
   return { spaceId: room, uid, participantId, role: "student", status, active: status === "active", archived: false };
 }
 
-async function scopes(db: Firestore, uid: string, lastSpaceId: string | null, isAnonymous = true) {
+async function scopes(db: Firestore, uid: string) {
   const rows = await getDocsFromServer(query(collection(db, "spaceMembers"), where("uid", "==", uid)));
-  return selectStudentContentMemberships(rows.docs, uid, isAnonymous, lastSpaceId);
+  return listStudentContentMemberships(rows.docs, uid);
 }
 
 test("student content follows approved room identity across devices and pupil switch", { skip: !loopbackPort }, async (t) => {
@@ -66,13 +66,19 @@ test("student content follows approved room identity across devices and pupil sw
       [`spaces/${spaceId}/lessons/archive`]: { title: "Tidligere øving", archived: true },
       [`spaces/${spaceId}/writingActivities/letter`]: { title: "Skriv et brev", status: "active" },
       [`spaces/${spaceId}/writingActivities/letter/submissions/legacy-uid`]: { studentUid: firstPupil, status: "planning_submitted" },
-      [`spaces/other-room`]: { title: "Et annet syntetisk rom", ownerId: "other-teacher" },
+      "spaces/other-room": { title: "Et annet syntetisk rom", ownerId: "other-teacher" },
+      "spaces/other-room/lessons/writing": { title: "Skriv en setning", status: "active" },
+      "spaces/other-room/lessons/writing/submissions/other-room_writing_other-pupil": {
+        spaceId: "other-room", assignmentId: "writing", participantId: "other-pupil", uid: "an-earlier-device", status: "draft",
+      },
+      "spaces/archived-room": { title: "Arkivert rom", ownerId: "other-teacher", archived: true },
       [`spaceMembers/${spaceId}_${firstDevice}`]: membership(firstDevice, firstPupil),
       [`spaceMembers/${spaceId}_${secondDevice}`]: membership(secondDevice, firstPupil),
       [`spaceMembers/${spaceId}_${nextPupil}`]: membership(nextPupil, secondPupil),
       [`spaceMembers/${spaceId}_pending-guest`]: membership("pending-guest", firstPupil, "pending_approval"),
       [`spaceMembers/${spaceId}_removed-guest`]: membership("removed-guest", firstPupil, "revoked"),
       [`spaceMembers/other-room_${nextPupil}`]: membership(nextPupil, "other-pupil", "active", "other-room"),
+      [`spaceMembers/archived-room_${nextPupil}`]: membership(nextPupil, "archived-pupil", "active", "archived-room"),
     };
     await Promise.all(Object.entries(fixtures).map(([path, data]) => setDoc(doc(db, path), data)));
   });
@@ -85,14 +91,14 @@ test("student content follows approved room identity across devices and pupil sw
   await t.test("a saved draft opens on a second approved device with a different UID", async () => {
     const first = guest(firstDevice);
     const next = guest(secondDevice);
-    const firstScope = await scopes(first, firstDevice, spaceId);
-    const before = await loadStudentContentRoom(first, firstScope.memberships[0], firstDevice);
+    const firstScope = await scopes(first, firstDevice);
+    const before = await loadStudentContentRoom(first, firstScope[0], firstDevice);
     assert.equal(before?.tasks.find((task) => task.id === lessonId)?.status, "todo");
 
     const submissionId = await writeDraft(firstDevice, "Syntetisk svar");
 
-    const nextScope = await scopes(next, secondDevice, spaceId);
-    const room = await loadStudentContentRoom(next, nextScope.memberships[0], secondDevice);
+    const nextScope = await scopes(next, secondDevice);
+    const room = await loadStudentContentRoom(next, nextScope[0], secondDevice);
     const draft = room?.tasks.find((task) => task.id === lessonId);
     assert.equal(draft?.status, "draft");
     assert.equal(draft?.href, `/student/spaces/${spaceId}/assignments/${lessonId}?sid=${submissionId}`);
@@ -105,19 +111,28 @@ test("student content follows approved room identity across devices and pupil sw
     assert.equal(room?.tasks.find((task) => task.id === "archive")?.archived, true);
   });
 
-  await t.test("the next pupil gets their own work, and remembered rooms never grant access", async () => {
+  await t.test("room choices retain each approved pupil identity and exclude archived rooms", async () => {
     const db = guest(nextPupil);
-    const selected = await scopes(db, nextPupil, spaceId);
-    assert.deepEqual(selected.memberships, [{ spaceId, participantId: secondPupil }]);
-    const room = await loadStudentContentRoom(db, selected.memberships[0], nextPupil);
+    const memberships = await scopes(db, nextPupil);
+    const choices = (await Promise.all(memberships.map((member) => loadStudentContentRoomChoice(db, member))))
+      .filter((choice) => choice !== null);
+    assert.deepEqual(choices.map(({ spaceId }) => spaceId).sort(), ["classroom", "other-room"]);
+    const classroom = choices.find((choice) => choice.spaceId === spaceId);
+    const otherRoom = choices.find((choice) => choice.spaceId === "other-room");
+    assert.ok(classroom && otherRoom);
+    assert.equal(classroom.participantId, secondPupil);
+    assert.equal(otherRoom.participantId, "other-pupil");
+    assert.equal(otherRoom.title, "Et annet syntetisk rom");
+
+    const room = await loadStudentContentRoom(db, classroom, nextPupil);
     assert.equal(room?.tasks.find((task) => task.id === lessonId)?.status, "todo");
     assert.equal(room?.tasks.find((task) => task.id === lessonId)?.href, `/student/spaces/${spaceId}/assignments/${lessonId}`);
     assert.equal(room?.tasks.find((task) => task.id === "letter")?.status, "todo");
-    assert.deepEqual(await scopes(db, nextPupil, "unapproved-room"), { memberships: [], chooseRoom: true });
-    assert.equal((await scopes(db, nextPupil, null, false)).memberships.length, 2);
+    const otherWork = await loadStudentContentRoom(db, otherRoom, nextPupil);
+    assert.deepEqual(otherWork?.tasks.map(({ id, status }) => ({ id, status })), [{ id: "writing", status: "draft" }]);
 
     for (const uid of ["pending-guest", "removed-guest", "guest-without-room"]) {
-      assert.deepEqual(await scopes(guest(uid), uid, spaceId), { memberships: [], chooseRoom: false });
+      assert.deepEqual(await scopes(guest(uid), uid), []);
     }
   });
 });

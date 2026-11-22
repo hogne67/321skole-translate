@@ -12,6 +12,7 @@ import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSubmissionStatus } from "@/lib/submissions/status";
 
 type Membership = { spaceId: string; participantId: string };
+export type StudentContentRoomChoice = Membership & { title: string | null };
 type TaskKind = "lessons" | "writingActivities";
 type TaskStatus = "todo" | "draft" | "submitted" | "reviewed" | "needsWork" | "planningSubmitted" | "planningReviewed";
 
@@ -36,12 +37,10 @@ function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-export function selectStudentContentMemberships(
+export function listStudentContentMemberships(
   rows: readonly Pick<QueryDocumentSnapshot, "id" | "data">[],
   uid: string,
-  isAnonymous: boolean,
-  lastSpaceId: string | null,
-): { memberships: Membership[]; chooseRoom: boolean } {
+): Membership[] {
   const memberships: Membership[] = [];
   for (const row of rows) {
     const member = row.data();
@@ -51,9 +50,13 @@ export function selectStudentContentMemberships(
     memberships.push({ spaceId, participantId: text(member.participantId) ?? uid });
   }
 
-  if (!isAnonymous || memberships.length < 2) return { memberships, chooseRoom: false };
-  const chosen = memberships.find(({ spaceId }) => spaceId === lastSpaceId);
-  return chosen ? { memberships: [chosen], chooseRoom: false } : { memberships: [], chooseRoom: true };
+  return memberships;
+}
+
+export async function loadStudentContentRoomChoice(db: Firestore, membership: Membership): Promise<StudentContentRoomChoice | null> {
+  const room = (await getDocFromServer(doc(db, "spaces", membership.spaceId))).data();
+  if (!room || room.deletedAt || room.archived === true || text(room.status)?.toLowerCase() === "archived") return null;
+  return { ...membership, title: text(room.title) };
 }
 
 function millis(value: unknown): number {
@@ -146,8 +149,8 @@ async function loadTask(
 
 export async function loadStudentContentRoom(db: Firestore, membership: Membership, uid: string): Promise<StudentContentRoom | null> {
   const { spaceId } = membership;
-  const room = (await getDocFromServer(doc(db, "spaces", spaceId))).data();
-  if (!room || room.deletedAt || room.archived === true || text(room.status)?.toLowerCase() === "archived") return null;
+  const room = await loadStudentContentRoomChoice(db, membership);
+  if (!room) return null;
 
   const [lessons, writing] = await Promise.all([
     getDocsFromServer(collection(db, "spaces", spaceId, "lessons")),
@@ -164,5 +167,5 @@ export async function loadStudentContentRoom(db: Firestore, membership: Membersh
     tasks.push(...await Promise.all(batch.map(({ kind, activity }) => loadTask(db, membership, uid, kind, activity))));
   }
   tasks.sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity) || b.updatedAt - a.updatedAt);
-  return { id: spaceId, title: text(room.title), tasks };
+  return { id: spaceId, title: room.title, tasks };
 }
