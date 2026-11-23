@@ -6,7 +6,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { getEffectiveStudentModeForAccount } from "@/lib/studentAccessMode.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
-import { documentId, hasSchoolPupilCodeFormat, joinSchoolPupil } from "@/lib/server/schoolSpacePupilCode";
+import { documentId, hasSchoolPupilCodeFormat, joinSchoolPupil, refreshSchoolPupilRooms } from "@/lib/server/schoolSpacePupilCode";
 import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
 
@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
   catch (accountError) { return json({ error: "unauthorized" }, (accountErrorStatus(accountError) ?? 401)); }
   try {
     const body = await req.json().catch(() => ({}));
+    if (body.refreshRooms === true) {
+      const added = await runCapacityTransaction(db, tx => refreshSchoolPupilRooms(db, tx, decoded));
+      return json({ ok: true, added });
+    }
     const code = joinText(body.code).toUpperCase();
     const studentCode = joinText(body.studentCode).toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) return json({ error: "space_not_found" }, 404);
@@ -149,5 +153,5 @@ export async function POST(req: NextRequest) {
       }, { merge: true });
     }
     return json(result);
-  } catch { return json({ error: "join_failed" }, 500); }
+  } catch (error) { return json({ error: "join_failed" }, accountErrorStatus(error) ?? 500); }
 }

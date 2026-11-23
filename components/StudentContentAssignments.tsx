@@ -15,6 +15,7 @@ import {
   type StudentContentTask,
 } from "@/lib/studentContentTasks";
 import { readLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { onStudentRoomReturn, refreshSchoolStudentRooms } from "@/lib/studentRoomRefresh";
 
 type RoomChoicesState = {
   sessionKey: string;
@@ -86,6 +87,19 @@ export default function StudentContentAssignments({
   useEffect(() => {
     if (!uid) return;
 
+    const refreshController = new AbortController();
+    let syncingRooms = false;
+    const refreshRooms = () => {
+      const current = auth.currentUser;
+      if (syncingRooms || current?.uid !== uid || current.isAnonymous !== isAnonymous) return;
+      syncingRooms = true;
+      void refreshSchoolStudentRooms(current, refreshController.signal).catch(() => {}).finally(() => {
+        syncingRooms = false;
+      });
+    };
+    refreshRooms();
+    const stopRefresh = onStudentRoomReturn(refreshRooms);
+
     let stopped = false;
     let generation = 0;
     const update = (next: RoomChoicesState | null, version: number) => {
@@ -113,6 +127,8 @@ export default function StudentContentAssignments({
 
     return () => {
       stopped = true;
+      refreshController.abort();
+      stopRefresh();
       stop();
     };
   }, [uid, isAnonymous, sessionKey, retry]);

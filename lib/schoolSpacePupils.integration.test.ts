@@ -117,6 +117,12 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     return data;
   }
 
+  async function refresh(as: Auth) {
+    const result = await joinRoom(await request(as, "/api/spaces/join", { refreshRooms: true }));
+    assert.equal(result.status, 200);
+    return (await result.json()).added;
+  }
+
   async function reveal(as: Auth, spaceId: string, targetMemberId: string, status = 200) {
     const result = await writeRoster(await request(as, "/api/roster", { action: "reveal_code", targetMemberId }), room(spaceId));
     assert.equal(result.status, status);
@@ -142,6 +148,22 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   assert.equal(pupil.displayName, "Nora");
   assert.equal(pupil.spaces[0].spaceId, language);
   assert.equal(JSON.stringify(pupil).includes(code), false);
+
+  const preview = await joinRoom(await request(desktop.auth, "/api/spaces/join", {
+    code: roomCode("NB"), studentCode: code,
+  }));
+  assert.equal(preview.status, 200);
+  assert.equal((await preview.json()).preview, true);
+  assert.deepEqual(await visibleRooms(desktop), []);
+
+  const desktopAccess = await enter(desktop.auth, roomCode("NB"), code);
+  assert.equal(desktopAccess.displayName, "Nora");
+  assert.equal(desktopAccess.preview, false);
+  assert.equal(desktopAccess.approvalRequired, undefined);
+  assert.equal(JSON.stringify(desktopAccess).includes(fullName), false);
+  assert.equal(desktopAccess.participantId, created.participantId);
+  assert.deepEqual((await visibleRooms(desktop)).map(room => room.spaceId), [language]);
+
   const mathsMember = (await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId })).member;
   const sameMember = await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId });
   assert.equal(sameMember.reused, true);
@@ -180,19 +202,11 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     })),
   ]);
 
-  const preview = await joinRoom(await request(desktop.auth, "/api/spaces/join", {
-    code: roomCode("NB"), studentCode: code,
-  }));
-  assert.equal(preview.status, 200);
-  assert.equal((await preview.json()).preview, true);
-  assert.deepEqual(await visibleRooms(desktop), []);
-
-  const desktopAccess = await enter(desktop.auth, roomCode("NB"), code);
-  assert.equal(desktopAccess.displayName, "Nora");
-  assert.equal(desktopAccess.preview, false);
-  assert.equal(desktopAccess.approvalRequired, undefined);
-  assert.equal(JSON.stringify(desktopAccess).includes(fullName), false);
-  assert.equal(desktopAccess.participantId, created.participantId);
+  assert.equal((await db.doc("spaceMembers/" + maths + "_" + desktop.uid).get()).exists, false);
+  assert.equal(await refresh(nextPupil.auth), 0);
+  assert.equal((await db.doc("spaceMembers/" + maths + "_" + nextPupil.uid).get()).exists, false);
+  assert.equal(await refresh(desktop.auth), 1);
+  assert.equal(await refresh(desktop.auth), 0);
   const desktopRooms = await visibleRooms(desktop);
   assert.deepEqual(desktopRooms.map(room => room.spaceId).sort(), [language, maths].sort());
   assert.equal(desktopRooms.find(room => room.spaceId === maths)?.participantId, mathsMember.participantId);
@@ -302,6 +316,8 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   await write(coTeacher.auth, maths, recovery, 403);
   assert.equal((await reveal(teacher.auth, language, created.id)).studentCode, rotatedCode);
   assert.ok((await privatePupil.get()).data()?.encryptedCode);
+  assert.equal(await refresh(phone.auth), 0);
+  assert.equal(await refresh(desktop.auth), 0);
   await enter(phone.auth, roomCode("NB"), code, 403);
   await assert.rejects(getDocFromServer(doc(phone.firestore, draftPath)), /permission/i);
   await assert.rejects(getDocFromServer(doc(desktop.firestore, "spaces", maths)), /permission/i);
@@ -316,9 +332,15 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   });
   assert.equal(removed.status, 200);
   assert.equal((await reveal(colleague.auth, maths, mathsMember.id, 404)).studentCode, undefined);
+  assert.equal(await refresh(phone.auth), 0);
   await enter(phone.auth, roomCode("MA"), rotatedCode, 403);
   assert.equal((await enter(phone.auth, roomCode("NB"), rotatedCode)).preview, false);
   assert.deepEqual((await visibleRooms(phone)).map(room => room.spaceId).sort(), [language, legacyRoom].sort());
+
+  const readded = (await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId })).member;
+  assert.equal(readded.participantId, mathsMember.participantId);
+  assert.equal(await refresh(phone.auth), 1);
+  assert.equal((await getDocFromServer(doc(phone.firestore, draftPath))).exists(), true);
 
   await signOut(phone.auth);
   await assert.rejects(getDocFromServer(doc(phone.firestore, draftPath)), /permission/i);
