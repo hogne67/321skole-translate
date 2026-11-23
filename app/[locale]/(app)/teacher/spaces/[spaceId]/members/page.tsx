@@ -655,67 +655,77 @@ function Inner() {
       {canManageStaff ? (
         <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
-          <div className="mt-3 grid items-end gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
-            <div className="relative min-w-0">
-              <select
-                aria-label={t("table.role")}
-                value={singleRole}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
-                }}
-                className={`${fieldClass} appearance-none pr-8`}
-              >
-                <option value="student">{t("roles.student")}</option>
-                <option value="co_teacher">{t("roles.co_teacher")}</option>
-                <option value="observer">{t("roles.observer")}</option>
-              </select>
-              <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
-            </div>
-
-            {singleRole === "student" && schoolRoom ? (
-              <SchoolPupilNameFields names={pupilNames} onChange={setPupilNames} disabled={studentBusy} />
-            ) : singleRole === "student" ? (
-              <input
-                aria-label={t("createStudent.placeholder")}
-                value={studentName}
-                onChange={(event) => setStudentName(event.target.value)}
-                placeholder={t("createStudent.placeholder")}
-                className={fieldClass}
-              />
-            ) : (
-              <input
-                aria-label={t("staff.email")}
-                aria-describedby="staff-account-hint"
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                placeholder={t("staff.email")}
-                type="email"
-                className={fieldClass}
-              />
-            )}
-
-            <button
-              type="button"
-              onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
-              disabled={
-                singleRole === "student"
-                  ? studentBusy || !(schoolRoom ? pupilNames.fullName.trim() : studentName.trim())
-                  : inviteBusy || !inviteEmail.trim()
-              }
-              className={primaryButton}
-            >
-              {singleRole === "student"
-                ? t(studentBusy ? "createStudent.actions.working" : "createStudent.title")
-                : t(inviteBusy ? "staff.inviting" : "staff.invite")}
-            </button>
-          </div>
-          {singleRole !== "student" ? (
-            <p id="staff-account-hint" className="mb-0 mt-2 text-sm text-slate-600">{t("staff.accountHint")}</p>
-          ) : null}
-
           <div className="mt-3">
             <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} />
+          </div>
+
+          <div className="mt-4 border-0 border-t border-solid border-slate-200 pt-4">
+            <h3 className="m-0 text-base font-semibold text-slate-950">{t("sections.newMemberTitle")}</h3>
+            {singleRole === "student" ? (
+              <p id="new-student-hint" className="mb-0 mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">{t("createStudent.checkExisting")}</p>
+            ) : null}
+            <div className="mt-3 grid items-end gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
+              <div className="min-w-0">
+                <label htmlFor="new-member-role" className="mb-1 block text-sm font-medium">{t("table.role")}</label>
+                <div className="relative">
+                  <select
+                    id="new-member-role"
+                    value={singleRole}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
+                    }}
+                    className={`${fieldClass} appearance-none pr-8`}
+                  >
+                    <option value="student">{t("roles.student")}</option>
+                    <option value="co_teacher">{t("roles.co_teacher")}</option>
+                    <option value="observer">{t("roles.observer")}</option>
+                  </select>
+                  <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                </div>
+              </div>
+
+              {singleRole === "student" && schoolRoom ? (
+                <SchoolPupilNameFields names={pupilNames} onChange={setPupilNames} disabled={studentBusy} />
+              ) : singleRole === "student" ? (
+                <input
+                  aria-label={t("createStudent.placeholder")}
+                  value={studentName}
+                  onChange={(event) => setStudentName(event.target.value)}
+                  placeholder={t("createStudent.placeholder")}
+                  className={fieldClass}
+                />
+              ) : (
+                <input
+                  aria-label={t("staff.email")}
+                  aria-describedby="staff-account-hint"
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  placeholder={t("staff.email")}
+                  type="email"
+                  className={fieldClass}
+                />
+              )}
+
+              <button
+                type="button"
+                aria-describedby={singleRole === "student" ? "new-student-hint" : undefined}
+                onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
+                disabled={
+                  singleRole === "student"
+                    ? studentBusy || !(schoolRoom ? pupilNames.fullName.trim() : studentName.trim())
+                    : inviteBusy || !inviteEmail.trim()
+                }
+                className={primaryButton}
+              >
+                {singleRole === "student"
+                  ? t(studentBusy ? "createStudent.actions.working" : "createStudent.actions.create")
+                  : t(inviteBusy ? "staff.inviting" : "staff.invite")}
+              </button>
+            </div>
+            {singleRole !== "student" ? (
+              <p id="staff-account-hint" className="mb-0 mt-2 text-sm text-slate-600">{t("staff.accountHint")}</p>
+            ) : null}
           </div>
         </section>
       ) : null}

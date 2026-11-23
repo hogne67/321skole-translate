@@ -106,7 +106,7 @@
       "parent": "Foresatt"
     },
     "createStudent": {
-      "title": "Legg til elev",
+      "checkExisting": "Sjekk om eleven allerede finnes under «Hent eksisterende elever».",
       "description": "Opprett en elev i dette spacet og få elevkode/lenke før eleven logger inn.",
       "placeholder": "Elevnavn",
       "actions": {
@@ -173,6 +173,7 @@
     },
     "sections": {
       "addTitle": "Legg til medlemmer",
+      "newMemberTitle": "Nytt medlem",
       "manageTitle": "Medlemsliste",
       "memberDetails": "Tekniske detaljer",
       "roomDetails": "Romdetaljer"

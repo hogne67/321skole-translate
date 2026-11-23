@@ -106,7 +106,7 @@
       "parent": "Guardian"
     },
     "createStudent": {
-      "title": "Add student",
+      "checkExisting": "Check under “Add existing pupils” before creating a new student.",
       "description": "Create a student in this space and get a student code/link before the student signs in.",
       "placeholder": "Student name",
       "actions": {
@@ -173,6 +173,7 @@
     },
     "sections": {
       "addTitle": "Add members",
+      "newMemberTitle": "New member",
       "manageTitle": "Member list",
       "memberDetails": "Technical details",
       "roomDetails": "Room details"

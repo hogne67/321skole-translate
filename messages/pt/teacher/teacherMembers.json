@@ -106,7 +106,7 @@
       "parent": "Responsável"
     },
     "createStudent": {
-      "title": "Adicionar aluno",
+      "checkExisting": "Confira se o aluno já está cadastrado em “Adicionar alunos existentes”.",
       "description": "Crie um aluno neste space e gere código/link antes de o aluno entrar.",
       "placeholder": "Nome do aluno",
       "actions": {
@@ -173,6 +173,7 @@
     },
     "sections": {
       "addTitle": "Adicionar membros",
+      "newMemberTitle": "Novo membro",
       "manageTitle": "Lista de membros",
       "memberDetails": "Detalhes técnicos",
       "roomDetails": "Detalhes da sala"

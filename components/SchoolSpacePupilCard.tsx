@@ -15,7 +15,7 @@ type SchoolPupilResult = {
 };
 
 const inputClass = "mt-1 min-h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950";
-const buttonClass = "min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60";
+const buttonClass = "min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-60";
 
 export function SchoolPupilNameFields({
   names, onChange, disabled,
@@ -191,16 +191,9 @@ export default function SchoolSpacePupilCard({
     <>
       <form onSubmit={save} className="space-y-3">
         <SchoolPupilNameFields names={names} onChange={setNames} disabled={busy} />
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="submit" disabled={busy || !names.fullName.trim()} className={buttonClass}>
-            {t(registered ? "save" : "create")}
-          </button>
-          {registered ? (
-            <button type="button" disabled={busy} onClick={() => void requestCode("rotate_code")} className={buttonClass}>
-              {t("rotate")}
-            </button>
-          ) : null}
-        </div>
+        <button type="submit" disabled={busy || !names.fullName.trim()} className={buttonClass}>
+          {t(registered ? "save" : "create")}
+        </button>
       </form>
       {saved ? <p role="status" className="mt-2 text-sm text-emerald-800">{t("saved")}</p> : null}
     </>
@@ -216,14 +209,16 @@ export default function SchoolSpacePupilCard({
     </details>
   );
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      {form}
+    <div className="rounded-xl border border-solid border-slate-200 bg-white">
+      <div className="rounded-t-xl bg-slate-50 p-3 sm:p-4">{form}</div>
       {names ? (
-        <section className="mt-3 border-t border-slate-200 pt-3" aria-labelledby={`${codeId}-label`}>
-          <h4 id={`${codeId}-label`} className="m-0 text-sm font-semibold">{t("issued")}</h4>
+        <section className="border-0 border-t border-solid border-slate-200 p-3 sm:p-4" aria-labelledby={`${codeId}-label`}>
+          <h4 id={`${codeId}-label`} className="m-0 text-base font-semibold text-slate-950">{t("issued")}</h4>
           {visibleCode ? (
-            <div id={codeId} className="mt-1" role="status">
-              <p className="m-0 font-mono text-lg font-semibold tracking-wide">{visibleCode.value}</p>
+            <div id={codeId} className="mt-2" role="status">
+              <p className="m-0 inline-block max-w-full break-all rounded-lg bg-emerald-50 px-3 py-1 font-mono text-lg font-semibold tracking-wide text-emerald-950">
+                {visibleCode.value}
+              </p>
             </div>
           ) : null}
           <div className="mt-2 flex flex-wrap gap-2">
@@ -243,9 +238,14 @@ export default function SchoolSpacePupilCard({
             ) : null}
           </div>
           {codeFeedback ? <p role="status" className="mb-0 mt-2 text-sm text-slate-700">{t(codeFeedback)}</p> : null}
+          <div className="mt-3 border-0 border-t border-solid border-slate-200 pt-3">
+            <button type="button" disabled={busy} onClick={() => void requestCode("rotate_code")} className={buttonClass}>
+              {t("rotate")}
+            </button>
+          </div>
         </section>
       ) : null}
-      {alert}
+      {alert ? <div className="px-3 pb-3 sm:px-4">{alert}</div> : null}
     </div>
   );
 }

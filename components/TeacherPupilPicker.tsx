@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
@@ -49,20 +49,21 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
   }
   const rooms = [...new Map(pupils.flatMap(p => p.spaces).map(s => [s.spaceId, s.title])).entries()];
   const visible = pupils.filter(p => (!room || p.spaces.some(s => s.spaceId === room)) && `${p.fullName ?? ""} ${p.displayName} ${p.spaces.map(s => `${s.title} ${s.displayName}`).join(" ")}`.toLowerCase().includes(search.toLowerCase()));
-  return <div className="rounded-xl border border-slate-200 bg-slate-50 text-sm">
+  return <div className={`rounded-xl border border-solid text-sm ${targetMemberId ? "border-slate-200 bg-slate-50" : "border-sky-200 bg-sky-50"}`}>
     <button
       type="button"
       disabled={busy}
       onClick={() => open ? setOpen(false) : void load()}
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
-      className="flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-wait"
+      className={`flex min-h-10 w-full items-center gap-2 rounded-xl border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-wait ${targetMemberId ? "text-slate-800 hover:bg-slate-100" : "text-sky-950 hover:bg-sky-100"}`}
     >
+      {!targetMemberId ? <Search aria-hidden="true" className="h-4 w-4 shrink-0" /> : null}
       {t(targetMemberId ? "linkTitle" : "title")}
-      <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 ${open ? "rotate-180" : ""}`} />
+      <ChevronDown aria-hidden="true" className={`ml-auto h-4 w-4 shrink-0 ${open ? "rotate-180" : ""}`} />
     </button>
-    {open ? <div id={panelId} className="space-y-3 border-t border-slate-200 p-3">
-      <p>{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t(schoolRoom ? "schoolDescription" : "description")}</p>
+    {open ? <div id={panelId} className="space-y-3 border-0 border-t border-solid border-slate-200 p-3">
+      <p className="m-0 text-slate-700">{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t(schoolRoom ? "schoolDescription" : "description")}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <input aria-label={t("search")} placeholder={t("search")} value={search} onChange={e => setSearch(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2" />
         <select aria-label={t("room")} value={room} onChange={e => setRoom(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2">

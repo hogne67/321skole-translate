@@ -14,7 +14,6 @@ type SpacePrintData = {
   title?: unknown;
   code?: unknown;
   joinCode?: unknown;
-  allowRoomCodeOnly?: unknown;
   join?: unknown;
 };
 
@@ -23,24 +22,9 @@ type Copy = {
   notFound: string;
   back: string;
   print: string;
-  title: string;
-  roomName: string;
   roomCode: string;
-  scanOpen: string;
-  scanStudentCode: string;
-  accessMode: string;
-  accessOpen: string;
-  accessStudentCode: string;
-  joinTitle: string;
-  joinTextOpen: string;
-  joinTextStudentCode: string;
-  studentCodeTitle: string;
-  studentCodeTextOpen: string;
-  studentCodeTextRequired: string;
-  teacherTitle: string;
-  teacherText: string;
+  joinHint: string;
   qrAlt: string;
-  footer: string;
 };
 
 const copy: Record<string, Copy> = {
@@ -49,72 +33,27 @@ const copy: Record<string, Copy> = {
     notFound: "Fant ikke rommet.",
     back: "Tilbake til rommet",
     print: "Skriv ut / lagre PDF",
-    title: "Romkode",
-    roomName: "Rom/space",
     roomCode: "Romkode",
-    scanOpen: "Skann QR-koden eller bruk romkoden.",
-    scanStudentCode: "Skann QR-koden og skriv elevkoden din.",
-    accessMode: "Tilgang",
-    accessOpen: "Romkode alene er tillatt",
-    accessStudentCode: "Krever personlig elevkode",
-    joinTitle: "Slik kommer eleven inn",
-    joinTextOpen: "Gå til 321school.com/join, eller skann QR-koden, og skriv romkoden. Eleven kan skrive navn hvis lærer har åpnet for romkode alene.",
-    joinTextStudentCode: "Gå til 321school.com/join, eller skann QR-koden. Skriv romkoden og den personlige elevkoden fra læreren.",
-    studentCodeTitle: "Personlig elevkode",
-    studentCodeTextOpen: "Hvis eleven har elevkode, bør den brukes. Da åpnes riktig elev, og arbeid kan fortsette på ny enhet.",
-    studentCodeTextRequired: "Elevkode er nødvendig for nye elever i dette rommet. Bruk elevlenken eller elevkoden som læreren har delt.",
-    teacherTitle: "Til lærer",
-    teacherText: 'Personlige elevkoder skrives ut fra "Administrer elever" > "Skriv ut elevkoder". Romkode alene kan åpnes fra lærerens space-liste ved behov.',
+    joinHint: "Åpne romlenken eller skann QR-koden. Ha elevkoden fra læreren klar.",
     qrAlt: "QR-kode for å bli med i rommet",
-    footer: "321school.com",
   },
   en: {
     loading: "Loading room...",
     notFound: "Room not found.",
     back: "Back to room",
     print: "Print / save PDF",
-    title: "Room code",
-    roomName: "Room/space",
     roomCode: "Room code",
-    scanOpen: "Scan the QR code or use the room code.",
-    scanStudentCode: "Scan the QR code and enter your student code.",
-    accessMode: "Access",
-    accessOpen: "Room code only is allowed",
-    accessStudentCode: "Requires personal student code",
-    joinTitle: "How students join",
-    joinTextOpen: "Go to 321school.com/join, or scan the QR code, and enter the room code. Students can enter a name if the teacher has opened room-code-only access.",
-    joinTextStudentCode: "Go to 321school.com/join, or scan the QR code. Enter the room code and the personal student code from your teacher.",
-    studentCodeTitle: "Personal student code",
-    studentCodeTextOpen: "If the student has a student code, they should use it. It opens the right student and lets work continue on a new device.",
-    studentCodeTextRequired: "Student code is required for new students in this room. Use the student link or student code shared by the teacher.",
-    teacherTitle: "For teachers",
-    teacherText: 'Personal student codes are printed from "Manage members" > "Print student codes". Room-code-only access can be opened from the teacher space list when needed.',
+    joinHint: "Open the room link or scan the QR code. Have the student code from your teacher ready.",
     qrAlt: "QR code to join the room",
-    footer: "321school.com",
   },
   pt: {
     loading: "Carregando sala...",
     notFound: "Sala não encontrada.",
     back: "Voltar para a sala",
     print: "Imprimir / salvar PDF",
-    title: "Código da sala",
-    roomName: "Sala/space",
     roomCode: "Código da sala",
-    scanOpen: "Escaneie o QR code ou use o código da sala.",
-    scanStudentCode: "Escaneie o QR code e digite seu código de aluno.",
-    accessMode: "Acesso",
-    accessOpen: "Apenas código da sala está permitido",
-    accessStudentCode: "Exige código pessoal de aluno",
-    joinTitle: "Como o aluno entra",
-    joinTextOpen: "Acesse 321school.com/join, ou escaneie o QR code, e digite o código da sala. O aluno pode digitar o nome se o professor abriu acesso apenas com código da sala.",
-    joinTextStudentCode: "Acesse 321school.com/join, ou escaneie o QR code. Digite o código da sala e o código pessoal de aluno do professor.",
-    studentCodeTitle: "Código pessoal de aluno",
-    studentCodeTextOpen: "Se o aluno tiver código de aluno, ele deve usá-lo. Assim abre o aluno correto e continua em outro dispositivo.",
-    studentCodeTextRequired: "Código de aluno é obrigatório para novos alunos nesta sala. Use o link ou código compartilhado pelo professor.",
-    teacherTitle: "Para professores",
-    teacherText: 'Códigos pessoais de aluno são impressos em "Gerenciar membros" > "Imprimir códigos de aluno". Acesso apenas com código da sala pode ser aberto na lista de spaces do professor quando necessário.',
+    joinHint: "Abra o link da sala ou escaneie o QR code. Tenha em mãos o código de aluno fornecido pelo professor.",
     qrAlt: "QR code para entrar na sala",
-    footer: "321school.com",
   },
 };
 
@@ -230,7 +169,7 @@ function SpacePrintInner() {
   }
 
   return (
-    <main className="space-print-root min-h-screen bg-slate-100 p-4 text-slate-950 print:bg-white print:p-0">
+    <main className="space-print-root min-h-screen bg-slate-100 p-4 text-slate-950 print:min-h-0 print:bg-white print:p-0">
       <div className="no-print mx-auto mb-4 flex max-w-4xl flex-wrap items-center justify-between gap-3">
         <Link href={withLocale(locale, `/teacher/spaces/${spaceId}`)} className="text-sm font-medium underline underline-offset-4">
           {text.back}
@@ -244,67 +183,35 @@ function SpacePrintInner() {
         </button>
       </div>
 
-      <section className="print-page mx-auto box-border w-full max-w-[210mm] bg-white p-8 shadow-lg print:m-0 print:h-[297mm] print:max-w-none print:p-[12mm] print:shadow-none">
-        <header className="flex items-start justify-between gap-4 border-b-4 border-slate-900 pb-4">
-          <div>
-            <div className="text-sm font-bold uppercase tracking-[0.12em] text-slate-600">{text.footer}</div>
-            <h1 className="mt-1 text-4xl font-black leading-tight text-slate-950">{text.title}</h1>
+      <section className="print-page mx-auto box-border w-full max-w-[210mm] bg-white p-4 shadow-lg sm:p-8 print:m-0 print:max-w-none print:p-[12mm] print:shadow-none">
+        <header className="flex items-start justify-between gap-4 border-0 border-b-4 border-solid border-slate-900 pb-4">
+          <div className="min-w-0">
+            <div className="text-sm font-bold uppercase tracking-[0.12em] text-slate-600">321school.com</div>
+            <h1 className="mb-0 mt-1 break-words text-3xl font-black leading-tight text-slate-950 sm:text-4xl">{title}</h1>
           </div>
-          <Image src="/logo321ny.png" alt="321school" width={92} height={92} className="h-16 w-16 object-contain" priority />
+          <Image src="/logo321ny.png" alt="321school" width={92} height={92} className="h-16 w-16 shrink-0 object-contain" priority />
         </header>
 
         <section className="mt-5 grid gap-4 md:grid-cols-[1fr_210px] print:grid-cols-[1fr_62mm]">
-          <div className="rounded-2xl border-2 border-slate-900 p-5">
-            <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.roomName}</div>
-            <div className="mt-1 break-words text-3xl font-black leading-tight">{title}</div>
-
-            <div className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.roomCode}</div>
-            <div className="mt-1 break-all rounded-xl border-2 border-slate-900 bg-slate-50 px-4 py-3 text-center text-6xl font-black tracking-[0.12em] print:text-5xl">
+          <div className="min-w-0 rounded-2xl border-2 border-solid border-slate-900 p-4 sm:p-5">
+            <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.roomCode}</div>
+            <div className="mt-1 break-all font-mono text-4xl font-black tracking-wider sm:text-5xl">
               {code}
             </div>
-
-            <div className="mt-4 rounded-xl border-2 border-slate-300 bg-white px-4 py-3">
-              <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-600">{text.accessMode}</div>
-              <div className="mt-1 text-lg font-black text-slate-950">
-                {text.accessStudentCode}
-              </div>
-            </div>
+            <p className="mb-1 mt-4 text-sm leading-relaxed text-slate-800">{text.joinHint}</p>
+            <a href={joinUrl} className="break-all text-sm font-semibold text-slate-950 underline underline-offset-2">{joinUrl}</a>
           </div>
 
-          <div className="rounded-2xl border-2 border-slate-900 p-4 text-center">
-            <div className="mx-auto flex h-[180px] w-[180px] items-center justify-center bg-white print:h-[52mm] print:w-[52mm]">
+          <div className="rounded-2xl border-2 border-solid border-slate-900 p-4 text-center">
+            <div className="mx-auto flex aspect-square w-full max-w-[180px] items-center justify-center bg-white print:max-w-[52mm]">
               {qrDataUrl ? (
                 <Image src={qrDataUrl} alt={text.qrAlt} width={180} height={180} unoptimized className="h-full w-full" />
               ) : (
                 <div className="text-sm font-semibold text-slate-500">QR</div>
             )}
             </div>
-            <div className="mt-3 text-sm font-bold text-slate-800">
-              {text.scanStudentCode}
-            </div>
           </div>
         </section>
-
-        <section className="mt-5 grid gap-3 md:grid-cols-2 print:grid-cols-2">
-          <article className="rounded-2xl border-2 border-slate-300 p-4">
-            <h2 className="text-base font-black text-slate-950">{text.joinTitle}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-800">
-              {text.joinTextStudentCode}
-            </p>
-          </article>
-          <article className="rounded-2xl border-2 border-slate-300 p-4">
-            <h2 className="text-base font-black text-slate-950">{text.studentCodeTitle}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-slate-800">
-              {text.studentCodeTextRequired}
-            </p>
-          </article>
-        </section>
-
-        <footer className="mt-5 rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 text-sm text-slate-900">
-          <div className="font-black">{text.teacherTitle}</div>
-          <div className="mt-1 leading-relaxed">{text.teacherText}</div>
-          <div className="mt-3 break-all font-mono text-xs font-semibold text-slate-600">{joinUrl}</div>
-        </footer>
       </section>
 
       <style jsx global>{`

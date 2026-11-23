@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronDown, Copy, Link2, Settings2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Copy, Link2, Printer, Settings2, Users } from "lucide-react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -143,13 +143,14 @@ export default function SpaceAdministration({ spaceId, space, canControl, canSet
       </header>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-0 border-t border-solid border-slate-200 pt-4">
-        {canControl ? (
-          <Link href={`${basePath}/members#add-students`} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-            {detail("addStudent")}
-          </Link>
-        ) : null}
-        <Link href={`${basePath}/members#manage-students`} className={actionClass}>{detail("memberList")}</Link>
-        <Link href={`${basePath}/members/print`} className={actionClass}>{t("list.studentCodes")}</Link>
+        <Link href={`${basePath}/members`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+          <Users aria-hidden="true" className="h-4 w-4" />
+          {detail("members")}
+        </Link>
+        <Link href={`${basePath}/print`} className={actionClass}>
+          <Printer aria-hidden="true" className="h-4 w-4" />
+          {t("list.printRoom")}
+        </Link>
       </div>
 
       <div className="mt-3 grid gap-2">
@@ -166,7 +167,6 @@ export default function SpaceAdministration({ spaceId, space, canControl, canSet
               <button type="button" disabled={!code || qrBusy} onClick={() => void toggleQr()} aria-expanded={Boolean(qrImage)} aria-controls="space-join-qr" className={actionClass}>
                 {qrImage ? detail("hideRoomQr") : t("list.joinWithQr")}
               </button>
-              <Link href={`${basePath}/print`} className={actionClass}>{t("list.printRoom")}</Link>
             </div>
             {qrBusy ? <p role="status" className="mb-0 mt-2 text-sm text-slate-600">{t("qr.generating")}</p> : null}
             <div id="space-join-qr" hidden={!qrImage}>
