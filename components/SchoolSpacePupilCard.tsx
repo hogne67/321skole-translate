@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { useTranslations } from "next-intl";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
+import { printSchoolPupilCard } from "@/lib/printSchoolPupilCard";
 
 type PupilNames = { fullName: string; displayName: string };
-type SchoolPupilResult = { error?: string; pupil?: PupilNames; member?: { studentCode?: string }; studentCode?: string };
+type SchoolPupilResult = {
+  error?: string;
+  pupil?: PupilNames;
+  member?: { studentCode?: string };
+  studentCode?: string | null;
+  displayName?: string;
+};
 
 const inputClass = "mt-1 min-h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950";
 const buttonClass = "min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60";
@@ -35,31 +42,50 @@ export function SchoolPupilNameFields({
 }
 
 async function requestPupil(endpoint: string, init?: RequestInit): Promise<SchoolPupilResult> {
-  const token = await auth.currentUser?.getIdToken();
-  if (!token) throw new Error("pupil_forbidden");
+  const requester = auth.currentUser;
+  const token = await requester?.getIdToken();
+  if (!token || auth.currentUser !== requester) throw new Error("pupil_forbidden");
   const response = await fetch(endpoint, {
     ...init, cache: "no-store",
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
   });
   const data = await response.json() as SchoolPupilResult;
+  if (auth.currentUser !== requester) throw new Error("pupil_forbidden");
   if (!response.ok) throw new Error(data.error ?? "failed");
   return data;
 }
 
 export default function SchoolSpacePupilCard({
-  spaceId, memberId, registered, onCodeIssued,
+  spaceId, roomTitle, roomCode, memberId, registered, viewerUid, onCodeIssued, onCodeShown,
 }: {
   spaceId: string;
+  roomTitle: string;
+  roomCode: string;
   memberId: string;
   registered: boolean;
+  viewerUid: string;
   onCodeIssued: (code: string) => void;
+  onCodeShown: () => void;
 }) {
   const t = useTranslations("teacherMembers.schoolPupil");
+  const codeCopy = useTranslations("teacherMembers.studentCode");
+  const locale = useLocale();
   const endpoint = "/api/teacher/spaces/" + encodeURIComponent(spaceId) + "/members/create-student";
   const [names, setNames] = useState<PupilNames | null>(registered ? null : { fullName: "", displayName: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [shownCode, setShownCode] = useState<{ value: string; displayName: string } | null>(null);
+  const [codeFeedback, setCodeFeedback] = useState<"legacyCode" | "copied" | null>(null);
+  const codeId = useId();
+  const pendingCodeRequest = useRef<AbortController | null>(null);
+  const printFrame = useRef<HTMLIFrameElement | null>(null);
+  const visibleCode = auth.currentUser?.uid === viewerUid ? shownCode : null;
+
+  useEffect(() => () => {
+    pendingCodeRequest.current?.abort();
+    printFrame.current?.remove();
+  }, []);
 
   useEffect(() => {
     if (!registered) return;
@@ -96,21 +122,68 @@ export default function SchoolSpacePupilCard({
     }
   }
 
-  async function rotateCode() {
-    if (busy || !window.confirm(t("rotateConfirmation"))) return;
+  function hideCode() {
+    setShownCode(null);
+    setCodeFeedback(null);
+    printFrame.current?.remove();
+    printFrame.current = null;
+  }
+
+  async function requestCode(action: "reveal_code" | "rotate_code") {
+    if (busy || pendingCodeRequest.current || auth.currentUser?.uid !== viewerUid) return;
+    if (action === "rotate_code" && !window.confirm(t("rotateConfirmation"))) return;
+    const controller = new AbortController();
+    pendingCodeRequest.current = controller;
+    hideCode();
     setBusy(true);
     setSaved(false);
     setError("");
     try {
       const data = await requestPupil(endpoint, {
-        method: "POST", body: JSON.stringify({ action: "rotate_code", targetMemberId: memberId }),
+        method: "POST",
+        body: JSON.stringify({ action, targetMemberId: memberId }),
+        signal: controller.signal,
       });
-      if (!data.studentCode) throw new Error("failed");
-      onCodeIssued(data.studentCode);
+      if (controller.signal.aborted || auth.currentUser?.uid !== viewerUid) return;
+      if (!data.studentCode) {
+        if (action === "rotate_code") throw new Error("failed");
+        setCodeFeedback("legacyCode");
+        return;
+      }
+      setShownCode({ value: data.studentCode, displayName: data.displayName ?? "" });
+      onCodeShown();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "failed");
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "failed");
     } finally {
-      setBusy(false);
+      pendingCodeRequest.current = null;
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+
+  async function copyCode() {
+    if (!visibleCode || auth.currentUser?.uid !== viewerUid) return;
+    setError("");
+    try {
+      await navigator.clipboard.writeText(visibleCode.value);
+      setCodeFeedback("copied");
+    } catch {
+      setError("pupil_code_copy_failed");
+    }
+  }
+
+  function printCode() {
+    if (!visibleCode || !roomCode || auth.currentUser?.uid !== viewerUid) return;
+    setError("");
+    printFrame.current?.remove();
+    try {
+      printFrame.current = printSchoolPupilCard(locale, t("print.title"), visibleCode.displayName, [
+        { label: t("print.room"), value: roomTitle },
+        { label: t("print.roomCode"), value: roomCode, code: true },
+        { label: t("issued"), value: visibleCode.value, code: true },
+        { label: t("print.address"), value: new URL(`/${locale}/join?next=content`, window.location.origin).href },
+      ]);
+    } catch {
+      setError("pupil_code_print_failed");
     }
   }
 
@@ -123,7 +196,7 @@ export default function SchoolSpacePupilCard({
             {t(registered ? "save" : "create")}
           </button>
           {registered ? (
-            <button type="button" disabled={busy} onClick={() => void rotateCode()} className={buttonClass}>
+            <button type="button" disabled={busy} onClick={() => void requestCode("rotate_code")} className={buttonClass}>
               {t("rotate")}
             </button>
           ) : null}
@@ -142,5 +215,37 @@ export default function SchoolSpacePupilCard({
       <div className="mt-3">{form}{alert}</div>
     </details>
   );
-  return <div className="rounded-lg bg-slate-50 p-3">{form}{alert}</div>;
+  return (
+    <div className="rounded-lg bg-slate-50 p-3">
+      {form}
+      {names ? (
+        <section className="mt-3 border-t border-slate-200 pt-3" aria-labelledby={`${codeId}-label`}>
+          <h4 id={`${codeId}-label`} className="m-0 text-sm font-semibold">{t("issued")}</h4>
+          {visibleCode ? (
+            <div id={codeId} className="mt-1" role="status">
+              <p className="m-0 font-mono text-lg font-semibold tracking-wide">{visibleCode.value}</p>
+            </div>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" disabled={busy} className={buttonClass} aria-expanded={Boolean(visibleCode)}
+              aria-controls={visibleCode ? codeId : undefined} onClick={visibleCode ? hideCode : () => void requestCode("reveal_code")}>
+              {t(visibleCode ? "hideCode" : "showCode")}
+            </button>
+            {visibleCode ? (
+              <>
+                <button type="button" disabled={busy} className={buttonClass} onClick={() => void copyCode()}>
+                  {codeCopy("actions.copy")}
+                </button>
+                <button type="button" disabled={busy || !roomCode} className={buttonClass} onClick={printCode}>
+                  {t("print.action")}
+                </button>
+              </>
+            ) : null}
+          </div>
+          {codeFeedback ? <p role="status" className="mb-0 mt-2 text-sm text-slate-700">{t(codeFeedback)}</p> : null}
+        </section>
+      ) : null}
+      {alert}
+    </div>
+  );
 }

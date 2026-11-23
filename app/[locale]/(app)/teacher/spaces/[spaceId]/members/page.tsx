@@ -847,7 +847,14 @@ function Inner() {
 
                       {isStudent && canManageStaff ? (
                         <>
-                          {schoolRoom ? <SchoolSpacePupilCard key={r.id} spaceId={spaceId} memberId={r.id} registered={schoolPupil} onCodeIssued={showIssuedCode} /> : null}
+                          {schoolRoom && user ? (
+                            <SchoolSpacePupilCard
+                              key={JSON.stringify([user.uid, r.id, r.data.schoolPupilId])}
+                              spaceId={spaceId} roomTitle={spaceTitle} roomCode={spaceCode}
+                              memberId={r.id} registered={schoolPupil} viewerUid={user.uid}
+                              onCodeIssued={showIssuedCode} onCodeShown={() => setIssuedCode(null)}
+                            />
+                          ) : null}
                           <div className="flex flex-wrap items-center gap-2">
                             {!schoolPupil && editingNameId !== r.id ? (
                               <button type="button" onClick={() => startEditingName(r.id, name)} className={secondaryButton}>

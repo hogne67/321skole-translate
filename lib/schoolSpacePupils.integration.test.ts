@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomBytes, randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { cert, deleteApp as deleteAdminApp, initializeApp as initializeAdminApp } from "firebase-admin/app";
-import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore as getAdminFirestore } from "firebase-admin/firestore";
 import { deleteApp, initializeApp } from "firebase/app";
 import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signInAnonymously, signOut, type Auth } from "firebase/auth";
 import { collection, connectFirestoreEmulator, doc, getDocFromServer, getDocsFromServer, getFirestore, query, updateDoc, where } from "firebase/firestore";
@@ -16,6 +16,9 @@ const authPort = /^127\.0\.0\.1:(\d+)$/.exec(process.env.FIREBASE_AUTH_EMULATOR_
 test("one school-code login opens all eligible rooms and follows drafts across browsers and code rotation", {
   skip: !firestorePort || !authPort || process.env.GOOGLE_CLOUD_PROJECT !== projectId,
 }, async t => {
+  const encryptionKey = randomBytes(32).toString("base64");
+  process.env.SCHOOL_PUPIL_CODE_ENCRYPTION_KEY = encryptionKey;
+  t.after(() => { delete process.env.SCHOOL_PUPIL_CODE_ENCRYPTION_KEY; });
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs8", format: "pem" },
     publicKeyEncoding: { type: "spki", format: "pem" } });
   const adminApp = initializeAdminApp({ projectId, credential: cert({ projectId, clientEmail: "demo@example.invalid", privateKey }) });
@@ -113,6 +116,13 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     return data;
   }
 
+  async function reveal(as: Auth, spaceId: string, targetMemberId: string, status = 200) {
+    const result = await writeRoster(await request(as, "/api/roster", { action: "reveal_code", targetMemberId }), room(spaceId));
+    assert.equal(result.status, status);
+    assert.equal(result.headers.get("cache-control"), "private, no-store");
+    return result.json();
+  }
+
   async function visibleRooms(as: { firestore: typeof desktop.firestore; uid: string }) {
     const snapshot = await getDocsFromServer(query(collection(as.firestore, "spaceMembers"), where("uid", "==", as.uid)));
     const memberships = listStudentContentMemberships(snapshot.docs, as.uid);
@@ -134,6 +144,26 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   const mathsMember = (await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId })).member;
   const sameMember = await write(colleague.auth, maths, { sourceMemberId: pupil.sourceMemberId });
   assert.equal(sameMember.reused, true);
+  const privatePath = "schools/" + school + "/spacePupils/" + pupil.id;
+  const privatePupil = db.doc(privatePath);
+  const stored = (await privatePupil.get()).data();
+  assert.ok(stored);
+  assert.ok(/^v1\./.test(stored.encryptedCode));
+  assert.ok(!JSON.stringify(stored).includes(code));
+  assert.equal((await reveal(teacher.auth, language, created.id)).studentCode, code);
+  const colleagueCode = await reveal(colleague.auth, maths, mathsMember.id);
+  assert.equal(colleagueCode.studentCode, code);
+  assert.equal(colleagueCode.displayName, "Nora");
+  assert.equal(colleagueCode.fullName, undefined);
+  assert.equal((await privatePupil.get()).data()?.encryptedCode, stored.encryptedCode);
+  const details = await readRoster(await request(teacher.auth, "/api/roster?memberId=" + created.id), room(language));
+  assert.equal(details.status, 200);
+  assert.deepEqual((await details.json()).pupil, { fullName, displayName: "Nora" });
+  assert.equal((await reveal(colleague.auth, language, created.id, 403)).studentCode, undefined);
+  assert.equal((await reveal(colleague.auth, maths, created.id, 404)).studentCode, undefined);
+  assert.equal((await reveal(stranger.auth, foreign, mathsMember.id, 404)).studentCode, undefined);
+  assert.equal((await reveal(desktop.auth, language, created.id, 403)).studentCode, undefined);
+
   for (const spaceId of [archived, deleted]) await write(teacher.auth, spaceId, { sourceMemberId: pupil.sourceMemberId });
   const revokedMember = (await write(teacher.auth, revoked, { sourceMemberId: pupil.sourceMemberId })).member;
   const existingMathEnrollment = await db.doc("spaceMembers/" + mathsMember.id).get();
@@ -180,7 +210,6 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   assert.equal(pupilRow.data()?.displayName, "Nora");
   assert.equal(pupilRow.data()?.studentCode, undefined);
   assert.equal(pupilRow.data()?.fullName, undefined);
-  const privatePath = "schools/" + school + "/spacePupils/" + pupil.id;
   await assert.rejects(getDocFromServer(doc(desktop.firestore, privatePath)), /permission/i);
   await assert.rejects(getDocFromServer(doc(teacher.firestore, privatePath)), /permission/i);
   await assert.rejects(updateDoc(doc(teacher.firestore, "spaceMembers", created.id), { displayName: "Klientendring" }), /permission/i);
@@ -199,6 +228,18 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   const phoneContent = await loadStudentContentRoom(phone.firestore, phoneMaths, phone.uid);
   assert.equal(phoneContent?.tasks.find(task => task.id === assignmentId)?.status, "draft");
   assert.deepEqual((await getDocFromServer(doc(phone.firestore, draftPath))).data()?.answers, { question: "Syntetisk svar" });
+
+  delete process.env.SCHOOL_PUPIL_CODE_ENCRYPTION_KEY;
+  try {
+    assert.equal((await reveal(colleague.auth, maths, mathsMember.id, 503)).error, "pupil_code_read_failed");
+    await write(colleague.auth, maths, { action: "rotate_code", targetMemberId: mathsMember.id }, 503);
+    assert.equal((await privatePupil.get()).data()?.codeHash, stored.codeHash);
+    assert.equal((await privatePupil.get()).data()?.encryptedCode, stored.encryptedCode);
+  } finally {
+    process.env.SCHOOL_PUPIL_CODE_ENCRYPTION_KEY = encryptionKey;
+  }
+  await privatePupil.update({ encryptedCode: FieldValue.delete() });
+  assert.equal((await reveal(teacher.auth, language, created.id)).studentCode, null);
 
   const legacy = await enter(nextPupil.auth, roomCode("LE"), "A4B6C");
   assert.equal(legacy.approvalRequired, true);
@@ -221,6 +262,8 @@ test("one school-code login opens all eligible rooms and follows drafts across b
 
   const rotatedCode = (await write(colleague.auth, maths, { action: "rotate_code", targetMemberId: mathsMember.id })).studentCode;
   assert.notEqual(rotatedCode, code);
+  assert.equal((await reveal(teacher.auth, language, created.id)).studentCode, rotatedCode);
+  assert.ok((await privatePupil.get()).data()?.encryptedCode);
   await enter(phone.auth, roomCode("NB"), code, 403);
   await assert.rejects(getDocFromServer(doc(phone.firestore, draftPath)), /permission/i);
   await assert.rejects(getDocFromServer(doc(desktop.firestore, "spaces", maths)), /permission/i);
@@ -234,6 +277,7 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     params: Promise.resolve({ spaceId: maths, memberId: mathsMember.id }),
   });
   assert.equal(removed.status, 200);
+  assert.equal((await reveal(colleague.auth, maths, mathsMember.id, 404)).studentCode, undefined);
   await enter(phone.auth, roomCode("MA"), rotatedCode, 403);
   assert.equal((await enter(phone.auth, roomCode("NB"), rotatedCode)).preview, false);
   assert.deepEqual((await visibleRooms(phone)).map(room => room.spaceId).sort(), [language, legacyRoom].sort());

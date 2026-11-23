@@ -15,6 +15,16 @@
       "issuedHint": "Gi koden til eleven. Den virker i alle skolens rom der eleven er medlem.",
       "closeCode": "Lukk kode",
       "copied": "Elevkoden er kopiert.",
+      "showCode": "Vis elevkode",
+      "hideCode": "Skjul elevkode",
+      "legacyCode": "Denne koden ble utstedt før vi kunne vise den igjen. Velg «Gi ny elevkode» for å få en kode som kan vises og skrives ut.",
+      "print": {
+        "title": "Elevkort",
+        "room": "Rom",
+        "roomCode": "Romkode",
+        "address": "Innlogging",
+        "action": "Skriv ut elevkort"
+      },
       "errors": {
         "failed": "Kunne ikke lagre eller hente elevkortet.",
         "pupil_full_name_required": "Skriv inn elevens fulle navn.",
@@ -23,7 +33,10 @@
         "pupil_not_found": "Fant ikke elevkortet i dette rommet.",
         "pupil_room_unavailable": "Rommet er ikke tilgjengelig.",
         "pupil_already_linked": "Eleven har allerede en annen kobling i dette rommet.",
-        "pupil_code_unavailable": "Kunne ikke lage kode akkurat nå. Prøv igjen."
+        "pupil_code_unavailable": "Kunne ikke lage kode akkurat nå. Prøv igjen.",
+        "pupil_code_read_failed": "Kunne ikke hente elevkoden akkurat nå. Prøv igjen.",
+        "pupil_code_copy_failed": "Kunne ikke kopiere elevkoden.",
+        "pupil_code_print_failed": "Kunne ikke åpne utskrift av elevkortet."
       }
     },
     "roster": {

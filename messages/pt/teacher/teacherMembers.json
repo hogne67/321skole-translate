@@ -15,6 +15,16 @@
       "issuedHint": "Entregue o código ao aluno. Ele vale para todas as salas da escola em que o aluno é membro.",
       "closeCode": "Fechar código",
       "copied": "Código do aluno copiado.",
+      "showCode": "Mostrar código do aluno",
+      "hideCode": "Ocultar código do aluno",
+      "legacyCode": "Este código foi emitido antes de ser possível consultá-lo. Gere um novo código para exibi-lo ou imprimi-lo.",
+      "print": {
+        "title": "Cartão do aluno",
+        "room": "Sala",
+        "roomCode": "Código da sala",
+        "address": "Endereço de acesso",
+        "action": "Imprimir cartão do aluno"
+      },
       "errors": {
         "failed": "Não foi possível carregar ou atualizar a ficha.",
         "pupil_full_name_required": "Digite o nome completo do aluno.",
@@ -23,7 +33,10 @@
         "pupil_not_found": "A ficha não foi encontrada nesta sala.",
         "pupil_room_unavailable": "Esta sala está indisponível.",
         "pupil_already_linked": "O aluno já possui outro vínculo nesta sala.",
-        "pupil_code_unavailable": "Não foi possível gerar um código agora. Tente novamente."
+        "pupil_code_unavailable": "Não foi possível gerar um código agora. Tente novamente.",
+        "pupil_code_read_failed": "Não foi possível consultar o código do aluno agora. Tente novamente.",
+        "pupil_code_copy_failed": "Não foi possível copiar o código do aluno.",
+        "pupil_code_print_failed": "Não foi possível abrir o cartão do aluno para impressão."
       }
     },
     "roster": {

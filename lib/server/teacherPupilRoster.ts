@@ -15,7 +15,7 @@ import { readSchoolPupilRoster, SchoolPupilError, writeSchoolPupil } from "@/lib
 
 const ownerFields = ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
-const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
 class RosterError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
@@ -105,6 +105,7 @@ export async function createOrLinkTeacherPupil(req: Request, ctx: Context) {
       });
       return json({ ok: true, ...result });
     }
+    if (body.action === "reveal_code") throw new RosterError("pupil_not_found", 404);
     const sourceMemberId = text(body.sourceMemberId);
     const targetMemberId = text(body.targetMemberId);
     if (targetMemberId && !sourceMemberId) throw new RosterError("Select an existing pupil first.");

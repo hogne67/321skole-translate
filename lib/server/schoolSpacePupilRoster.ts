@@ -1,13 +1,13 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from "node:crypto";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { joinText } from "@/lib/spaceJoinPolicy";
 import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import {
-  availableSchoolRoom, createSchoolPupilCode, documentId, schoolPupilCodeHash, schoolPupilRegistrationId,
+  availableSchoolRoom, createSchoolPupilCode, documentId, hasSchoolPupilCodeFormat, schoolPupilCodeHash, schoolPupilRegistrationId,
 } from "@/lib/server/schoolSpacePupilCode";
 
 export class SchoolPupilError extends Error {
@@ -116,12 +116,49 @@ export async function readSchoolPupilRoster(a: SchoolRoomTeacher, requestedMembe
   });
 }
 
-async function freshCode(tx: Transaction, school: FirebaseFirestore.DocumentReference) {
+function schoolPupilCodeKey() {
+  const stored = process.env.SCHOOL_PUPIL_CODE_ENCRYPTION_KEY ?? "";
+  const key = Buffer.from(stored, "base64");
+  return key.length === 32 && key.toString("base64") === stored ? key : null;
+}
+
+function codeEncryptionContext(schoolId: string, pupilId: string, hash: string) {
+  return Buffer.from(JSON.stringify(["school-pupil-code", schoolId, pupilId, hash]));
+}
+
+function readEncryptedCode(pupil: FirebaseFirestore.DocumentSnapshot, schoolId: string) {
+  const stored: unknown = pupil.get("encryptedCode");
+  if (stored === undefined) return null;
+  try {
+    const key = schoolPupilCodeKey();
+    if (!key || typeof stored !== "string" || !stored.startsWith("v1.")) throw new Error();
+    const hash = joinText(pupil.get("codeHash"));
+    const bytes = Buffer.from(stored.slice(3), "base64");
+    const decrypt = createDecipheriv("aes-256-gcm", key, bytes.subarray(0, 12), { authTagLength: 16 });
+    decrypt.setAAD(codeEncryptionContext(schoolId, pupil.id, hash));
+    decrypt.setAuthTag(bytes.subarray(12, 28));
+    const code = Buffer.concat([decrypt.update(bytes.subarray(28)), decrypt.final()]).toString("utf8");
+    if (!hasSchoolPupilCodeFormat(code) || schoolPupilCodeHash(schoolId, code) !== hash) throw new Error();
+    return code;
+  } catch {
+    throw new SchoolPupilError("pupil_code_read_failed", 503);
+  }
+}
+
+async function freshCode(tx: Transaction, school: FirebaseFirestore.DocumentReference, pupilId: string) {
+  const key = schoolPupilCodeKey();
+  if (!key) throw new SchoolPupilError("pupil_code_unavailable", 503);
   for (let attempt = 0; attempt < 4; attempt++) {
     const value = createSchoolPupilCode();
     const hash = schoolPupilCodeHash(school.id, value);
     const ref = school.collection("spacePupilCodes").doc(hash);
-    if (!(await tx.get(ref)).exists) return { value, hash, ref };
+    if ((await tx.get(ref)).exists) continue;
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
+    cipher.setAAD(codeEncryptionContext(school.id, pupilId, hash));
+    const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+    const encryptedCode = "v1." + Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString("base64");
+    return { value, hash, ref, encryptedCode };
   }
   throw new SchoolPupilError("pupil_code_unavailable", 503);
 }
@@ -143,18 +180,21 @@ export async function writeSchoolPupil(
   const sourceId = documentId(body.sourceMemberId);
   const action = body.action;
   if ((body.targetMemberId && !targetId) || (body.sourceMemberId && !sourceId)
-    || (action !== undefined && action !== "rename" && action !== "rotate_code")) {
+    || (action !== undefined && action !== "rename" && action !== "rotate_code" && action !== "reveal_code")) {
     throw new SchoolPupilError("pupil_invalid_request");
   }
   return runCapacityTransaction(a.db, async tx => {
     const school = await authorizeSchoolRoomTeacher(a, tx);
     const target = targetId ? await readTarget(a, tx, targetId) : null;
-    if (action === "rename" || action === "rotate_code") {
+    if (action === "rename" || action === "rotate_code" || action === "reveal_code") {
       const pupilId = documentId(target?.get("schoolPupilId"));
       if (!target || !pupilId) throw new SchoolPupilError("pupil_not_found", 404);
       await activeRegistration(a, tx, pupilId, target);
       const pupil = await tx.get(school.collection("spacePupils").doc(pupilId));
       if (!pupil.exists) throw new SchoolPupilError("pupil_not_found", 404);
+      if (action === "reveal_code") {
+        return { studentCode: readEncryptedCode(pupil, school.id), displayName: joinText(pupil.get("displayName")) };
+      }
       const memberships = await tx.get(a.db.collection("spaceMembers").where("schoolPupilId", "==", pupilId)
         .where("schoolPupilSchoolId", "==", a.schoolId));
       const updatedAt = FieldValue.serverTimestamp();
@@ -167,16 +207,16 @@ export async function writeSchoolPupil(
         return { pupil: names };
       }
       const hashedCode = joinText(pupil.get("codeHash"));
-      const code = await freshCode(tx, school);
+      const code = await freshCode(tx, school, pupilId);
       tx.create(code.ref, { pupilId });
       if (/^[0-9a-f]{64}$/.test(hashedCode)) tx.delete(school.collection("spacePupilCodes").doc(hashedCode));
-      tx.update(pupil.ref, { codeHash: code.hash, updatedAt });
+      tx.update(pupil.ref, { codeHash: code.hash, encryptedCode: code.encryptedCode, updatedAt });
       for (const member of memberships.docs) {
         if (member.get("schoolPupilCodeAccess") === true && isActiveSpaceMember(member.data())) {
           tx.update(member.ref, { status: "school_code_rotated", active: false, archived: true, updatedAt });
         }
       }
-      return { studentCode: code.value };
+      return { studentCode: code.value, displayName: joinText(pupil.get("displayName")) };
     }
 
     if (target?.get("schoolPupilId") && target.get("schoolPupilId") !== sourceId) {
@@ -197,11 +237,11 @@ export async function writeSchoolPupil(
       : pupilNames(body.fullName ?? body.displayName, body.fullName === undefined ? undefined : body.displayName);
     const participantId = target ? roomParticipant(target) : joinText(registration.get("participantId")) || "participant_" + randomUUID();
     const legacy = target ? await tx.get(a.db.collection("spaceMembers").where("spaceId", "==", a.spaceId)) : null;
-    const code = pupil ? null : await freshCode(tx, school);
+    const code = pupil ? null : await freshCode(tx, school, pupilRef.id);
     const updatedAt = FieldValue.serverTimestamp();
     if (quotaLock) tx.set(quotaLock, { updatedAt });
     if (code) {
-      tx.create(pupilRef, { ...names, codeHash: code.hash, createdAt: updatedAt, updatedAt });
+      tx.create(pupilRef, { ...names, codeHash: code.hash, encryptedCode: code.encryptedCode, createdAt: updatedAt, updatedAt });
       tx.create(code.ref, { pupilId: pupilRef.id });
     }
     const teacherStudentId = joinText(target?.get("teacherStudentId")) || pupilRef.id;

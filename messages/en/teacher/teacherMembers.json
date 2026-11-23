@@ -15,6 +15,16 @@
       "issuedHint": "Give the code to the pupil. It works in every room at this school they are a member of.",
       "closeCode": "Close code",
       "copied": "Student code copied.",
+      "showCode": "Show student code",
+      "hideCode": "Hide student code",
+      "legacyCode": "This code was issued before codes could be retrieved. Issue a new code to show or print it.",
+      "print": {
+        "title": "Student access card",
+        "room": "Room",
+        "roomCode": "Room code",
+        "address": "Sign-in address",
+        "action": "Print student card"
+      },
       "errors": {
         "failed": "Could not load or update the student profile.",
         "pupil_full_name_required": "Enter the pupil’s full name.",
@@ -23,7 +33,10 @@
         "pupil_not_found": "Student profile could not be found in this room.",
         "pupil_room_unavailable": "This room is unavailable.",
         "pupil_already_linked": "The pupil already has a different registration in this room.",
-        "pupil_code_unavailable": "Could not issue a code right now. Try again."
+        "pupil_code_unavailable": "Could not issue a code right now. Try again.",
+        "pupil_code_read_failed": "Could not retrieve the student code right now. Try again.",
+        "pupil_code_copy_failed": "Could not copy the student code.",
+        "pupil_code_print_failed": "Could not open the student card for printing."
       }
     },
     "roster": {
