@@ -1,6 +1,7 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/members/page.tsx
 "use client";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { isActiveSpaceCoTeacher, isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, Printer } from "lucide-react";
@@ -182,14 +183,20 @@ function Inner() {
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
   const [spaceCode, setSpaceCode] = useState("");
-  const [schoolRoomId, setSchoolRoomId] = useState<string | null>(null);
-  const schoolRoom = Boolean(spaceId && schoolRoomId === spaceId);
+  const [roomSchool, setRoomSchool] = useState<{ spaceId: string; schoolId: string } | null>(null);
+  const schoolId = roomSchool && roomSchool.spaceId === spaceId ? roomSchool.schoolId : null;
+  const schoolRoom = Boolean(schoolId);
   const [pupilNames, setPupilNames] = useState({ fullName: "", displayName: "" });
   const [issuedCode, setIssuedCode] = useState<{ spaceId: string; uid: string; value: string } | null>(null);
   const [canManageStaff, setCanManageStaff] = useState(false);
   const visibleCode = canManageStaff && issuedCode?.spaceId === spaceId && issuedCode?.uid === user?.uid ? issuedCode?.value : undefined;
   const issuedCodePanel = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<MemberRow[]>([]);
+  const canRecoverSchoolCode = Boolean(schoolId && user?.uid && profile?.role === "teacher"
+    && profile.schoolId === schoolId && profile.schoolStatus === "active"
+    && (profile.schoolRole === "school_teacher" || profile.schoolRole === "school_admin")
+    && rows.some(({ id, data }) => id === `${spaceId}_${user.uid}` && data.spaceId === spaceId && data.uid === user.uid
+      && isActiveSpaceCoTeacher(data)));
   const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
   const [search, setSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -241,19 +248,26 @@ function Inner() {
   useEffect(() => {
     if (!spaceId) return;
 
+    let alive = true;
     getDoc(doc(db, "spaces", spaceId))
       .then((snap) => {
+        if (!alive) return;
         const data = snap.data();
         const title = data && isRecord(data) ? safeString(data["title"]) : null;
         const ownerId = getSpaceOwnerUid(data);
+        const schoolId = safeString(data?.schoolId);
         if (title) setSpaceTitle(title);
         setSpaceCode(getSpaceJoinCode(data));
-        setSchoolRoomId(safeString(data?.schoolId) ? spaceId : null);
+        setRoomSchool(schoolId ? { spaceId, schoolId } : null);
         setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
       })
       .catch(() => {
-        setCanManageStaff(false);
+        if (alive) {
+          setRoomSchool(null);
+          setCanManageStaff(false);
+        }
       });
+    return () => { alive = false; };
   }, [isAdmin, spaceId, user?.uid]);
 
   useEffect(() => {
@@ -278,6 +292,9 @@ function Inner() {
         name: next.find(other => other.data.participantId === row.data.participantId && other.data.displayName)?.data.displayName ?? "",
       })));
       setRows(next.filter((row) => row.data.active !== false && String(row.data.status ?? "").toLowerCase() !== "removed"));
+    }, () => {
+      setRows([]);
+      setAccessRequests([]);
     });
   }, [spaceId, user?.uid]);
 
@@ -855,16 +872,19 @@ function Inner() {
                         </div>
                       ) : null}
 
+                      {isStudent && schoolRoom && user && (canManageStaff || (canRecoverSchoolCode && schoolPupil
+                        && r.data.schoolPupilRegistration === true && isActiveSpaceMember(r.data))) ? (
+                        <SchoolSpacePupilCard
+                          key={JSON.stringify([user.uid, r.id, r.data.schoolPupilId, canManageStaff])}
+                          spaceId={spaceId} roomTitle={spaceTitle} roomCode={spaceCode}
+                          memberId={r.id} registered={schoolPupil} viewerUid={user.uid}
+                          onCodeIssued={showIssuedCode} onCodeShown={() => setIssuedCode(null)}
+                          recoveryOnly={!canManageStaff}
+                        />
+                      ) : null}
+
                       {isStudent && canManageStaff ? (
                         <>
-                          {schoolRoom && user ? (
-                            <SchoolSpacePupilCard
-                              key={JSON.stringify([user.uid, r.id, r.data.schoolPupilId])}
-                              spaceId={spaceId} roomTitle={spaceTitle} roomCode={spaceCode}
-                              memberId={r.id} registered={schoolPupil} viewerUid={user.uid}
-                              onCodeIssued={showIssuedCode} onCodeShown={() => setIssuedCode(null)}
-                            />
-                          ) : null}
                           <div className="flex flex-wrap items-center gap-2">
                             {!schoolPupil && editingNameId !== r.id ? (
                               <button type="button" onClick={() => startEditingName(r.id, name)} className={secondaryButton}>

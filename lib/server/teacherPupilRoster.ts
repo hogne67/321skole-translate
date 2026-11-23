@@ -11,7 +11,7 @@ import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { documentId } from "@/lib/server/schoolSpacePupilCode";
-import { readSchoolPupilRoster, SchoolPupilError, writeSchoolPupil } from "@/lib/server/schoolSpacePupilRoster";
+import { readSchoolPupilRoster, rotateSchoolPupilCode, SchoolPupilError, writeSchoolPupil } from "@/lib/server/schoolSpacePupilRoster";
 
 const ownerFields = ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
@@ -21,7 +21,7 @@ class RosterError extends Error {
 }
 type Context = { params: Promise<{ spaceId: string }> };
 
-async function access(req: Request, ctx: Context) {
+async function authenticateRoom(req: Request, ctx: Context) {
   const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) throw new RosterError("Missing Authorization Bearer token", 401);
   const { auth, db } = getAdmin();
@@ -30,6 +30,10 @@ async function access(req: Request, ctx: Context) {
   catch (error) { throw new RosterError("Invalid token", accountErrorStatus(error) ?? 401); }
   const { spaceId } = await ctx.params;
   if (!documentId(spaceId)) throw new RosterError("Room not found", 404);
+  return { db, uid, spaceId };
+}
+
+async function access({ db, uid, spaceId }: Awaited<ReturnType<typeof authenticateRoom>>) {
   const [room, requester] = await Promise.all([db.doc(`spaces/${spaceId}`).get(), db.doc(`users/${uid}`).get()]);
   if (!room.exists) throw new RosterError("Room not found", 404);
   const data = room.data()!;
@@ -72,7 +76,7 @@ function handleError(error: unknown) {
 
 export async function getTeacherPupilRoster(req: Request, ctx: Context) {
   try {
-    const a = await access(req, ctx);
+    const a = await access(await authenticateRoom(req, ctx));
     if (a.schoolId) return json(await readSchoolPupilRoster(a, new URL(req.url).searchParams.get("memberId")));
     const roster = new Map<string, { id: string; sourceMemberId: string; displayName: string; spaces: { spaceId: string; title: string; displayName: string }[] }>();
     for (const doc of await members(a)) {
@@ -91,9 +95,15 @@ export async function getTeacherPupilRoster(req: Request, ctx: Context) {
 
 export async function createOrLinkTeacherPupil(req: Request, ctx: Context) {
   try {
-    const a = await access(req, ctx);
+    const room = await authenticateRoom(req, ctx);
     const rawBody = await req.json().catch(() => ({}));
     const body = rawBody && typeof rawBody === "object" && !Array.isArray(rawBody) ? rawBody : {};
+    if (body.action === "rotate_code") {
+      if (body.sourceMemberId && !documentId(body.sourceMemberId)) throw new SchoolPupilError("pupil_invalid_request");
+      const result = await rotateSchoolPupilCode(room, body.targetMemberId);
+      return json({ ok: true, ...result });
+    }
+    const a = await access(room);
     if (a.schoolId) {
       const result = await writeSchoolPupil(a, body, async tx => {
         const lock = a.db.collection("teacherRosterLocks").doc(a.owner);

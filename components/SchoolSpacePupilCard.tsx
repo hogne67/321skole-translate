@@ -56,7 +56,7 @@ async function requestPupil(endpoint: string, init?: RequestInit): Promise<Schoo
 }
 
 export default function SchoolSpacePupilCard({
-  spaceId, roomTitle, roomCode, memberId, registered, viewerUid, onCodeIssued, onCodeShown,
+  spaceId, roomTitle, roomCode, memberId, registered, viewerUid, onCodeIssued, onCodeShown, recoveryOnly = false,
 }: {
   spaceId: string;
   roomTitle: string;
@@ -66,6 +66,7 @@ export default function SchoolSpacePupilCard({
   viewerUid: string;
   onCodeIssued: (code: string) => void;
   onCodeShown: () => void;
+  recoveryOnly?: boolean;
 }) {
   const t = useTranslations("teacherMembers.schoolPupil");
   const codeCopy = useTranslations("teacherMembers.studentCode");
@@ -88,7 +89,7 @@ export default function SchoolSpacePupilCard({
   }, []);
 
   useEffect(() => {
-    if (!registered) return;
+    if (!registered || recoveryOnly) return;
     const controller = new AbortController();
     void requestPupil(endpoint + "?memberId=" + encodeURIComponent(memberId), { signal: controller.signal })
       .then(data => {
@@ -99,7 +100,7 @@ export default function SchoolSpacePupilCard({
       })
       .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "failed"); });
     return () => controller.abort();
-  }, [endpoint, memberId, registered]);
+  }, [endpoint, memberId, registered, recoveryOnly]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,6 +132,7 @@ export default function SchoolSpacePupilCard({
 
   async function requestCode(action: "reveal_code" | "rotate_code") {
     if (busy || pendingCodeRequest.current || auth.currentUser?.uid !== viewerUid) return;
+    if (recoveryOnly && action === "reveal_code") return;
     if (action === "rotate_code" && !window.confirm(t("rotateConfirmation"))) return;
     const controller = new AbortController();
     pendingCodeRequest.current = controller;
@@ -210,9 +212,9 @@ export default function SchoolSpacePupilCard({
   );
   return (
     <div className="rounded-xl border border-solid border-slate-200 bg-white">
-      <div className="rounded-t-xl bg-slate-50 p-3 sm:p-4">{form}</div>
-      {names ? (
-        <section className="border-0 border-t border-solid border-slate-200 p-3 sm:p-4" aria-labelledby={`${codeId}-label`}>
+      {!recoveryOnly ? <div className="rounded-t-xl bg-slate-50 p-3 sm:p-4">{form}</div> : null}
+      {names || recoveryOnly ? (
+        <section className={`p-3 sm:p-4 ${recoveryOnly ? "" : "border-0 border-t border-solid border-slate-200"}`} aria-labelledby={`${codeId}-label`}>
           <h4 id={`${codeId}-label`} className="m-0 text-base font-semibold text-slate-950">{t("issued")}</h4>
           {visibleCode ? (
             <div id={codeId} className="mt-2" role="status">
@@ -221,24 +223,26 @@ export default function SchoolSpacePupilCard({
               </p>
             </div>
           ) : null}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" disabled={busy} className={buttonClass} aria-expanded={Boolean(visibleCode)}
-              aria-controls={visibleCode ? codeId : undefined} onClick={visibleCode ? hideCode : () => void requestCode("reveal_code")}>
-              {t(visibleCode ? "hideCode" : "showCode")}
-            </button>
-            {visibleCode ? (
-              <>
-                <button type="button" disabled={busy} className={buttonClass} onClick={() => void copyCode()}>
-                  {codeCopy("actions.copy")}
-                </button>
-                <button type="button" disabled={busy || !roomCode} className={buttonClass} onClick={printCode}>
-                  {t("print.action")}
-                </button>
-              </>
-            ) : null}
-          </div>
+          {!recoveryOnly || visibleCode ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" disabled={busy} className={buttonClass} aria-expanded={Boolean(visibleCode)}
+                aria-controls={visibleCode ? codeId : undefined} onClick={visibleCode ? hideCode : () => void requestCode("reveal_code")}>
+                {t(visibleCode ? "hideCode" : "showCode")}
+              </button>
+              {visibleCode ? (
+                <>
+                  <button type="button" disabled={busy} className={buttonClass} onClick={() => void copyCode()}>
+                    {codeCopy("actions.copy")}
+                  </button>
+                  <button type="button" disabled={busy || !roomCode} className={buttonClass} onClick={printCode}>
+                    {t("print.action")}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           {codeFeedback ? <p role="status" className="mb-0 mt-2 text-sm text-slate-700">{t(codeFeedback)}</p> : null}
-          <div className="mt-3 border-0 border-t border-solid border-slate-200 pt-3">
+          <div className={recoveryOnly && !visibleCode ? "mt-2" : "mt-3 border-0 border-t border-solid border-slate-200 pt-3"}>
             <button type="button" disabled={busy} onClick={() => void requestCode("rotate_code")} className={buttonClass}>
               {t("rotate")}
             </button>

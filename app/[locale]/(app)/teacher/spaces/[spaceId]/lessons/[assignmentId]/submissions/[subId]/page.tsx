@@ -4,6 +4,7 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 
 import { podcastFeedbackUpdate } from "@/lib/submissions/status";
+import { readSubmissionParticipantId, useRoomSubmissionNames } from "@/lib/submissions/useRoomSubmissionNames";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -31,7 +32,6 @@ import type {
   Lesson,
   ReviewStatus,
   SourceType,
-  SpaceMemberDoc,
   SubmissionDoc,
 } from "@/lib/submissions/types";
 import {
@@ -372,7 +372,7 @@ function Inner() {
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
 
-  const [studentName, setStudentName] = useState<string>("");
+  const findRoomName = useRoomSubmissionNames(spaceId, user?.uid);
 
   const [loading, setLoading] = useState(true);
   const [loadingLesson, setLoadingLesson] = useState(true);
@@ -841,62 +841,6 @@ function Inner() {
     };
   }, [assignment]);
 
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      if (!sub) return;
-
-      const direct =
-        (typeof sub.studentName === "string" && sub.studentName.trim()
-          ? sub.studentName.trim()
-          : "") ||
-        (typeof sub.studentDisplayName === "string" &&
-          sub.studentDisplayName.trim()
-          ? sub.studentDisplayName.trim()
-          : "");
-
-      const authInfo = readAuth(sub);
-
-      if (direct) {
-        if (alive) setStudentName(direct);
-        return;
-      }
-
-      if (!authInfo.uid) {
-        if (alive) setStudentName(authInfo.isAnon ? t("fallback.guest") : "");
-        return;
-      }
-
-      if (!spaceId) {
-        if (alive) setStudentName(authInfo.uid);
-        return;
-      }
-
-      try {
-        const memberId = `${spaceId}_${authInfo.uid}`;
-        const mref = doc(db, "spaceMembers", memberId);
-        const msnap = await getDoc(mref);
-
-        if (!alive) return;
-
-        if (msnap.exists()) {
-          const m = (msnap.data() as SpaceMemberDoc) ?? {};
-          const nm = (m.fullName || m.displayName || m.name || "").trim();
-          setStudentName(nm || authInfo.uid);
-        } else {
-          setStudentName(authInfo.uid);
-        }
-      } catch {
-        if (alive) setStudentName(authInfo.uid);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [sub, spaceId, t]);
-
   function submissionIndexBasePayload(): Record<string, unknown> {
     const currentSub = sub ?? ({} as SubmissionDoc);
     const authInfo = readAuth(currentSub);
@@ -1060,6 +1004,12 @@ function Inner() {
 
   const createdAt = formatMaybeDate(sub.createdAt);
   const authInfo = readAuth(sub);
+  const memberName = findRoomName(readSubmissionParticipantId(sub), sub.uid || authInfo.uid);
+  const studentName = memberName?.schoolPupil ? memberName.label : (
+    (typeof sub.studentName === "string" ? sub.studentName.trim() : "") ||
+    (typeof sub.studentDisplayName === "string" ? sub.studentDisplayName.trim() : "") ||
+    memberName?.label
+  );
 
   const rawStatus = readStatus(sub);
   const normalizedStatus = String(rawStatus).toLowerCase();

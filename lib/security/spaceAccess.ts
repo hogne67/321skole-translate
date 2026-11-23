@@ -17,6 +17,12 @@ export function isSpaceTeachingMember(data: Record<string, unknown> | null | und
       ["co_teacher", "substitute"].includes(String(data.staffRole ?? "")));
 }
 
+export function isActiveSpaceCoTeacher(data: Record<string, unknown> | null | undefined): boolean {
+  const role = data?.role;
+  return isActiveSpaceMember(data) && (data?.staffRole || role) === "co_teacher"
+    && (role === "teacher" || role === "co_teacher" || role === "staff");
+}
+
 export function spaceSubstituteExpiry(data: Record<string, unknown> | null | undefined): number | null {
   const timestamp = data?.substituteExpiresAt;
   if (data?.role !== "substitute" || !timestamp || typeof timestamp !== "object" ||

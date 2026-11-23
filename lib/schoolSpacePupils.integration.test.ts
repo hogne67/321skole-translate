@@ -63,9 +63,10 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   }
 
   await Promise.all([school, otherSchool].map(id => db.doc("schools/" + id).set({ status: "active" })));
-  const [teacher, colleague, stranger, schoolAdmin, desktop, phone, nextPupil] = await Promise.all([
+  const [teacher, colleague, stranger, schoolAdmin, coTeacher, desktop, phone, nextPupil] = await Promise.all([
     client("language-teacher", school), client("maths-teacher", school), client("foreign-teacher", otherSchool),
-    client("school-admin", school, "school_admin"), client("desk"), client("phone"), client("next-pupil"),
+    client("school-admin", school, "school_admin"), client("co-teacher", school),
+    client("desk"), client("phone"), client("next-pupil"),
   ]);
   const fixtures = [
     [language, school, teacher.uid, "Norsk", roomCode("NB")],
@@ -253,15 +254,52 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   });
   assert.equal(renamed.pupil.displayName, "No");
   assert.equal((await getDocFromServer(doc(phone.firestore, "spaceMembers", language + "_" + phone.uid))).data()?.displayName, "No");
-  const secondCode = (await write(colleague.auth, science, { fullName: "Sam Syntetisk" })).member.studentCode;
+  const second = (await write(colleague.auth, science, { fullName: "Sam Syntetisk" })).member;
+  const secondCode = (await write(colleague.auth, science, { action: "rotate_code", targetMemberId: second.id })).studentCode;
+  assert.notEqual(secondCode, second.studentCode);
   const conflicting = await enter(desktop.auth, roomCode("NA"), secondCode);
   assert.equal(conflicting.switchRequired, true);
   assert.equal((await db.doc("spaceMembers/" + science + "_" + desktop.uid).get()).exists, false);
   await enter(nextPupil.auth, roomCode("NA"), secondCode);
   await assert.rejects(getDocFromServer(doc(nextPupil.firestore, draftPath)), /permission/i);
 
-  const rotatedCode = (await write(colleague.auth, maths, { action: "rotate_code", targetMemberId: mathsMember.id })).studentCode;
+  const recovery = { action: "rotate_code", targetMemberId: mathsMember.id };
+  const coTeacherMembership = db.doc(`spaceMembers/${maths}_${coTeacher.uid}`);
+  const staffMembership = { spaceId: maths, uid: coTeacher.uid, status: "active", active: true, archived: false };
+  await write(coTeacher.auth, maths, recovery, 403);
+  await write(schoolAdmin.auth, maths, recovery, 403);
+  await coTeacherMembership.set({ ...staffMembership, role: "observer", staffRole: "observer" });
+  await write(coTeacher.auth, maths, recovery, 403);
+  await coTeacherMembership.set({
+    ...staffMembership, role: "substitute", status: "substitute",
+    substituteSchoolId: school, substituteExpiresAt: new Date(Date.now() + 60_000),
+  });
+  await write(coTeacher.auth, maths, recovery, 403);
+  await coTeacherMembership.set({ ...staffMembership, role: "teacher", staffRole: "co_teacher" });
+  await db.doc(`spaceMembers/${maths}_${stranger.uid}`).set({ ...staffMembership, uid: stranger.uid, role: "co_teacher" });
+  await write(stranger.auth, maths, recovery, 403);
+  const schoolMembership = db.doc(`schools/${school}/members/${coTeacher.uid}`);
+  await schoolMembership.update({ status: "disabled" });
+  await write(coTeacher.auth, maths, recovery, 403);
+  await schoolMembership.update({ status: "active" });
+  await write(coTeacher.auth, maths, { ...recovery, targetMemberId: created.id }, 404);
+  assert.equal((await reveal(coTeacher.auth, maths, mathsMember.id, 403)).studentCode, undefined);
+  assert.equal((await readRoster(await request(coTeacher.auth, "/api/roster?memberId=" + mathsMember.id), room(maths))).status, 403);
+  await write(coTeacher.auth, maths, { action: "rename", targetMemberId: mathsMember.id, fullName: "Feil navn" }, 403);
+  await write(coTeacher.auth, maths, { fullName: "Ny elev" }, 403);
+
+  const rotatedCode = (await write(coTeacher.auth, maths, recovery)).studentCode;
   assert.notEqual(rotatedCode, code);
+  assert.ok(/^[A-Z0-9]{12}$/.test(rotatedCode));
+  const audit = await db.collection("teacherRosterAudit").where("actorUid", "==", coTeacher.uid).get();
+  assert.equal(audit.size, 1);
+  const event = audit.docs[0].data();
+  assert.equal(event.action, "rotate_school_pupil_code");
+  assert.equal(event.spaceId, maths);
+  assert.equal(event.schoolPupilId, pupil.id);
+  assert.equal(event.studentCode, undefined);
+  await coTeacherMembership.update({ status: "revoked", active: false, archived: true });
+  await write(coTeacher.auth, maths, recovery, 403);
   assert.equal((await reveal(teacher.auth, language, created.id)).studentCode, rotatedCode);
   assert.ok((await privatePupil.get()).data()?.encryptedCode);
   await enter(phone.auth, roomCode("NB"), code, 403);

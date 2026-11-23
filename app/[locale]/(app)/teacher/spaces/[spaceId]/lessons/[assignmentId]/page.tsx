@@ -24,6 +24,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { readStudentAudioAsset } from "@/lib/audio/studentAudio";
 import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 import { getSubmissionStatus } from "@/lib/submissions/status";
+import { readSubmissionParticipantId, useRoomSubmissionNames } from "@/lib/submissions/useRoomSubmissionNames";
 
 /* =========================
    Types
@@ -81,6 +82,7 @@ type SubmissionDoc = {
   answers?: unknown;
   audioReading?: unknown;
   studentName?: unknown;
+  studentDisplayName?: unknown;
   name?: unknown;
   userName?: unknown;
   linkedStudentCode?: unknown;
@@ -93,13 +95,6 @@ type SpaceDocLite = {
   isOpen?: boolean;
   activeLessonId?: string;
   activeLessonTitle?: string;
-};
-
-type SpaceMemberDoc = {
-  displayName?: string;
-  name?: string;
-  studentName?: string;
-  role?: string;
 };
 
 /* =========================
@@ -153,18 +148,6 @@ function getSubmissionUid(s: SubmissionDoc): string | null {
   return null;
 }
 
-function getSubmissionParticipantId(s: SubmissionDoc): string | null {
-  if (typeof s.participantId === "string" && s.participantId.trim()) return s.participantId.trim();
-
-  const a = s.auth;
-  if (a && typeof a === "object") {
-    const participantId = (a as { participantId?: unknown }).participantId;
-    if (typeof participantId === "string" && participantId.trim()) return participantId.trim();
-  }
-
-  return null;
-}
-
 function pickStudentNameFallback(
   s: SubmissionDoc,
   fallbackStudent: string,
@@ -172,6 +155,7 @@ function pickStudentNameFallback(
 ): string {
   const candidates = [
     s.displayName,
+    s.studentDisplayName,
     typeof s.studentName === "string" ? s.studentName : undefined,
     typeof s.name === "string" ? s.name : undefined,
     typeof s.userName === "string" ? s.userName : undefined,
@@ -310,7 +294,7 @@ export default function TeacherSpaceAssignedTaskPage() {
   const [assignment, setAssignment] = useState<SpaceAssignmentDoc | null>(null);
 
   const [submissions, setSubmissions] = useState<Array<{ id: string; data: SubmissionDoc }>>([]);
-  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const findRoomName = useRoomSubmissionNames(spaceId, uidNow);
   const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
   const [linkingSubId, setLinkingSubId] = useState<string | null>(null);
   const [linkMessage, setLinkMessage] = useState<string | null>(null);
@@ -421,65 +405,6 @@ export default function TeacherSpaceAssignedTaskPage() {
 
     return () => unsub();
   }, [spaceId, assignmentId, unknownErr, isPodcastWorkshopAssignment]);
-
-  useEffect(() => {
-    let alive = true;
-    if (!spaceId) return;
-
-    const uids = Array.from(
-      new Set(
-        submissions
-          .map((s) => getSubmissionParticipantId(s.data) || getSubmissionUid(s.data))
-          .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
-      )
-    );
-
-    const missing = uids.filter((uid) => !memberNames[uid]);
-    if (missing.length === 0) return;
-
-    (async () => {
-      const pairs: Array<[string, string]> = [];
-
-      await Promise.all(
-        missing.map(async (uid) => {
-          try {
-            const msId = `${spaceId}_${uid}`;
-            const snap = await getDoc(doc(db, "spaceMembers", msId));
-            if (!snap.exists()) return;
-
-            const data = (snap.data() as SpaceMemberDoc) ?? {};
-            const name =
-              (typeof data.displayName === "string" && data.displayName.trim()
-                ? data.displayName.trim()
-                : null) ||
-              (typeof data.name === "string" && data.name.trim() ? data.name.trim() : null) ||
-              (typeof data.studentName === "string" && data.studentName.trim()
-                ? data.studentName.trim()
-                : null);
-
-            if (name) pairs.push([uid, name]);
-          } catch {
-            // ignore
-          }
-        })
-      );
-
-      if (!alive) return;
-
-      if (pairs.length > 0) {
-        setMemberNames((prev) => {
-          const next = { ...prev };
-          for (const [uid, name] of pairs) next[uid] = name;
-          return next;
-        });
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spaceId, submissions]);
 
   async function linkSubmissionToStudent(submissionId: string) {
     const studentCode = (linkInputs[submissionId] ?? "").trim().toUpperCase();
@@ -652,13 +577,12 @@ export default function TeacherSpaceAssignedTaskPage() {
             <div className="mt-4 grid min-w-0 gap-3">
               {submissions.map((s) => {
                 const uid = getSubmissionUid(s.data);
-                const participantId = getSubmissionParticipantId(s.data);
-                const memberName =
-                  (participantId ? memberNames[participantId] : null) ||
-                  (uid ? memberNames[uid] : null);
+                const participantId = readSubmissionParticipantId(s.data);
+                const memberName = findRoomName(participantId, uid);
+                const linkedSchoolPupil = Boolean(participantId && memberName?.schoolPupil && memberName.participantId === participantId);
 
                 const name =
-                  memberName ||
+                  memberName?.label ||
                   pickStudentNameFallback(
                     s.data,
                     t("fallback.student"),
@@ -714,7 +638,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                    {!linkedSchoolPupil ? <div className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                       <input
                         value={linkInputs[s.id] ?? ""}
                         onChange={(event) =>
@@ -736,7 +660,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                       >
                         {linkingSubId === s.id ? t("linkStudent.actions.working") : t("linkStudent.actions.link")}
                       </button>
-                    </div>
+                    </div> : null}
                   </div>
                 );
               })}
