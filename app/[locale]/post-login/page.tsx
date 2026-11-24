@@ -13,6 +13,7 @@ import { listMySpaceIds } from "@/lib/spaceMembership";
 import { readGuestRole, saveGuestRole } from "@/lib/guestRole";
 import { loadStudentReturnRooms, type StudentReturnRooms } from "@/lib/studentContentTasks";
 import { readLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
+import { refreshSchoolStudentRooms } from "@/lib/studentRoomRefresh";
 import { isSchoolInvitationPath } from "@/lib/schools/invitePaths";
 import { isPartnerInvitationPath } from "@/lib/partnerInvitationPaths";
 import { isCourseParticipantPath } from "@/lib/courses/participantPaths";
@@ -62,7 +63,11 @@ function isOpenAppPath(path: string, locale: string): boolean {
   );
 }
 
-function normalizeNext(raw: string | null, locale: string): string | null {
+function isStudentContentPath(path: string, locale: string) {
+  return path.split("?")[0] === `/${locale}/content`;
+}
+
+function normalizeNext(raw: string | null, locale: string, allowStudentContent: boolean): string | null {
   if (!raw) return null;
 
   let next = raw;
@@ -94,6 +99,8 @@ function normalizeNext(raw: string | null, locale: string): string | null {
   if (blocked.has(path)) return null;
 
   const withLocale = /^\/(en|nb|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
+  if (allowStudentContent && isStudentContentPath(withLocale, locale)) return withLocale;
+
 
   const mapped =
     withLocale.startsWith(`/${locale}/content`)
@@ -119,7 +126,7 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
   if (isOpenAppPath(next, locale)) return true;
   if (role === "teacher") return next.startsWith(`/${locale}/teacher`);
   if (role === "parent") return next.startsWith(`/${locale}/parent`);
-  return next.startsWith(`/${locale}/student`);
+  return next.startsWith(`/${locale}/student`) || isStudentContentPath(next, locale);
 }
 
 function isGuestPreviewPath(next: string, role: "teacher" | "parent", locale: string): boolean {
@@ -137,17 +144,23 @@ function isGuestPreviewPath(next: string, role: "teacher" | "parent", locale: st
   return clean === `/${locale}/parent` || clean === `/${locale}/parent/spaces`;
 }
 
-function redirectReturningCodeStudent(
+function redirectStudentAfterLogin(
   user: User,
   locale: string,
   replace: (path: string) => void,
+  { next, returningFromHome }: { next?: string | null; returningFromHome: boolean },
 ) {
-  let cancelled = false;
+  const controller = new AbortController();
   function finish(rooms: StudentReturnRooms | null) {
     const currentUser = auth.currentUser;
-    if (cancelled || currentUser?.uid !== user.uid || currentUser.isAnonymous !== user.isAnonymous) return;
-    cancelled = true;
+    if (controller.signal.aborted || currentUser?.uid !== user.uid || currentUser.isAnonymous !== user.isAnonymous) return;
+    controller.abort();
     window.clearTimeout(timer);
+
+    if (next) {
+      replace(next);
+      return;
+    }
 
     if (rooms?.codeRoomId) {
       if (user.isAnonymous) {
@@ -163,11 +176,16 @@ function redirectReturningCodeStudent(
     replace(roomId ? `/${locale}/student/spaces/${roomId}` : homeForRole(role, locale));
   }
 
-  // A slow membership read should not leave the user on the redirect screen.
+  // Room synchronization must not trap the student on the redirect screen.
   const timer = window.setTimeout(() => finish(null), 8000);
-  void loadStudentReturnRooms(db, user.uid, readLastStudentSpaceId()).then(finish, () => finish(null));
+  async function resolveRooms() {
+    if (!user.isAnonymous) await refreshSchoolStudentRooms(user, controller.signal).catch(() => {});
+    if (!returningFromHome || controller.signal.aborted) return null;
+    return loadStudentReturnRooms(db, user.uid, readLastStudentSpaceId());
+  }
+  void resolveRooms().then(finish, () => finish(null));
   return () => {
-    cancelled = true;
+    controller.abort();
     window.clearTimeout(timer);
   };
 }
@@ -180,7 +198,12 @@ export default function PostLoginPage() {
   const locale = useLocale();
   const t = useTranslations("postLogin");
 
-  const next = useMemo(() => normalizeNext(sp.get("next"), locale), [sp, locale]);
+  const hasProfile = profile !== null;
+  const profileRole = profile?.role;
+  const role = normalizeRole(profileRole);
+  const onboardingComplete = profile?.onboardingComplete === true;
+  const allowStudentContent = user?.isAnonymous === false && role === "student";
+  const next = useMemo(() => normalizeNext(sp.get("next"), locale, allowStudentContent), [sp, locale, allowStudentContent]);
   const returningFromHome = sp.get("from") === "home" && !next;
 
   useEffect(() => {
@@ -211,7 +234,7 @@ export default function PostLoginPage() {
       }
 
       if (returningFromHome) {
-        return redirectReturningCodeStudent(user, locale, (path) => router.replace(path));
+        return redirectStudentAfterLogin(user, locale, (path) => router.replace(path), { returningFromHome });
       }
 
       const guestRole = readGuestRole();
@@ -243,7 +266,7 @@ export default function PostLoginPage() {
       };
     }
 
-    if (!profile) return;
+    if (!hasProfile) return;
 
     if (!loginRecordedRef.current) {
       loginRecordedRef.current = true;
@@ -252,16 +275,13 @@ export default function PostLoginPage() {
       });
     }
 
-    const onboardingComplete = profile.onboardingComplete === true;
-    const role = normalizeRole(profile.role);
-
     if (!role || !onboardingComplete) {
       const url = `/${locale}/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       router.replace(url);
       return;
     }
 
-    if (profile.role !== role || profile.onboardingComplete !== true) {
+    if (profileRole !== role) {
       (async () => {
         try {
           const ref = doc(requireDb(db), "users", user.uid);
@@ -280,17 +300,16 @@ export default function PostLoginPage() {
       })();
     }
 
-    if (next && nextMatchesRole(next, role, locale)) {
-      router.replace(next);
-      return;
+    const nextForRole = next && nextMatchesRole(next, role, locale) ? next : null;
+    if (role === "student") {
+      return redirectStudentAfterLogin(user, locale, (path) => router.replace(path), {
+        next: nextForRole,
+        returningFromHome,
+      });
     }
 
-    if (returningFromHome && role === "student") {
-      return redirectReturningCodeStudent(user, locale, (path) => router.replace(path));
-    }
-
-    router.replace(homeForRole(role, locale));
-  }, [loading, user, profile, router, locale, next, returningFromHome]);
+    router.replace(nextForRole ?? homeForRole(role, locale));
+  }, [loading, user, hasProfile, profileRole, role, onboardingComplete, router, locale, next, returningFromHome]);
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, opacity: 0.8 }}>
