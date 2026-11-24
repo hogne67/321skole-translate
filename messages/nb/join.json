@@ -1,16 +1,16 @@
 {
   "join": {
     "title": "Bli med",
-    "subtitle": "Bruk personlig elev-QR, eller skriv inn romkode og elevkode fra læreren. Navnet ditt hentes fra elevregistreringen i rommet.",
+    "subtitle": "Bruk QR-koden på elevkortet, eller skriv inn romkoden og den personlige elevkoden.",
     "fields": {
       "spaceCode": {
         "label": "Romkode",
         "placeholder": "f.eks. MUR583"
       },
       "studentCode": {
-        "label": "Elevkode",
+        "label": "Personlig elevkode",
         "placeholder": "f.eks. S7K4P",
-        "tip": "Bruk den personlige elevkoden du fikk av læreren."
+        "tip": "Har du glemt elevkoden? Spør lærer eller medlærer."
       }
     },
     "actions": {
@@ -24,10 +24,10 @@
     },
     "errors": {
       "studentCodeAttempts": "For mange kodeforsøk. Vent litt og prøv igjen.",
-      "spaceNotFound": "Fant ikke rom med denne koden. Sjekk at koden er riktig.",
+      "spaceNotFound": "Romkoden ble ikke funnet. Sjekk romkoden du fikk av læreren, eller åpne romlenken på nytt.",
       "authTimeout": "Tidsavbrudd ved innlogging.",
       "studentCodeRequired": "Dette rommet krever personlig elevkode. Bruk elevlenken eller elevkoden du fikk av læreren.",
-      "invalidStudentCode": "Elevkoden passer ikke til dette rommet. Sjekk koden eller spør læreren om ny kode.",
+      "invalidStudentCode": "Sjekk at du har skrevet inn riktig romkode og din personlige elevkode. Spør lærer eller medlærer hvis kodene fortsatt ikke virker.",
       "teacherLimitReached": "Læreren har nådd elevgrensen for gjeldende plan.",
       "teacherLimitReachedWithCount": "Grensen er nådd ({used}/{limit} elever).",
       "joinFailed": "Kunne ikke bli med i rommet.",

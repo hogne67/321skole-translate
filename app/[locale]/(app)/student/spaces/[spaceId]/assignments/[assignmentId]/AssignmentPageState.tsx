@@ -9,6 +9,8 @@ type Props = {
     lessonExists: boolean;
 
     spaceId: string;
+    returnHref: string | null;
+    returnLabel: string;
 
     t: (key: string, values?: Record<string, unknown>) => string;
 };
@@ -18,8 +20,13 @@ export default function AssignmentPageState({
     err,
     lessonExists,
     spaceId,
+    returnHref,
+    returnLabel,
     t,
 }: Props) {
+    const backHref = returnHref ?? `/student/spaces/${spaceId}`;
+    const backLabel = returnHref ? returnLabel : t("actions.backToSpace");
+
     if (loading) {
         return (
             <div style={{ padding: 16 }}>
@@ -49,10 +56,10 @@ export default function AssignmentPageState({
                     }}
                 >
                     <Link
-                        href={`/student/spaces/${spaceId}`}
+                        href={backHref}
                         style={{ textDecoration: "none" }}
                     >
-                        {t("actions.backToSpace")}
+                        {backLabel}
                     </Link>
 
                     <Link
@@ -72,8 +79,8 @@ export default function AssignmentPageState({
                 <div>{t("errors.noData")}</div>
 
                 <div style={{ marginTop: 12 }}>
-                    <Link href={`/student/spaces/${spaceId}`}>
-                        {t("actions.backToSpace")}
+                    <Link href={backHref}>
+                        {backLabel}
                     </Link>
                 </div>
             </div>

@@ -168,7 +168,7 @@
       "saveFailed": "Could not save the change. Please try again.",
       "copyFailed": "Could not copy. Please try again.",
       "qrFailed": "Could not generate the QR code. Please try again.",
-      "sharedEntrance": "The room link and QR code fill in the room code. Each student also enters their personal student code. A new sign-in to the room needs approval.",
+      "sharedEntrance": "The room link and QR code fill in the room code. Each student also enters their personal student code.",
       "backToRooms": "All rooms",
       "roomCode": "Room code",
       "codeMissing": "Unavailable",

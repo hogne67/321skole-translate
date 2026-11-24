@@ -3193,7 +3193,9 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
           </p>
         ) : null}
       </header>
-      {isStudent ? <StudentContentAssignments uid={uid} isAnonymous={isAnon} hasOwnWork={hasOwnWork} /> : null}
+      {isStudent ? (
+        <StudentContentAssignments uid={uid} isAnonymous={isAnon} hasOwnWork={hasOwnWork} returnRoomId={searchParams.get("room")} />
+      ) : null}
       {ownContent}
     </main>
   );

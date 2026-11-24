@@ -5,6 +5,7 @@ import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
+import { getStudentContentOrigin, getStudentContentReturnHref } from "@/lib/studentContentNavigation";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -407,10 +408,14 @@ function sectionAnswerSummary(section: WritingSectionTemplate, answers: AnswersB
 
 export default function StudentWritingActivityPage() {
   const t = useTranslations("studentWritingStation");
+  const tContent = useTranslations("content.student");
   const params = useParams<{ locale: string; spaceId: string; activityId: string }>();
   const searchParams = useSearchParams();
   const locale = params.locale || "nb";
   const spaceId = params.spaceId;
+  const returnHref = getStudentContentReturnHref(getStudentContentOrigin(searchParams), spaceId);
+  const backHref = returnHref ?? `/student/spaces/${spaceId}`;
+  const backLabel = returnHref ? tContent("backToContent") : t("actions.back");
   const activityId = params.activityId;
   const isTeacherPreview = searchParams.get("preview") === "teacher";
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -922,8 +927,8 @@ export default function StudentWritingActivityPage() {
       <div className="mx-auto w-full max-w-5xl rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
         <div className="font-semibold">{t("errors.title")}</div>
         <div className="mt-2 whitespace-pre-wrap text-sm">{err}</div>
-        <Link href={`/student/spaces/${spaceId}`} className="mt-4 inline-flex text-sm font-semibold underline">
-          {t("actions.back")}
+        <Link href={backHref} className="mt-4 inline-flex text-sm font-semibold underline">
+          {backLabel}
         </Link>
       </div>
     );
@@ -998,15 +1003,15 @@ export default function StudentWritingActivityPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 pb-28">
-      <SpacePupilIdentity spaceId={spaceId} />
+      <SpacePupilIdentity spaceId={spaceId} returnToContent={Boolean(returnHref)} />
       {writingAiDisabled === true ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950" role="status">
           {t("ai.roomDisabled")}
         </p>
       ) : null}
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-        <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
-          {t("actions.back")}
+        <Link href={backHref} className="text-sm font-semibold text-emerald-900 underline">
+          {backLabel}
         </Link>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

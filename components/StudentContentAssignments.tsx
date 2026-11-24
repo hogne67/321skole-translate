@@ -42,7 +42,7 @@ function isCurrentSession(uid: string, isAnonymous: boolean) {
   return current?.uid === uid && current.isAnonymous === isAnonymous;
 }
 
-function TaskList({ tasks }: { tasks: RoomTask[] }) {
+function TaskList({ tasks, filtered }: { tasks: RoomTask[]; filtered: boolean }) {
   const t = useTranslations("content.student");
   const locale = useLocale();
   const formatDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" });
@@ -52,6 +52,7 @@ function TaskList({ tasks }: { tasks: RoomTask[] }) {
       {tasks.map((task) => {
         const title = task.title ?? t("untitledTask");
         const roomTitle = task.roomTitle ?? t("untitledRoom");
+        const href = `${task.href}${task.href.includes("?") ? "&" : "?"}from=${filtered ? "content-room" : "content"}`;
         const canContinue = task.status === "draft" || task.status === "needsWork" || task.status === "planningReviewed";
         return (
           <li key={`${task.roomId}:${task.kind}:${task.id}`} className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-solid border-slate-200 bg-white p-3 sm:px-4">
@@ -65,7 +66,7 @@ function TaskList({ tasks }: { tasks: RoomTask[] }) {
                 {task.dueAt ? <span>{t("due", { date: formatDate.format(task.dueAt) })}</span> : null}
               </p>
             </div>
-            <Link href={task.href} className={`${actionClass} bg-emerald-800 text-white hover:bg-emerald-900`}>
+            <Link href={href} className={`${actionClass} bg-emerald-800 text-white hover:bg-emerald-900`}>
               {t(canContinue ? "continueTask" : "openTask")}
               <span className="sr-only"> {title} ({roomTitle})</span>
             </Link>
@@ -80,14 +81,16 @@ export default function StudentContentAssignments({
   uid,
   isAnonymous,
   hasOwnWork,
+  returnRoomId,
 }: {
   uid: string | null;
   isAnonymous: boolean;
   hasOwnWork: boolean;
+  returnRoomId: string | null;
 }) {
   const t = useTranslations("content.student");
   const sessionKey = uid ? `${uid}:${isAnonymous}` : "";
-  const [selection, setSelection] = useState<{ sessionKey: string; roomId: string } | null>(null);
+  const [selection, setSelection] = useState<{ sessionKey: string; roomId: string; returnRoomId: string | null } | null>(null);
   const [content, setContent] = useState<ContentState | null>(null);
   const [retry, setRetry] = useState(0);
   const scopeKey = JSON.stringify([sessionKey, retry]);
@@ -183,9 +186,10 @@ export default function StudentContentAssignments({
 
   const current = content?.scopeKey === scopeKey ? content : null;
   const rooms = current?.rooms.flatMap(({ choice }) => choice ? [choice] : []) ?? [];
-  const selectedRoom = selection?.sessionKey === sessionKey
-    ? rooms.find((room) => room.spaceId === selection.roomId)
-    : undefined;
+  const requestedRoomId = selection?.sessionKey === sessionKey && selection.returnRoomId === returnRoomId
+    ? selection.roomId
+    : returnRoomId;
+  const selectedRoom = rooms.find((room) => room.spaceId === requestedRoomId);
   const selectedRoomId = selectedRoom?.spaceId ?? "";
   const identityRoom = selectedRoom
     ?? rooms.find((room) => room.spaceId === current?.lastRoomId)
@@ -228,7 +232,7 @@ export default function StudentContentAssignments({
                 value={selectedRoomId}
                 onChange={(event) => {
                   const roomId = event.currentTarget.value;
-                  setSelection({ sessionKey, roomId });
+                  setSelection({ sessionKey, roomId, returnRoomId });
                   if (roomId && isAnonymous && uid && isCurrentSession(uid, isAnonymous)) saveLastStudentSpaceId(roomId);
                 }}
                 className="min-h-11 w-full min-w-0 appearance-none rounded-lg border border-solid border-slate-300 bg-white pl-3 pr-9 text-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 sm:min-w-52"
@@ -267,7 +271,7 @@ export default function StudentContentAssignments({
         </div>
       ) : null}
 
-      {activeTasks.length > 0 ? <TaskList tasks={activeTasks} /> : null}
+      {activeTasks.length > 0 ? <TaskList tasks={activeTasks} filtered={Boolean(selectedRoomId)} /> : null}
       {!loading && !failed && rooms.length > 0 && activeTasks.length === 0 ? (
         <p className="m-0 rounded-xl border border-solid border-slate-200 bg-white p-3 text-sm text-slate-600">{t("noAssignments")}</p>
       ) : null}
@@ -276,7 +280,7 @@ export default function StudentContentAssignments({
           <summary className="cursor-pointer rounded-xl px-3 py-3 text-sm font-medium text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             {t("archived")}
           </summary>
-          <div className="px-3 pb-3"><TaskList tasks={archivedTasks} /></div>
+          <div className="px-3 pb-3"><TaskList tasks={archivedTasks} filtered={Boolean(selectedRoomId)} /></div>
         </details>
       ) : null}
     </section>

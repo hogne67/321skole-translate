@@ -12,6 +12,7 @@ import { doc, getDoc, onSnapshot } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase";
 import { Link } from "@/i18n/navigation";
+import { getStudentContentOrigin, getStudentContentReturnHref } from "@/lib/studentContentNavigation";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import { authedPost } from "@/lib/authedPost";
@@ -141,10 +142,12 @@ async function uploadPodcastAudio({
 
 export default function StudentPodcastWorkshopPage() {
   const t = useTranslations("studentAssignment");
+  const tContent = useTranslations("content.student");
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
   const params = useParams<{ spaceId: string; assignmentId: string }>();
   const searchParams = useSearchParams();
   const spaceId = params.spaceId;
+  const returnHref = getStudentContentReturnHref(getStudentContentOrigin(searchParams), spaceId);
   const assignmentId = params.assignmentId;
   const isTeacherPreview = searchParams.get("preview") === "teacher";
 
@@ -332,6 +335,11 @@ export default function StudentPodcastWorkshopPage() {
   if (err || !config) {
     return (
       <main className="mx-auto w-full max-w-5xl p-4">
+        {returnHref ? (
+          <Link href={returnHref} className="mb-3 inline-flex text-sm font-semibold text-emerald-900 underline">
+            {tContent("backToContent")}
+          </Link>
+        ) : null}
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-900">
           {err ?? t("errors.generic")}
         </div>
@@ -355,9 +363,9 @@ export default function StudentPodcastWorkshopPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 p-3 pb-28">
-      <SpacePupilIdentity spaceId={spaceId} />
-      <Link href={`/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
-        {t("actions.backToSpace")}
+      <SpacePupilIdentity spaceId={spaceId} returnToContent={Boolean(returnHref)} />
+      <Link href={returnHref ?? `/student/spaces/${spaceId}`} className="text-sm font-semibold text-emerald-900 underline">
+        {returnHref ? tContent("backToContent") : t("actions.backToSpace")}
       </Link>
 
       <PodcastWorkshopStudentSection

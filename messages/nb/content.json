@@ -4,6 +4,7 @@
     "subtitle": "Her kan du administrere alt: publisere, dele, laste ned PDF, redigere og mer.",
     "student": {
       "assignments": "Tildelte oppgaver",
+      "backToContent": "Tilbake til Mitt innhold",
       "ownWork": "Eget arbeid",
       "noOwnWork": "Du har ikke lagret noe eget arbeid ennå.",
       "noOwnMatches": "Ingen treff i eget arbeid.",

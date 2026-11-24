@@ -19,6 +19,8 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
+import { getStudentContentOrigin, getStudentContentReturnHref } from "@/lib/studentContentNavigation";
+import { Link } from "@/i18n/navigation";
 import { LANGUAGES } from "@/lib/languages";
 import { authedPost } from "@/lib/authedPost";
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -379,6 +381,7 @@ function toApiSubmissionPayload(value: unknown): unknown {
 
 export default function StudentAssignmentPage() {
   const t = useTranslations("studentAssignment");
+  const tContent = useTranslations("content.student");
   const locale = useLocale();
   const router = useRouter();
   const tString = t as unknown as (
@@ -399,6 +402,8 @@ export default function StudentAssignmentPage() {
   const sp = useSearchParams();
   const sid = useMemo(() => (sp.get("sid") ?? "").trim(), [sp]);
   const isTeacherPreview = sp.get("preview") === "teacher";
+  const from = isTeacherPreview ? null : getStudentContentOrigin(sp);
+  const returnHref = getStudentContentReturnHref(from, spaceId);
 
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null);
 
@@ -614,9 +619,9 @@ export default function StudentAssignmentPage() {
     if (loading) return;
     if (!isPodcastWorkshop) return;
     if (!spaceId || !assignmentId) return;
-    const previewQuery = isTeacherPreview ? "?preview=teacher" : "";
-    router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}${previewQuery}`);
-  }, [assignmentId, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
+    const search = isTeacherPreview ? "?preview=teacher" : from ? `?from=${from}` : "";
+    router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}${search}`);
+  }, [assignmentId, from, isPodcastWorkshop, isTeacherPreview, loading, locale, router, spaceId]);
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest || isGrammarTest || isPodcastWorkshop ? "" : sourceTextSafe;
   const readingPracticeStage = getReadingPracticeStage(lesson?.textType, lesson?.language);
@@ -2013,6 +2018,8 @@ export default function StudentAssignmentPage() {
         err={err}
         lessonExists={!!lesson}
         spaceId={spaceId}
+        returnHref={returnHref}
+        returnLabel={tContent("backToContent")}
         t={tString}
       />
     );
@@ -2084,7 +2091,12 @@ export default function StudentAssignmentPage() {
 
   return (
     <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 6px 170px", boxSizing: "border-box" }}>
-      {!isTeacherPreview ? <SpacePupilIdentity spaceId={spaceId} /> : null}
+      {returnHref ? (
+        <Link href={returnHref} className="mb-2 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-900 underline">
+          {tContent("backToContent")}
+        </Link>
+      ) : null}
+      {!isTeacherPreview ? <SpacePupilIdentity spaceId={spaceId} returnToContent={Boolean(returnHref)} /> : null}
       <AssignmentPageHeader
         mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}

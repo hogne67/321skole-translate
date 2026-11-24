@@ -2,6 +2,8 @@
   "topNav": {
     "language": "Idioma",
     "guestMode": "Modo visitante",
+    "pupil": "Aluno",
+    "pupilMenu": "Menu do aluno",
     "live": "Live",
     "loginOrCreate": "Entrar / Criar conta",
     "completeProfile": "Completar perfil",

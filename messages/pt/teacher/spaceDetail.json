@@ -168,7 +168,7 @@
       "saveFailed": "Não foi possível salvar a alteração. Tente novamente.",
       "copyFailed": "Não foi possível copiar. Tente novamente.",
       "qrFailed": "Não foi possível gerar o código QR. Tente novamente.",
-      "sharedEntrance": "O link e o QR da sala preenchem o código da sala. Cada aluno também insere seu código pessoal. Um novo acesso à sala precisa de aprovação.",
+      "sharedEntrance": "O link e o QR da sala preenchem o código da sala. Cada aluno também insere o seu código pessoal.",
       "backToRooms": "Todas as salas",
       "roomCode": "Código da sala",
       "codeMissing": "Indisponível",

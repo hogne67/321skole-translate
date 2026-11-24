@@ -2,6 +2,8 @@
   "topNav": {
     "language": "Språk",
     "guestMode": "Gjest",
+    "pupil": "Elev",
+    "pupilMenu": "Elevmeny",
     "live": "Live",
     "loginOrCreate": "Logg inn / Registrer deg",
     "completeProfile": "Fullfør profil",

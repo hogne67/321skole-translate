@@ -19,14 +19,8 @@ export default function SpacePupilIdentity({ spaceId, returnToContent = false }:
   returnToContent?: boolean;
 }) {
   const { user } = useUserProfile();
-  const locale = useLocale();
-  const t = useTranslations("join");
-  const confirmationId = useId();
   const memberId = spaceId && user?.uid ? `${spaceId}_${user.uid}` : null;
   const [identity, setIdentity] = useState<{ memberId: string; name: string } | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
   useEffect(() => {
     if (!memberId) return;
     return onSnapshot(doc(db, "spaceMembers", memberId), snapshot => {
@@ -37,6 +31,17 @@ export default function SpacePupilIdentity({ spaceId, returnToContent = false }:
   }, [memberId]);
   const name = identity?.memberId === memberId ? identity.name : "";
   if (!user || (spaceId && !name)) return null;
+  return <SpacePupilSession key={memberId ?? user.uid} name={name} returnToContent={returnToContent} />;
+}
+
+export function SpacePupilSession({ name, returnToContent }: { name: string; returnToContent: boolean }) {
+  const locale = useLocale();
+  const t = useTranslations("join");
+  const confirmationId = useId();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
   async function endSession() {
     setBusy(true); setError(false);
     try {

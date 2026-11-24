@@ -2,6 +2,8 @@
   "topNav": {
     "language": "Language",
     "guestMode": "Guest mode",
+    "pupil": "Pupil",
+    "pupilMenu": "Pupil menu",
     "live": "Live",
     "loginOrCreate": "Log in / Create account",
     "completeProfile": "Complete profile",

@@ -1,16 +1,16 @@
 {
   "join": {
     "title": "Entrar",
-    "subtitle": "Use o QR pessoal do aluno ou introduza o código da sala e o código de aluno fornecidos pelo professor. O nome vem do registo do aluno nesta sala.",
+    "subtitle": "Use o código QR do cartão de aluno ou introduza o código da sala e o seu código pessoal de aluno.",
     "fields": {
       "spaceCode": {
         "label": "Código da sala",
         "placeholder": "ex.: MUR583"
       },
       "studentCode": {
-        "label": "Código do aluno",
+        "label": "Código pessoal do aluno",
         "placeholder": "ex.: S7K4P",
-        "tip": "Use o código pessoal de aluno que recebeu do professor."
+        "tip": "Esqueceu o código? Peça ajuda ao professor ou ao professor auxiliar."
       }
     },
     "actions": {
@@ -24,10 +24,10 @@
     },
     "errors": {
       "studentCodeAttempts": "Muitas tentativas. Aguarde um pouco e tente novamente.",
-      "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",
+      "spaceNotFound": "Não foi encontrada uma sala com esse código. Verifique o código fornecido pelo professor ou volte a abrir o link da sala.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",
       "studentCodeRequired": "Esta sala exige código pessoal de aluno. Use o link ou o código de aluno enviado pelo professor.",
-      "invalidStudentCode": "O código de aluno não corresponde a esta sala. Verifique o código ou peça um novo ao professor.",
+      "invalidStudentCode": "Verifique se introduziu o código correto da sala e o seu código pessoal de aluno. Se os códigos continuarem a falhar, peça ajuda ao professor ou ao professor auxiliar.",
       "teacherLimitReached": "O professor atingiu o limite de alunos para o plano atual.",
       "teacherLimitReachedWithCount": "Limite atingido ({used}/{limit} alunos).",
       "joinFailed": "Não foi possível entrar no espaço.",

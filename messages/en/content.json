@@ -4,6 +4,7 @@
     "subtitle": "Here you can manage everything: publish, share, PDF, edit and more.",
     "student": {
       "assignments": "Assigned work",
+      "backToContent": "Back to My Content",
       "ownWork": "My own work",
       "noOwnWork": "You haven’t saved any work of your own yet.",
       "noOwnMatches": "No matches in your own work.",

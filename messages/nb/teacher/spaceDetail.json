@@ -168,7 +168,7 @@
       "saveFailed": "Kunne ikke lagre endringen. Prøv igjen.",
       "copyFailed": "Kunne ikke kopiere. Prøv igjen.",
       "qrFailed": "Kunne ikke lage QR-koden. Prøv igjen.",
-      "sharedEntrance": "Romlenken og rom-QR fyller inn romkoden. Eleven oppgir også sin personlige elevkode. En ny innlogging i rommet må godkjennes.",
+      "sharedEntrance": "Romlenken og rom-QR fyller inn romkoden. Eleven oppgir også sin personlige elevkode.",
       "backToRooms": "Alle rom",
       "roomCode": "Romkode",
       "codeMissing": "Mangler",

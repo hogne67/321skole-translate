@@ -35,6 +35,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent }: {
   openContent: boolean;
 }) {
   const t = useTranslations("join");
+  const tLanding = useTranslations("landing.hero");
   const locale = useLocale();
   const router = useRouter();
   const [code, setCode] = useState(initialCode);
@@ -112,7 +113,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent }: {
     </div>;
   }
   return <div className="mx-auto max-w-md p-4">
-    <h1 className="text-2xl font-semibold">{t("title")}</h1>
+    <h1 className="text-2xl font-semibold">{openContent ? tLanding("ctaStudentCode") : t("title")}</h1>
     <p className="mt-2 text-sm text-slate-600">{t("subtitle")}</p>
     {signedOut ? <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-800">{t("session.signedOut")}</p> : null}
     <form autoComplete="off" onSubmit={e => { e.preventDefault(); if (!preview) void request({ submit: true }); }} className="mt-4 grid gap-4 rounded-2xl border bg-white p-4 shadow-sm">

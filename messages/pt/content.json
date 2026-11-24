@@ -4,6 +4,7 @@
     "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, baixar PDF, editar e muito mais.",
     "student": {
       "assignments": "Atividades atribuídas",
+      "backToContent": "Voltar ao Meu conteúdo",
       "ownWork": "Meus trabalhos",
       "noOwnWork": "Você ainda não salvou nenhum trabalho próprio.",
       "noOwnMatches": "Nenhum resultado nos seus trabalhos.",

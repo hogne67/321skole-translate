@@ -1,16 +1,16 @@
 {
   "join": {
     "title": "Join",
-    "subtitle": "Use your personal pupil QR, or enter the room code and pupil code from your teacher. Your name comes from your pupil record in this room.",
+    "subtitle": "Use the QR code on your pupil card, or enter the room code and your personal student code.",
     "fields": {
       "spaceCode": {
-        "label": "Space code",
+        "label": "Room code",
         "placeholder": "e.g. MUR583"
       },
       "studentCode": {
-        "label": "Student code",
+        "label": "Personal student code",
         "placeholder": "e.g. S7K4P",
-        "tip": "Use the personal student code you received from your teacher."
+        "tip": "Forgot your code? Ask your teacher or co-teacher."
       }
     },
     "actions": {
@@ -24,10 +24,10 @@
     },
     "errors": {
       "studentCodeAttempts": "Too many code attempts. Wait a little and try again.",
-      "spaceNotFound": "No space found with this code. Check that the code is correct.",
+      "spaceNotFound": "We couldn't find that room code. Check the code from your teacher or open the room link again.",
       "authTimeout": "Timed out while waiting for auth user.",
       "studentCodeRequired": "This room requires a personal student code. Use the student link or student code from your teacher.",
-      "invalidStudentCode": "The student code does not match this room. Check the code or ask your teacher for a new one.",
+      "invalidStudentCode": "Check that you entered the correct room code and your personal student code. Ask your teacher or co-teacher if the codes still don't work.",
       "teacherLimitReached": "This teacher has reached the student limit for the current plan.",
       "teacherLimitReachedWithCount": "Teacher limit reached ({used}/{limit} students).",
       "joinFailed": "Could not join space.",

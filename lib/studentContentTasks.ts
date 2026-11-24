@@ -72,18 +72,19 @@ export async function loadStudentContentRoomChoice(db: Firestore, membership: Me
 
 export type StudentReturnRooms = { codeRoomId: string | null; roomId: string | null };
 
+export function isStudentCodeMembership(member: Record<string, unknown>) {
+  return member.schoolPupilCodeAccess === true || (!member.schoolPupilId && (
+    member.linkedByStudentCode === true
+    || (text(member.studentCode) !== null && (member.isAnon === true || Boolean(member.approvedAt)))
+  ));
+}
+
 export async function loadStudentReturnRooms(
   db: Firestore, uid: string, preferredRoomId: string | null,
 ): Promise<StudentReturnRooms> {
   const snapshot = await getDocsFromServer(query(collection(db, "spaceMembers"), where("uid", "==", uid)));
   const rows = snapshot.docs.filter((row) => !row.metadata.hasPendingWrites);
-  const codeRows = rows.filter((row) => {
-    const member = row.data();
-    return member.schoolPupilCodeAccess === true || (!member.schoolPupilId && (
-      member.linkedByStudentCode === true
-      || (text(member.studentCode) !== null && (member.isAnon === true || Boolean(member.approvedAt)))
-    ));
-  });
+  const codeRows = rows.filter((row) => isStudentCodeMembership(row.data()));
   const codeMemberIds = new Set(codeRows.map((row) => row.id));
   const memberships = listStudentContentMemberships(rows, uid);
   const choices = await Promise.allSettled(memberships.map((member) => loadStudentContentRoomChoice(db, member)));

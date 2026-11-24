@@ -11,6 +11,7 @@ import { readGuestRole, roleFromPathname, saveGuestRole } from "@/lib/guestRole"
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
 import NotificationBell from "@/components/NotificationBell";
+import SpacePupilMenu, { useSpacePupilName } from "@/components/SpacePupilMenu";
 
 /* =========================
    Locale helpers (TopNav)
@@ -144,6 +145,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
+  const currentRoomId = /^\/student\/spaces\/([^/]+)/.exec(stripLeadingLocales(pathname ?? ""))?.[1] ?? null;
+  const pupilName = useSpacePupilName(isAnon ? authUser?.uid ?? null : null, currentRoomId);
   const pathGuestRole = roleFromPathname(pathname);
   const guestRole = pathGuestRole ?? readGuestRole();
 
@@ -185,7 +188,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
   return (
     <header
-      className={readingNavItems ? "readingNav" : undefined}
+      className={[readingNavItems ? "readingNav" : "", pupilName !== null ? "pupilTopNav" : ""].join(" ")}
       style={{
         background: "rgba(69, 57, 97, 0.15)",
         backdropFilter: "saturate(150%) blur(6px)",
@@ -266,14 +269,16 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
         </Link>
         <NotificationBell />
 
-        {isAnon && (
+        {pupilName !== null ? (
+          <SpacePupilMenu key={`${authUser?.uid}:${pathname}`} name={pupilName} />
+        ) : isAnon ? (
           <>
             <span style={{ fontSize: 13, opacity: 0.7 }}>{tTop("guestMode")}</span>
             <Link href={withLocale(locale, `/login?next=${loginNext}`)} className="authButton" style={btnStyle}>
               {tTop("loginOrCreate")}
             </Link>
           </>
-        )}
+        ) : null}
 
         {isLoggedIn && (
           <>
@@ -298,6 +303,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
       <style jsx>{`
         .readingShortcuts, .readingMenuLinks { display: none; }
+        .pupilTopNav { position: relative; z-index: 30; }
         @media (max-width: 640px) {
           .readingNav {
             padding: 6px 12px !important;
@@ -324,6 +330,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
           }
         }
         @media (max-width: 520px) {
+          .pupilTopNav { padding: 8px 10px !important; gap: 6px !important; }
+          .pupilTopNav .topNavActions { gap: 6px !important; }
           .brandText {
             display: none;
           }
