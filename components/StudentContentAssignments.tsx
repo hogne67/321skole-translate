@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { ChevronDown } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
+import { SpacePupilContext } from "@/components/SpacePupilMenu";
 import { Link } from "@/i18n/navigation";
 import { auth, db } from "@/lib/firebase";
 import {
@@ -90,6 +91,8 @@ export default function StudentContentAssignments({
 }) {
   const t = useTranslations("content.student");
   const sessionKey = uid ? `${uid}:${isAnonymous}` : "";
+  const pupil = useContext(SpacePupilContext);
+  const hasPupilMenu = isAnonymous && pupil?.uid === uid;
   const [selection, setSelection] = useState<{ sessionKey: string; roomId: string; returnRoomId: string | null } | null>(null);
   const [content, setContent] = useState<ContentState | null>(null);
   const [retry, setRetry] = useState(0);
@@ -215,7 +218,7 @@ export default function StudentContentAssignments({
 
   return (
     <section aria-labelledby="student-content-assignments" className="space-y-3">
-      {identityRoom || (uid && isAnonymous) ? (
+      {!hasPupilMenu && (identityRoom || (uid && isAnonymous)) ? (
         <SpacePupilIdentity
           key={JSON.stringify([sessionKey, identityRoom?.spaceId, identityRoom?.participantId])}
           spaceId={identityRoom?.spaceId ?? null}

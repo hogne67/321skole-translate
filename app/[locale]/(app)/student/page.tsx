@@ -4,8 +4,9 @@
 import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import { SpacePupilContext } from "@/components/SpacePupilMenu";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
@@ -371,6 +372,9 @@ export default function StudentDashboard() {
   const t = useTranslations("dashboard");
 
   const { user, profile } = useUserProfile();
+  const pupil = useContext(SpacePupilContext);
+  const pupilName = user?.isAnonymous && pupil && pupil.uid === user.uid ? pupil.name : null;
+  const isCodePupil = pupilName !== null;
 
   const [isAnon, setIsAnon] = useState(true);
   const [uid, setUid] = useState<string | undefined>(undefined);
@@ -559,7 +563,13 @@ export default function StudentDashboard() {
 
   return (
     <main style={dashboardShellStyle}>
-      <DashboardIntro
+      {isCodePupil ? (
+        <section className="mb-3 rounded-xl border border-solid border-slate-200 bg-white p-4">
+          <h1 className="m-0 break-words text-xl font-semibold text-slate-950">
+            {pupilName ? t("dashboardIntro.helloUser", { name: pupilName }) : t("dashboardIntro.helloAnon")}
+          </h1>
+        </section>
+      ) : <DashboardIntro
         userIsAnon={isAnon}
         helloAnon={t("dashboardIntro.helloAnon")}
         helloUser={t.raw("dashboardIntro.helloUser")}
@@ -604,11 +614,11 @@ export default function StudentDashboard() {
             </Link>
           ) : null
         }
-      />
+      />}
 
       <InstallAppButton />
 
-      {isAnon ? (
+      {isAnon && !isCodePupil ? (
         <section
           style={{
             marginTop: isMobile ? 16 : 18,

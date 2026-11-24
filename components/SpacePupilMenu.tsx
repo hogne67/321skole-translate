@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { createContext, useEffect, useId, useRef, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { ChevronDown, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -9,14 +9,16 @@ import { auth, db } from "@/lib/firebase";
 import { isStudentCodeMembership, listStudentContentMemberships } from "@/lib/studentContentTasks";
 import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 
-type PupilName = { spaceId: string; name: string };
+type ConfirmedSpacePupil = { uid: string; spaceId: string; name: string };
 
-export function useSpacePupilName(uid: string | null, currentRoomId: string | null) {
-  const [confirmed, setConfirmed] = useState<{ uid: string; names: PupilName[] } | null>(null);
+export const SpacePupilContext = createContext<ConfirmedSpacePupil | null>(null);
+
+export function useConfirmedSpacePupil(uid: string | null, currentRoomId: string | null) {
+  const [confirmed, setConfirmed] = useState<{ uid: string; pupils: ConfirmedSpacePupil[] } | null>(null);
   useEffect(() => {
     if (!uid) return;
-    const update = (names: PupilName[]) => {
-      if (auth.currentUser?.uid === uid && auth.currentUser.isAnonymous) setConfirmed({ uid, names });
+    const update = (pupils: ConfirmedSpacePupil[]) => {
+      if (auth.currentUser?.uid === uid && auth.currentUser.isAnonymous) setConfirmed({ uid, pupils });
     };
     const memberships = query(collection(db, "spaceMembers"), where("uid", "==", uid));
     return onSnapshot(memberships, { includeMetadataChanges: true }, (snapshot) => {
@@ -28,15 +30,14 @@ export function useSpacePupilName(uid: string | null, currentRoomId: string | nu
       const aliases = new Map(rows.map((row) => [row.id, row.get("displayName")]));
       update(listStudentContentMemberships(rows, uid).map(({ spaceId }) => {
         const alias = aliases.get(`${spaceId}_${uid}`);
-        return { spaceId, name: typeof alias === "string" ? alias.trim() : "" };
+        return { uid, spaceId, name: typeof alias === "string" ? alias.trim() : "" };
       }));
     }, () => update([]));
   }, [uid]);
 
-  if (!uid || confirmed?.uid !== uid || !confirmed.names.length) return null;
+  if (!uid || confirmed?.uid !== uid || !confirmed.pupils.length) return null;
   const preferredRoomId = currentRoomId ?? readLastStudentSpaceId();
-  const pupil = confirmed.names.find(({ spaceId }) => spaceId === preferredRoomId) ?? confirmed.names[0];
-  return pupil.name;
+  return confirmed.pupils.find(({ spaceId }) => spaceId === preferredRoomId) ?? confirmed.pupils[0];
 }
 
 export default function SpacePupilMenu({ name }: { name: string }) {

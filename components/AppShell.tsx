@@ -5,6 +5,7 @@ import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
+import { SpacePupilContext, useConfirmedSpacePupil } from "@/components/SpacePupilMenu";
 import LibraryBar from "@/components/LibraryBar";
 import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
@@ -188,6 +189,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isBoardDisplayPage = pathWithoutLocale.includes("/board/display");
   const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
   const hideAppChrome = isPrintViewPage || isBoardDisplayPage;
+  const currentRoomId = /^\/student\/spaces\/([^/]+)/.exec(pathWithoutLocale)?.[1] ?? null;
+  const pupil = useConfirmedSpacePupil(!hideAppChrome && user?.isAnonymous ? user.uid : null, currentRoomId);
   const useCompactSectionHeader =
     isTopLevelNavPage ||
     isSpacesDetailPage ||
@@ -222,7 +225,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
+  const shell = (
     <div className="app-scope tw-scope appShellRoot">
       {!hideAppChrome ? <TopNav readingNavItems={isLessonViewPage ? items : undefined}
         readingLibraryAvailable={!hideStudentLibraryEntry} /> : null}
@@ -299,6 +302,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       `}</style>
     </div>
   );
+  return <SpacePupilContext.Provider value={pupil}>{shell}</SpacePupilContext.Provider>;
 }
 
 function LibraryClosePanel({ href, label }: { href: string; label: string }) {

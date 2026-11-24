@@ -1,7 +1,7 @@
 // components\TopNav.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -11,7 +11,7 @@ import { readGuestRole, roleFromPathname, saveGuestRole } from "@/lib/guestRole"
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
 import NotificationBell from "@/components/NotificationBell";
-import SpacePupilMenu, { useSpacePupilName } from "@/components/SpacePupilMenu";
+import SpacePupilMenu, { SpacePupilContext } from "@/components/SpacePupilMenu";
 
 /* =========================
    Locale helpers (TopNav)
@@ -145,8 +145,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
-  const currentRoomId = /^\/student\/spaces\/([^/]+)/.exec(stripLeadingLocales(pathname ?? ""))?.[1] ?? null;
-  const pupilName = useSpacePupilName(isAnon ? authUser?.uid ?? null : null, currentRoomId);
+  const pupil = useContext(SpacePupilContext);
+  const pupilName = isAnon && pupil && pupil.uid === authUser?.uid ? pupil.name : null;
   const pathGuestRole = roleFromPathname(pathname);
   const guestRole = pathGuestRole ?? readGuestRole();
 
