@@ -22,6 +22,7 @@ export type StudentContentTask = {
   title: string | null;
   href: string;
   status: TaskStatus;
+  assignedAt: number | null;
   dueAt: number | null;
   updatedAt: number;
   archived: boolean;
@@ -168,6 +169,7 @@ async function loadTask(
     title: text(data.title),
     href: latest && isLesson ? `${taskPath}?sid=${encodeURIComponent(latest.id)}` : taskPath,
     status: taskStatus(latest?.data),
+    assignedAt: millis(data.assignedAt) || millis(data.createdAt) || null,
     dueAt: millis(data.dueAt) || null,
     updatedAt: Math.max(lastUpdated(data), latest ? lastUpdated(latest.data) : 0),
     archived: data.archived === true || text(data.status)?.toLowerCase() === "archived",

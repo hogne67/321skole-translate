@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { ChevronDown } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import SpacePupilIdentity from "@/components/SpacePupilIdentity";
 import { Link } from "@/i18n/navigation";
@@ -30,6 +31,11 @@ type AssignmentListState = {
   failed: boolean;
 };
 
+type RoomTask = StudentContentTask & {
+  roomId: string;
+  roomTitle: string | null;
+};
+
 const noRooms: StudentContentRoomChoice[] = [];
 const actionClass = "inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
 
@@ -38,7 +44,7 @@ function isCurrentSession(uid: string, isAnonymous: boolean) {
   return current?.uid === uid && current.isAnonymous === isAnonymous;
 }
 
-function TaskList({ tasks }: { tasks: StudentContentTask[] }) {
+function TaskList({ tasks }: { tasks: RoomTask[] }) {
   const t = useTranslations("content.student");
   const locale = useLocale();
   const formatDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" });
@@ -47,11 +53,15 @@ function TaskList({ tasks }: { tasks: StudentContentTask[] }) {
     <ul className="m-0 grid list-none gap-2 p-0">
       {tasks.map((task) => {
         const title = task.title ?? t("untitledTask");
+        const roomTitle = task.roomTitle ?? t("untitledRoom");
         const canContinue = task.status === "draft" || task.status === "needsWork" || task.status === "planningReviewed";
         return (
-          <li key={`${task.kind}:${task.id}`} className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-solid border-slate-200 bg-white p-3 sm:px-4">
+          <li key={`${task.roomId}:${task.kind}:${task.id}`} className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-solid border-slate-200 bg-white p-3 sm:px-4">
             <div className="min-w-0 flex-1 basis-48">
-              <h4 className="m-0 break-words text-base font-semibold text-slate-950">{title}</h4>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h3 className="m-0 min-w-0 break-words text-base font-semibold text-slate-950">{title}</h3>
+                <span className="max-w-full break-words rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{roomTitle}</span>
+              </div>
               <p className="mb-0 mt-1 flex flex-wrap gap-x-2 gap-y-1 text-sm text-slate-700">
                 <span className="font-medium">{t(`status.${task.status}`)}</span>
                 {task.dueAt ? <span>{t("due", { date: formatDate.format(task.dueAt) })}</span> : null}
@@ -59,7 +69,7 @@ function TaskList({ tasks }: { tasks: StudentContentTask[] }) {
             </div>
             <Link href={task.href} className={`${actionClass} bg-emerald-800 text-white hover:bg-emerald-900`}>
               {t(canContinue ? "continueTask" : "openTask")}
-              <span className="sr-only"> {title}</span>
+              <span className="sr-only"> {title} ({roomTitle})</span>
             </Link>
           </li>
         );
@@ -135,56 +145,74 @@ export default function StudentContentAssignments({
 
   const choices = roomChoices?.sessionKey === sessionKey ? roomChoices : null;
   const rooms = choices?.rooms ?? noRooms;
-  const preferredRoomId = selection?.sessionKey === sessionKey ? selection.roomId : choices?.lastRoomId;
-  const selectedRoom = rooms.length === 1 ? rooms[0] : rooms.find((room) => room.spaceId === preferredRoomId);
-  const selectedRooms = useMemo(() => selectedRoom ? [selectedRoom] : isAnonymous ? noRooms : rooms, [selectedRoom, isAnonymous, rooms]);
-  const scopeKey = JSON.stringify([sessionKey, retry, selectedRooms.map(({ spaceId, participantId }) => [spaceId, participantId])]);
+  const selectedRoom = selection?.sessionKey === sessionKey
+    ? rooms.find((room) => room.spaceId === selection.roomId)
+    : undefined;
+  const selectedRoomId = selectedRoom?.spaceId ?? "";
+  const identityRoom = selectedRoom
+    ?? rooms.find((room) => room.spaceId === choices?.lastRoomId)
+    ?? (isAnonymous || rooms.length === 1 ? rooms[0] : undefined);
+  const scopeKey = JSON.stringify([sessionKey, retry, rooms.map(({ spaceId, participantId }) => [spaceId, participantId])]);
 
   useEffect(() => {
-    if (!uid || selectedRooms.length === 0) return;
+    if (!uid || rooms.length === 0) return;
 
     let stopped = false;
-    void Promise.allSettled(selectedRooms.map((room) => loadStudentContentRoom(db, room, uid))).then((results) => {
+    void Promise.allSettled(rooms.map((room) => loadStudentContentRoom(db, room, uid))).then((results) => {
       if (stopped || !isCurrentSession(uid, isAnonymous)) return;
       const rooms = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
       setAssignments({ scopeKey, rooms, failed: results.some((result) => result.status === "rejected" || !result.value) });
     });
     return () => { stopped = true; };
-  }, [uid, isAnonymous, selectedRooms, scopeKey]);
+  }, [uid, isAnonymous, rooms, scopeKey]);
 
   const currentAssignments = assignments?.scopeKey === scopeKey ? assignments : null;
-  const loading = !!uid && (!choices || (selectedRooms.length > 0 && !currentAssignments));
+  const visibleTasks = useMemo(() => {
+    return (currentAssignments?.rooms ?? [])
+      .filter((room) => !selectedRoomId || room.id === selectedRoomId)
+      .flatMap((room) => room.tasks.map((task): RoomTask => ({ ...task, roomId: room.id, roomTitle: room.title })))
+      .sort((a, b) => (b.assignedAt ?? -Infinity) - (a.assignedAt ?? -Infinity)
+        || a.roomId.localeCompare(b.roomId)
+        || a.kind.localeCompare(b.kind)
+        || a.id.localeCompare(b.id));
+  }, [currentAssignments, selectedRoomId]);
+  const activeTasks = visibleTasks.filter((task) => !task.archived);
+  const archivedTasks = visibleTasks.filter((task) => task.archived);
+  const loading = !!uid && (!choices || (rooms.length > 0 && !currentAssignments));
   const failed = choices?.failed || currentAssignments?.failed;
   if (hasOwnWork && !loading && !failed && rooms.length === 0) return null;
 
   return (
     <section aria-labelledby="student-content-assignments" className="space-y-3">
-      {selectedRoom || (uid && isAnonymous) ? (
+      {identityRoom || (uid && isAnonymous) ? (
         <SpacePupilIdentity
-          key={JSON.stringify([sessionKey, selectedRoom?.spaceId, selectedRoom?.participantId])}
-          spaceId={selectedRoom?.spaceId ?? null}
+          key={JSON.stringify([sessionKey, identityRoom?.spaceId, identityRoom?.participantId])}
+          spaceId={identityRoom?.spaceId ?? null}
           returnToContent
         />
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 id="student-content-assignments" className="m-0 text-xl font-semibold text-slate-950">{t("assignments")}</h2>
         {rooms.length > 1 ? (
-          <label className="flex w-full min-w-0 flex-col gap-1 text-sm font-medium text-slate-700 sm:w-auto">
+          <label className="flex w-full min-w-0 flex-col gap-1 text-sm font-medium text-slate-700 sm:w-auto sm:max-w-xs">
             {t("selectRoom")}
-            <select
-              value={selectedRoom?.spaceId ?? ""}
-              onChange={(event) => {
-                const roomId = event.currentTarget.value;
-                setSelection({ sessionKey, roomId });
-                if (isAnonymous && uid && isCurrentSession(uid, isAnonymous)) saveLastStudentSpaceId(roomId);
-              }}
-              className="min-h-11 w-full min-w-0 rounded-lg border border-solid border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 sm:min-w-52"
-            >
-              <option value="" disabled={isAnonymous}>{t(isAnonymous ? "chooseRoom" : "allRooms")}</option>
-              {rooms.map((room) => (
-                <option key={room.spaceId} value={room.spaceId}>{room.title ?? t("untitledRoom")}</option>
-              ))}
-            </select>
+            <span className="relative">
+              <select
+                value={selectedRoomId}
+                onChange={(event) => {
+                  const roomId = event.currentTarget.value;
+                  setSelection({ sessionKey, roomId });
+                  if (roomId && isAnonymous && uid && isCurrentSession(uid, isAnonymous)) saveLastStudentSpaceId(roomId);
+                }}
+                className="min-h-11 w-full min-w-0 appearance-none rounded-lg border border-solid border-slate-300 bg-white pl-3 pr-9 text-sm text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 sm:min-w-52"
+              >
+                <option value="">{t("allRooms")}</option>
+                {rooms.map((room) => (
+                  <option key={room.spaceId} value={room.spaceId}>{room.title ?? t("untitledRoom")}</option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+            </span>
           </label>
         ) : null}
       </div>
@@ -212,26 +240,18 @@ export default function StudentContentAssignments({
         </div>
       ) : null}
 
-      {currentAssignments?.rooms.map((room) => {
-        const active = room.tasks.filter((task) => !task.archived);
-        const archived = room.tasks.filter((task) => task.archived);
-        return (
-          <div key={room.id} className="space-y-2">
-            <h3 className="m-0 break-words text-sm font-semibold text-slate-700">{room.title ?? t("untitledRoom")}</h3>
-            {active.length ? <TaskList tasks={active} /> : (
-              <p className="m-0 rounded-xl border border-solid border-slate-200 bg-white p-3 text-sm text-slate-600">{t("noAssignments")}</p>
-            )}
-            {archived.length > 0 ? (
-              <details className="rounded-xl border border-solid border-slate-200 bg-white">
-                <summary className="cursor-pointer rounded-xl px-3 py-3 text-sm font-medium text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
-                  {t("archived")}
-                </summary>
-                <div className="px-3 pb-3"><TaskList tasks={archived} /></div>
-              </details>
-            ) : null}
-          </div>
-        );
-      })}
+      {activeTasks.length > 0 ? <TaskList tasks={activeTasks} /> : null}
+      {!loading && !failed && rooms.length > 0 && activeTasks.length === 0 ? (
+        <p className="m-0 rounded-xl border border-solid border-slate-200 bg-white p-3 text-sm text-slate-600">{t("noAssignments")}</p>
+      ) : null}
+      {archivedTasks.length > 0 ? (
+        <details className="rounded-xl border border-solid border-slate-200 bg-white">
+          <summary className="cursor-pointer rounded-xl px-3 py-3 text-sm font-medium text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+            {t("archived")}
+          </summary>
+          <div className="px-3 pb-3"><TaskList tasks={archivedTasks} /></div>
+        </details>
+      ) : null}
     </section>
   );
 }
