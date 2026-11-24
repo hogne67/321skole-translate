@@ -409,4 +409,59 @@ test("one school-code login opens all eligible rooms and follows drafts across b
       assert.deepEqual((await getDocFromServer(submission)).data()?.answers, answers);
     }
   });
+
+  await t.test("a signed-in student can keep separately verified rooms at two schools", async () => {
+    const account = await client("account-with-school-code", { role: "student" });
+    const original = (await write(teacher.auth, language, { fullName: "Lokal elev med eldre kode" })).member;
+    const originalLogin = await enter(account.auth, roomCode("NB"), original.studentCode);
+    assert.equal(originalLogin.preview, false);
+    assert.equal(originalLogin.signedInAccount, true);
+    const originalMembership = db.doc("spaceMembers/" + language + "_" + account.uid);
+    const initialMembership = (await originalMembership.get()).data();
+    const oldAssignment = "previous-school-draft";
+    const answers = { note: "Syntetisk kladd fra den første skolen" };
+    await db.doc("spaces/" + language + "/lessons/" + oldAssignment).set({ title: "Eldre skolearbeid", status: "active" });
+    const saved = await saveDraft(await request(account.auth, "/api/draft", {
+      payload: { uid: account.uid, participantId: original.participantId, status: "draft", title: "Eldre skolearbeid", answers },
+    }), { params: Promise.resolve({ spaceId: language, assignmentId: oldAssignment }) });
+    assert.equal(saved.status, 200);
+    const { submissionId } = await saved.json();
+    const oldDraft = doc(account.firestore, "spaces", language, "lessons", oldAssignment, "submissions", submissionId);
+
+    const added = (await write(stranger.auth, foreign, { fullName: "Lokal elev med eldre kode" })).member;
+    const guest = await client("guest-with-school-code");
+    assert.equal((await enter(guest.auth, roomCode("NB"), original.studentCode)).preview, false);
+    assert.equal((await enter(guest.auth, roomCode("FR"), added.studentCode)).switchRequired, true);
+    assert.deepEqual((await visibleRooms(guest)).map(room => room.spaceId), [language]);
+
+    const joined = await enter(account.auth, roomCode("FR"), added.studentCode);
+    assert.equal(joined.signedInAccount, true);
+    assert.equal(joined.switchRequired, false, "A verified pupil code from another school should keep the student signed in");
+    assert.equal(joined.preview, false);
+    assert.deepEqual((await visibleRooms(account)).map(room => room.spaceId).sort(), [foreign, language].sort());
+    assert.deepEqual((await originalMembership.get()).data(), initialMembership);
+    assert.deepEqual((await getDocFromServer(oldDraft)).data()?.answers, answers);
+
+    const otherTeacher = await client("second-school-colleague", { role: "teacher", schoolId: otherSchool });
+    const foreignFollowUp = "foreign-follow-up-" + suffix;
+    await db.doc("spaces/" + foreignFollowUp).set({
+      schoolId: otherSchool, ownerId: otherTeacher.uid, title: "Nytt rom ved den andre skolen", code: roomCode("OF"), isOpen: true,
+    });
+    const originalPupil = (await db.doc("spaceMembers/" + original.id).get()).get("schoolPupilId");
+    const addedPupil = (await db.doc("spaceMembers/" + added.id).get()).get("schoolPupilId");
+    await write(colleague.auth, science, { sourceMemberId: originalPupil });
+    await write(otherTeacher.auth, foreignFollowUp, { sourceMemberId: addedPupil });
+    assert.equal(await refresh(account.auth), 2);
+    assert.deepEqual((await visibleRooms(account)).map(room => room.spaceId).sort(), [language, science, foreign, foreignFollowUp].sort());
+
+    assert.equal((await enter(account.auth, roomCode("NA"), secondCode)).switchRequired, true);
+    assert.equal((await db.doc("spaceMembers/" + science + "_" + account.uid).get()).get("schoolPupilId"), originalPupil);
+    const recovery = (await write(teacher.auth, language, { action: "rotate_code", targetMemberId: original.id })).studentCode;
+    assert.equal(await refresh(account.auth), 0);
+    await assert.rejects(getDocFromServer(oldDraft), /permission/i);
+    assert.deepEqual((await visibleRooms(account)).map(room => room.spaceId).sort(), [foreign, foreignFollowUp].sort());
+    assert.equal((await enter(account.auth, roomCode("NB"), recovery)).preview, false);
+    assert.deepEqual((await getDocFromServer(oldDraft)).data()?.answers, answers);
+    assert.deepEqual((await visibleRooms(account)).map(room => room.spaceId).sort(), [foreign, foreignFollowUp, language, science].sort());
+  });
 });
