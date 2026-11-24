@@ -22,6 +22,10 @@
     "status": {
       "checkingExisting": "Checking whether this device is already joined…"
     },
+    "codeChanged": {
+      "title": "Your student code has changed",
+      "body": "Use the room code and the new personal student code from your teacher. You'll find your saved work when you return."
+    },
     "errors": {
       "studentCodeAttempts": "Too many code attempts. Wait a little and try again.",
       "spaceNotFound": "We couldn't find that room code. Check the code from your teacher or open the room link again.",

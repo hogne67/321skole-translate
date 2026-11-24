@@ -5,7 +5,7 @@ import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
-import { SpacePupilContext, useConfirmedSpacePupil } from "@/components/SpacePupilMenu";
+import { SpacePupilContext, useSpacePupilAccess } from "@/components/SpacePupilMenu";
 import LibraryBar from "@/components/LibraryBar";
 import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
@@ -35,6 +35,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const tModes = useTranslations("modes");
   const tNav = useTranslations("nav");
   const tLibrary = useTranslations("library");
+  const tCodeChange = useTranslations("join.codeChanged");
+  const tLanding = useTranslations("landing.hero");
 
   const { user, profile } = useUserProfile();
   const pathname = usePathname();
@@ -190,7 +192,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
   const hideAppChrome = isPrintViewPage || isBoardDisplayPage;
   const currentRoomId = /^\/student\/spaces\/([^/]+)/.exec(pathWithoutLocale)?.[1] ?? null;
-  const pupil = useConfirmedSpacePupil(!hideAppChrome && user?.isAnonymous ? user.uid : null, currentRoomId);
+  const pupil = useSpacePupilAccess(!hideAppChrome && user?.isAnonymous ? user.uid : null, currentRoomId);
+  const showCodeChange = pupil?.status === "code_changed"
+    && (pathWithoutLocale === "/content" || pathWithoutLocale === "/student"
+      || /^\/student\/spaces(?:\/|$)/.test(pathWithoutLocale));
   const useCompactSectionHeader =
     isTopLevelNavPage ||
     isSpacesDetailPage ||
@@ -264,6 +269,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           blockedToolsLoginLabel={tModes("anonymousCreateLessonLogin")}
         >
           {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
+          {showCodeChange ? (
+            <section className="mx-auto mb-3 flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-solid border-amber-200 bg-amber-50 p-4">
+              <div role="status" className="min-w-0">
+                <h2 className="m-0 text-base font-semibold text-slate-950">{tCodeChange("title")}</h2>
+                <p className="mb-0 mt-1 text-sm text-slate-700">{tCodeChange("body")}</p>
+              </div>
+              <Link
+                href={`/${locale}/join?next=content`}
+                className="inline-flex min-h-11 items-center rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-emerald-900"
+              >
+                {tLanding("ctaStudentCode")}
+              </Link>
+            </section>
+          ) : null}
           {children}
         </SectionShell>
       )}

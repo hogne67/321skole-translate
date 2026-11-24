@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useEffect, useId, useRef, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, Timestamp, where, type QueryDocumentSnapshot } from "firebase/firestore";
 import { ChevronDown, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SpacePupilSession } from "@/components/SpacePupilIdentity";
@@ -9,16 +9,37 @@ import { auth, db } from "@/lib/firebase";
 import { isStudentCodeMembership, listStudentContentMemberships } from "@/lib/studentContentTasks";
 import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 
-type ConfirmedSpacePupil = { uid: string; spaceId: string; name: string };
+type ConfirmedSpacePupil = { uid: string; status: "active"; spaceId: string; name: string };
+type PupilCodeChange = { uid: string; status: "code_changed" };
 
-export const SpacePupilContext = createContext<ConfirmedSpacePupil | null>(null);
+export const SpacePupilContext = createContext<ConfirmedSpacePupil | PupilCodeChange | null>(null);
 
-export function useConfirmedSpacePupil(uid: string | null, currentRoomId: string | null) {
-  const [confirmed, setConfirmed] = useState<{ uid: string; pupils: ConfirmedSpacePupil[] } | null>(null);
+function schoolCodeWasChanged(rows: QueryDocumentSnapshot[], uid: string) {
+  const schoolRooms = rows.filter((row) => {
+    const member = row.data();
+    return member.uid === uid && member.role === "student" && member.schoolPupilCodeAccess === true
+      && typeof member.spaceId === "string" && row.id === `${member.spaceId}_${uid}`;
+  });
+  const updatedAt = (row: QueryDocumentSnapshot) => {
+    const value = row.get("updatedAt");
+    return value instanceof Timestamp ? value.toMillis() : 0;
+  };
+  const latest = schoolRooms.sort((a, b) => updatedAt(b) - updatedAt(a))[0]?.data();
+  return latest?.status === "school_code_rotated" && latest.active === false && latest.archived === true;
+}
+
+export function useSpacePupilAccess(uid: string | null, currentRoomId: string | null) {
+  const [confirmed, setConfirmed] = useState<{
+    uid: string;
+    pupils: ConfirmedSpacePupil[];
+    codeChange: PupilCodeChange | null;
+  } | null>(null);
   useEffect(() => {
     if (!uid) return;
-    const update = (pupils: ConfirmedSpacePupil[]) => {
-      if (auth.currentUser?.uid === uid && auth.currentUser.isAnonymous) setConfirmed({ uid, pupils });
+    const update = (pupils: ConfirmedSpacePupil[], codeWasChanged = false) => {
+      if (auth.currentUser?.uid === uid && auth.currentUser.isAnonymous) {
+        setConfirmed({ uid, pupils, codeChange: codeWasChanged ? { uid, status: "code_changed" } : null });
+      }
     };
     const memberships = query(collection(db, "spaceMembers"), where("uid", "==", uid));
     return onSnapshot(memberships, { includeMetadataChanges: true }, (snapshot) => {
@@ -28,14 +49,16 @@ export function useConfirmedSpacePupil(uid: string | null, currentRoomId: string
       }
       const rows = snapshot.docs.filter((row) => !row.metadata.hasPendingWrites && isStudentCodeMembership(row.data()));
       const aliases = new Map(rows.map((row) => [row.id, row.get("displayName")]));
-      update(listStudentContentMemberships(rows, uid).map(({ spaceId }) => {
+      const pupils = listStudentContentMemberships(rows, uid).map(({ spaceId }): ConfirmedSpacePupil => {
         const alias = aliases.get(`${spaceId}_${uid}`);
-        return { uid, spaceId, name: typeof alias === "string" ? alias.trim() : "" };
-      }));
+        return { uid, status: "active", spaceId, name: typeof alias === "string" ? alias.trim() : "" };
+      });
+      update(pupils, pupils.length === 0 && schoolCodeWasChanged(rows, uid));
     }, () => update([]));
   }, [uid]);
 
-  if (!uid || confirmed?.uid !== uid || !confirmed.pupils.length) return null;
+  if (!uid || confirmed?.uid !== uid) return null;
+  if (!confirmed.pupils.length) return confirmed.codeChange;
   const preferredRoomId = currentRoomId ?? readLastStudentSpaceId();
   return confirmed.pupils.find(({ spaceId }) => spaceId === preferredRoomId) ?? confirmed.pupils[0];
 }

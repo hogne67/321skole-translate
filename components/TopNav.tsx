@@ -146,7 +146,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
   const pupil = useContext(SpacePupilContext);
-  const pupilName = isAnon && pupil && pupil.uid === authUser?.uid ? pupil.name : null;
+  const pupilAccess = isAnon && pupil?.uid === authUser?.uid ? pupil : null;
+  const pupilName = pupilAccess?.status === "active" ? pupilAccess.name : null;
   const pathGuestRole = roleFromPathname(pathname);
   const guestRole = pathGuestRole ?? readGuestRole();
 
@@ -188,7 +189,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
   return (
     <header
-      className={[readingNavItems ? "readingNav" : "", pupilName !== null ? "pupilTopNav" : ""].join(" ")}
+      className={[readingNavItems ? "readingNav" : "", pupilAccess ? "pupilTopNav" : ""].join(" ")}
       style={{
         background: "rgba(69, 57, 97, 0.15)",
         backdropFilter: "saturate(150%) blur(6px)",
@@ -271,6 +272,10 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
         {pupilName !== null ? (
           <SpacePupilMenu key={`${authUser?.uid}:${pathname}`} name={pupilName} />
+        ) : pupilAccess?.status === "code_changed" ? (
+          <Link href={withLocale(locale, "/join?next=content")} className="authButton" style={btnStyle}>
+            {tTop("login")}
+          </Link>
         ) : isAnon ? (
           <>
             <span style={{ fontSize: 13, opacity: 0.7 }}>{tTop("guestMode")}</span>

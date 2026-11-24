@@ -22,6 +22,10 @@
     "status": {
       "checkingExisting": "Sjekker om denne enheten allerede er med…"
     },
+    "codeChanged": {
+      "title": "Elevkoden din er endret",
+      "body": "Bruk romkoden og den nye personlige elevkoden fra læreren. Du finner igjen arbeidet du har lagret."
+    },
     "errors": {
       "studentCodeAttempts": "For mange kodeforsøk. Vent litt og prøv igjen.",
       "spaceNotFound": "Romkoden ble ikke funnet. Sjekk romkoden du fikk av læreren, eller åpne romlenken på nytt.",

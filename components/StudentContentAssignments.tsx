@@ -92,7 +92,8 @@ export default function StudentContentAssignments({
   const t = useTranslations("content.student");
   const sessionKey = uid ? `${uid}:${isAnonymous}` : "";
   const pupil = useContext(SpacePupilContext);
-  const hasPupilMenu = isAnonymous && pupil?.uid === uid;
+  const pupilStatus = isAnonymous && pupil?.uid === uid ? pupil.status : null;
+  const needsNewCode = pupilStatus === "code_changed";
   const [selection, setSelection] = useState<{ sessionKey: string; roomId: string; returnRoomId: string | null } | null>(null);
   const [content, setContent] = useState<ContentState | null>(null);
   const [retry, setRetry] = useState(0);
@@ -214,11 +215,11 @@ export default function StudentContentAssignments({
   const loading = !!uid && (!current || current.rooms.some((room) =>
     room.status === "loading" && (!selectedRoomId || room.choice?.spaceId === selectedRoomId)));
   const failed = current?.failed || current?.rooms.some((room) => room.status === "error");
-  if (hasOwnWork && !loading && !failed && rooms.length === 0) return null;
+  if ((hasOwnWork || needsNewCode) && !loading && !failed && rooms.length === 0) return null;
 
   return (
     <section aria-labelledby="student-content-assignments" className="space-y-3">
-      {!hasPupilMenu && (identityRoom || (uid && isAnonymous)) ? (
+      {!pupilStatus && (identityRoom || (uid && isAnonymous)) ? (
         <SpacePupilIdentity
           key={JSON.stringify([sessionKey, identityRoom?.spaceId, identityRoom?.participantId])}
           spaceId={identityRoom?.spaceId ?? null}

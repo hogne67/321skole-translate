@@ -373,8 +373,10 @@ export default function StudentDashboard() {
 
   const { user, profile } = useUserProfile();
   const pupil = useContext(SpacePupilContext);
-  const pupilName = user?.isAnonymous && pupil && pupil.uid === user.uid ? pupil.name : null;
+  const pupilAccess = user?.isAnonymous && pupil?.uid === user.uid ? pupil : null;
+  const pupilName = pupilAccess?.status === "active" ? pupilAccess.name : null;
   const isCodePupil = pupilName !== null;
+  const needsNewCode = pupilAccess?.status === "code_changed";
 
   const [isAnon, setIsAnon] = useState(true);
   const [uid, setUid] = useState<string | undefined>(undefined);
@@ -569,7 +571,7 @@ export default function StudentDashboard() {
             {pupilName ? t("dashboardIntro.helloUser", { name: pupilName }) : t("dashboardIntro.helloAnon")}
           </h1>
         </section>
-      ) : <DashboardIntro
+      ) : !needsNewCode ? <DashboardIntro
         userIsAnon={isAnon}
         helloAnon={t("dashboardIntro.helloAnon")}
         helloUser={t.raw("dashboardIntro.helloUser")}
@@ -614,11 +616,11 @@ export default function StudentDashboard() {
             </Link>
           ) : null
         }
-      />}
+      /> : null}
 
       <InstallAppButton />
 
-      {isAnon && !isCodePupil ? (
+      {isAnon && !isCodePupil && !needsNewCode ? (
         <section
           style={{
             marginTop: isMobile ? 16 : 18,

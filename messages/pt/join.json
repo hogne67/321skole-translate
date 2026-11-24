@@ -22,6 +22,10 @@
     "status": {
       "checkingExisting": "Verificando se este dispositivo já entrou…"
     },
+    "codeChanged": {
+      "title": "O seu código de aluno foi alterado",
+      "body": "Use o código da sala e o novo código pessoal de aluno fornecido pelo professor. Vai encontrar o trabalho que guardou."
+    },
     "errors": {
       "studentCodeAttempts": "Muitas tentativas. Aguarde um pouco e tente novamente.",
       "spaceNotFound": "Não foi encontrada uma sala com esse código. Verifique o código fornecido pelo professor ou volte a abrir o link da sala.",
