@@ -4,7 +4,7 @@ import { createHash, randomInt } from "node:crypto";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { assertActiveProfile } from "@/lib/security/accountAccess.server";
-import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { isActiveSpaceMember, isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { joinText } from "@/lib/spaceJoinPolicy";
 
@@ -118,11 +118,24 @@ async function readSchoolRoomMemberships(
   });
 }
 
-function conflictingMembership(snapshot: FirebaseFirestore.QuerySnapshot, schoolId: string, pupilId: string) {
+function isIndependentAccountMembership(
+  memberId: string,
+  member: FirebaseFirestore.DocumentData | undefined,
+  { uid, isAnonymous }: SchoolPupilIdentity,
+) {
+  const spaceId = joinText(member?.spaceId);
+  return !isAnonymous && member?.role === "student" && member.uid === uid
+    && !!spaceId && !spaceId.includes("/") && memberId === spaceId + "_" + uid
+    && member.schoolPupilCodeAccess !== true && !isSpaceTeachingMember(member);
+}
+
+function conflictingMembership(snapshot: FirebaseFirestore.QuerySnapshot, identity: SchoolPupilIdentity) {
   return snapshot.docs.find(row => {
     const member = row.data();
-    return isActiveSpaceMember(member) && (member.role !== "student"
-      || member.schoolPupilId !== pupilId || member.schoolPupilSchoolId !== schoolId);
+    if (!isActiveSpaceMember(member)) return false;
+    if (member.role !== "student") return true;
+    const samePupil = member.schoolPupilId === identity.pupilId && member.schoolPupilSchoolId === identity.schoolId;
+    return !samePupil && !isIndependentAccountMembership(row.id, member, identity);
   });
 }
 
@@ -178,6 +191,7 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
     return { error: "invalid_student_code" } as const;
   }
   const { participantId } = enrollment;
+  const identity = { schoolId, pupilId, uid, isAnonymous, displayName };
 
   const membership = db.collection("spaceMembers").doc(spaceId + "_" + uid);
   const binding = db.collection("spacePupilSessions").doc(uid);
@@ -185,7 +199,7 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
   const prior = priorMembership.data();
   const boundPupil = priorBinding.get("pupilId");
   const activeInOtherRooms = await tx.get(db.collection("spaceMembers").where("uid", "==", uid));
-  const otherIdentity = conflictingMembership(activeInOtherRooms, schoolId, pupilId);
+  const otherIdentity = conflictingMembership(activeInOtherRooms, identity);
   const switchRequired = Boolean(
     (priorBinding.exists && (boundPupil !== pupilId || priorBinding.get("schoolId") !== schoolId))
     || otherIdentity
@@ -204,14 +218,15 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
   const otherMemberships = await readSchoolRoomMemberships(input, pupilId);
   const conflict = otherMemberships.find(({ enrollment, membership }) => {
     const prior = membership.data();
-    return isActiveSpaceMember(prior) && !canUseMembership(prior, enrollment, schoolId, pupilId);
+    // Keep the account's original participant in any other room with separate work.
+    return isActiveSpaceMember(prior) && !canUseMembership(prior, enrollment, schoolId, pupilId)
+      && !isIndependentAccountMembership(membership.id, prior, identity);
   });
   if (conflict) {
     return { ...response, switchRequired: true, preview: true, currentDisplayName: joinText(conflict.membership.get("displayName")) || null };
   }
 
   const targets = [{ enrollment, membership: priorMembership }, ...otherMemberships];
-  const identity = { schoolId, pupilId, uid, isAnonymous, displayName };
   tx.set(binding, { schoolId, pupilId });
   for (const target of targets) {
     if (canUseMembership(target.membership.data(), target.enrollment, schoolId, pupilId)) {
@@ -236,7 +251,8 @@ export async function refreshSchoolPupilRooms(db: Firestore, tx: Transaction, de
   ]);
   assertActiveProfile(profile.data(), decoded);
   const displayName = joinText(pupil.get("displayName"));
-  if (!displayName || hasConflictingAccountRole(profile) || conflictingMembership(memberships, schoolId, pupilId)) return 0;
+  const identity = { schoolId, pupilId, uid, displayName, isAnonymous: decoded.firebase?.sign_in_provider === "anonymous" };
+  if (!displayName || hasConflictingAccountRole(profile) || conflictingMembership(memberships, identity)) return 0;
 
   const targets = await readSchoolRoomMemberships({ db, tx, schoolId, uid }, pupilId);
   // The binding survives code rotation, so it cannot renew access by itself.
@@ -248,7 +264,6 @@ export async function refreshSchoolPupilRooms(db: Firestore, tx: Transaction, de
   });
   if (!hasCurrentCodeAccess) return 0;
 
-  const identity = { schoolId, pupilId, uid, displayName, isAnonymous: decoded.firebase?.sign_in_provider === "anonymous" };
   let added = 0;
   for (const target of targets) {
     const { enrollment, membership } = target;

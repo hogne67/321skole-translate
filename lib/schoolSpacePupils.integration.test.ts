@@ -43,29 +43,39 @@ test("one school-code login opens all eligible rooms and follows drafts across b
   const legacyMemberId = legacyRoom + "_" + legacyParticipant;
   const roomCode = (prefix: string) => prefix + suffix.toUpperCase();
 
-  async function client(label: string, schoolId?: string, schoolRole = "school_teacher") {
+  type ClientProfile = { role: "teacher"; schoolId: string; schoolRole?: "school_teacher" | "school_admin" }
+    | { role: "student" };
+
+  async function client(label: string, profile?: ClientProfile) {
     const app = initializeApp({ apiKey: "local-synthetic", projectId, authDomain: projectId + ".invalid" }, label + "-" + suffix);
     clients.push(app);
     const auth = getAuth(app);
     connectAuthEmulator(auth, "http://127.0.0.1:" + authPort, { disableWarnings: true });
     const firestore = getFirestore(app);
     connectFirestoreEmulator(firestore, "127.0.0.1", Number(firestorePort));
-    const { user } = schoolId
+    const { user } = profile
       ? await createUserWithEmailAndPassword(auth, label + "-" + suffix + "@example.invalid", "synthetic-" + randomUUID())
       : await signInAnonymously(auth);
-    if (schoolId) {
+    if (profile?.role === "teacher") {
+      const { schoolId, schoolRole = "school_teacher" } = profile;
       await Promise.all([
         db.doc("users/" + user.uid).set({ role: "teacher", schoolId, schoolStatus: "active", schoolRole }),
         db.doc("schools/" + schoolId + "/members/" + user.uid).set({ uid: user.uid, schoolId, role: schoolRole, status: "active" }),
       ]);
+    }
+    if (profile?.role === "student") {
+      await db.doc("users/" + user.uid).set({ role: "student", onboardingComplete: true, studentAccessMode: "space_only" });
     }
     return { auth, firestore, uid: user.uid };
   }
 
   await Promise.all([school, otherSchool].map(id => db.doc("schools/" + id).set({ status: "active" })));
   const [teacher, colleague, stranger, schoolAdmin, coTeacher, desktop, phone, nextPupil] = await Promise.all([
-    client("language-teacher", school), client("maths-teacher", school), client("foreign-teacher", otherSchool),
-    client("school-admin", school, "school_admin"), client("co-teacher", school),
+    client("language-teacher", { role: "teacher", schoolId: school }),
+    client("maths-teacher", { role: "teacher", schoolId: school }),
+    client("foreign-teacher", { role: "teacher", schoolId: otherSchool }),
+    client("school-admin", { role: "teacher", schoolId: school, schoolRole: "school_admin" }),
+    client("co-teacher", { role: "teacher", schoolId: school }),
     client("desk"), client("phone"), client("next-pupil"),
   ]);
   const fixtures = [
@@ -344,4 +354,59 @@ test("one school-code login opens all eligible rooms and follows drafts across b
 
   await signOut(phone.auth);
   await assert.rejects(getDocFromServer(doc(phone.firestore, draftPath)), /permission/i);
+
+  await t.test("a returning student keeps account rooms and their work when using a school code", async () => {
+    const account = await client("returning-account", { role: "student" });
+    const originalRooms = [foreign, legacyRoom];
+    const oldAssignment = "saved-account-work";
+    const answers = { question: "Arbeid fra en tidligere økt" };
+    const originalMemberships = await Promise.all(originalRooms.map(async spaceId => {
+      const ref = db.doc("spaceMembers/" + spaceId + "_" + account.uid);
+      const member = {
+        spaceId, uid: account.uid, role: "student", participantId: "account-participant-" + spaceId,
+        displayName: "Syntetisk elev", status: "active", active: true, archived: false,
+      };
+      await Promise.all([
+        ref.set(member),
+        db.doc("spaces/" + spaceId + "/lessons/" + oldAssignment).set({ title: "Tidligere oppgave", status: "active" }),
+      ]);
+      const status = spaceId === foreign ? "draft" : "submitted";
+      const saved = await saveDraft(await request(account.auth, "/api/draft", {
+        payload: { uid: account.uid, participantId: member.participantId, status, title: "Tidligere oppgave", answers },
+      }), { params: Promise.resolve({ spaceId, assignmentId: oldAssignment }) });
+      assert.equal(saved.status, 200);
+      const { submissionId } = await saved.json();
+      return { member, ref, status, submissionId };
+    }));
+    const student = (await write(teacher.auth, language, { fullName: "Syntetisk elev" })).member;
+    const pupilId = (await db.doc("spaceMembers/" + student.id).get()).get("schoolPupilId");
+    // A school enrollment can overlap a room where the account already has separate work.
+    await write(teacher.auth, legacyRoom, { sourceMemberId: pupilId });
+    assert.deepEqual((await visibleRooms(account)).map(room => room.spaceId).sort(), originalRooms.sort());
+
+    const joined = await enter(account.auth, roomCode("NB"), student.studentCode);
+    assert.equal(joined.signedInAccount, true);
+    assert.equal(joined.switchRequired, false);
+    assert.equal(joined.preview, false);
+    assert.equal((await db.doc("spacePupilSessions/" + account.uid).get()).get("pupilId"), pupilId);
+
+    const included = (await write(colleague.auth, maths, { sourceMemberId: pupilId })).member;
+    assert.equal(await refresh(account.auth), 1);
+    const rooms = await visibleRooms(account);
+    assert.deepEqual(rooms.map(room => room.spaceId).sort(), [...originalRooms, language, maths].sort());
+    assert.equal(rooms.find(room => room.spaceId === maths)?.participantId, included.participantId);
+
+    const sameRoom = await enter(account.auth, roomCode("LE"), student.studentCode);
+    assert.equal(sameRoom.switchRequired, true);
+    assert.equal((await enter(account.auth, roomCode("NA"), secondCode)).switchRequired, true);
+    for (const { member, ref, status, submissionId } of originalMemberships) {
+      assert.deepEqual((await ref.get()).data(), member);
+      const room = rooms.find(room => room.spaceId === member.spaceId);
+      assert.ok(room);
+      const content = await loadStudentContentRoom(account.firestore, room, account.uid);
+      assert.equal(content?.tasks.find(task => task.id === oldAssignment)?.status, status);
+      const submission = doc(account.firestore, "spaces", member.spaceId, "lessons", oldAssignment, "submissions", submissionId);
+      assert.deepEqual((await getDocFromServer(submission)).data()?.answers, answers);
+    }
+  });
 });
