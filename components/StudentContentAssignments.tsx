@@ -9,26 +9,24 @@ import { Link } from "@/i18n/navigation";
 import { auth, db } from "@/lib/firebase";
 import {
   listStudentContentMemberships,
-  loadStudentContentRoom,
-  loadStudentContentRoomChoice,
-  type StudentContentRoom,
-  type StudentContentRoomChoice,
+  watchStudentContentRoom,
+  type StudentContentRoomUpdate,
   type StudentContentTask,
 } from "@/lib/studentContentTasks";
 import { readLastStudentSpaceId, saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { onStudentRoomReturn, refreshSchoolStudentRooms } from "@/lib/studentRoomRefresh";
 
-type RoomChoicesState = {
-  sessionKey: string;
-  rooms: StudentContentRoomChoice[];
+type ContentState = {
+  scopeKey: string;
+  rooms: StudentContentRoomUpdate[];
   lastRoomId: string | null;
   failed: boolean;
 };
 
-type AssignmentListState = {
-  scopeKey: string;
-  rooms: StudentContentRoom[];
-  failed: boolean;
+type RoomWatch = {
+  participantId: string;
+  state: StudentContentRoomUpdate;
+  stop: () => void;
 };
 
 type RoomTask = StudentContentTask & {
@@ -36,7 +34,7 @@ type RoomTask = StudentContentTask & {
   roomTitle: string | null;
 };
 
-const noRooms: StudentContentRoomChoice[] = [];
+const schoolRoomRefreshMs = 30_000;
 const actionClass = "inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
 
 function isCurrentSession(uid: string, isAnonymous: boolean) {
@@ -89,19 +87,22 @@ export default function StudentContentAssignments({
 }) {
   const t = useTranslations("content.student");
   const sessionKey = uid ? `${uid}:${isAnonymous}` : "";
-  const [roomChoices, setRoomChoices] = useState<RoomChoicesState | null>(null);
   const [selection, setSelection] = useState<{ sessionKey: string; roomId: string } | null>(null);
-  const [assignments, setAssignments] = useState<AssignmentListState | null>(null);
+  const [content, setContent] = useState<ContentState | null>(null);
   const [retry, setRetry] = useState(0);
+  const scopeKey = JSON.stringify([sessionKey, retry]);
 
   useEffect(() => {
     if (!uid) return;
 
+    const watches = new Map<string, RoomWatch>();
     const refreshController = new AbortController();
+    let stopped = false;
     let syncingRooms = false;
+    let hasSchoolCodeAccess = false;
     const refreshRooms = () => {
       const current = auth.currentUser;
-      if (syncingRooms || current?.uid !== uid || current.isAnonymous !== isAnonymous) return;
+      if (stopped || syncingRooms || current?.uid !== uid || current.isAnonymous !== isAnonymous) return;
       syncingRooms = true;
       void refreshSchoolStudentRooms(current, refreshController.signal).catch(() => {}).finally(() => {
         syncingRooms = false;
@@ -109,77 +110,103 @@ export default function StudentContentAssignments({
     };
     refreshRooms();
     const stopRefresh = onStudentRoomReturn(refreshRooms);
+    // Enrollments added by a teacher become room memberships after this server check.
+    const refreshTimer = window.setInterval(() => {
+      if (hasSchoolCodeAccess && document.visibilityState === "visible") refreshRooms();
+    }, schoolRoomRefreshMs);
 
-    let stopped = false;
-    let generation = 0;
-    const update = (next: RoomChoicesState | null, version: number) => {
-      if (!stopped && version === generation && isCurrentSession(uid, isAnonymous)) {
-        setRoomChoices(next);
-      }
+    const clearWatches = () => {
+      hasSchoolCodeAccess = false;
+      for (const watch of watches.values()) watch.stop();
+      watches.clear();
+    };
+    const publish = (failed = false) => {
+      if (stopped || !isCurrentSession(uid, isAnonymous)) return;
+      setContent({
+        scopeKey,
+        rooms: Array.from(watches.values(), (watch) => watch.state),
+        lastRoomId: isAnonymous ? readLastStudentSpaceId() : null,
+        failed,
+      });
     };
 
     const memberships = query(collection(db, "spaceMembers"), where("uid", "==", uid));
     const stop = onSnapshot(memberships, { includeMetadataChanges: true }, (snapshot) => {
-      const version = ++generation;
-      update(null, version);
+      if (stopped || !isCurrentSession(uid, isAnonymous)) return;
       if (snapshot.metadata.fromCache) {
         // A previous session's cached membership is not proof of current access.
+        clearWatches();
+        setContent(null);
         return;
       }
 
-      const approved = listStudentContentMemberships(snapshot.docs, uid);
-      const lastRoomId = isAnonymous ? readLastStudentSpaceId() : null;
-      void Promise.allSettled(approved.map((member) => loadStudentContentRoomChoice(db, member))).then((results) => {
-        const rooms = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
-        update({ sessionKey, rooms, lastRoomId, failed: results.some((result) => result.status === "rejected") }, version);
-      });
-    }, () => update({ sessionKey, rooms: [], lastRoomId: null, failed: true }, ++generation));
+      const rows = snapshot.docs.filter((row) => !row.metadata.hasPendingWrites);
+      const approved = listStudentContentMemberships(rows, uid);
+      const participants = new Map(approved.map(({ spaceId, participantId }) => [spaceId, participantId]));
+      const codeMemberships = new Set(rows.filter((row) => row.get("schoolPupilCodeAccess") === true).map((row) => row.id));
+      hasSchoolCodeAccess = approved.some(({ spaceId }) => codeMemberships.has(`${spaceId}_${uid}`));
+
+      for (const [spaceId, watch] of watches) {
+        if (participants.get(spaceId) === watch.participantId) continue;
+        watch.stop();
+        watches.delete(spaceId);
+      }
+      for (const member of approved) {
+        const { spaceId, participantId } = member;
+        if (watches.has(spaceId)) continue;
+        const watch: RoomWatch = {
+          participantId,
+          state: { status: "loading" },
+          stop: watchStudentContentRoom(db, member, uid, (state) => {
+            if (watches.get(spaceId) !== watch) return;
+            watch.state = state;
+            publish();
+          }),
+        };
+        watches.set(spaceId, watch);
+      }
+      publish();
+    }, () => {
+      clearWatches();
+      publish(true);
+    });
 
     return () => {
       stopped = true;
       refreshController.abort();
+      window.clearInterval(refreshTimer);
       stopRefresh();
       stop();
+      clearWatches();
     };
-  }, [uid, isAnonymous, sessionKey, retry]);
+  }, [uid, isAnonymous, scopeKey]);
 
-  const choices = roomChoices?.sessionKey === sessionKey ? roomChoices : null;
-  const rooms = choices?.rooms ?? noRooms;
+  const current = content?.scopeKey === scopeKey ? content : null;
+  const rooms = current?.rooms.flatMap(({ choice }) => choice ? [choice] : []) ?? [];
   const selectedRoom = selection?.sessionKey === sessionKey
     ? rooms.find((room) => room.spaceId === selection.roomId)
     : undefined;
   const selectedRoomId = selectedRoom?.spaceId ?? "";
   const identityRoom = selectedRoom
-    ?? rooms.find((room) => room.spaceId === choices?.lastRoomId)
+    ?? rooms.find((room) => room.spaceId === current?.lastRoomId)
     ?? (isAnonymous || rooms.length === 1 ? rooms[0] : undefined);
-  const scopeKey = JSON.stringify([sessionKey, retry, rooms.map(({ spaceId, participantId }) => [spaceId, participantId])]);
-
-  useEffect(() => {
-    if (!uid || rooms.length === 0) return;
-
-    let stopped = false;
-    void Promise.allSettled(rooms.map((room) => loadStudentContentRoom(db, room, uid))).then((results) => {
-      if (stopped || !isCurrentSession(uid, isAnonymous)) return;
-      const rooms = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
-      setAssignments({ scopeKey, rooms, failed: results.some((result) => result.status === "rejected" || !result.value) });
-    });
-    return () => { stopped = true; };
-  }, [uid, isAnonymous, rooms, scopeKey]);
-
-  const currentAssignments = assignments?.scopeKey === scopeKey ? assignments : null;
   const visibleTasks = useMemo(() => {
-    return (currentAssignments?.rooms ?? [])
-      .filter((room) => !selectedRoomId || room.id === selectedRoomId)
-      .flatMap((room) => room.tasks.map((task): RoomTask => ({ ...task, roomId: room.id, roomTitle: room.title })))
+    return (current?.rooms ?? [])
+      .flatMap((room) => {
+        if (room.status !== "ready" || (selectedRoomId && room.choice.spaceId !== selectedRoomId)) return [];
+        const { spaceId, title } = room.choice;
+        return room.tasks.map((task): RoomTask => ({ ...task, roomId: spaceId, roomTitle: title }));
+      })
       .sort((a, b) => (b.assignedAt ?? -Infinity) - (a.assignedAt ?? -Infinity)
         || a.roomId.localeCompare(b.roomId)
         || a.kind.localeCompare(b.kind)
         || a.id.localeCompare(b.id));
-  }, [currentAssignments, selectedRoomId]);
+  }, [current, selectedRoomId]);
   const activeTasks = visibleTasks.filter((task) => !task.archived);
   const archivedTasks = visibleTasks.filter((task) => task.archived);
-  const loading = !!uid && (!choices || (rooms.length > 0 && !currentAssignments));
-  const failed = choices?.failed || currentAssignments?.failed;
+  const loading = !!uid && (!current || current.rooms.some((room) =>
+    room.status === "loading" && (!selectedRoomId || room.choice?.spaceId === selectedRoomId)));
+  const failed = current?.failed || current?.rooms.some((room) => room.status === "error");
   if (hasOwnWork && !loading && !failed && rooms.length === 0) return null;
 
   return (
@@ -217,13 +244,13 @@ export default function StudentContentAssignments({
         ) : null}
       </div>
 
-      {loading ? <p role="status" className="m-0 text-sm text-slate-600">{t("loading")}</p> : null}
+      {loading && visibleTasks.length === 0 ? <p role="status" className="m-0 text-sm text-slate-600">{t("loading")}</p> : null}
       {failed ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-950">
           <p role="alert" className="m-0">{t("loadFailed")}</p>
           <button
             type="button"
-            onClick={() => { setRoomChoices(null); setRetry((previous) => previous + 1); }}
+            onClick={() => setRetry((previous) => previous + 1)}
             className={`${actionClass} border border-solid border-slate-300 bg-white text-slate-800`}
           >
             {t("retry")}

@@ -3,8 +3,10 @@ import {
   doc,
   getDocFromServer,
   getDocsFromServer,
+  onSnapshot,
   query,
   where,
+  type DocumentData,
   type Firestore,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -13,7 +15,8 @@ import { getSubmissionStatus } from "@/lib/submissions/status";
 
 type Membership = { spaceId: string; participantId: string };
 export type StudentContentRoomChoice = Membership & { title: string | null };
-type TaskKind = "lessons" | "writingActivities";
+const taskKinds = ["lessons", "writingActivities"] as const;
+type TaskKind = (typeof taskKinds)[number];
 type TaskStatus = "todo" | "draft" | "submitted" | "reviewed" | "needsWork" | "planningSubmitted" | "planningReviewed";
 
 export type StudentContentTask = {
@@ -33,6 +36,10 @@ export type StudentContentRoom = {
   title: string | null;
   tasks: StudentContentTask[];
 };
+
+export type StudentContentRoomUpdate =
+  | { status: "loading" | "unavailable" | "error"; choice?: StudentContentRoomChoice }
+  | { status: "ready"; choice: StudentContentRoomChoice; tasks: StudentContentTask[] };
 
 function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -54,10 +61,13 @@ export function listStudentContentMemberships(
   return memberships;
 }
 
-export async function loadStudentContentRoomChoice(db: Firestore, membership: Membership): Promise<StudentContentRoomChoice | null> {
-  const room = (await getDocFromServer(doc(db, "spaces", membership.spaceId))).data();
+function roomChoice(membership: Membership, room: DocumentData | undefined): StudentContentRoomChoice | null {
   if (!room || room.deletedAt || room.archived === true || text(room.status)?.toLowerCase() === "archived") return null;
   return { ...membership, title: text(room.title) };
+}
+
+export async function loadStudentContentRoomChoice(db: Firestore, membership: Membership): Promise<StudentContentRoomChoice | null> {
+  return roomChoice(membership, (await getDocFromServer(doc(db, "spaces", membership.spaceId))).data());
 }
 
 export type StudentReturnRooms = { codeRoomId: string | null; roomId: string | null };
@@ -185,16 +195,116 @@ export async function loadStudentContentRoom(db: Firestore, membership: Membersh
     getDocsFromServer(collection(db, "spaces", spaceId, "lessons")),
     getDocsFromServer(collection(db, "spaces", spaceId, "writingActivities")),
   ]);
-  const activities: Array<{ kind: TaskKind; activity: QueryDocumentSnapshot }> = [
+  const activities = [
     ...lessons.docs.map((activity) => ({ kind: "lessons" as const, activity })),
     ...writing.docs.map((activity) => ({ kind: "writingActivities" as const, activity })),
   ];
+  const tasks = await loadTasks(db, membership, uid, activities);
+  tasks.sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity) || b.updatedAt - a.updatedAt);
+  return { id: spaceId, title: room.title, tasks };
+}
+
+async function loadTasks(
+  db: Firestore,
+  membership: Membership,
+  uid: string,
+  activities: { kind: TaskKind; activity: QueryDocumentSnapshot }[],
+) {
   const tasks: StudentContentTask[] = [];
   const batchSize = 12;
   for (let offset = 0; offset < activities.length; offset += batchSize) {
     const batch = activities.slice(offset, offset + batchSize);
     tasks.push(...await Promise.all(batch.map(({ kind, activity }) => loadTask(db, membership, uid, kind, activity))));
   }
-  tasks.sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity) || b.updatedAt - a.updatedAt);
-  return { id: spaceId, title: room.title, tasks };
+  return tasks;
+}
+
+function watchStudentContentTasks(
+  db: Firestore,
+  membership: Membership,
+  uid: string,
+  update: (tasks: StudentContentTask[] | null, failed: boolean) => void,
+) {
+  let stopped = false;
+  const results: Record<TaskKind, StudentContentTask[] | "error" | null> = {
+    lessons: null,
+    writingActivities: null,
+  };
+  const stop = taskKinds.map((kind) => {
+    let generation = 0;
+    const setResult = (tasks: StudentContentTask[] | "error" | null, version: number) => {
+      if (stopped || version !== generation) return;
+      results[kind] = tasks;
+      const { lessons, writingActivities } = results;
+      update(
+        Array.isArray(lessons) && Array.isArray(writingActivities) ? [...lessons, ...writingActivities] : null,
+        lessons === "error" || writingActivities === "error",
+      );
+    };
+    return onSnapshot(collection(db, "spaces", membership.spaceId, kind), { includeMetadataChanges: true }, (snapshot) => {
+      const version = ++generation;
+      if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) {
+        setResult(null, version);
+        return;
+      }
+      void loadTasks(db, membership, uid, snapshot.docs.map((activity) => ({ kind, activity }))).then(
+        (tasks) => setResult(tasks, version),
+        () => setResult("error", version),
+      );
+    }, () => setResult("error", ++generation));
+  });
+  return () => {
+    stopped = true;
+    stop.forEach((unsubscribe) => unsubscribe());
+  };
+}
+
+export function watchStudentContentRoom(
+  db: Firestore,
+  membership: Membership,
+  uid: string,
+  update: (room: StudentContentRoomUpdate) => void,
+) {
+  let choice: StudentContentRoomChoice | null = null;
+  let tasks: StudentContentTask[] | null = null;
+  let failed = false;
+  let stopTasks: (() => void) | null = null;
+  const publish = () => {
+    if (!choice) return;
+    if (failed) update({ status: "error", choice });
+    else if (tasks) update({ status: "ready", choice, tasks });
+    else update({ status: "loading", choice });
+  };
+  const reset = (status: "loading" | "unavailable" | "error") => {
+    stopTasks?.();
+    stopTasks = null;
+    choice = null;
+    tasks = null;
+    failed = false;
+    update({ status });
+  };
+  const stopRoom = onSnapshot(doc(db, "spaces", membership.spaceId), { includeMetadataChanges: true }, (snapshot) => {
+    if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) {
+      reset("loading");
+      return;
+    }
+    choice = roomChoice(membership, snapshot.data());
+    if (!choice) {
+      reset("unavailable");
+      return;
+    }
+    if (!stopTasks) {
+      stopTasks = watchStudentContentTasks(db, membership, uid, (roomTasks, tasksFailed) => {
+        tasks = roomTasks;
+        failed = tasksFailed;
+        publish();
+      });
+    }
+    publish();
+  }, () => reset("error"));
+
+  return () => {
+    stopRoom();
+    stopTasks?.();
+  };
 }
