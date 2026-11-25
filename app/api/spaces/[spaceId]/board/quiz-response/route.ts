@@ -1,7 +1,6 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountAccess.server";
 import "server-only";
-import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -20,10 +19,6 @@ function getBearerToken(req: Request): string | null {
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function memberDocId(spaceId: string, uid: string) {
-  return `${spaceId}_${uid}`;
 }
 
 function numberFromRecord(record: unknown, key: number): number | null {
@@ -67,55 +62,47 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     if (!quizChoice) return json({ error: "Missing quizChoice" }, 400);
     if (quizQuestionIndex < 0) return json({ error: "Missing quizQuestionIndex" }, 400);
 
-    const memberSnap = await db.collection("spaceMembers").doc(memberDocId(spaceId, uid)).get();
-    const userSnap = await db.collection("users").doc(uid).get();
-
-    const user = userSnap.data() ?? {};
-    const roles = user.roles && typeof user.roles === "object" ? (user.roles as Record<string, unknown>) : {};
-    const isOwner = (await getSpaceAccess(db, spaceId, uid)).owner;
-    const isAdmin = user.role === "admin" || roles.admin === true;
-
-    if (!isActiveSpaceMember(memberSnap.data()) && !isOwner && !isAdmin) {
-      return json({ error: "Not a member of this space" }, 403);
-    }
-
-    const stateSnap = await db.collection("spaces").doc(spaceId).collection("board").doc("state").get();
-    const state = stateSnap.data() ?? {};
-
-    if (state.active !== true) return json({ error: "Board is not live" }, 409);
-    if (state.sessionId !== sessionId) return json({ error: "Board session changed" }, 409);
-    const mode = typeof state.mode === "string" ? state.mode.trim().toLowerCase() : "";
-    if (mode !== "quiz") return json({ error: "Board is not accepting quiz responses" }, 409);
-    const data = state.data && typeof state.data === "object" ? (state.data as Record<string, unknown>) : {};
-    if (data.quizShowAnswer === true) return json({ error: "Answer is locked" }, 409);
-
-    const timerStartedAt = typeof state.timerStartedAt === "number" ? state.timerStartedAt : null;
-    const timerTotalSec = typeof state.timerTotalSec === "number" && state.timerTotalSec > 0 ? state.timerTotalSec : null;
-    const questionStartedAt =
-      timerStartedAt ??
-      numberFromRecord(data.quizQuestionStartedAtByIndex, quizQuestionIndex) ??
-      (typeof data.quizQuestionStartedAt === "number" ? data.quizQuestionStartedAt : null);
-    const responseTimeMs = questionStartedAt ? Math.max(0, Date.now() - questionStartedAt) : null;
-    const questionLimitMs = timerTotalSec ? timerTotalSec * 1000 : null;
-
+    const room = db.collection("spaces").doc(spaceId);
     const responseId = `${sessionId}_quiz_${quizQuestionIndex}_${uid}`;
-    const responseRef = db.collection("spaces").doc(spaceId).collection("boardResponses").doc(responseId);
-    const responseSnap = await responseRef.get();
-    await responseRef.set({
-      sessionId,
-      uid,
-      displayName: displayName || groupName || "Elev",
-      ...(groupName ? { groupName } : {}),
-      ...(emoji ? { emoji } : {}),
-      quizQuestionIndex,
-      quizChoice,
-      ...(responseTimeMs !== null ? { quizResponseMs: responseTimeMs } : {}),
-      ...(questionLimitMs !== null ? { quizResponseLimitMs: questionLimitMs } : {}),
-      ...(responseSnap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    const responseRef = room.collection("boardResponses").doc(responseId);
+    return await db.runTransaction(async tx => {
+      const access = await getSpaceAccess(db, spaceId, uid, tx, decoded);
+      assertActiveProfile(access.profile, decoded);
+      if (!access.canRead) return json({ error: "Not a member of this space" }, 403);
 
-    return json({ ok: true, responseId: responseRef.id, quizResponseMs: responseTimeMs, quizResponseLimitMs: questionLimitMs });
+      const state = (await tx.get(room.collection("board").doc("state"))).data() ?? {};
+      if (state.active !== true) return json({ error: "Board is not live" }, 409);
+      if (state.sessionId !== sessionId) return json({ error: "Board session changed" }, 409);
+      const mode = typeof state.mode === "string" ? state.mode.trim().toLowerCase() : "";
+      if (mode !== "quiz") return json({ error: "Board is not accepting quiz responses" }, 409);
+      const data = state.data && typeof state.data === "object" ? (state.data as Record<string, unknown>) : {};
+      if (data.quizShowAnswer === true) return json({ error: "Answer is locked" }, 409);
+
+      const timerStartedAt = typeof state.timerStartedAt === "number" ? state.timerStartedAt : null;
+      const timerTotalSec = typeof state.timerTotalSec === "number" && state.timerTotalSec > 0 ? state.timerTotalSec : null;
+      const questionStartedAt =
+        timerStartedAt ??
+        numberFromRecord(data.quizQuestionStartedAtByIndex, quizQuestionIndex) ??
+        (typeof data.quizQuestionStartedAt === "number" ? data.quizQuestionStartedAt : null);
+      const responseTimeMs = questionStartedAt ? Math.max(0, Date.now() - questionStartedAt) : null;
+      const questionLimitMs = timerTotalSec ? timerTotalSec * 1000 : null;
+
+      const responseSnap = await tx.get(responseRef);
+      tx.set(responseRef, {
+        sessionId,
+        uid,
+        displayName: displayName || groupName || "Elev",
+        ...(groupName ? { groupName } : {}),
+        ...(emoji ? { emoji } : {}),
+        quizQuestionIndex,
+        quizChoice,
+        ...(responseTimeMs !== null ? { quizResponseMs: responseTimeMs } : {}),
+        ...(questionLimitMs !== null ? { quizResponseLimitMs: questionLimitMs } : {}),
+        ...(responseSnap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return json({ ok: true, responseId: responseRef.id, quizResponseMs: responseTimeMs, quizResponseLimitMs: questionLimitMs });
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save quiz response";
     return json({ error: message }, (accountErrorStatus(error) ?? 500));

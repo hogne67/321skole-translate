@@ -89,8 +89,8 @@ export async function POST(req: Request) {
     }
 
     const lesson: PdfLesson = { ...body.lesson,
-      coverImageUrl: await safePdfImage(body.lesson.coverImageUrl, account.uid),
-      logoUrl: await safePdfImage(body.lesson.logoUrl || "/logo321ny.png", account.uid),
+      coverImageUrl: await safePdfImage(body.lesson.coverImageUrl, account.uid, account.decoded),
+      logoUrl: await safePdfImage(body.lesson.logoUrl || "/logo321ny.png", account.uid, account.decoded),
     };
     await account.recheck();
     type PdfElement = Parameters<typeof pdf>[0];

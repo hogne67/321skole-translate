@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { accountErrorStatus, isGloballyEnabled } from "@/lib/security/accountAccess.server";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { schoolAllowsPupilCode } from "@/lib/security/schoolPupilAccess.server";
+import { schoolPupilProviderAllowed } from "@/lib/security/schoolPupilProviders";
 import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
 
 type Context = { params: Promise<{ spaceId: string; memberId: string }> };
@@ -36,6 +38,14 @@ export async function POST(req: Request, context: Context) {
         return { ok: true, action: "reject" };
       }
       if (!current.exists || current.space?.archived === true || current.space?.status === "archived") return { error: "room_unavailable", status: 409 };
+      if (!(await schoolAllowsPupilCode(db, current.space?.schoolId, tx))) return { error: "school_pupil_code_disabled", status: 403 };
+      const schoolId = current.space?.schoolId;
+      if (typeof schoolId === "string") {
+        const school = (await tx.get(db.collection("schools").doc(schoolId))).data();
+        if (data.requestedProvider !== "anonymous" && !schoolPupilProviderAllowed(school, data.requestedProvider)) {
+          return { error: "school_pupil_provider_disabled", status: 403 };
+        }
+      }
       if (!(data.approvalExpiresAt instanceof Timestamp) || data.approvalExpiresAt.toMillis() <= Date.now()) return { error: "request_expired", status: 409 };
       if (!/^[0-9]{6}$/.test(joinText(body.confirmationCode)) || body.confirmationCode !== data.approvalCode) return { error: "confirmation_mismatch", status: 400 };
       const matches = await tx.get(db.collection("spaceMembers").where("studentCodeKey", "==", `${spaceId}:${joinText(data.studentCode)}`));

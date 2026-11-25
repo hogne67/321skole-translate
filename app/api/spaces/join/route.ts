@@ -9,9 +9,11 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { documentId, hasSchoolPupilCodeFormat, joinSchoolPupil, refreshSchoolPupilRooms } from "@/lib/server/schoolSpacePupilCode";
 import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import { evaluatePupilJoin, isActivePupil, joinText, type JoinMember } from "@/lib/spaceJoinPolicy";
+import { invitationEmail, joinSchoolRoomWithAccount } from "@/lib/server/schoolRoomAccountInvitations";
+import { parsePupilAccountProviders, schoolPupilProviderAllowed, type PupilAccountProvider } from "@/lib/security/schoolPupilProviders";
 
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
-type JoinReply = { error: string } | {
+type JoinReply = { error: string; pupilAccountProviders?: PupilAccountProvider[] | null } | {
   ok: true; spaceId: string; title: string; preview: boolean;
   approvalRequired?: boolean; approvalCode?: string; expired?: boolean;
   cancelled?: boolean; renewRequired?: boolean; requestState?: "rejected" | "cancelled" | "replace";
@@ -35,7 +37,21 @@ export async function POST(req: NextRequest) {
     const code = joinText(body.code).toUpperCase();
     const studentCode = joinText(body.studentCode).toUpperCase();
     if (!/^[A-Z0-9]{4,12}$/.test(code)) return json({ error: "space_not_found" }, 404);
-    if (!/^[A-Z0-9]{4,12}$/.test(studentCode)) return json({ error: "student_code_required" }, 400);
+    const accountEntry = body.method === "account";
+    let verifiedEmail = "";
+    if (accountEntry) {
+      if (decoded.firebase?.sign_in_provider === "anonymous") return json({ error: "account_required" }, 403);
+      if (body.submit !== true) return json({ error: "invalid_request" }, 400);
+      const email = invitationEmail(decoded.email);
+      if (!email || decoded.email_verified !== true) return json({ error: "account_email_unverified" }, 403);
+      const account = await auth.getUser(decoded.uid);
+      if (account.disabled || !account.emailVerified || invitationEmail(account.email) !== email) {
+        return json({ error: "account_email_unverified" }, 403);
+      }
+      verifiedEmail = email;
+    } else if (!/^[A-Z0-9]{4,12}$/.test(studentCode)) {
+      return json({ error: "student_code_required" }, 400);
+    }
     let spaceRef: FirebaseFirestore.DocumentReference | undefined;
     for (const field of ["code", "joinCode", "join.code"]) {
       const spaces = await db.collection("spaces").where(field, "==", code).limit(1).get();
@@ -44,11 +60,33 @@ export async function POST(req: NextRequest) {
     if (!spaceRef) return json({ error: "space_not_found" }, 404);
     const uid = decoded.uid;
     const room = spaceRef;
+    if (accountEntry) {
+      const result = await runCapacityTransaction(db, async tx => {
+        const data = (await tx.get(room)).data();
+        if (!data || ![data.code, data.joinCode, data.join?.code].includes(code)) return { error: "space_not_found" } as const;
+        return joinSchoolRoomWithAccount({ db, tx, spaceId: room.id, room: data, actor: decoded, email: verifiedEmail });
+      });
+      if ("error" in result) {
+        if (result.error === "space_not_found") return json(result, 404);
+        if (result.error === "account_transfer_conflict" || result.error === "account_transfer_unavailable") return json(result, 409);
+        return json(result, 403);
+      }
+      return json(result);
+    }
     const result = await runCapacityTransaction<JoinReply>(db, async tx => {
       const space = await tx.get(room);
       const data = space.data();
       if (!data || data.deletedAt || data.archived === true || data.status === "archived") return { error: "room_unavailable" } as const;
       const schoolId = documentId(data.schoolId);
+      if (data.schoolId != null && (!schoolId || schoolId !== data.schoolId)) return { error: "room_unavailable" } as const;
+      if (schoolId) {
+        const school = (await tx.get(db.collection("schools").doc(schoolId))).data();
+        if (school?.allowPupilCodeAccess === false) return { error: "school_pupil_code_disabled" } as const;
+        const provider = decoded.firebase?.sign_in_provider;
+        if (provider !== "anonymous" && !schoolPupilProviderAllowed(school, provider)) {
+          return { error: "school_pupil_provider_disabled", pupilAccountProviders: parsePupilAccountProviders(school?.pupilAccountProviders) } as const;
+        }
+      }
       if (schoolId && hasSchoolPupilCodeFormat(studentCode) && body.cancel !== true) {
         return joinSchoolPupil({ db, tx, schoolId, spaceId: room.id, room: data, uid, studentCode,
           isAnonymous: decoded.firebase?.sign_in_provider === "anonymous", enter: body.submit === true || body.confirm === true });

@@ -167,7 +167,7 @@ export async function POST(req: Request, ctx: RouteParams) {
 
     const [assignmentSnap, membership] = await Promise.all([
       db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId).get(),
-      getActiveSpaceMembership(db, spaceId, uid),
+      getActiveSpaceMembership(db, spaceId, uid, undefined, decoded),
     ]);
 
     if (!assignmentSnap.exists) return json({ error: "Assignment not found." }, 404);
@@ -254,6 +254,10 @@ export async function POST(req: Request, ctx: RouteParams) {
     };
 
     await db.runTransaction(async tx => {
+      const membership = await getActiveSpaceMembership(db, spaceId, uid, tx, decoded);
+      if (!membership.ok || (membership.participantId || uid) !== participantId) {
+        throw new SubmissionWriteError("Not a member of this space.");
+      }
       const [current, index] = await Promise.all([tx.get(submissionRef), tx.get(indexRef)]);
       validateStoredStudentSubmission(current.data(), identityContext);
       validateStoredSubmissionIndex(index.data(), current.data(), identityContext);

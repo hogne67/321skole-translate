@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     let tasks;
     if (body.spaceId !== undefined) {
       if (!validGrammarId(body.spaceId) || !validGrammarId(body.assignmentId)) throw new SpeechError(400, "Ugyldig prøve.");
-      const access = await getSpaceAccess(db, body.spaceId, account.uid);
+      const access = await getSpaceAccess(db, body.spaceId, account.uid, undefined, account.decoded);
       if (!access.canRead) throw new SpeechError(403, "Du har ikke tilgang til denne prøven.");
       const assignment = (await db.doc(`spaces/${body.spaceId}/lessons/${body.assignmentId}`).get()).data();
       if (assignment?.lessonType !== "grammar_test" || assignment.status === "archived") throw new SpeechError(404, "Prøven finnes ikke.");

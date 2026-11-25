@@ -13,14 +13,16 @@ import { getSpaceJoinCode } from "@/lib/spaceCode";
 import { isLessonAiFeedbackDisabled } from "@/lib/security/lessonAiFeedbackPolicy";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import type { SpaceDoc } from "@/lib/spacesClient";
+import type { TeacherSpaceArea } from "@/lib/teacherSpaceArea";
 
 const actionClass = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-solid border-slate-300 bg-white px-3 py-2 text-center text-sm font-semibold text-slate-800 no-underline hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-50";
 const summaryClass = "flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 [&::-webkit-details-marker]:hidden";
 type Notice = { area: "code" | "sharing" | "settings"; text: string; error?: boolean };
 
-export default function SpaceAdministration({ spaceId, space, canControl, canSetLessonAiFeedbackPolicy, canDelete = false }: {
+export default function SpaceAdministration({ spaceId, space, area, canControl, canSetLessonAiFeedbackPolicy, canDelete = false }: {
   spaceId: string;
   space: SpaceDoc;
+  area: TeacherSpaceArea;
   canControl: boolean;
   canSetLessonAiFeedbackPolicy: boolean;
   canDelete?: boolean;
@@ -41,8 +43,8 @@ export default function SpaceAdministration({ spaceId, space, canControl, canSet
   const qrImage = qr?.code === code ? qr.dataUrl : null;
   const roomName = String(space.title ?? "");
   const title = roomName.trim() || t("list.untitled");
-  const spacesHref = `/${locale}/teacher/spaces`;
-  const basePath = `${spacesHref}/${spaceId}`;
+  const basePath = `/${locale}/teacher/spaces/${spaceId}`;
+  const spacesHref = `/${locale}/teacher/spaces?area=${area}`;
 
   function cancelEditing() {
     setEditing(false);
@@ -127,7 +129,10 @@ export default function SpaceAdministration({ spaceId, space, canControl, canSet
           {detail("backToRooms")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="m-0 min-w-0 flex-1 basis-64 break-words text-2xl font-semibold text-slate-950 sm:text-3xl">{title}</h1>
+          <div className="min-w-0 flex-1 basis-64">
+            <p className="mb-1 mt-0 text-sm font-semibold text-slate-700">{t(space.schoolId == null ? "areas.privateRoom" : "areas.schoolRoom")}</p>
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-950 sm:text-3xl">{title}</h1>
+          </div>
           <div className="flex max-w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-solid border-emerald-200 bg-emerald-50 px-3 py-2">
             <div className="min-w-0">
               <div className="text-xs font-semibold text-emerald-900">{detail("roomCode")}</div>

@@ -7,6 +7,12 @@
     "live": "Live",
     "loginOrCreate": "Logg inn / Registrer deg",
     "completeProfile": "Fullfør profil",
+    "accountMenu": "Kontomeny",
+    "personalAccount": "Privat konto",
+    "studentAccount": "Elevkonto",
+    "schoolAccount": "Skoletilknyttet konto",
+    "switchAccount": "Bytt konto",
+    "signOutError": "Utloggingen mislyktes. Prøv igjen.",
     "logout": "Logg ut",
     "login": "Logg inn",
     "menu": "Meny"

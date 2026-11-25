@@ -1,10 +1,11 @@
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountAccess.server";
 import "server-only";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { getSpaceAccess, ownsSpaceSubmission } from "@/lib/security/spaceAccess.server";
+import { matchesTransferredSchoolSubmission, transferredSchoolParticipant } from "@/lib/server/transferredSchoolSubmissions";
 
 function json(data: unknown, status = 200) {
     return NextResponse.json(data, { status });
@@ -53,39 +54,34 @@ export async function POST(req: Request) {
             db.collection("spaceSubmissions").doc(submissionId),
         ];
 
-        let foundRef: FirebaseFirestore.DocumentReference | null = null;
-
-        for (const ref of candidates) {
-            const snap = await ref.get();
-
-            if (snap.exists) {
-                const data = snap.data() ?? {};
-                if (data.uid !== uid) return json({ error: "Forbidden" }, 403);
-                if (ref.parent.id === "spaceSubmissions" || typeof data.spaceId === "string") {
-                    if (typeof data.spaceId !== "string" || data.spaceId.includes("/")) return json({ error: "Forbidden" }, 403);
-                    const access = await getSpaceAccess(db, data.spaceId, uid);
-                    if (!access.canRead || !ownsSpaceSubmission(data, uid, access.participantId)) return json({ error: "Forbidden" }, 403);
+        return await db.runTransaction(async tx => {
+            const found = (await tx.getAll(...candidates)).find(snap => snap.exists);
+            if (!found) return json({ error: `Submission not found: ${submissionId}` }, 404);
+            const data = found.data() ?? {};
+            const roomSubmission = found.ref.parent.id === "spaceSubmissions";
+            const { spaceId } = data;
+            if (roomSubmission || typeof spaceId === "string") {
+                if (typeof spaceId !== "string" || !spaceId || spaceId.includes("/")) return json({ error: "Forbidden" }, 403);
+                const access = await getSpaceAccess(db, spaceId, uid, tx, decoded);
+                assertActiveProfile(access.profile, decoded);
+                if (!access.canRead || !ownsSpaceSubmission(data, uid, access.participantId)) return json({ error: "Forbidden" }, 403);
+                if (data.uid !== uid) {
+                    const participantId = roomSubmission && await transferredSchoolParticipant(db, spaceId, uid, access, tx);
+                    if (!participantId || !await matchesTransferredSchoolSubmission(db, spaceId, uid, participantId, found.id, data, tx)) {
+                        return json({ error: "Forbidden" }, 403);
+                    }
                 }
-                foundRef = ref;
-                break;
+            } else if (data.uid !== uid) {
+                return json({ error: "Forbidden" }, 403);
             }
-        }
-
-        if (!foundRef) {
-            return json({ error: `Submission not found: ${submissionId}` }, 404);
-        }
-
-        await foundRef.set(
-            {
+            tx.set(found.ref, {
                 archived: true,
                 archivedAt: FieldValue.serverTimestamp(),
                 updatedAt: FieldValue.serverTimestamp(),
                 archivedBy: uid,
-            },
-            { merge: true }
-        );
-
-        return json({ ok: true });
+            }, { merge: true });
+            return json({ ok: true });
+        });
     } catch (e: unknown) {
         return json(
             {

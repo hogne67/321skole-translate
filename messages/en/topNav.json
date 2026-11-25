@@ -7,6 +7,12 @@
     "live": "Live",
     "loginOrCreate": "Log in / Create account",
     "completeProfile": "Complete profile",
+    "accountMenu": "Account menu",
+    "personalAccount": "Personal account",
+    "studentAccount": "Student account",
+    "schoolAccount": "School-linked account",
+    "switchAccount": "Switch account",
+    "signOutError": "Could not sign out. Try again.",
     "logout": "Log out",
     "login": "Log in",
     "menu": "Menu"

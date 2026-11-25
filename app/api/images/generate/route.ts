@@ -1,6 +1,5 @@
-import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
-import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 import { NextRequest, NextResponse } from "next/server";
@@ -125,12 +124,10 @@ export async function POST(req: NextRequest) {
     const privateScope: SpaceFileScope | null = body.context === "student_writing_print"
       ? { spaceId: body.spaceId || "", activityId: body.activityId || "", submissionId: body.submissionId, purpose: "writing_image" }
       : body.context === "space_board" ? { spaceId: body.spaceId || "", activityId: "state", purpose: "board_image" } : null;
-    if (privateScope) await authorizeSpaceFileScope(uid, privateScope, true);
+    const privateAccess = privateScope ? (await authorizeSpaceFileScope(uid, privateScope, true, undefined, decoded)).access : null;
 
     const userSnap = await db.doc(`users/${uid}`).get();
-    const userData = userSnap.exists ? userSnap.data() : {};
-    const profile = (userData ?? {}) as Record<string, unknown>;
-    const studentWritingAccess = await verifyStudentWritingAccess(db, uid, profile, body);
+    const studentWritingAccess = await verifyStudentWritingAccess(db, body, privateAccess?.space);
 
     if (studentWritingAccess?.ok === false) {
       return studentWritingAccess.response;
@@ -244,7 +241,7 @@ export async function POST(req: NextRequest) {
     let storagePath: string;
     let imageUrl: string;
     if (privateScope) {
-      const saved = await saveGeneratedSpaceImage(uid, privateScope, coverBuffer, () => auth.verifyIdToken(authToken, true));
+      const saved = await saveGeneratedSpaceImage(uid, privateScope, coverBuffer, () => auth.verifyIdToken(authToken, true), decoded);
       storagePath = saved.storagePath; imageUrl = saved.imageUrl;
     } else {
       const downloadToken = randomUUID();
@@ -304,15 +301,10 @@ function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function isAdminProfile(data: Record<string, unknown>) {
-  return data.role === "admin" || data.admin === true || data.isAdmin === true;
-}
-
 async function verifyStudentWritingAccess(
   db: Firestore,
-  uid: string,
-  profile: Record<string, unknown>,
-  body: GenerateImageBody
+  body: GenerateImageBody,
+  space: Record<string, unknown> | undefined,
 ): Promise<StudentWritingAccess | null> {
   if (body.context !== "student_writing_print") return null;
 
@@ -325,31 +317,19 @@ async function verifyStudentWritingAccess(
     };
   }
 
-  const [spaceSnap, memberSnap, activitySnap] = await Promise.all([
-    db.collection("spaces").doc(spaceId).get(),
-    db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get(),
-    db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get(),
-  ]);
-
-  if (!spaceSnap.exists) {
+  if (!space) {
     return { ok: false, response: NextResponse.json({ error: "Space not found." }, { status: 404 }) };
   }
+  const activitySnap = await db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get();
   if (!activitySnap.exists) {
     return { ok: false, response: NextResponse.json({ error: "Writing activity not found." }, { status: 404 }) };
   }
 
-  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-  const activity = (activitySnap.data() ?? {}) as Record<string, unknown>;
+  const activity = activitySnap.data() ?? {};
   const ownerUid = getSpaceOwnerUid(space);
-  const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
-  const isOwner = hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
-  const hasMemberAccess = memberSnap.exists && isActiveSpaceMember(member);
 
   if (!ownerUid) {
     return { ok: false, response: NextResponse.json({ error: "Space owner missing." }, { status: 403 }) };
-  }
-  if (!isOwner && !isAdminProfile(profile) && !hasMemberAccess) {
-    return { ok: false, response: NextResponse.json({ error: "No access to this space." }, { status: 403 }) };
   }
   if ((activity.aiPolicy as { enabled?: unknown } | undefined)?.enabled === false) {
     return { ok: false, response: NextResponse.json({ error: "AI is disabled for this activity." }, { status: 403 }) };

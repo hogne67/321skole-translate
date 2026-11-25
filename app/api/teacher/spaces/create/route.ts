@@ -1,9 +1,12 @@
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountAccess.server";
 import "server-only";
 import { randomInt } from "node:crypto";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { activeTeacherSchoolId } from "@/lib/teacherSpaceArea";
+import { canCreateSchoolSpace } from "@/lib/schools/teacherSpaceAccess";
 
 export const runtime = "nodejs";
 function json(data: unknown, status = 200) {
@@ -13,12 +16,14 @@ export async function POST(req: Request) {
   const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return json({ error: "Unauthorized" }, 401);
   const { auth, db } = getAdmin();
-  let uid: string;
-  try { uid = (await auth.verifyIdToken(token, true)).uid; }
+  let decoded: DecodedIdToken;
+  try { decoded = await auth.verifyIdToken(token, true); }
   catch (accountError) { return json({ error: "Unauthorized" }, (accountErrorStatus(accountError) ?? 401)); }
+  const { uid } = decoded;
   const body = await req.json().catch(() => null);
   if (!body || typeof body.title !== "string" || !body.title.trim() || body.title.trim().length > 120
     || (body.isOpen !== undefined && typeof body.isOpen !== "boolean")
+    || (body.area !== undefined && body.area !== "private" && body.area !== "school")
     || (body.schoolId != null && (typeof body.schoolId !== "string" || !body.schoolId || body.schoolId.includes("/")))) return json({ error: "Invalid request" }, 400);
   try {
     const profileRef = db.doc(`users/${uid}`);
@@ -30,12 +35,15 @@ export async function POST(req: Request) {
       const result = await db.runTransaction(async tx => {
         const profile = await tx.get(profileRef);
         const data = profile.data();
-        if (data?.disabled === true || !(data?.role === "teacher" || data?.role === "admin" || data?.roles?.admin === true)) return "forbidden";
+        assertActiveProfile(data, decoded);
+        if (!(data?.role === "teacher" || data?.role === "admin" || data?.roles?.admin === true)) return "forbidden";
         // A school account cannot opt out of school controls by omitting schoolId.
         const activeSchool = data?.schoolStatus === "active";
-        const profileSchoolId = data?.schoolId;
-        if (activeSchool && (typeof profileSchoolId !== "string" || !profileSchoolId || profileSchoolId.trim() !== profileSchoolId || profileSchoolId.includes("/"))) return "forbidden";
-        const schoolId = activeSchool ? profileSchoolId as string : body.schoolId ?? null;
+        const profileSchoolId = activeTeacherSchoolId(data);
+        if (activeSchool && !profileSchoolId) return "forbidden";
+        const schoolId = activeSchool ? profileSchoolId : body.schoolId ?? null;
+        if (body.area === "private" && schoolId !== null) return "forbidden";
+        if (body.area === "school" && (!profileSchoolId || body.schoolId !== profileSchoolId)) return "forbidden";
         if (body.schoolId != null && body.schoolId !== schoolId) return "forbidden";
         if (schoolId != null) {
           if (schoolId !== data?.schoolId || data?.schoolStatus !== "active") return "forbidden";
@@ -45,11 +53,7 @@ export async function POST(req: Request) {
             tx.get(db.doc(`schools/${schoolId}`)),
             tx.get(db.doc(`schools/${schoolId}/members/${uid}`)),
           ]);
-          const seatLimit = school.get("teacherSeatLimit");
-          if (school.get("status") !== "active" || !Number.isInteger(seatLimit) || seatLimit <= 0
-            || member.get("uid") !== uid || (member.get("schoolId") !== undefined && member.get("schoolId") !== schoolId)
-            || member.get("status") !== "active" || !["school_teacher", "school_admin"].includes(member.get("role"))
-            || member.get("role") !== data?.schoolRole) return "forbidden";
+          if (!canCreateSchoolSpace(schoolId, uid, data?.schoolRole, school.data(), member.data())) return "forbidden";
         }
         const [claim, legacy, current] = await Promise.all([
           tx.get(claimRef), tx.get(db.collection("spaces").where("code", "==", code).select().limit(1)),
@@ -68,5 +72,8 @@ export async function POST(req: Request) {
       if (result === "created") return json({ spaceId: spaceRef.id, code });
     }
     return json({ error: "Could not allocate room code" }, 503);
-  } catch { return json({ error: "Could not create Space" }, 503); }
+  } catch (error) {
+    const status = accountErrorStatus(error);
+    return json({ error: status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : "Could not create Space" }, status ?? 503);
+  }
 }

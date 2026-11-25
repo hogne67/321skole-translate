@@ -4,8 +4,10 @@ import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
 
-type Pupil = { id: string; sourceMemberId: string; fullName?: string; displayName: string; spaces: { spaceId: string; title: string; displayName: string }[] };
-export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName, schoolRoom }: { spaceId: string; targetMemberId?: string; targetName?: string; schoolRoom?: boolean }) {
+type Pupil = { id: string; sourceMemberId: string; fullName?: string; displayName: string; restoreAccount?: boolean; spaces: { spaceId: string; title: string; displayName: string }[] };
+export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName, schoolRoom, accountRestoreOnly = false }: {
+  spaceId: string; targetMemberId?: string; targetName?: string; schoolRoom?: boolean; accountRestoreOnly?: boolean;
+}) {
   const t = useTranslations("teacherMembers.roster");
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -25,7 +27,8 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || t("failed"));
-      setPupils(data.students.filter((pupil: Pupil) => !pupil.spaces.some(s => s.spaceId === spaceId)));
+      setPupils(data.students.filter((pupil: Pupil) => !pupil.spaces.some(s => s.spaceId === spaceId)
+        && (!targetMemberId || !pupil.restoreAccount) && (!accountRestoreOnly || pupil.restoreAccount)));
     } catch (e) { setError(e instanceof Error ? e.message : t("failed")); }
     finally { setBusy(false); }
   }
@@ -38,7 +41,8 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       for (const sourceMemberId of selected) {
         const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ sourceMemberId, ...(targetMemberId ? { targetMemberId } : {}) }) });
         const data = await response.json();
-        if (!response.ok || !data.ok) throw new Error(data.error || t("failed"));
+        if (!response.ok || !data.ok) throw new Error(data.error === "pupil_account_restore_unavailable"
+          ? t("restoreFailed") : data.error || t("failed"));
         completed++;
       }
       setMessage(targetMemberId ? t("linked") : t("added", { count: completed }));
@@ -59,11 +63,11 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       className={`flex min-h-10 w-full items-center gap-2 rounded-xl border-0 bg-transparent px-3 py-2 text-left text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-wait ${targetMemberId ? "text-slate-800 hover:bg-slate-100" : "text-sky-950 hover:bg-sky-100"}`}
     >
       {!targetMemberId ? <Search aria-hidden="true" className="h-4 w-4 shrink-0" /> : null}
-      {t(targetMemberId ? "linkTitle" : "title")}
+      {t(targetMemberId ? "linkTitle" : accountRestoreOnly ? "restoreTitle" : "title")}
       <ChevronDown aria-hidden="true" className={`ml-auto h-4 w-4 shrink-0 ${open ? "rotate-180" : ""}`} />
     </button>
     {open ? <div id={panelId} className="space-y-3 border-0 border-t border-solid border-slate-200 p-3">
-      <p className="m-0 text-slate-700">{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t(schoolRoom ? "schoolDescription" : "description")}</p>
+      <p className="m-0 text-slate-700">{targetMemberId ? t("linkDescription", { name: targetName ?? "" }) : t(accountRestoreOnly ? "restoreDescription" : schoolRoom ? "schoolDescription" : "description")}</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <input aria-label={t("search")} placeholder={t("search")} value={search} onChange={e => setSearch(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2" />
         <select aria-label={t("room")} value={room} onChange={e => setRoom(e.target.value)} className="min-w-0 rounded-lg border bg-white p-2">
@@ -75,9 +79,13 @@ export default function TeacherPupilPicker({ spaceId, targetMemberId, targetName
       <div className="max-h-72 space-y-2 overflow-y-auto">
         {visible.map(p => <label key={p.id} className="flex items-start gap-2 rounded-lg border bg-white p-2">
           <input type={targetMemberId ? "radio" : "checkbox"} name={targetMemberId ? `link-${targetMemberId}` : undefined} disabled={busy} checked={selected.includes(p.sourceMemberId)} onChange={e => setSelected(targetMemberId ? [p.sourceMemberId] : e.target.checked ? [...selected, p.sourceMemberId] : selected.filter(id => id !== p.sourceMemberId))} />
-          <span><strong>{p.fullName || p.displayName}</strong><span className="block text-xs text-slate-600">{p.spaces.map(s => `${s.title}: ${s.displayName}`).join(" · ")}</span></span>
+          <span>
+            <strong>{p.fullName || p.displayName}</strong>
+            {p.restoreAccount && !accountRestoreOnly ? <span className="block text-xs text-slate-700">{t("restoreLabel")}</span> : null}
+            {p.spaces.length ? <span className="block text-xs text-slate-600">{p.spaces.map(s => `${s.title}: ${s.displayName}`).join(" · ")}</span> : null}
+          </span>
         </label>)}
-        {!busy && !visible.length ? <p>{t("empty")}</p> : null}
+        {!busy && !visible.length ? <p>{t(accountRestoreOnly ? "restoreEmpty" : "empty")}</p> : null}
       </div>
       <button type="button" disabled={busy || !selected.length} onClick={() => void apply()} className="rounded-lg bg-sky-800 px-3 py-2 font-semibold text-white disabled:opacity-50">{t(busy ? "working" : targetMemberId ? "confirmLink" : "add")}</button>
     </div> : null}

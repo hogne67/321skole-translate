@@ -12,14 +12,14 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const parsed = parseLegacyAudioPath(body?.storagePath);
     if (!parsed) return json("Invalid audio path", 400);
-    const { auth } = getAdmin(), { uid } = await auth.verifyIdToken(token, true);
+    const { auth } = getAdmin(), decoded = await auth.verifyIdToken(token, true);
     if (body.mode === "delete") {
-      await authorizeLegacyFile(uid, parsed.path, "audio");
+      await authorizeLegacyFile(decoded.uid, parsed.path, "audio", false, decoded);
       // Existing user-triggered deletion only; no batch cleanup or data migration.
       await legacyFileBucket().file(parsed.path).delete();
       return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private,no-store" } });
     }
-    const result = await readLegacyFile(uid, parsed.path, "audio", req.headers.get("range"), req.headers.get("if-match"));
+    const result = await readLegacyFile(decoded.uid, parsed.path, "audio", req.headers.get("range"), req.headers.get("if-match"), false, undefined, decoded);
     await auth.verifyIdToken(token, true);
     const filename = parsed.path.split("/").at(-1)!.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0,180);
     return new NextResponse(new Uint8Array(result.bytes), { status: result.partial ? 206 : 200, headers: {

@@ -10,17 +10,21 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
+  collection,
   doc,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
+  where,
   type DocumentData,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
 import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
-import { writingClientIdentity } from "@/lib/security/studentSubmissionPolicy";
+import { SubmissionWriteError, validateStoredStudentSubmission, writingClientIdentity } from "@/lib/security/studentSubmissionPolicy";
+import { lastStudentSubmissionUpdate } from "@/lib/studentContentTasks";
 import { readEffectiveSpaceAiPolicy } from "@/lib/security/spaceAiPolicy.client";
 import type {
   WritingActivity,
@@ -422,6 +426,8 @@ export default function StudentWritingActivityPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
+  const [transferredAccount, setTransferredAccount] = useState<boolean | null>(null);
+  const [historyStatus, setHistoryStatus] = useState<"loading" | "ready" | "error">("loading");
   const [submissionBinding, setSubmissionBinding] = useState<{ id: string; data: Record<string, unknown> } | null>(null);
   const [studentDisplayName, setStudentDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -482,6 +488,8 @@ export default function StudentWritingActivityPage() {
 
   useEffect(() => {
     let alive = true;
+    setTransferredAccount(null);
+    setHistoryStatus("loading");
 
     async function run() {
       try {
@@ -493,8 +501,12 @@ export default function StudentWritingActivityPage() {
         if (!alive) return;
         setParticipantId(membership?.participantId || u.uid);
         setStudentDisplayName(membership?.displayName || null);
+        setTransferredAccount(membership?.isTransferredSchoolAccount === true);
       } catch (e: unknown) {
-        if (alive) setErr(e instanceof Error ? e.message : t("errors.auth"));
+        if (alive) {
+          setTransferredAccount(false);
+          setErr(e instanceof Error ? e.message : t("errors.auth"));
+        }
       }
     }
 
@@ -571,11 +583,38 @@ export default function StudentWritingActivityPage() {
 
   useEffect(() => {
     const activeParticipantId = participantId || uid;
-    if (!uid || !activeParticipantId) return;
+    if (!uid || !activeParticipantId || transferredAccount === null) return;
 
     const canonicalId = `${spaceId}_${activityId}_${activeParticipantId}`;
     const legacyOwnId = `${spaceId}_${activityId}_${uid}`;
     setSubmissionBinding(null);
+    if (transferredAccount) {
+      setHistoryStatus("loading");
+      const submissions = collection(db, "spaces", spaceId, "writingActivities", activityId, "submissions");
+      return onSnapshot(
+        query(submissions, where("participantId", "==", activeParticipantId)),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+          const owned = snapshot.docs.filter(row => {
+            try {
+              validateStoredStudentSubmission(row.data(), {
+                kind: "writingActivities", spaceId, activityId, submissionId: row.id, uid, participantId: activeParticipantId,
+              });
+              return true;
+            } catch (error) {
+              if (error instanceof SubmissionWriteError) return false;
+              throw error;
+            }
+          });
+          const latest = owned.sort((a, b) =>
+            lastStudentSubmissionUpdate(b.data()) - lastStudentSubmissionUpdate(a.data()))[0];
+          if (latest) applySubmissionData(latest.data() as WritingSubmissionDoc, latest.id);
+          setHistoryStatus("ready");
+        },
+        () => setHistoryStatus("error"),
+      );
+    }
     const ids = Array.from(new Set([canonicalId, legacyOwnId]));
     const snaps = new Map<string, WritingSubmissionDoc | null>();
 
@@ -599,7 +638,7 @@ export default function StudentWritingActivityPage() {
     });
 
     return () => unsubs.forEach((unsub) => unsub());
-  }, [activityId, participantId, spaceId, uid]);
+  }, [activityId, participantId, spaceId, transferredAccount, uid]);
 
   const rooms = activity?.rooms ?? EMPTY_ROOMS;
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0] ?? null;
@@ -920,13 +959,15 @@ export default function StudentWritingActivityPage() {
     }
   }
 
-  if (loading) return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
+  if (loading || (uid && transferredAccount === null) || (transferredAccount && historyStatus === "loading")) {
+    return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
+  }
 
-  if (err && !activity) {
+  if ((err && !activity) || (transferredAccount && historyStatus === "error")) {
     return (
       <div className="mx-auto w-full max-w-5xl rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
         <div className="font-semibold">{t("errors.title")}</div>
-        <div className="mt-2 whitespace-pre-wrap text-sm">{err}</div>
+        <div className="mt-2 whitespace-pre-wrap text-sm">{err || t("errors.readActivity")}</div>
         <Link href={backHref} className="mt-4 inline-flex text-sm font-semibold underline">
           {backLabel}
         </Link>

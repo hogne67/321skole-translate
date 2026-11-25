@@ -2,6 +2,14 @@
   "join": {
     "title": "Join",
     "subtitle": "Use the QR code on your pupil card, or enter the room code and your personal student code.",
+    "account": {
+      "providers": { "email": "email", "feide": "Feide", "google": "Google" },
+      "title": "Join with an account",
+      "help": "Use the room code from your teacher. Sign in with the email address your teacher invited.",
+      "useCode": "Use a personal student code",
+      "login": "Sign in to join",
+      "signedIn": "You are signed in as {email}."
+    },
     "fields": {
       "spaceCode": {
         "label": "Room code",
@@ -14,6 +22,7 @@
       }
     },
     "actions": {
+      "switchSignIn": "Switch sign-in method",
       "join": "Join",
       "joining": "Joining…",
       "check": "Check pupil code",
@@ -27,6 +36,16 @@
       "body": "Use the room code and the new personal student code from your teacher. You'll find your saved work when you return."
     },
     "errors": {
+      "schoolPupilAccountRequired": "This student uses an account in this room. Choose “Join with an account” and sign in with the address your teacher invited.",
+      "accountTransferConflict": "This account already has a different student registration in the room. Ask your teacher to check which registration should be used.",
+      "accountTransferUnavailable": "The link to the pupil card is no longer available. Ask your teacher to check the invitation.",
+      "schoolProviderDisabled": "Your school does not allow this sign-in method.",
+      "schoolProviderMethods": "Your school allows {methods}. Switch sign-in method and try again.",
+      "switchSignInFailed": "Could not switch how you sign in. Try again.",
+      "schoolPupilCodeDisabled": "This school requires a student account. Choose “Join with an account” and use the invited email address and room code.",
+      "accountRequired": "Sign in with a student account to join.",
+      "accountEmailUnverified": "Verify your student account email address and try again.",
+      "accountInvitationRequired": "This account has no invitation to the room. Check which account you are using or ask your teacher.",
       "studentCodeAttempts": "Too many code attempts. Wait a little and try again.",
       "spaceNotFound": "We couldn't find that room code. Check the code from your teacher or open the room link again.",
       "authTimeout": "Timed out while waiting for auth user.",

@@ -18,16 +18,16 @@ export async function POST(req: Request, ctx: RouteParams) {
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
     const body = await req.json().catch(() => ({}));
-    const membership = await getActiveSpaceMembership(db, spaceId, uid);
-    if (!membership.ok) throw new SubmissionWriteError("Not a member of this space");
-    const participantId = membership.participantId || uid;
-    const submissionId = body.submissionId ?? `${spaceId}_${assignmentId}_${participantId}`;
-    if (!validSubmissionPart(submissionId)) throw new SubmissionWriteError("Invalid submission id");
     if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
-    const context = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId, uid, participantId };
-    const nestedRef = db.doc(`spaces/${spaceId}/lessons/${assignmentId}/submissions/${submissionId}`);
-    const indexRef = db.doc(`spaceSubmissions/${submissionId}`);
-    await db.runTransaction(async tx => {
+    const submissionId = await db.runTransaction(async tx => {
+      const membership = await getActiveSpaceMembership(db, spaceId, uid, tx, decoded);
+      if (!membership.ok) throw new SubmissionWriteError("Not a member of this space");
+      const participantId = membership.participantId || uid;
+      const submissionId = body.submissionId ?? `${spaceId}_${assignmentId}_${participantId}`;
+      if (!validSubmissionPart(submissionId)) throw new SubmissionWriteError("Invalid submission id");
+      const context = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId, uid, participantId };
+      const nestedRef = db.doc(`spaces/${spaceId}/lessons/${assignmentId}/submissions/${submissionId}`);
+      const indexRef = db.doc(`spaceSubmissions/${submissionId}`);
       const [activity, nested, index] = await Promise.all([tx.get(db.doc(`spaces/${spaceId}/lessons/${assignmentId}`)), tx.get(nestedRef), tx.get(indexRef)]);
       if (!activity.exists) throw new SubmissionWriteError("Assignment not found", 404);
       const patch = studentSubmissionPatch(body.payload, nested.data(), context);
@@ -43,6 +43,7 @@ export async function POST(req: Request, ctx: RouteParams) {
       const indexPatch = studentSubmissionPatch(body.payload, index.data() ?? nested.data(), context);
       if (grammarTasks) indexPatch.auto = patch.auto;
       tx.set(indexRef, { ...indexPatch, spaceId, assignmentId, updatedAt: now, ...(!index.exists ? { createdAt: now } : {}) }, { merge: true });
+      return submissionId;
     });
     return NextResponse.json({ ok: true, submissionId });
   } catch (error) {

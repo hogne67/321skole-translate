@@ -11,6 +11,13 @@ export function isActiveSpaceMember(data: Record<string, unknown> | null | undef
     && (!("archived" in data) || data.archived === false);
 }
 
+export function pupilMembershipRequiresCode(data: Record<string, unknown> | null | undefined): boolean {
+  return data?.role === "student" && (
+    data.schoolPupilCodeAccess === true || data.isAnon === true || data.linkedByStudentCode === true
+    || (typeof data.studentCode === "string" && data.studentCode.length > 0 && data.approvedAt != null)
+  );
+}
+
 export function isSpaceTeachingMember(data: Record<string, unknown> | null | undefined): boolean {
   return isActiveSpaceMember(data) && !!data &&
     (["teacher", "co_teacher"].includes(String(data.role ?? "")) ||

@@ -1,5 +1,25 @@
 {
   "schoolAdmin": {
+    "pupilAccess": {
+      "title": "Student access",
+      "description": "Choose whether students can use a personal student code in your school’s rooms. “Student accounts only” also blocks access from active code sessions. Saved drafts and submissions stay in the room.",
+      "accountOnly": "Student accounts only",
+      "accountAndCode": "Student accounts and personal student codes",
+      "providersTitle": "Student account sign-in methods",
+      "providersHelp": "These settings apply to student accounts in the school’s rooms. Feide requires the service to be available to the school. Students using a method you remove must sign in again with an allowed method.",
+      "providers": {
+        "email": "Email",
+        "feide": "Feide",
+        "google": "Google"
+      },
+      "providerRequired": "Choose at least one sign-in method.",
+      "save": "Save student access",
+      "saving": "Saving…",
+      "saved": "Student access settings saved.",
+      "unauthorized": "Sign in again before saving student access settings.",
+      "forbidden": "Only an active school administrator can change student access.",
+      "unavailable": "Could not save student access settings. Try again."
+    },
     "substitutes": {
       "feedbackSaved": "Feedback saved.",
       "myRooms": "Substitute rooms",

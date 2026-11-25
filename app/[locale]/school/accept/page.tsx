@@ -3,24 +3,34 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+import { signOut, type User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { clearLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 export default function AcceptSchoolInvitePage() {
+  const params = useSearchParams();
+  const { user, loading } = useUserProfile();
+  const token = params.get("token")?.trim() || "";
+  return <SchoolInviteForm key={JSON.stringify([token, user?.uid])} token={token} user={user} loading={loading} />;
+}
+
+function SchoolInviteForm({ token, user, loading }: { token: string; user: User | null; loading: boolean }) {
   const locale = useLocale();
   const t = useTranslations("schoolAdmin.accept");
-  const params = useSearchParams();
+  const tTop = useTranslations("topNav");
   const router = useRouter();
-  const { user, loading } = useUserProfile();
   const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<"accept" | "switch" | null>(null);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const token = params.get("token")?.trim() || "";
   const signedIn = user && !user.isAnonymous;
   const next = encodeURIComponent(`/${locale}/school/accept?token=${encodeURIComponent(token)}`);
+
   async function accept() {
-    if (!signedIn || busy) return;
-    setBusy(true); setError("");
+    if (!signedIn || pending) return;
+    setPending("accept");
+    setError("");
     try {
       const authToken = await user.getIdToken();
       const response = await fetch("/api/schools/accept-invite", {
@@ -30,7 +40,21 @@ export default function AcceptSchoolInvitePage() {
       if (!response.ok || !data.ok) throw new Error(data.reason && t.has(data.reason) ? t(data.reason) : data.error || t("failed"));
       setSuccess(true);
     } catch (err) { setError(err instanceof Error ? err.message : t("failed")); }
-    finally { setBusy(false); }
+    finally { setPending(null); }
+  }
+
+  async function switchAccount() {
+    if (!signedIn || pending) return;
+    setPending("switch");
+    setError("");
+    try {
+      await signOut(auth);
+      clearLastStudentSpaceId();
+      window.location.replace(`/${locale}/login?next=${next}`);
+    } catch {
+      setError(tTop("signOutError"));
+      setPending(null);
+    }
   }
   return (
     <main style={{ maxWidth:600, margin:"40px auto", padding:24, color:"#263f32" }}>
@@ -50,7 +74,15 @@ export default function AcceptSchoolInvitePage() {
           <><p role="status">{t("success")}</p><Link style={buttonStyle} href={`/${locale}/post-login`}>{t("continue")}</Link></>
         ) : (
           <><p style={{ lineHeight:1.7 }}>{t("signedIn", { email:user.email || "" })}</p>
-            <button style={buttonStyle} disabled={busy} onClick={accept}>{t(busy ? "working" : "accept")}</button></>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" style={buttonStyle} disabled={pending !== null} onClick={accept}>
+                {t(pending === "accept" ? "working" : "accept")}
+              </button>
+              <button type="button" disabled={pending !== null} onClick={() => void switchAccount()}
+                className="min-h-11 rounded-xl border border-solid border-emerald-800 bg-white px-4 py-2 font-semibold text-emerald-950 disabled:opacity-60">
+                {tTop("switchAccount")}
+              </button>
+            </div></>
         )}
         {error ? <p role="alert" style={{ color:"#991b1b", lineHeight:1.6 }}>{error}</p> : null}
       </section>

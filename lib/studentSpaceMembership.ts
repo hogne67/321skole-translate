@@ -13,6 +13,7 @@ type SpaceMemberData = {
   isAnon?: unknown;
   role?: unknown;
   participantId?: unknown;
+  schoolPupilAccountUid?: unknown;
   studentCode?: unknown;
 };
 
@@ -21,6 +22,7 @@ export type StudentSpaceMembershipInfo = {
   participantId: string | null;
   displayName: string | null;
   studentCode: string | null;
+  isTransferredSchoolAccount: boolean;
 };
 
 function isActiveMember(data: SpaceMemberData | null): boolean {
@@ -37,6 +39,7 @@ function readMembershipInfo(
       participantId: null,
       displayName: null,
       studentCode: null,
+      isTransferredSchoolAccount: false,
     };
   }
 
@@ -58,6 +61,7 @@ function readMembershipInfo(
     participantId,
     displayName,
     studentCode,
+    isTransferredSchoolAccount: data?.schoolPupilAccountUid === fallbackUid,
   };
 }
 
@@ -67,12 +71,7 @@ export async function getStudentSpaceMembership(
   uid: string
 ): Promise<StudentSpaceMembershipInfo> {
   if (!spaceId || !uid) {
-    return {
-      isMember: false,
-      participantId: null,
-      displayName: null,
-      studentCode: null,
-    };
+    return readMembershipInfo(null, uid);
   }
 
   const canonicalId = `${spaceId}_${uid}`;

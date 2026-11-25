@@ -1,5 +1,14 @@
 {
   "spaces": {
+    "areas": {
+      "label": "Listas de salas",
+      "school": "Salas da escola",
+      "private": "Salas privadas",
+      "shared": "Outras salas",
+      "schoolRoom": "Sala da escola",
+      "privateRoom": "Sala privada",
+      "privateCreationHint": "Use uma conta privada de professor para criar novas salas privadas."
+    },
     "title": "Spaces",
     "subtitle": "Spaces são salas de aula ou grupos onde você pode compartilhar atividades com os alunos, seja com toda a turma ou com um grupo menor.",
     "newSpace": "+ Criar novo space",

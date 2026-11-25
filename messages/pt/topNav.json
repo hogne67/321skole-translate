@@ -7,6 +7,12 @@
     "live": "Live",
     "loginOrCreate": "Entrar / Criar conta",
     "completeProfile": "Completar perfil",
+    "accountMenu": "Menu da conta",
+    "personalAccount": "Conta pessoal",
+    "studentAccount": "Conta de aluno",
+    "schoolAccount": "Conta vinculada à escola",
+    "switchAccount": "Trocar de conta",
+    "signOutError": "Não foi possível sair. Tente novamente.",
     "logout": "Sair",
     "login": "Entrar",
     "menu": "Menu"

@@ -1,9 +1,11 @@
 import "server-only";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import { getAdmin, getAdminApp } from "../firebaseAdmin";
 import { getSpaceAccess } from "./spaceAccess.server";
 import { validateStoredStudentSubmission, validSubmissionPart } from "./studentSubmissionPolicy";
 import { parseLegacySpaceImagePath } from "./legacySpaceImage";
 import { fileRange } from "../spaceFiles";
+import { transferredSchoolParticipant } from "../server/transferredSchoolSubmissions";
 
 export class LegacyFileError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -42,32 +44,38 @@ function referencePath(value: unknown, bucketName: string): string | null {
 }
 /** No mirror lookup, filename inference, data mutation, or capability-URL fetch.
  * Only the existing canonical document and its exact audio/image reference grant access. */
-export async function authorizeLegacyFile(uid: string, path: string, kind: "audio" | "image", allowAudioParticipantAlias = false) {
+export async function authorizeLegacyFile(uid: string, path: string, kind: "audio" | "image", allowAudioParticipantAlias = false, decoded?: DecodedIdToken) {
   const parsed = kind === "audio" ? parseLegacyAudioPath(path) : parseLegacySpaceImagePath(path);
   if (!parsed) return fail(400, "Invalid file reference");
   const { db } = getAdmin();
   const bucketName = legacyFileBucket().name;
-  const access = await getSpaceAccess(db, parsed.spaceId, uid);
+  const access = await getSpaceAccess(db, parsed.spaceId, uid, undefined, decoded);
   if (!access.canRead) return fail(403, "No file access");
   // A canonical member row supplies an identity mapping, never an access grant.
   // Explicit read-only opt-in keeps the existing user-triggered delete unchanged.
   type Alias = { participantId: string; stamp: string };
   let cachedAlias: Alias | null | undefined;
-  async function audioAlias(): Promise<Alias | null> {
+  async function historicalAlias(): Promise<Alias | null> {
     if (cachedAlias !== undefined) return cachedAlias;
     cachedAlias = null;
-    if (!allowAudioParticipantAlias || kind !== "audio" || !validSubmissionPart(parsed!.spaceId) || !validSubmissionPart(parsed!.pupilId)) return null;
+    const transferredImage = kind === "image" && decoded?.uid === uid && access.member?.schoolPupilAccountUid === uid;
+    if (!(transferredImage || (kind === "audio" && allowAudioParticipantAlias))
+      || !validSubmissionPart(parsed!.spaceId) || !validSubmissionPart(parsed!.pupilId)) return null;
     const member = await db.doc(`spaceMembers/${parsed!.spaceId}_${parsed!.pupilId}`).get();
     const value = member.data();
     if (!member.exists || value?.uid !== parsed!.pupilId || value?.spaceId !== parsed!.spaceId ||
       !validSubmissionPart(value?.participantId) || value.participantId === parsed!.pupilId) return null;
+    if (transferredImage && (value.role !== "student" || value.active !== false || value.archived !== true
+      || !["school_code_rotated", "school_pupil_account_linked"].includes(value.status)
+      || value.schoolPupilId !== access.member?.schoolPupilId || value.schoolPupilSchoolId !== access.member?.schoolPupilSchoolId
+      || value.participantId !== await transferredSchoolParticipant(db, parsed!.spaceId, uid, access))) return null;
     cachedAlias = { participantId: value.participantId,
       stamp: `${member.ref.path}:${member.createTime?.seconds}:${member.createTime?.nanoseconds}:${member.updateTime?.seconds}:${member.updateTime?.nanoseconds}` };
     return cachedAlias;
   }
   let usedAlias: Alias | null = null;
   if (parsed.pupilId !== null && !access.canTeach && !(access.active && [uid, access.participantId].includes(parsed.pupilId))) {
-    usedAlias = access.active ? await audioAlias() : null;
+    usedAlias = access.active ? await historicalAlias() : null;
     if (!usedAlias || usedAlias.participantId !== access.participantId) return fail(403, "No file access");
   }
   if (parsed.pupilId === null) {
@@ -105,7 +113,7 @@ export async function authorizeLegacyFile(uid: string, path: string, kind: "audi
   // Existing unique matches and ambiguities retain their previous behavior.
   // Only a missing match may use the two member-derived canonical IDs.
   if (matches.length === 0) {
-    const alias = await audioAlias();
+    const alias = await historicalAlias();
     if (alias) {
       const extraIds = [...new Set([`${parsed.spaceId}_${parsed.activityId}_${alias.participantId}`, alias.participantId])].filter(id => !ids.includes(id));
       matches = await matching(extraIds, alias);
@@ -125,8 +133,9 @@ function bounded<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
     void work.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
   });
 }
-export async function readLegacyFile(uid: string, path: string, kind: "audio" | "image", rangeHeader: string | null, expectedVersion?: string | null, complete = false, signal = AbortSignal.timeout(10000)) {
-  const binding = await bounded(authorizeLegacyFile(uid, path, kind, kind === "audio"), signal);
+export async function readLegacyFile(uid: string, path: string, kind: "audio" | "image", rangeHeader: string | null, expectedVersion?: string | null, complete = false, signal = AbortSignal.timeout(10000), decoded?: DecodedIdToken) {
+  const authorize = () => bounded(authorizeLegacyFile(uid, path, kind, kind === "audio", decoded), signal);
+  const binding = await authorize();
   const bucket = legacyFileBucket(), file = bucket.file(path);
   const [metadata] = await bounded(file.getMetadata(), signal);
   const version = `"${metadata.generation}-${metadata.metageneration}"`;
@@ -149,6 +158,6 @@ export async function readLegacyFile(uid: string, path: string, kind: "audio" | 
   if (length !== end-range.start+1) return fail(409, "Incomplete file");
   const [current] = await bounded(file.getMetadata(), signal);
   if (current.generation !== metadata.generation || current.metageneration !== metadata.metageneration) return fail(409, "File changed");
-  if (await bounded(authorizeLegacyFile(uid, path, kind, kind === "audio"), signal) !== binding) return fail(403, "File binding changed");
+  if (await authorize() !== binding) return fail(403, "File binding changed");
   return { bytes: Buffer.concat(chunks), size, start: range.start, end, partial: range.partial, contentType, version };
 }

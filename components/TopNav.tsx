@@ -12,6 +12,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
 import NotificationBell from "@/components/NotificationBell";
 import SpacePupilMenu, { SpacePupilContext } from "@/components/SpacePupilMenu";
+import SignedAccountMenu from "@/components/SignedAccountMenu";
 
 /* =========================
    Locale helpers (TopNav)
@@ -136,7 +137,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
   const locale = getLocaleFromPathname(pathname);
   const currentLocale: Locale = locale ?? "nb";
 
-  const { profile, loading } = useUserProfile();
+  const { user: profileUser, profile, loading } = useUserProfile();
   const [authUser, setAuthUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -165,6 +166,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
     isLoggedIn &&
     !loading &&
     (!role || profile?.onboardingComplete !== true);
+  const showAccountMenu = isLoggedIn && !loading && profileUser?.uid === authUser?.uid &&
+    (role === "teacher" || role === "student");
 
   async function handleLogout() {
     await signOut(auth);
@@ -189,7 +192,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
   return (
     <header
-      className={[readingNavItems ? "readingNav" : "", pupilAccess ? "pupilTopNav" : ""].join(" ")}
+      className={[readingNavItems ? "readingNav" : "", pupilAccess || showAccountMenu ? "sessionTopNav" : ""].join(" ")}
       style={{
         background: "rgba(69, 57, 97, 0.15)",
         backdropFilter: "saturate(150%) blur(6px)",
@@ -293,9 +296,18 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
               </Link>
             )}
 
-            <button onClick={handleLogout} className="authButton" style={btnStyle}>
-              {tTop("logout")}
-            </button>
+            {showAccountMenu && authUser ? <SignedAccountMenu
+              key={authUser.uid + ":" + pathname}
+              email={authUser.email}
+              accountType={profile?.schoolId && profile.schoolStatus === "active"
+                ? "schoolAccount" : role === "student" ? "studentAccount" : "personalAccount"}
+              homeUrl={withLocale(locale, "/")}
+              signInUrl={withLocale(locale, "/login")}
+            /> : (
+              <button onClick={handleLogout} className="authButton" style={btnStyle}>
+                {tTop("logout")}
+              </button>
+            )}
           </>
         )}
 
@@ -308,7 +320,7 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
 
       <style jsx>{`
         .readingShortcuts, .readingMenuLinks { display: none; }
-        .pupilTopNav { position: relative; z-index: 30; }
+        .sessionTopNav { position: relative; z-index: 30; }
         @media (max-width: 640px) {
           .readingNav {
             padding: 6px 12px !important;
@@ -335,8 +347,8 @@ export default function TopNav({ readingNavItems, readingLibraryAvailable = true
           }
         }
         @media (max-width: 520px) {
-          .pupilTopNav { padding: 8px 10px !important; gap: 6px !important; }
-          .pupilTopNav .topNavActions { gap: 6px !important; }
+          .sessionTopNav { padding: 8px 10px !important; gap: 6px !important; }
+          .sessionTopNav .topNavActions { gap: 6px !important; }
           .brandText {
             display: none;
           }

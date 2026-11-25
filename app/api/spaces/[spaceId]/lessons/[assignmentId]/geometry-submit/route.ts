@@ -1,7 +1,9 @@
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountAccess.server";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
-import { validateStoredStudentSubmission, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
-// app\api\spaces\[spaceId]\lessons\[assignmentId]\geometry-submit\route.ts
+import {
+  retainedSubmissionIdentity, SubmissionWriteError, validateStoredStudentSubmission, validateStoredSubmissionIndex,
+} from "@/lib/security/studentSubmissionPolicy";
+import { transferredSchoolParticipant } from "@/lib/server/transferredSchoolSubmissions";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
@@ -55,25 +57,13 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const access = await getSpaceAccess(db, spaceId, uid);
-    if (!access.active) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
     const lessonRef = db
       .collection("spaces")
       .doc(spaceId)
       .collection("lessons")
       .doc(assignmentId);
 
-    const lessonSnap = await lessonRef.get();
-
-    if (!lessonSnap.exists) {
-      return NextResponse.json(
-        { ok: false, error: "Assignment not found" },
-        { status: 404 }
-      );
-    }
-
-    const submissionRef = lessonRef.collection("submissions").doc(uid);
+    const submissions = lessonRef.collection("submissions");
 
     const now = new Date();
 
@@ -90,22 +80,51 @@ export async function POST(req: Request, context: RouteContext) {
       submittedAt: now,
     };
 
-    const identityContext = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId: uid, uid, participantId: access.participantId };
-    await db.runTransaction(async tx => {
-      const existing = await tx.get(submissionRef);
-      if (existing.exists) validateStoredStudentSubmission(existing.data(), identityContext);
-      tx.set(submissionRef, { ...baseData, ...retainedSubmissionIdentity(existing.data(), identityContext), ...(!existing.exists ? { createdAt: now } : {}) }, { merge: true });
-    });
-
-    return NextResponse.json({
-      ok: true,
-      id: submissionRef.id,
+    return await db.runTransaction(async tx => {
+      const access = await getSpaceAccess(db, spaceId, uid, tx, decoded);
+      assertActiveProfile(access.profile, decoded);
+      if (!access.active) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (!(await tx.get(lessonRef)).exists) return NextResponse.json({ ok: false, error: "Assignment not found" }, { status: 404 });
+      const { participantId } = access;
+      const linkedAccount = access.member?.schoolPupilAccountUid === uid;
+      let existing = await tx.get(submissions.doc(uid));
+      if (linkedAccount) {
+        if (!await transferredSchoolParticipant(db, spaceId, uid, access, tx)) {
+          throw new SubmissionWriteError("Geometry access could not be confirmed");
+        }
+        const previous = await tx.get(submissions.where("participantId", "==", participantId).limit(2));
+        // This legacy route has no submission selector. Never pick between separate histories.
+        if (previous.size > 1 || (existing.exists && previous.docs.some(row => row.id !== existing.id))) {
+          throw new SubmissionWriteError("Multiple geometry submissions require review", 409);
+        }
+        if (!existing.exists) {
+          existing = previous.docs[0] ?? await tx.get(submissions.doc(`${spaceId}_${assignmentId}_${participantId}`));
+        }
+        if (existing.exists && existing.get("taskType") !== "math_geometry" && existing.get("lessonType") !== "math_geometry") {
+          throw new SubmissionWriteError("The stored submission is not a geometry submission", 409);
+        }
+      }
+      const identityContext = { kind: "lessons" as const, spaceId, activityId: assignmentId, submissionId: existing.id, uid, participantId };
+      const stored = existing.data();
+      if (stored) validateStoredStudentSubmission(stored, identityContext);
+      const write = { ...baseData, ...retainedSubmissionIdentity(stored, identityContext), ...(!stored ? { createdAt: now } : {}) };
+      if (linkedAccount) {
+        const index = await tx.get(db.collection("spaceSubmissions").doc(existing.id));
+        // Older geometry used the bare UID as its document ID, which can also name an index in another room.
+        const bareUid = existing.id === stored?.uid || existing.id === stored?.studentUid;
+        if (!bareUid || (index.get("spaceId") === spaceId && index.get("assignmentId") === assignmentId)) {
+          validateStoredSubmissionIndex(index.data(), stored, identityContext);
+          if (index.exists || !stored) tx.set(index.ref, write, { merge: true });
+        }
+      }
+      tx.set(existing.ref, write, { merge: true });
+      return NextResponse.json({ ok: true, id: existing.id });
     });
   } catch (err) {
-    console.error("geometry-submit failed:", err);
+    if (!(err instanceof SubmissionWriteError)) console.error("geometry-submit failed:", err);
 
     return NextResponse.json(
-      { ok: false, error: "Failed to submit geometry to space" },
+      { ok: false, error: err instanceof SubmissionWriteError ? err.message : "Failed to submit geometry to space" },
       { status: err instanceof SubmissionWriteError ? err.status : (accountErrorStatus(err) ?? 500) }
     );
   }

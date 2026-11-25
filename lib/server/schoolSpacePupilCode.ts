@@ -4,7 +4,8 @@ import { createHash, randomInt } from "node:crypto";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { assertActiveProfile } from "@/lib/security/accountAccess.server";
-import { isActiveSpaceMember, isSpaceTeachingMember } from "@/lib/security/spaceAccess";
+import { isActiveSpaceMember, isSpaceTeachingMember, pupilMembershipRequiresCode } from "@/lib/security/spaceAccess";
+import { schoolPupilProviderAllowed } from "@/lib/security/schoolPupilProviders";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { joinText } from "@/lib/spaceJoinPolicy";
 
@@ -56,12 +57,13 @@ type SchoolRoomEnrollment = {
   spaceId: string;
   participantId: string;
   teacherStudentId: string;
+  accountUid: string;
 };
 
 type SchoolRoomAccess = { enrollment: SchoolRoomEnrollment; membership: FirebaseFirestore.DocumentSnapshot };
 type SchoolPupilIdentity = { schoolId: string; pupilId: string; uid: string; isAnonymous: boolean; displayName: string };
 
-function activeSchoolEnrollment(
+export function activeSchoolEnrollment(
   snapshot: FirebaseFirestore.DocumentSnapshot,
   schoolId: string,
   pupilId: string,
@@ -73,7 +75,10 @@ function activeSchoolEnrollment(
   const spaceId = documentId(member.spaceId);
   const participantId = joinText(member.participantId);
   if (!spaceId || !participantId || snapshot.id !== schoolPupilRegistrationId(spaceId, pupilId)) return null;
-  return { spaceId, participantId, teacherStudentId: joinText(member.teacherStudentId) || pupilId };
+  return {
+    spaceId, participantId, teacherStudentId: joinText(member.teacherStudentId) || pupilId,
+    accountUid: joinText(member.schoolPupilAccountUid),
+  };
 }
 
 function canUseMembership(
@@ -102,7 +107,7 @@ async function readSchoolRoomMemberships(
     .where("schoolPupilRegistration", "==", true));
   const enrollments = registrations.docs
     .map(row => activeSchoolEnrollment(row, schoolId, pupilId))
-    .filter((row): row is SchoolRoomEnrollment => row !== null && row.spaceId !== spaceId);
+    .filter((row): row is SchoolRoomEnrollment => row !== null && !row.accountUid && row.spaceId !== spaceId);
   if (!enrollments.length) return [];
 
   const spaces = db.collection("spaces");
@@ -171,7 +176,7 @@ function grantSchoolRoomAccess(tx: Transaction, target: SchoolRoomAccess, identi
   const { schoolId, pupilId, uid, isAnonymous, displayName } = identity;
   const prior = membership.data();
   // Leave an existing non-code school account membership independent of code rotation.
-  const accountMembership = !!prior && isActiveSpaceMember(prior) && prior.schoolPupilCodeAccess !== true;
+  const accountMembership = !!prior && isActiveSpaceMember(prior) && !pupilMembershipRequiresCode(prior);
   tx.set(membership.ref, {
     spaceId: enrollment.spaceId, uid, participantId: enrollment.participantId,
     role: "student", displayName, studentName: displayName,
@@ -212,6 +217,7 @@ export async function joinSchoolPupil(input: JoinSchoolPupilInput) {
   if (pupil.get("codeHash") !== hash || !enrollment || enrollment.spaceId !== spaceId || !displayName) {
     return { error: "invalid_student_code" } as const;
   }
+  if (enrollment.accountUid) return { error: "school_pupil_account_required" } as const;
   const { participantId } = enrollment;
   const identity = { schoolId, pupilId, uid, isAnonymous, displayName };
 
@@ -282,7 +288,10 @@ export async function refreshSchoolPupilRooms(db: Firestore, tx: Transaction, de
   if (hasConflictingAccountRole(profile)) return 0;
 
   const grantsBySchool = await Promise.all([...schools].map(async ([schoolId, pupilId]) => {
-    const pupil = await tx.get(db.collection("schools").doc(schoolId).collection("spacePupils").doc(pupilId));
+    const schoolRef = db.collection("schools").doc(schoolId);
+    const school = (await tx.get(schoolRef)).data();
+    if (school?.allowPupilCodeAccess === false || (!isAnonymous && !schoolPupilProviderAllowed(school, decoded.firebase?.sign_in_provider))) return [];
+    const pupil = await tx.get(schoolRef.collection("spacePupils").doc(pupilId));
     const displayName = joinText(pupil.get("displayName"));
     const identity = { schoolId, pupilId, uid, displayName, isAnonymous };
     if (!displayName || conflictingMembership(memberships, identity)) return [];

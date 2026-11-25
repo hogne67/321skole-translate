@@ -5,7 +5,8 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { isCurrentSpaceSubstitute } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SpaceRoomCard from "@/components/SpaceRoomCard";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -13,6 +14,8 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
+import { activeTeacherSchoolId, teacherSpaceArea, type TeacherSpaceArea } from "@/lib/teacherSpaceArea";
+import { useTeacherSpaceSchool } from "@/lib/useTeacherSpaceSchool";
 
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
 type Row = { id: string; data: SpaceDocSafe };
@@ -59,21 +62,29 @@ function withLocale(locale: string, href: string): string {
 
 
 export default function TeacherSpacesPage() {
+  const t = useTranslations("common");
   return (
     <AuthGate>
-      <TeacherSpacesInner />
+      <Suspense fallback={<p className="p-4 text-sm text-slate-600">{t("loading")}</p>}>
+        <TeacherSpacesForUser />
+      </Suspense>
     </AuthGate>
   );
 }
 
-function TeacherSpacesInner() {
+function TeacherSpacesForUser() {
+  const account = useUserProfile();
+  return <TeacherSpacesInner key={account.user?.uid} {...account} />;
+}
+
+function TeacherSpacesInner({ user, profile, loading }: ReturnType<typeof useUserProfile>) {
   const t = useTranslations("spaces");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const substituteText = useTranslations("schoolAdmin.substitutes");
-  const [substituteRooms, setSubstituteRooms] = useState<{ id: string; title: string }[]>([]);
+  const requestedArea = useSearchParams().get("area");
+  const [substituteRooms, setSubstituteRooms] = useState<{ id: string; title: string; schoolId: unknown }[]>([]);
 
-  const { user, profile, loading } = useUserProfile();
   const isGuestPreview = Boolean(user?.isAnonymous);
   const [ownedRows, setOwnedRows] = useState<Row[]>([]);
   const [sharedRows, setSharedRows] = useState<Row[]>([]);
@@ -90,7 +101,22 @@ function TeacherSpacesInner() {
   const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
 
   const canUseTeacherSpaces = !isGuestPreview && (profile?.role === "teacher" || profile?.role === "admin");
-  const canCreateSpace = Boolean(user?.uid && canUseTeacherSpaces);
+  const schoolId = activeTeacherSchoolId(profile);
+  const schoolName = useTeacherSpaceSchool(user, schoolId)?.name;
+  const selectedArea: TeacherSpaceArea = requestedArea === "private" || requestedArea === "shared"
+    ? requestedArea : schoolId ? "school" : "private";
+  const hasOtherSchoolRooms = rows.some(({ data }) => teacherSpaceArea(data.schoolId, schoolId) === "shared")
+    || substituteRooms.some(room => teacherSpaceArea(room.schoolId, schoolId) === "shared");
+  const areas: TeacherSpaceArea[] = schoolId ? ["school", "private"] : ["private"];
+  if (hasOtherSchoolRooms || selectedArea === "shared") areas.push("shared");
+  const visibleSubstituteRooms = substituteRooms.filter(room => teacherSpaceArea(room.schoolId, schoolId) === selectedArea);
+  const canCreateSpace = Boolean(user?.uid && canUseTeacherSpaces && (
+    selectedArea === "school" ? schoolId : selectedArea === "private" && profile?.schoolStatus !== "active"
+  ));
+
+  function areaLabel(area: TeacherSpaceArea) {
+    return area === "school" && schoolName ? schoolName : t(`areas.${area}`);
+  }
 
   useEffect(() => {
     if (!user?.uid || !canUseTeacherSpaces) return;
@@ -113,7 +139,7 @@ function TeacherSpacesInner() {
       setSubstituteRooms(snap.docs.flatMap(member => {
         const data = member.data();
         if (!isCurrentSpaceSubstitute(data) || typeof data.spaceId !== "string" || member.id !== `${data.spaceId}_${user.uid}`) return [];
-        return [{ id: data.spaceId, title: typeof data.substituteRoomTitle === "string" ? data.substituteRoomTitle : "" }];
+        return [{ id: data.spaceId, title: typeof data.substituteRoomTitle === "string" ? data.substituteRoomTitle : "", schoolId: data.substituteSchoolId }];
       }));
       const staffSpaceIds = snap.docs
         .filter((memberSnap) => {
@@ -161,11 +187,12 @@ function TeacherSpacesInner() {
   const visibleRooms = useMemo(() => {
     return rows
       .filter(({ data }) => {
+        if (teacherSpaceArea(data.schoolId, schoolId) !== selectedArea) return false;
         if (roomView === "deleted") return Boolean(data.deletedAt) && getSpaceOwnerUid(data) === user?.uid;
         return !data.deletedAt && (data.isOpen === true) === (roomView === "open");
       })
       .sort((a, b) => asMillis(b.data.createdAt) - asMillis(a.data.createdAt));
-  }, [rows, roomView, user?.uid]);
+  }, [rows, roomView, schoolId, selectedArea, user?.uid]);
 
   useEffect(() => {
     if (!user?.uid || roomView === "deleted") return;
@@ -262,9 +289,9 @@ function TeacherSpacesInner() {
 
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      {substituteRooms.length ? <section className="rounded-2xl border border-slate-300 bg-white p-4">
+      {visibleSubstituteRooms.length ? <section className="rounded-2xl border border-slate-300 bg-white p-4">
         <h2 className="font-semibold">{substituteText("myRooms")}</h2>
-        <ul className="mt-2 space-y-1">{substituteRooms.map(room => <li key={room.id}>
+        <ul className="mt-2 space-y-1">{visibleSubstituteRooms.map(room => <li key={room.id}>
           <Link className="underline" href={`/${locale}/teacher/spaces/${encodeURIComponent(room.id)}/substitute`}>
             {room.title || substituteText("room")}
           </Link>
@@ -276,20 +303,36 @@ function TeacherSpacesInner() {
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-950">{t("title")}</h1>
             <p className="mb-0 mt-1 text-sm text-slate-600">{t("subtitle")}</p>
           </div>
-          <Link
-            href={withLocale(locale, "/teacher/spaces/new")}
-            title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-            className={[
-              "inline-flex min-h-10 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700",
-              canCreateSpace
-                ? "bg-emerald-800 text-white hover:bg-emerald-900"
-                : "border border-solid border-slate-300 bg-white text-slate-800",
-            ].join(" ")}
-          >
-            <span className="sm:hidden">{canCreateSpace ? t("newSpaceShort") : t("newSpaceLockedShort")}</span>
-            <span className="hidden sm:inline">{canCreateSpace ? t("newSpace") : t("newSpaceLocked")}</span>
-          </Link>
+          {canCreateSpace ? (
+            <Link
+              href={`/${locale}/teacher/spaces/new?area=${selectedArea}`}
+              title={t("newSpaceTitle")}
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-emerald-800 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-emerald-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              <span className="sm:hidden">{t("newSpaceShort")}</span>
+              <span className="hidden sm:inline">{t("newSpace")}</span>
+            </Link>
+          ) : null}
         </div>
+        {areas.length > 1 ? (
+          <nav aria-label={t("areas.label")} className="mt-3 flex flex-wrap gap-2">
+            {areas.map(area => (
+              <Link
+                key={area}
+                href={`/${locale}/teacher/spaces?area=${area}`}
+                aria-current={area === selectedArea ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center rounded-lg border border-solid px-3 py-2 text-sm font-semibold no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${area === selectedArea
+                  ? "border-emerald-800 bg-emerald-50 text-emerald-950"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+              >
+                {areaLabel(area)}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+        {selectedArea === "private" && profile?.schoolStatus === "active" ? (
+          <p className="mb-0 mt-2 text-sm text-slate-600">{t("areas.privateCreationHint")}</p>
+        ) : null}
       </header>
 
       <div

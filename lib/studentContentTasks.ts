@@ -107,7 +107,7 @@ function millis(value: unknown): number {
   return 0;
 }
 
-function lastUpdated(data: Record<string, unknown>) {
+export function lastStudentSubmissionUpdate(data: Record<string, unknown>) {
   return millis(data.updatedAt) || millis(data.createdAt);
 }
 
@@ -169,7 +169,7 @@ async function loadTask(
         && (data[activityField] === undefined || data[activityField] === id)
         && (!storedParticipant || storedParticipant === participantId);
     })
-    .sort((a, b) => lastUpdated(b.data) - lastUpdated(a.data));
+    .sort((a, b) => lastStudentSubmissionUpdate(b.data) - lastStudentSubmissionUpdate(a.data));
 
   const latest = matches[0];
   const roomPath = `/student/spaces/${encodeURIComponent(spaceId)}`;
@@ -182,7 +182,7 @@ async function loadTask(
     status: taskStatus(latest?.data),
     assignedAt: millis(data.assignedAt) || millis(data.createdAt) || null,
     dueAt: millis(data.dueAt) || null,
-    updatedAt: Math.max(lastUpdated(data), latest ? lastUpdated(latest.data) : 0),
+    updatedAt: Math.max(lastStudentSubmissionUpdate(data), latest ? lastStudentSubmissionUpdate(latest.data) : 0),
     archived: data.archived === true || text(data.status)?.toLowerCase() === "archived",
   };
 }

@@ -22,7 +22,7 @@ export async function GET(req: Request, context: { params: Promise<{ spaceId: st
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token, true);
     if (!decoded.uid) return json({ ok: false, error: "Unauthorized" }, 401);
-    const access = await getSpaceAccess(db, spaceId, decoded.uid);
+    const access = await getSpaceAccess(db, spaceId, decoded.uid, undefined, decoded);
     if (!access.canRead) return json({ ok: false, error: "Forbidden" }, 403);
     const space = access.space as Record<string, unknown>;
     const [lessonFeedbackDisabled, writingDisabled] = await Promise.all([

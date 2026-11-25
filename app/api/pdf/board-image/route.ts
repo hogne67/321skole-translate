@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     const data: BoardImagePdfPayload = {
       ...body.data,
       logoPath: logoDataUrl(),
-      imageUrl: await safePdfImage(body.data.imageUrl, account.uid),
+      imageUrl: await safePdfImage(body.data.imageUrl, account.uid, account.decoded),
       sentences: body.data.sentences.slice(0, 80),
     };
 

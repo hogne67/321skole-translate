@@ -1,4 +1,5 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { schoolAllowsPupilCode } from "@/lib/security/schoolPupilAccess.server";
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import "server-only";
@@ -163,6 +164,8 @@ export async function POST(req: Request, ctx: RouteContext) {
     const targetDocs = activeParticipantDocs.length ? activeParticipantDocs : [memberSnap];
 
     const rotated = await db.runTransaction(async (tx) => {
+      const space = await tx.get(db.collection("spaces").doc(spaceId));
+      if (!(await schoolAllowsPupilCode(db, space.get("schoolId"), tx))) return "disabled";
       if ((await tx.get(memberRef)).get("schoolPupilId")) return false;
       for (const targetDoc of targetDocs) {
         tx.set(targetDoc.ref, {
@@ -176,6 +179,7 @@ export async function POST(req: Request, ctx: RouteContext) {
       }
       return true;
     });
+    if (rotated === "disabled") return json({ error: "school_pupil_code_disabled" }, 403);
     if (!rotated) return json({ error: "Use the school pupil card" }, 409);
 
     return json({

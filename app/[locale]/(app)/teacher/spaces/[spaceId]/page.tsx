@@ -24,6 +24,7 @@ import {
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { isSpaceTeachingMember } from "@/lib/security/spaceAccess";
 import SpaceAdministration from "@/components/SpaceAdministration";
+import { activeTeacherSchoolId, teacherSpaceArea } from "@/lib/teacherSpaceArea";
 import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -568,7 +569,9 @@ function Inner() {
 
   return (
     <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space} canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} canDelete={isSpaceOwnerNow} />
+      <SpaceAdministration key={spaceId} spaceId={spaceId} space={space}
+        area={teacherSpaceArea(space.schoolId, activeTeacherSchoolId(profile))}
+        canControl={canControlSpace} canSetLessonAiFeedbackPolicy={isAdmin} canDelete={isSpaceOwnerNow} />
 
       {saveErr && (
         <div role="alert" className="w-full min-w-0 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">

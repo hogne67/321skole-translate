@@ -1,22 +1,34 @@
 import "server-only";
 import { isGloballyEnabled } from "./accountAccess.server";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { isActiveSpaceMember, isCurrentSpaceSubstitute, isSchoolSpace, isSpaceTeachingMember } from "./spaceAccess";
 import { hasSpaceOwnerAccess } from "./spaceOwnership";
+import { schoolAllowsPupilMembership } from "./schoolPupilAccess.server";
 
-export async function getActiveSpaceMembership(db: Firestore, spaceId: string, uid: string) {
-  if (!isGloballyEnabled((await db.doc(`users/${uid}`).get()).data())) return { ok: false, participantId: uid };
-  const canonical = await db.doc(`spaceMembers/${spaceId}_${uid}`).get();
+type SpaceAccessActor = Pick<DecodedIdToken, "uid" | "firebase">;
+
+function actorProvider(uid: string, actor?: SpaceAccessActor) {
+  return actor?.uid === uid ? actor.firebase?.sign_in_provider : undefined;
+}
+
+export async function getActiveSpaceMembership(db: Firestore, spaceId: string, uid: string, transaction?: Transaction, actor?: SpaceAccessActor) {
+  const read = (path: string) => transaction ? transaction.get(db.doc(path)) : db.doc(path).get();
+  if (!isGloballyEnabled((await read(`users/${uid}`)).data())) return { ok: false, participantId: uid };
+  const canonical = await read(`spaceMembers/${spaceId}_${uid}`);
   // A tombstone is authoritative; a stale legacy access must not undo revocation.
   if (canonical.exists) {
     const data = canonical.data();
-    return { ok: isActiveSpaceMember(data), participantId: typeof data?.participantId === "string" ? data.participantId : uid };
+    const active = isActiveSpaceMember(data);
+    const ok = active && (data?.role !== "student"
+      || await schoolAllowsPupilMembership(db, (await read(`spaces/${spaceId}`)).get("schoolId"), data, actorProvider(uid, actor), transaction));
+    return { ok, participantId: typeof data?.participantId === "string" ? data.participantId : uid };
   }
   // Firebase rules use the canonical key. Legacy rows must not grant extra API access.
   return { ok: false, participantId: uid };
 }
 
-export async function getSpaceAccess(db: Firestore, spaceId: string, uid: string, transaction?: Transaction) {
+export async function getSpaceAccess(db: Firestore, spaceId: string, uid: string, transaction?: Transaction, actor?: SpaceAccessActor) {
   const read = (path: string) => transaction ? transaction.get(db.doc(path)) : db.doc(path).get();
   const [spaceSnap, profileSnap, memberSnap] = await Promise.all([
     read(`spaces/${spaceId}`), read(`users/${uid}`), read(`spaceMembers/${spaceId}_${uid}`),
@@ -25,7 +37,8 @@ export async function getSpaceAccess(db: Firestore, spaceId: string, uid: string
   const profile = profileSnap.data();
   const member = memberSnap.data();
   const enabled = isGloballyEnabled(profile);
-  const active = enabled && isActiveSpaceMember(member);
+  const active = enabled && isActiveSpaceMember(member)
+    && await schoolAllowsPupilMembership(db, space?.schoolId, member, actorProvider(uid, actor), transaction);
   const admin = enabled && (profile?.role === "admin" || profile?.roles?.admin === true);
   const owner = enabled && hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
   const schoolId = member?.substituteSchoolId;

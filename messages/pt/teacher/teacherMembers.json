@@ -1,6 +1,37 @@
 {
   "teacherMembers": {
+    "accountInvite": {
+      "transferTitle": "Associar conta de aluno",
+      "transferHelp": "Convide o endereço de e-mail que o aluno usa na conta. O convite é válido durante 14 dias. Quando entrar com a conta, o aluno terá acesso aos rascunhos e trabalhos entregues nesta sala e termina o acesso à sala por código de aluno.",
+      "transferSave": "Registar associação de conta",
+      "transferSaved": "O convite de conta está pronto. Partilhe o código ou a ligação da sala com o aluno.",
+      "transferLabel": "Associação de conta",
+      "transferUnavailable": "Confirme que a ficha do aluno continua ativa nesta sala.",
+      "transferPending": "A ficha do aluno tem um convite pendente. Retire-o antes de convidar outro endereço de e-mail.",
+      "transferConflict": "A ficha do aluno ou a conta tem outra associação nesta sala. Verifique a ficha antes de tentar novamente.",
+      "roomCode": "Código da sala {code}",
+      "copyRoomLink": "Copiar ligação da sala",
+      "linkCopied": "Ligação da sala copiada.",
+      "copyFailed": "Não foi possível copiar a ligação da sala. Partilhe o código da sala com o aluno.",
+      "loading": "A carregar os convites…",
+      "title": "Convidar aluno com conta",
+      "help": "Introduza o endereço de e-mail do aluno e partilhe com ele o código da sala. O aluno inicia sessão com esse endereço e usa o código da sala.",
+      "email": "Endereço de e-mail do aluno",
+      "save": "Registar convite",
+      "pending": "Convites pendentes",
+      "withdraw": "Retirar",
+      "withdrawNamed": "Retirar convite para {email}",
+      "withdrawn": "O convite foi retirado.",
+      "saved": "Convite registado. Partilhe o código da sala com o aluno.",
+      "invalidEmail": "Introduza um endereço de e-mail válido.",
+      "alreadyUsed": "O convite para este endereço já foi usado. Consulte a lista de membros para gerir o acesso.",
+      "notPending": "O convite já não está pendente. Consulte a lista de membros.",
+      "failed": "Não foi possível alterar o convite. Tente novamente.",
+      "loadFailed": "Não foi possível carregar os convites.",
+      "retry": "Tentar novamente"
+    },
     "schoolPupil": {
+      "accountLinked": "O aluno usa a conta nesta sala.",
       "fullName": "Nome completo (professores)",
       "displayName": "Primeiro nome ou apelido",
       "displayNamePlaceholder": "Primeiro nome se o campo ficar vazio",
@@ -26,6 +57,7 @@
         "action": "Imprimir cartão do aluno"
       },
       "errors": {
+        "school_pupil_code_disabled": "A escola desativou os códigos pessoais de aluno. Convide o aluno por e-mail.",
         "failed": "Não foi possível carregar ou atualizar a ficha.",
         "pupil_full_name_required": "Digite o nome completo do aluno.",
         "pupil_display_name_required": "Use um primeiro nome ou apelido como nome de exibição.",
@@ -41,6 +73,11 @@
     },
     "roster": {
       "schoolDescription": "Adicione a esta sala alunos já cadastrados na escola.",
+      "restoreTitle": "Readicionar aluno com conta",
+      "restoreDescription": "Alunos removidos desta sala recuperam o acesso com a mesma conta.",
+      "restoreLabel": "Readicionar com a mesma conta do aluno",
+      "restoreEmpty": "Não há alunos removidos com conta para readicionar.",
+      "restoreFailed": "Não foi possível readicionar o aluno com a mesma conta.",
       "title": "Adicionar alunos existentes",
       "description": "Escolha alunos que já estão nas suas outras salas. Recebem códigos próprios nesta sala e continuam a ocupar apenas uma vaga consigo.",
       "linkTitle": "Ligar a aluno existente",

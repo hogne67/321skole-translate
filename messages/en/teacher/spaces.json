@@ -1,5 +1,14 @@
 {
   "spaces": {
+    "areas": {
+      "label": "Room lists",
+      "school": "School rooms",
+      "private": "Private rooms",
+      "shared": "Other rooms",
+      "schoolRoom": "School room",
+      "privateRoom": "Private room",
+      "privateCreationHint": "Use a private teacher account to create new private rooms."
+    },
     "title": "Spaces",
     "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
     "newSpace": "+ Create new space",

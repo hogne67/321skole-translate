@@ -5,14 +5,14 @@ type Context = { params: Promise<{ id: string }> };
 async function handle(req: Request, ctx: Context, action: "read" | "finish" | "delete") {
   const token = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  let uid: string;
-  try { uid = (await getAdmin().auth.verifyIdToken(token, true)).uid; }
+  let decoded;
+  try { decoded = await getAdmin().auth.verifyIdToken(token, true); }
   catch (accountError) { return Response.json({ error: "Unauthorized" }, { status: (accountErrorStatus(accountError) ?? 401) }); }
   try {
     const { id } = await ctx.params;
-    if (action === "read") return await readSpaceFile(uid, id, req.headers.get("range"));
-    if (action === "delete") await deleteSpaceFile(uid, id);
-    const body = action === "finish" ? await finishSpaceFileUpload(uid, id, () => getAdmin().auth.verifyIdToken(token, true)) : { ok: true };
+    if (action === "read") return await readSpaceFile(decoded.uid, id, req.headers.get("range"), decoded);
+    if (action === "delete") await deleteSpaceFile(decoded.uid, id, decoded);
+    const body = action === "finish" ? await finishSpaceFileUpload(decoded.uid, id, () => getAdmin().auth.verifyIdToken(token, true), decoded) : { ok: true };
     return Response.json(body, { headers: { "Cache-Control": "private,no-store" } });
   } catch (error) {
     console.error("space_file_access_failed", { action, code: error instanceof SpaceFileError ? error.status : (accountErrorStatus(error) ?? 500) });

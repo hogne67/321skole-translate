@@ -1,9 +1,10 @@
 import "server-only";
 
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from "node:crypto";
-import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { isActiveSpaceCoTeacher, isActiveSpaceMember, isSchoolSpace } from "@/lib/security/spaceAccess";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
+import { validSubmissionPart } from "@/lib/security/studentSubmissionPolicy";
 import { joinText } from "@/lib/spaceJoinPolicy";
 import { runCapacityTransaction } from "@/lib/server/runCapacityTransaction";
 import {
@@ -70,7 +71,7 @@ async function authorizeSchoolRoomTeacher(
     throw new SchoolPupilError("pupil_forbidden", 403);
   }
   if (!availableSchoolRoom(current.space ?? undefined)) throw new SchoolPupilError("pupil_room_unavailable", 409);
-  return { school, schoolId };
+  return { school, schoolId, schoolActive: schoolDoc.get("status") === "active", pupilCodesAllowed: schoolDoc.get("allowPupilCodeAccess") !== false };
 }
 
 async function readTarget(a: SchoolRoomTeacher, tx: Transaction, targetId: string) {
@@ -87,6 +88,7 @@ async function activeRegistration(a: SchoolRoomTeacher, tx: Transaction, pupilId
     || registration.get("schoolPupilSchoolId") !== a.schoolId || registration.get("schoolPupilId") !== pupilId) {
     throw new SchoolPupilError("pupil_not_found", 404);
   }
+  return registration;
 }
 
 async function readActiveSchoolPupil(
@@ -97,20 +99,72 @@ async function readActiveSchoolPupil(
 ) {
   const pupilId = documentId(target?.get("schoolPupilId"));
   if (!target || !pupilId) throw new SchoolPupilError("pupil_not_found", 404);
-  await activeRegistration(a, tx, pupilId, target);
+  const registration = await activeRegistration(a, tx, pupilId, target);
   const pupil = await tx.get(school.collection("spacePupils").doc(pupilId));
   if (!pupil.exists) throw new SchoolPupilError("pupil_not_found", 404);
-  return pupil;
+  return { pupil, registration };
+}
+
+function removedAccountRegistration(a: SchoolRoomTeacher, registration: FirebaseFirestore.DocumentSnapshot, pupilId: string) {
+  const accountUid = documentId(registration.get("schoolPupilAccountUid"));
+  const participantId = registration.get("participantId");
+  if (!accountUid || registration.get("schoolPupilAccountUid") !== accountUid || !validSubmissionPart(participantId)
+    || registration.id !== schoolPupilRegistrationId(a.spaceId, pupilId) || registration.get("spaceId") !== a.spaceId
+    || registration.get("schoolPupilId") !== pupilId || registration.get("schoolPupilSchoolId") !== a.schoolId
+    || registration.get("schoolPupilRegistration") !== true || registration.get("role") !== "student"
+    || registration.get("status") !== "removed" || registration.get("active") !== false
+    || registration.get("archived") !== true || !(registration.get("removedAt") instanceof Timestamp)
+    || !documentId(registration.get("removedByUid"))) return null;
+  return { accountUid, participantId };
+}
+
+async function restoreSchoolPupilAccount(
+  a: SchoolRoomTeacher, tx: Transaction, registration: FirebaseFirestore.DocumentSnapshot, pupilId: string,
+) {
+  const identity = removedAccountRegistration(a, registration, pupilId);
+  if (!identity || identity.accountUid === a.uid) throw new SchoolPupilError("pupil_account_restore_unavailable", 409);
+  const { accountUid, participantId } = identity;
+  const members = a.db.collection("spaceMembers");
+  const [account, roomMembers] = await Promise.all([
+    tx.get(members.doc(`${a.spaceId}_${accountUid}`)),
+    tx.get(members.where("spaceId", "==", a.spaceId).where("participantId", "==", participantId)),
+  ]);
+  const removedAt = account.get("removedAt");
+  if (account.get("uid") !== accountUid || (account.get("userId") !== undefined && account.get("userId") !== accountUid)
+    || account.get("spaceId") !== a.spaceId || account.get("role") !== "student"
+    || account.get("schoolPupilId") !== pupilId || account.get("schoolPupilSchoolId") !== a.schoolId
+    || account.get("schoolPupilAccountUid") !== accountUid || account.get("participantId") !== participantId
+    || account.get("schoolPupilRegistration") === true || account.get("schoolPupilCodeAccess") !== false
+    || account.get("isAnon") !== false || account.get("status") !== "removed"
+    || account.get("active") !== false || account.get("archived") !== true
+    || !(removedAt instanceof Timestamp) || !removedAt.isEqual(registration.get("removedAt"))
+    || account.get("removedByUid") !== registration.get("removedByUid")
+    || roomMembers.docs.some(row => isActiveSpaceMember(row.data()))) {
+    throw new SchoolPupilError("pupil_account_restore_unavailable", 409);
+  }
+  const updatedAt = FieldValue.serverTimestamp();
+  const restored = {
+    status: "active", active: true, archived: false, updatedAt,
+    removedAt: FieldValue.delete(), removedByUid: FieldValue.delete(),
+  };
+  // Restore the two authoritative rows only. Historical code-session rows stay revoked.
+  tx.update(registration.ref, restored);
+  tx.update(account.ref, restored);
+  tx.create(a.db.collection("teacherRosterAudit").doc(), {
+    action: "restore_school_pupil_account", actorUid: a.uid, schoolId: a.schoolId,
+    spaceId: a.spaceId, schoolPupilId: pupilId, createdAt: updatedAt,
+  });
+  return { restored: true };
 }
 
 export async function readSchoolPupilRoster(a: SchoolRoomTeacher, requestedMember: string | null) {
   return runCapacityTransaction(a.db, async tx => {
-    const { school } = await authorizeSchoolRoomTeacher(a, tx, { schoolId: a.schoolId });
+    const { school, schoolActive, pupilCodesAllowed } = await authorizeSchoolRoomTeacher(a, tx, { schoolId: a.schoolId });
     if (requestedMember !== null) {
       const memberId = documentId(requestedMember);
       if (!memberId) throw new SchoolPupilError("pupil_not_found", 404);
       const target = await readTarget(a, tx, memberId);
-      const pupil = await readActiveSchoolPupil(a, tx, school, target);
+      const { pupil } = await readActiveSchoolPupil(a, tx, school, target);
       return { pupil: { fullName: pupil.get("fullName"), displayName: pupil.get("displayName") } };
     }
 
@@ -122,8 +176,10 @@ export async function readSchoolPupilRoster(a: SchoolRoomTeacher, requestedMembe
     ]);
     const titles = new Map(rooms.docs.filter(room => availableSchoolRoom(room.data())).map(room => [room.id, joinText(room.get("title"))]));
     const roomsByPupil = new Map<string, { spaceId: string; title: string; displayName: string }[]>();
+    const accountRestorations = new Set<string>();
     for (const registration of registrations.docs) {
       const data = registration.data();
+      if (schoolActive && removedAccountRegistration(a, registration, data.schoolPupilId)) accountRestorations.add(data.schoolPupilId);
       const title = titles.get(data.spaceId);
       if (title === undefined || !isActiveSpaceMember(data)) continue;
       const pupilRooms = roomsByPupil.get(data.schoolPupilId) ?? [];
@@ -131,9 +187,10 @@ export async function readSchoolPupilRoster(a: SchoolRoomTeacher, requestedMembe
       roomsByPupil.set(data.schoolPupilId, pupilRooms);
     }
     return {
-      students: pupils.docs.map(pupil => ({
+      students: pupils.docs.filter(pupil => pupilCodesAllowed || accountRestorations.has(pupil.id)).map(pupil => ({
         id: pupil.id, sourceMemberId: pupil.id, fullName: joinText(pupil.get("fullName")),
         displayName: joinText(pupil.get("displayName")), spaces: roomsByPupil.get(pupil.id) ?? [],
+        ...(accountRestorations.has(pupil.id) ? { restoreAccount: true } : {}),
       })).sort((a, b) => a.fullName.localeCompare(b.fullName)),
     };
   });
@@ -198,10 +255,12 @@ export async function rotateSchoolPupilCode(a: RoomActor, targetMemberId: unknow
   const targetId = documentId(targetMemberId);
   if (!targetId) throw new SchoolPupilError("pupil_not_found", 404);
   return runCapacityTransaction(a.db, async tx => {
-    const { school, schoolId } = await authorizeSchoolRoomTeacher(a, tx, { allowCoTeacher: true });
+    const { school, schoolId, pupilCodesAllowed } = await authorizeSchoolRoomTeacher(a, tx, { allowCoTeacher: true });
+    if (!pupilCodesAllowed) throw new SchoolPupilError("school_pupil_code_disabled", 403);
     const roomTeacher = { ...a, schoolId };
     const target = await readTarget(roomTeacher, tx, targetId);
-    const pupil = await readActiveSchoolPupil(roomTeacher, tx, school, target);
+    const { pupil, registration } = await readActiveSchoolPupil(roomTeacher, tx, school, target);
+    if (registration.get("schoolPupilAccountUid")) throw new SchoolPupilError("school_pupil_account_required", 403);
     const memberships = await tx.get(a.db.collection("spaceMembers").where("schoolPupilId", "==", pupil.id)
       .where("schoolPupilSchoolId", "==", schoolId));
     const hashedCode = joinText(pupil.get("codeHash"));
@@ -236,11 +295,15 @@ export async function writeSchoolPupil(
     throw new SchoolPupilError("pupil_invalid_request");
   }
   return runCapacityTransaction(a.db, async tx => {
-    const { school } = await authorizeSchoolRoomTeacher(a, tx, { schoolId: a.schoolId });
+    const { school, schoolActive, pupilCodesAllowed } = await authorizeSchoolRoomTeacher(a, tx, { schoolId: a.schoolId });
+    if (!pupilCodesAllowed && action !== "rename" && (action === "reveal_code" || !sourceId || targetId)) {
+      throw new SchoolPupilError("school_pupil_code_disabled", 403);
+    }
     const target = targetId ? await readTarget(a, tx, targetId) : null;
     if (action === "rename" || action === "reveal_code") {
-      const pupil = await readActiveSchoolPupil(a, tx, school, target);
+      const { pupil, registration } = await readActiveSchoolPupil(a, tx, school, target);
       if (action === "reveal_code") {
+        if (registration.get("schoolPupilAccountUid")) throw new SchoolPupilError("school_pupil_account_required", 403);
         return { studentCode: readEncryptedCode(pupil, school.id), displayName: joinText(pupil.get("displayName")) };
       }
       const memberships = await tx.get(a.db.collection("spaceMembers").where("schoolPupilId", "==", pupil.id)
@@ -265,6 +328,12 @@ export async function writeSchoolPupil(
     if (target && registration.exists && registration.get("participantId") !== roomParticipant(target)) {
       throw new SchoolPupilError("pupil_already_linked", 409);
     }
+    if (registration.get("schoolPupilAccountUid") !== undefined) {
+      if (!sourceId || targetId || !schoolActive) throw new SchoolPupilError("pupil_account_restore_unavailable", 409);
+      if (isActiveSpaceMember(registration.data())) return { reused: true };
+      return restoreSchoolPupilAccount(a, tx, registration, pupilRef.id);
+    }
+    if (!pupilCodesAllowed) throw new SchoolPupilError("school_pupil_code_disabled", 403);
     if (isActiveSpaceMember(registration.data())) return { reused: true };
     const quotaLock = !pupil && !target ? await checkTeacherCapacity(tx) : null;
     const names = pupil

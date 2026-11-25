@@ -5,15 +5,14 @@ import { randomUUID, randomInt } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
-import { getBucketLimit, getEffectivePlan, type AppRole } from "@/lib/featureAccess";
 import { isActiveTeacherPupil, teacherStudentIdentity } from "@/lib/teacherStudentIdentity";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
 import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { documentId } from "@/lib/server/schoolSpacePupilCode";
 import { readSchoolPupilRoster, rotateSchoolPupilCode, SchoolPupilError, writeSchoolPupil } from "@/lib/server/schoolSpacePupilRoster";
+import { availableTeacherRosterSlot, readTeacherRosterMembers, readTeacherRosterRooms, teacherRosterLimit } from "./teacherPupilCapacity";
 
-const ownerFields = ["ownerId", "ownerUid", "teacherId", "createdByUid", "createdBy", "uid"];
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
 class RosterError extends Error {
@@ -39,13 +38,13 @@ async function access({ db, uid, spaceId }: Awaited<ReturnType<typeof authentica
   const data = room.data()!;
   const owner = getSpaceOwnerUid(data);
   if (!owner) throw new RosterError("Room owner missing", 409);
+  const schoolId = documentId(data.schoolId);
+  if (data.schoolId != null && (!schoolId || data.schoolId !== schoolId)) {
+    throw new RosterError("Invalid school reference", 409);
+  }
   const admin = requester.data()?.role === "admin" || requester.data()?.roles?.admin === true;
   if (!admin && !(await getSpaceAccess(db, spaceId, uid)).owner) throw new RosterError("No access to manage members for this space", 403);
-  // Query failures must not silently undercount licence usage.
-  const owned = await Promise.all(ownerFields.map(field => db.collection("spaces").where(field, "==", owner).get()));
-  const spaces = new Map(owned.flatMap(snap => snap.docs).filter(doc =>
-    ownerFields.map(field => text(doc.data()[field])).find(Boolean) === owner
-  ).map(doc => [doc.id, doc.data()]));
+  const spaces = await readTeacherRosterRooms(db, owner, schoolId);
   // Retain the conservative legacy catalogue for quota counting only.
   // Display, import and writes require the authoritative ownership policy.
   const authorizedSpaceIds = new Set((await Promise.all([...spaces].map(async ([id, value]) =>
@@ -53,19 +52,11 @@ async function access({ db, uid, spaceId }: Awaited<ReturnType<typeof authentica
   ))).filter((id): id is string => id !== null));
   const ownerProfile = uid === owner ? requester : await db.doc(`users/${owner}`).get();
   const profile = ownerProfile.data() ?? {};
-  const plan = getEffectivePlan(profile);
-  const role = text(profile.role) || "teacher";
-  return { db, uid, owner, spaceId, schoolId: documentId(data.schoolId), spaces, authorizedSpaceIds, admin, room, limit: getBucketLimit(role as AppRole, plan, "members") };
+  return { db, uid, owner, spaceId, schoolId, spaces, authorizedSpaceIds, admin, room, limit: teacherRosterLimit(profile, schoolId) };
 }
 
-async function members(a: Awaited<ReturnType<typeof access>>, tx?: FirebaseFirestore.Transaction) {
-  const ids = [...a.spaces.keys()];
-  const rows: FirebaseFirestore.QueryDocumentSnapshot[] = [];
-  for (let i = 0; i < ids.length; i += 10) {
-    const q = a.db.collection("spaceMembers").where("spaceId", "in", ids.slice(i, i + 10));
-    rows.push(...(tx ? await tx.get(q) : await q.get()).docs.filter(doc => doc.data().role === "student"));
-  }
-  return rows;
+function members(a: Awaited<ReturnType<typeof access>>, tx?: FirebaseFirestore.Transaction) {
+  return readTeacherRosterMembers(a.db, [...a.spaces.keys()], tx);
 }
 
 function handleError(error: unknown) {
@@ -106,11 +97,8 @@ export async function createOrLinkTeacherPupil(req: Request, ctx: Context) {
     const a = await access(room);
     if (a.schoolId) {
       const result = await writeSchoolPupil(a, body, async tx => {
-        const lock = a.db.collection("teacherRosterLocks").doc(a.owner);
-        await tx.get(lock);
-        const active = (await members(a, tx)).filter(row => isActiveTeacherPupil(row.data()));
-        const currentPupils = new Set(active.map(row => teacherStudentIdentity(row.data())).filter(Boolean));
-        if (currentPupils.size >= a.limit) throw new RosterError("Elevgrensen er nådd. Hent en eksisterende elev eller oppgrader lisensen.", 403);
+        const lock = await availableTeacherRosterSlot({ db: a.db, tx, owner: a.owner, spaceIds: [...a.spaces.keys()], limit: a.limit });
+        if (!lock) throw new RosterError("Elevgrensen er nådd. Hent en eksisterende elev eller oppgrader lisensen.", 403);
         return lock;
       });
       return json({ ok: true, ...result });

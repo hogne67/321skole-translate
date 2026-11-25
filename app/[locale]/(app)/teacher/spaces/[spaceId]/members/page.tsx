@@ -10,8 +10,10 @@ import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import TeacherPupilPicker from "@/components/TeacherPupilPicker";
 import SchoolSpacePupilCard, { SchoolPupilNameFields } from "@/components/SchoolSpacePupilCard";
+import SchoolRoomAccountInvitations from "@/components/SchoolRoomAccountInvitations";
 import SpaceAccessRequests, { type SpaceAccessRequest } from "@/components/SpaceAccessRequests";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { useTeacherSpaceSchool } from "@/lib/useTeacherSpaceSchool";
 import { db } from "@/lib/firebase";
 import { getSpaceJoinCode } from "@/lib/spaceCode";
 import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "firebase/firestore";
@@ -34,6 +36,7 @@ type MemberData = {
   studentCodeKey?: string;
   schoolPupilId?: string;
   schoolPupilRegistration?: boolean;
+  schoolPupilAccountUid?: string;
   createdAt?: unknown;
 };
 
@@ -183,13 +186,22 @@ function Inner() {
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
   const [spaceCode, setSpaceCode] = useState("");
-  const [roomSchool, setRoomSchool] = useState<{ spaceId: string; schoolId: string } | null>(null);
-  const schoolId = roomSchool && roomSchool.spaceId === spaceId ? roomSchool.schoolId : null;
+  const [roomDetails, setRoomDetails] = useState<{
+    spaceId: string; ownerId: string | null; schoolId: string | null; acceptsAccountInvites: boolean;
+  } | null>(null);
+  const currentRoom = roomDetails?.spaceId === spaceId ? roomDetails : null;
+  const schoolId = currentRoom?.schoolId || null;
   const schoolRoom = Boolean(schoolId);
+  const pupilCodesAllowed = useTeacherSpaceSchool(user, schoolId)?.allowPupilCodeAccess !== false;
   const [pupilNames, setPupilNames] = useState({ fullName: "", displayName: "" });
   const [issuedCode, setIssuedCode] = useState<{ spaceId: string; uid: string; value: string } | null>(null);
-  const [canManageStaff, setCanManageStaff] = useState(false);
-  const visibleCode = canManageStaff && issuedCode?.spaceId === spaceId && issuedCode?.uid === user?.uid ? issuedCode?.value : undefined;
+  const canManageStaff = Boolean(user && currentRoom && (isAdmin || currentRoom.ownerId === user.uid));
+  const canInviteAccount = Boolean(user && currentRoom?.ownerId === user.uid && currentRoom.acceptsAccountInvites
+    && (schoolId
+      ? profile?.schoolId === schoolId && profile.schoolStatus === "active"
+        && (profile.schoolRole === "school_teacher" || profile.schoolRole === "school_admin")
+      : profile?.role === "teacher"));
+  const visibleCode = pupilCodesAllowed && canManageStaff && issuedCode?.spaceId === spaceId && issuedCode?.uid === user?.uid ? issuedCode?.value : undefined;
   const issuedCodePanel = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<MemberRow[]>([]);
   const canRecoverSchoolCode = Boolean(schoolId && user?.uid && profile?.role === "teacher"
@@ -200,7 +212,8 @@ function Inner() {
   const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
   const [search, setSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [singleRole, setSingleRole] = useState<"student" | "co_teacher" | "observer">("student");
+  const [requestedRole, setSingleRole] = useState<"student" | "co_teacher" | "observer">("student");
+  const singleRole = !pupilCodesAllowed && requestedRole === "student" ? "co_teacher" : requestedRole;
   const [inviteBusy, setInviteBusy] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
@@ -254,21 +267,20 @@ function Inner() {
         if (!alive) return;
         const data = snap.data();
         const title = data && isRecord(data) ? safeString(data["title"]) : null;
-        const ownerId = getSpaceOwnerUid(data);
-        const schoolId = safeString(data?.schoolId);
         if (title) setSpaceTitle(title);
         setSpaceCode(getSpaceJoinCode(data));
-        setRoomSchool(schoolId ? { spaceId, schoolId } : null);
-        setCanManageStaff(Boolean(user?.uid) && (isAdmin || ownerId === user?.uid));
+        setRoomDetails(data ? {
+          spaceId, ownerId: getSpaceOwnerUid(data), schoolId: safeString(data.schoolId),
+          acceptsAccountInvites: !data.deletedAt && data.archived !== true && safeString(data.status)?.toLowerCase() !== "archived"
+            && data.kind !== "family" && data.kind !== "parent_group"
+            && (data.schoolId == null || (typeof data.schoolId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(data.schoolId))),
+        } : null);
       })
       .catch(() => {
-        if (alive) {
-          setRoomSchool(null);
-          setCanManageStaff(false);
-        }
+        if (alive) setRoomDetails(null);
       });
     return () => { alive = false; };
-  }, [isAdmin, spaceId, user?.uid]);
+  }, [spaceId, user?.uid]);
 
   useEffect(() => {
     if (!spaceId || !user?.uid) return;
@@ -646,14 +658,14 @@ function Inner() {
               <ChevronDown aria-hidden="true" className="h-4 w-4 group-open:rotate-180" />
             </summary>
             <ul className="m-0 mt-2 list-none rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-sm sm:absolute sm:right-0 sm:z-10 sm:w-max sm:max-w-64">
-              <li>
+              {pupilCodesAllowed ? <li>
                 <Link
                   href={withLocale(locale, `/teacher/spaces/${spaceId}/members/print`)}
                   className="block rounded-lg px-3 py-2 font-medium text-slate-800 no-underline hover:bg-slate-50"
                 >
                   {t("actions.printStudentCodes")}
                 </Link>
-              </li>
+              </li> : null}
               <li>
                 <Link
                   href={withLocale(locale, `/teacher/spaces/${spaceId}/members/guardian-print`)}
@@ -667,14 +679,21 @@ function Inner() {
         </div>
       </header>
 
-      {canManageStaff && user && spaceId ? <SpaceAccessRequests spaceId={spaceId} user={user} requests={accessRequests} /> : null}
+      {pupilCodesAllowed && canManageStaff && user && spaceId ? <SpaceAccessRequests spaceId={spaceId} user={user} requests={accessRequests} /> : null}
 
       {canManageStaff ? (
         <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
-          <div className="mt-3">
-            <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} />
-          </div>
+          {user && canInviteAccount ? (
+              <SchoolRoomAccountInvitations key={`${user.uid}:${spaceId}`} spaceId={spaceId} user={user} />
+            ) : null}
+          {pupilCodesAllowed || (schoolRoom && canInviteAccount) ? (
+            <div className="mt-3">
+              <TeacherPupilPicker key={`${user?.uid}:${spaceId}:${pupilCodesAllowed}`}
+                spaceId={spaceId} schoolRoom={schoolRoom} accountRestoreOnly={!pupilCodesAllowed} />
+            </div>
+          ) : null}
+          {!pupilCodesAllowed ? <p className="mb-0 mt-3 text-sm text-slate-600">{t("schoolPupil.errors.school_pupil_code_disabled")}</p> : null}
 
           <div className="mt-4 border-0 border-t border-solid border-slate-200 pt-4">
             <h3 className="m-0 text-base font-semibold text-slate-950">{t("sections.newMemberTitle")}</h3>
@@ -694,7 +713,7 @@ function Inner() {
                     }}
                     className={`${fieldClass} appearance-none pr-8`}
                   >
-                    <option value="student">{t("roles.student")}</option>
+                    {pupilCodesAllowed ? <option value="student">{t("roles.student")}</option> : null}
                     <option value="co_teacher">{t("roles.co_teacher")}</option>
                     <option value="observer">{t("roles.observer")}</option>
                   </select>
@@ -791,7 +810,8 @@ function Inner() {
               const role = staffRole || String(r.data.role ?? "member");
               const roleLabel = t.has(`roles.${role}`) ? t(`roles.${role}`) : role;
               const joined = fmt(asDate(r.data.createdAt));
-              const isAnon = Boolean(r.data.isAnon);
+              const accountLinked = r.data.schoolPupilRegistration === true && Boolean(safeString(r.data.schoolPupilAccountUid));
+              const isAnon = !accountLinked && Boolean(r.data.isAnon);
               const uid = String(r.data.userId ?? r.data.uid ?? t("common.dash"));
               const studentCode = String(r.data.studentCode ?? t("common.dash"));
               const isStudent = role === "student";
@@ -853,7 +873,7 @@ function Inner() {
 
                   {isOpen ? (
                     <div id={detailsId} className="grid gap-3 border-t border-slate-200 p-3">
-                      {isStudent && !schoolPupil ? (
+                      {pupilCodesAllowed && isStudent && !schoolPupil ? (
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
                           <dl className="m-0">
                             <dt className="text-xs font-semibold text-slate-600">{t("table.studentCode")}</dt>
@@ -872,7 +892,7 @@ function Inner() {
                         </div>
                       ) : null}
 
-                      {isStudent && schoolRoom && user && (canManageStaff || (canRecoverSchoolCode && schoolPupil
+                      {isStudent && schoolRoom && user && (pupilCodesAllowed || schoolPupil) && (canManageStaff || (pupilCodesAllowed && canRecoverSchoolCode && schoolPupil
                         && r.data.schoolPupilRegistration === true && isActiveSpaceMember(r.data))) ? (
                         <SchoolSpacePupilCard
                           key={JSON.stringify([user.uid, r.id, r.data.schoolPupilId, canManageStaff])}
@@ -880,6 +900,9 @@ function Inner() {
                           memberId={r.id} registered={schoolPupil} viewerUid={user.uid}
                           onCodeIssued={showIssuedCode} onCodeShown={() => setIssuedCode(null)}
                           recoveryOnly={!canManageStaff}
+                          pupilCodesAllowed={pupilCodesAllowed}
+                          accountLinkUser={canInviteAccount && r.data.schoolPupilRegistration === true && isActiveSpaceMember(r.data) ? user : undefined}
+                          accountLinked={accountLinked}
                         />
                       ) : null}
 
@@ -891,7 +914,7 @@ function Inner() {
                                 {t("actions.editName")}
                               </button>
                             ) : null}
-                            {!schoolPupil ? <button
+                            {pupilCodesAllowed && !schoolPupil ? <button
                               type="button"
                               onClick={() => void updateStudentCode(r.id, studentCode === t("common.dash") ? "ensure" : "regenerate")}
                               disabled={studentCodeBusyId === r.id || removingMemberId === r.id}
@@ -912,7 +935,7 @@ function Inner() {
                               {removingMemberId === r.id ? t("removeStudent.actions.removing") : t("removeStudent.actions.remove")}
                             </button>
                           </div>
-                          {!schoolPupil ? <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} targetMemberId={r.id} targetName={name} /> : null}
+                          {pupilCodesAllowed && !schoolPupil ? <TeacherPupilPicker spaceId={spaceId} schoolRoom={schoolRoom} targetMemberId={r.id} targetName={name} /> : null}
                         </>
                       ) : null}
 

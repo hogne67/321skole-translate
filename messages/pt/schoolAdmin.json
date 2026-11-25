@@ -1,5 +1,25 @@
 {
   "schoolAdmin": {
+    "pupilAccess": {
+      "title": "Acesso dos alunos",
+      "description": "Escolha se os alunos podem usar um código pessoal de aluno nas salas da escola. A opção de conta obrigatória também bloqueia o acesso das sessões iniciadas com código. Os rascunhos guardados e os trabalhos entregues ficam na sala.",
+      "accountOnly": "Apenas contas de aluno",
+      "accountAndCode": "Contas de aluno e códigos pessoais de aluno",
+      "providersTitle": "Métodos de início de sessão para contas de aluno",
+      "providersHelp": "Estas definições aplicam-se às contas de aluno nas salas da escola. O Feide requer que o serviço esteja disponível para a escola. Os alunos que utilizam um método removido têm de iniciar sessão novamente com um método permitido.",
+      "providers": {
+        "email": "E-mail",
+        "feide": "Feide",
+        "google": "Google"
+      },
+      "providerRequired": "Selecione pelo menos um método de início de sessão.",
+      "save": "Guardar acesso dos alunos",
+      "saving": "A guardar…",
+      "saved": "Definições de acesso dos alunos guardadas.",
+      "unauthorized": "Inicie sessão novamente para guardar as definições de acesso.",
+      "forbidden": "Apenas um administrador escolar ativo pode alterar o acesso dos alunos.",
+      "unavailable": "Não foi possível guardar as definições de acesso. Tente novamente."
+    },
     "substitutes": {
       "feedbackSaved": "Comentário salvo.",
       "myRooms": "Salas de substituição",

@@ -8,6 +8,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { documentId, schoolPupilRegistrationId } from "@/lib/server/schoolSpacePupilCode";
 
 type MemberBody = {
   action?: unknown;
@@ -131,7 +132,27 @@ export async function PATCH(req: Request, ctx: RouteContext) {
         const targetDocs = current.docs.filter(doc => safeString(doc.get("role")) === "student" &&
           (safeString(doc.get("participantId")) || safeString(doc.get("uid")) || doc.id) === participantId);
         if (!admin && targetDocs.some(target => target.id === `${spaceId}_${ownerUid}`)) return { error: "Platform administrator required for owner membership" };
-        for (const targetDoc of targetDocs) {
+        const schoolId = documentId(currentAccess.space?.schoolId);
+        const transferRegistration = schoolId && targetDocs.find(row => {
+          const pupilId = documentId(row.get("schoolPupilId"));
+          const accountUid = documentId(row.get("schoolPupilAccountUid"));
+          if (!pupilId || row.id !== schoolPupilRegistrationId(spaceId, pupilId)
+            || row.get("schoolPupilRegistration") !== true || row.get("schoolPupilSchoolId") !== schoolId
+            || row.get("participantId") !== participantId || !accountUid) return false;
+          return targetDocs.some(target => target.id === `${spaceId}_${accountUid}` && target.get("uid") === accountUid
+            && target.get("schoolPupilAccountUid") === accountUid && target.get("schoolPupilId") === pupilId
+            && target.get("schoolPupilSchoolId") === schoolId && target.get("participantId") === participantId
+            && target.get("schoolPupilCodeAccess") === false);
+        });
+        // Keep precise proof of historical code sessions. These rows are already revoked
+        // and will never be reactivated by re-admitting the account.
+        const rowsToRemove = targetDocs.filter(row => !transferRegistration
+          || !["school_pupil_account_linked", "school_code_rotated"].includes(row.get("status"))
+          || row.get("active") !== false || row.get("archived") !== true
+          || row.get("schoolPupilAccountUid") !== undefined || row.get("schoolPupilRegistration") === true
+          || row.get("schoolPupilId") !== transferRegistration.get("schoolPupilId")
+          || row.get("schoolPupilSchoolId") !== schoolId || row.get("participantId") !== participantId);
+        for (const targetDoc of rowsToRemove) {
           tx.set(
             targetDoc.ref,
             {
@@ -147,7 +168,7 @@ export async function PATCH(req: Request, ctx: RouteContext) {
             { merge: true }
           );
         }
-        return { removed: targetDocs.length };
+        return { removed: rowsToRemove.length };
       });
       if ("error" in removed) return json({ error: removed.error }, 403);
 

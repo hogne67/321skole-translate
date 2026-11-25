@@ -3,6 +3,7 @@
 
 import { auth, db } from "@/lib/firebase";
 import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import type { TeacherSpaceCreationArea } from "@/lib/teacherSpaceArea";
 import {
   doc,
   serverTimestamp,
@@ -58,14 +59,15 @@ export async function createSpaceForTeacher(params: {
   title: string;
   isOpen?: boolean;
   schoolId?: string | null;
+  area?: TeacherSpaceCreationArea;
 }) {
-  const { ownerId, ownerUid, title, isOpen = true, schoolId = null } = params;
+  const { ownerId, ownerUid, title, isOpen = true, schoolId = null, area } = params;
 
   const user = auth.currentUser;
   if (!user || getSpaceOwnerUid({ ownerId, ...(ownerUid === undefined ? {} : { ownerUid }) }) !== user.uid) throw new Error("Unauthorized");
   const response = await fetch("/api/teacher/spaces/create", {
     method: "POST", headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ title, isOpen, schoolId }),
+    body: JSON.stringify({ title, isOpen, schoolId, area }),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Could not create Space");

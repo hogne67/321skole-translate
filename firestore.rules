@@ -101,9 +101,55 @@ service cloud.firestore {
     function myMemberPath(spaceId) {
       return /databases/$(database)/documents/spaceMembers/$(memberDocId(spaceId, myUid()));
     }
+
+    function pupilMembershipRequiresCode(member) {
+      let code = member.get("studentCode", "");
+      return member.get("role", "") == "student" && (
+        member.get("schoolPupilCodeAccess", false) == true
+        || member.get("isAnon", false) == true
+        || member.get("linkedByStudentCode", false) == true
+        || (code is string && code.size() > 0 && member.get("approvedAt", null) != null));
+    }
+
+    function schoolAllowsPupilAccess(schoolId, requiresCode) {
+      return schoolId == null || (
+        schoolId is string && schoolId.size() > 0 && schoolId.matches('^[^/]+$')
+        && pupilAccessEnabledForSchool(schoolId, requiresCode));
+    }
+
+    function pupilAccessEnabledForSchool(schoolId, requiresCode) {
+      let school = /databases/$(database)/documents/schools/$(schoolId);
+      let provider = request.auth.token.get("firebase", {}).get("sign_in_provider", "");
+      let policy = exists(school) ? get(school).data : {};
+      return (!requiresCode || policy.get("allowPupilCodeAccess", true) != false)
+        && ((requiresCode && provider == "anonymous") || pupilAccountProviderAllowed(policy, provider));
+    }
+
+    function pupilAccountProviderAllowed(school, provider) {
+      let methods = school.get("pupilAccountProviders", null);
+      return !("pupilAccountProviders" in school) || (
+        methods is list && methods.size() > 0 && methods.toSet().size() == methods.size()
+        && methods.hasOnly(["email", "feide", "google"])
+        && ((provider == "password" && methods.hasAny(["email"]))
+          || (provider == "oidc.feide" && methods.hasAny(["feide"]))
+          || (provider == "google.com" && methods.hasAny(["google"]))));
+    }
+
     function isSpaceMember(spaceId) {
       return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId))
-        && isActiveSpaceMemberData(get(myMemberPath(spaceId)).data);
+        && memberAllowedInSpace(spaceId, get(myMemberPath(spaceId)).data);
+    }
+
+    function memberAllowedInSpace(spaceId, member) {
+      return isActiveSpaceMemberData(member) && (member.get("role", "") != "student"
+        || ((!('schoolPupilAccountUid' in member) || transferredPupilAccountSession(member))
+          && schoolAllowsPupilAccess(spaceData(spaceId).get("schoolId", null), pupilMembershipRequiresCode(member))));
+    }
+
+    function transferredPupilAccountSession(member) {
+      let provider = request.auth.token.get("firebase", {}).get("sign_in_provider", "");
+      return member.get("schoolPupilAccountUid", "") == myUid() && member.get("uid", "") == myUid()
+        && provider is string && provider != "" && provider != "anonymous";
     }
 
     function mySpaceMemberData(spaceId) {
@@ -120,12 +166,13 @@ service cloud.firestore {
     }
 
     function isSpaceCoTeacher(spaceId) {
-      let member = mySpaceMemberData(spaceId);
+      let member = signedIn() && spaceId is string && exists(myMemberPath(spaceId))
+        ? get(myMemberPath(spaceId)).data : {};
       return signedIn()
         && (
           (("role" in member) && (member.role == "teacher" || member.role == "co_teacher"))
           || (("staffRole" in member) && (member.staffRole == "co_teacher" || member.staffRole == "substitute"))
-        );
+        ) && memberAllowedInSpace(spaceId, member);
     }
 
     function canTeachInSpace(spaceId) {
@@ -989,8 +1036,7 @@ service cloud.firestore {
       }
 
       function isWritingSubOwner() {
-        return isSpaceMember(spaceId)
-          && resource != null
+        return resource != null
           && (
             (
               ("studentUid" in resource.data)
@@ -1006,7 +1052,7 @@ service cloud.firestore {
       }
 
       function myWritingParticipantId() {
-        let member = mySpaceMemberData(spaceId);
+        let member = get(myMemberPath(spaceId)).data;
         return ("participantId" in member) && (member.participantId is string) && member.participantId.size() > 0
           ? member.participantId
           : myUid();
@@ -1071,7 +1117,7 @@ service cloud.firestore {
           && (request.resource.data.sectionFeedback is map);
       }
 
-      allow read: if accountEnabled() && (canWritingTeacherRead() || isWritingSubOwner());
+      allow read: if accountEnabled() && ((isSpaceMember(spaceId) && isWritingSubOwner()) || canWritingTeacherRead());
       allow create: if accountEnabled() && (signedIn() && isSpaceMember(spaceId)
         && studentSubmissionCreate(spaceId, activityId, subId, true));
       allow update: if accountEnabled() && ((signedIn() && isSpaceMember(spaceId)
@@ -1086,50 +1132,36 @@ service cloud.firestore {
     match /spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId} {
 
   function isSubOwner() {
-    return isSpaceMember(spaceId)
-      && resource != null
+    return resource != null
       && ("uid" in resource.data)
       && (resource.data.uid is string)
       && (resource.data.uid == myUid());
   }
 
   function myParticipantIdHere() {
-    let member = mySpaceMemberData(spaceId);
+    let member = get(myMemberPath(spaceId)).data;
     return ("participantId" in member) && (member.participantId is string) && member.participantId.size() > 0
       ? member.participantId
       : myUid();
   }
 
   function isParticipantSubOwner() {
-    return isSpaceMember(spaceId)
-      && resource != null
+    return resource != null
       && ("participantId" in resource.data)
       && (resource.data.participantId is string)
       && (resource.data.participantId == myParticipantIdHere());
   }
 
   function isOwnSubmissionId() {
-    return isSpaceMember(spaceId)
-      && subId == (spaceId + "_" + assignmentId + "_" + myUid());
+    return subId == (spaceId + "_" + assignmentId + "_" + myUid());
   }
 
   function canTeacherReadHere() {
     return signedIn() && canTeachInSpace(spaceId);
   }
 
-  function canParentReadOwnHere() {
-    return signedIn()
-      && isParent()
-      && isSpaceMember(spaceId)
-      && isOwnSubmissionId();
-  }
-
-  allow read: if
-    accountEnabled() && (isSubOwner()
-    || isParticipantSubOwner()
-    || isOwnSubmissionId()
-    || canTeacherReadHere()
-    || canParentReadOwnHere());
+  allow read: if accountEnabled() && ((isSpaceMember(spaceId)
+    && (isSubOwner() || isParticipantSubOwner() || isOwnSubmissionId())) || canTeacherReadHere());
 
   allow create: if accountEnabled() && ((signedIn() && isSpaceMember(spaceId)
     && studentSubmissionCreate(spaceId, assignmentId, subId, false))

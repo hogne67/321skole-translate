@@ -1,5 +1,25 @@
 {
   "schoolAdmin": {
+    "pupilAccess": {
+      "title": "Elevtilgang",
+      "description": "Velg om elever kan bruke personlig elevkode i skolens rom. «Bare elevkonto» stanser også aktive kodeøkter. Lagrede kladder og innleveringer blir liggende i rommet.",
+      "accountOnly": "Bare elevkonto",
+      "accountAndCode": "Elevkonto og personlig elevkode",
+      "providersTitle": "Innloggingsmetoder for elevkonto",
+      "providersHelp": "Valget gjelder elevkontoer i skolens rom. Feide krever at tjenesten er tilgjengelig for skolen. Elever som bruker en metode du fjerner, må logge inn på nytt med en tillatt metode.",
+      "providers": {
+        "email": "E-post",
+        "feide": "Feide",
+        "google": "Google"
+      },
+      "providerRequired": "Velg minst én innloggingsmetode.",
+      "save": "Lagre elevtilgang",
+      "saving": "Lagrer …",
+      "saved": "Elevtilgangen er lagret.",
+      "unauthorized": "Logg inn på nytt for å lagre elevtilgangen.",
+      "forbidden": "Bare en aktiv skoleadministrator kan endre elevtilgangen.",
+      "unavailable": "Kunne ikke lagre elevtilgangen. Prøv igjen."
+    },
     "substitutes": {
       "feedbackSaved": "Tilbakemeldingen er lagret.",
       "myRooms": "Vikarrom",

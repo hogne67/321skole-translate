@@ -1,4 +1,5 @@
 import type { Timestamp } from "firebase/firestore";
+import type { PupilAccountProvider } from "@/lib/security/schoolPupilProviders";
 
 export type SchoolPlanKey = "school_5" | "school_10" | "school_25" | "custom";
 
@@ -28,6 +29,8 @@ export type SchoolDoc = {
   status: SchoolStatus;
   billingType: BillingType;
   teacherSeatLimit: number;
+  allowPupilCodeAccess?: boolean;
+  pupilAccountProviders?: PupilAccountProvider[];
   activeTeacherCount?: number;
   createdByUid?: string;
   stripeCustomerId?: string | null;

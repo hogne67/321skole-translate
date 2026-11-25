@@ -13,8 +13,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url), parsed = parseLegacySpaceImagePath(url.searchParams.get("path"));
   if (!parsed || url.searchParams.getAll("path").length !== 1 || [...url.searchParams.keys()].some(key => key !== "path")) return json("Invalid image path", 400);
   try {
-    const { auth } = getAdmin(), { uid } = await auth.verifyIdToken(token, true);
-    const result = await readLegacyFile(uid, parsed.path, "image", req.headers.get("range"), req.headers.get("if-match"));
+    const { auth } = getAdmin(), decoded = await auth.verifyIdToken(token, true);
+    const result = await readLegacyFile(decoded.uid, parsed.path, "image", req.headers.get("range"), req.headers.get("if-match"), false, undefined, decoded);
     await auth.verifyIdToken(token, true);
     return new NextResponse(new Uint8Array(result.bytes), { status: result.partial ? 206 : 200, headers: {
       "Content-Type": result.contentType, "Content-Length": String(result.bytes.length), "Cache-Control": "private,no-store",

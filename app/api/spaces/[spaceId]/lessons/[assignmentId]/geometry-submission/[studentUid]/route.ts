@@ -1,5 +1,5 @@
 import { accountErrorStatus } from "@/lib/security/accountAccess.server";
-import { getSpaceAccess, ownsSpaceSubmission } from "@/lib/security/spaceAccess.server";
+import { getSpaceAccess, ownsSpaceSubmission, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
 // app\api\spaces\[spaceId]\lessons\[assignmentId]\geometry-submission\[studentUid]\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -31,7 +31,7 @@ export async function GET(req: Request, context: RouteContext) {
     let decoded;
     try { decoded = await auth.verifyIdToken(token, true); }
     catch (accountError) { return NextResponse.json({ error: "Unauthorized" }, { status: (accountErrorStatus(accountError) ?? 401) }); }
-    const access = await getSpaceAccess(db, spaceId, decoded.uid);
+    const access = await getSpaceAccess(db, spaceId, decoded.uid, undefined, decoded);
     if (!access.canRead) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const submissionRef = db
@@ -52,7 +52,8 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const data = snap.data()!;
-    if (!access.canTeach && !ownsSpaceSubmission(data, decoded.uid, access.participantId)) {
+    if (!submissionBelongsToPath(data, spaceId, assignmentId)
+      || (!access.canTeach && !ownsSpaceSubmission(data, decoded.uid, access.participantId))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

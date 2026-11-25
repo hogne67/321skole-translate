@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import type { User } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
 import { printSchoolPupilCard } from "@/lib/printSchoolPupilCard";
+import SchoolRoomAccountInvitations from "./SchoolRoomAccountInvitations";
 
 type PupilNames = { fullName: string; displayName: string };
 type SchoolPupilResult = {
@@ -56,7 +58,8 @@ async function requestPupil(endpoint: string, init?: RequestInit): Promise<Schoo
 }
 
 export default function SchoolSpacePupilCard({
-  spaceId, roomTitle, roomCode, memberId, registered, viewerUid, onCodeIssued, onCodeShown, recoveryOnly = false,
+  spaceId, roomTitle, roomCode, memberId, registered, viewerUid, onCodeIssued, onCodeShown, recoveryOnly = false, pupilCodesAllowed = true,
+  accountLinkUser, accountLinked = false,
 }: {
   spaceId: string;
   roomTitle: string;
@@ -67,6 +70,9 @@ export default function SchoolSpacePupilCard({
   onCodeIssued: (code: string) => void;
   onCodeShown: () => void;
   recoveryOnly?: boolean;
+  pupilCodesAllowed?: boolean;
+  accountLinkUser?: User;
+  accountLinked?: boolean;
 }) {
   const t = useTranslations("teacherMembers.schoolPupil");
   const codeCopy = useTranslations("teacherMembers.studentCode");
@@ -213,7 +219,16 @@ export default function SchoolSpacePupilCard({
   return (
     <div className="rounded-xl border border-solid border-slate-200 bg-white">
       {!recoveryOnly ? <div className="rounded-t-xl bg-slate-50 p-3 sm:p-4">{form}</div> : null}
-      {names || recoveryOnly ? (
+      {accountLinked ? (
+        <p className="m-0 border-0 border-t border-solid border-slate-200 px-3 py-3 text-sm font-semibold text-emerald-950 sm:px-4">
+          {t("accountLinked")}
+        </p>
+      ) : accountLinkUser ? (
+        <div className="px-3 pb-3 sm:px-4">
+          <SchoolRoomAccountInvitations spaceId={spaceId} user={accountLinkUser} sourceMemberId={memberId} roomCode={roomCode} />
+        </div>
+      ) : null}
+      {pupilCodesAllowed && !accountLinked && (names || recoveryOnly) ? (
         <section className={`p-3 sm:p-4 ${recoveryOnly ? "" : "border-0 border-t border-solid border-slate-200"}`} aria-labelledby={`${codeId}-label`}>
           <h4 id={`${codeId}-label`} className="m-0 text-base font-semibold text-slate-950">{t("issued")}</h4>
           {visibleCode ? (

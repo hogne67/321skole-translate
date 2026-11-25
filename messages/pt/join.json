@@ -2,6 +2,14 @@
   "join": {
     "title": "Entrar",
     "subtitle": "Use o código QR do cartão de aluno ou introduza o código da sala e o seu código pessoal de aluno.",
+    "account": {
+      "providers": { "email": "e-mail", "feide": "Feide", "google": "Google" },
+      "title": "Entrar com uma conta",
+      "help": "Use o código da sala dado pelo professor. Inicie sessão com o endereço de e-mail convidado pelo professor.",
+      "useCode": "Usar o código pessoal de aluno",
+      "login": "Iniciar sessão para entrar",
+      "signedIn": "A sessão foi iniciada com {email}."
+    },
     "fields": {
       "spaceCode": {
         "label": "Código da sala",
@@ -14,6 +22,7 @@
       }
     },
     "actions": {
+      "switchSignIn": "Mudar método de autenticação",
       "join": "Entrar",
       "joining": "Entrando…",
       "check": "Verificar código de aluno",
@@ -27,6 +36,16 @@
       "body": "Use o código da sala e o novo código pessoal de aluno fornecido pelo professor. Vai encontrar o trabalho que guardou."
     },
     "errors": {
+      "schoolPupilAccountRequired": "Este aluno usa uma conta nesta sala. Selecione «Entrar com uma conta» e inicie sessão com o endereço convidado pelo professor.",
+      "accountTransferConflict": "Esta conta já tem outro registo de aluno nesta sala. Peça ao professor para verificar qual registo deve ser usado.",
+      "accountTransferUnavailable": "A ligação à ficha do aluno já não está disponível. Peça ao professor para verificar o convite.",
+      "schoolProviderDisabled": "A escola não permite o método de autenticação que está a usar.",
+      "schoolProviderMethods": "A escola permite {methods}. Mude de método e tente novamente.",
+      "switchSignInFailed": "Não foi possível mudar o método de autenticação. Tente novamente.",
+      "schoolPupilCodeDisabled": "Esta escola exige uma conta de aluno. Selecione «Entrar com uma conta» e use o e-mail convidado e o código da sala.",
+      "accountRequired": "Inicie sessão com uma conta de aluno para entrar.",
+      "accountEmailUnverified": "Confirme o endereço de e-mail da conta de aluno e tente novamente.",
+      "accountInvitationRequired": "Esta conta não tem um convite para a sala. Verifique a conta que está a usar ou fale com o professor.",
       "studentCodeAttempts": "Muitas tentativas. Aguarde um pouco e tente novamente.",
       "spaceNotFound": "Não foi encontrada uma sala com esse código. Verifique o código fornecido pelo professor ou volte a abrir o link da sala.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",

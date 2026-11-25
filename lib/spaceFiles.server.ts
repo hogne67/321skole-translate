@@ -27,7 +27,7 @@ export async function authorizeSpaceFileScope(uid: string, scope: SpaceFileScope
   if (!validSpaceFileId(scope.spaceId) || !validSpaceFileId(scope.activityId) || !["audio_reading", "podcast", "writing_image", "board_image"].includes(scope.purpose)
     || (scope.purpose !== "board_image" && !validSpaceFileId(scope.submissionId)) || (scope.purpose === "podcast" && !validSpaceFileId(scope.segmentId))) fail(400, "Invalid file scope");
   const { db } = getAdmin();
-  const access = await getSpaceAccess(db, scope.spaceId, uid, transaction);
+  const access = await getSpaceAccess(db, scope.spaceId, uid, transaction, decoded);
   if (transaction) assertActiveProfile(access.profile, decoded);
   if (!access.exists || !access.canRead) fail(403, "No Space access");
   if (scope.purpose === "board_image") {
@@ -65,8 +65,8 @@ function validateUpload(scope: SpaceFileScope, contentType: string, size: number
   const allowed = audio ? ["audio/webm", "audio/ogg", "audio/wav", "audio/mp4", "audio/mpeg", "audio/x-m4a"] : ["image/webp", "image/png", "image/jpeg"];
   if (!allowed.includes(contentType) || !Number.isSafeInteger(size) || size <= 0 || size > (audio ? 25 : 8) * 1024 * 1024) fail(400, "Invalid file type or size");
 }
-export async function beginSpaceFileUpload(uid: string, scope: SpaceFileScope, contentType: string, size: number, origin?: string) {
-  const authorization = await authorizeSpaceFileScope(uid, scope, true);
+export async function beginSpaceFileUpload(uid: string, scope: SpaceFileScope, contentType: string, size: number, origin?: string, decoded?: DecodedIdToken) {
+  const authorization = await authorizeSpaceFileScope(uid, scope, true, undefined, decoded);
   validateUpload(scope, contentType, size);
   if ((scope.purpose === "audio_reading" || scope.purpose === "podcast") && !authorization.own) fail(403, "Only own recordings may be uploaded");
   const binding = scope.purpose === "board_image" ? undefined : submissionStamp(authorization.submission);
@@ -139,11 +139,11 @@ async function removeVersion(storage: Bucket, path: string, metadata: FileMetada
   } }).delete({ ignoreNotFound: true });
 }
 type SessionCheck = () => Promise<DecodedIdToken>;
-export async function finishSpaceFileUpload(uid: string, id: string, checkSession?: SessionCheck) {
+export async function finishSpaceFileUpload(uid: string, id: string, checkSession?: SessionCheck, actor?: DecodedIdToken) {
   const { ref, record } = await recordFor(id);
   validateRecord(id, record);
   if (record.ownerUid !== uid) fail(403, "Wrong uploader");
-  await authorizeFileRecord(uid, record, true);
+  await authorizeFileRecord(uid, record, true, undefined, actor);
   const storage = bucket();
   let staging: FileMetadata | undefined;
   let expected = { crc32c: record.crc32c, md5Hash: record.md5Hash, sourceGeneration: record.sourceGeneration, sourceMetageneration: record.sourceMetageneration, generation: record.generation };
@@ -155,7 +155,7 @@ export async function finishSpaceFileUpload(uid: string, id: string, checkSessio
       // Another finalizer may already have committed ready and removed staging.
       // Only that verified state permits resuming through the ready validation path.
       const current = sameRecord((await ref.get()).data() as SpaceFileRecord | undefined, record);
-      if (current.status === "ready") return finishSpaceFileUpload(uid, id, checkSession);
+      if (current.status === "ready") return finishSpaceFileUpload(uid, id, checkSession, actor);
       throw error;
     }
     const hashes = validateObject(staging, storage, record.uploadPath, record);
@@ -171,7 +171,7 @@ export async function finishSpaceFileUpload(uid: string, id: string, checkSessio
   } else if (!version(record.generation)) fail(503, "File version unavailable");
   const [result] = await storage.file(record.storagePath, expected.generation ? { generation: expected.generation } : undefined).getMetadata();
   const hashes = validatePrivate(result, storage, id, record, expected);
-  const decoded = await checkSession?.();
+  const decoded = (await checkSession?.()) ?? actor;
   if (decoded && decoded.uid !== uid) fail(403, "Session changed");
   await getAdmin().db.runTransaction(async tx => {
     const current = sameRecord((await tx.get(ref)).data() as SpaceFileRecord | undefined, record);
@@ -191,8 +191,8 @@ export async function finishSpaceFileUpload(uid: string, id: string, checkSessio
 }
 
 /** Trusted, server-generated images use the same private reader and scope policy. */
-export async function saveGeneratedSpaceImage(uid: string, scope: SpaceFileScope, bytes: Buffer, checkSession?: SessionCheck) {
-  const authorization = await authorizeSpaceFileScope(uid, scope, true);
+export async function saveGeneratedSpaceImage(uid: string, scope: SpaceFileScope, bytes: Buffer, checkSession?: SessionCheck, actor?: DecodedIdToken) {
+  const authorization = await authorizeSpaceFileScope(uid, scope, true, undefined, actor);
   validateUpload(scope, "image/webp", bytes.length);
   if (scope.purpose !== "writing_image" && scope.purpose !== "board_image") fail(400, "Invalid image scope");
   const id = randomUUID();
@@ -205,7 +205,7 @@ export async function saveGeneratedSpaceImage(uid: string, scope: SpaceFileScope
     uploadPath: `private-space-uploads/${scope.spaceId}/${id}`, contentType: "image/webp", size: bytes.length,
     createdAt: Date.now(), status: "ready", generation: String(metadata.generation) };
   const hashes = validatePrivate(metadata, storage, id, record, { md5Hash: createHash("md5").update(bytes).digest("base64") });
-  const decoded = await checkSession?.();
+  const decoded = (await checkSession?.()) ?? actor;
   if (decoded && decoded.uid !== uid) fail(403, "Session changed");
   await getAdmin().db.runTransaction(async tx => {
     await authorizeSpaceFileScope(uid, scope, true, tx, decoded);
@@ -213,10 +213,10 @@ export async function saveGeneratedSpaceImage(uid: string, scope: SpaceFileScope
   });
   return { storagePath, imageUrl: privateSpaceFileUrl(id) };
 }
-export async function readSpaceFile(uid: string, id: string, rangeHeader: string | null) {
+export async function readSpaceFile(uid: string, id: string, rangeHeader: string | null, decoded?: DecodedIdToken) {
   const { record } = await recordFor(id);
   if (record.status !== "ready" || !record.generation) fail(404, "File not ready");
-  const scope = await authorizeFileRecord(uid, record);
+  const scope = await authorizeFileRecord(uid, record, false, undefined, decoded);
   const expected = record.purpose.endsWith("image") ? privateSpaceFileUrl(id) : record.storagePath;
   const attached = scope.submission.exists && scope.reference === expected;
   const ownPreview = record.ownerUid === uid && Date.now() - record.createdAt <= SPACE_FILE_UPLOAD_LIFETIME_MS;
@@ -228,17 +228,17 @@ export async function readSpaceFile(uid: string, id: string, rangeHeader: string
     headers: { "Content-Type": record.contentType, "Content-Length": String(range.end - range.start + 1), "Cache-Control": "private,no-store", "X-Content-Type-Options": "nosniff",
       "Accept-Ranges": "bytes", "Content-Disposition": "inline", ...(range.partial ? { "Content-Range": `bytes ${range.start}-${range.end}/${record.size}` } : {}) } });
 }
-export async function deleteSpaceFile(uid: string, id: string) {
+export async function deleteSpaceFile(uid: string, id: string, decoded?: DecodedIdToken) {
   const { ref, record } = await recordFor(id);
   validateRecord(id, record);
-  // A revoked uploader may still clean up their unfinished quarantined upload.
-  if (!(record.status === "pending" && record.ownerUid === uid)) {
-    const access = await authorizeSpaceFileScope(uid, record);
-    if (!access.access.canTeach && record.ownerUid !== uid) fail(403, "Cannot delete this file");
-  }
   // Mark denied before touching storage; failed cleanup must not restore reads.
   const deleted = await getAdmin().db.runTransaction(async tx => {
     const current = sameRecord((await tx.get(ref)).data() as SpaceFileRecord | undefined, record);
+    // A revoked uploader may still clean up their unfinished quarantined upload.
+    if (!(current.status === "pending" && current.ownerUid === uid)) {
+      const { access } = await authorizeSpaceFileScope(uid, current, false, tx, decoded);
+      if (!access.canTeach && current.ownerUid !== uid) fail(403, "Cannot delete this file");
+    }
     tx.update(ref, { status: "deleted" });
     return current;
   });

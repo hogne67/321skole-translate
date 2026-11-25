@@ -1,6 +1,6 @@
-import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
-import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
+import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
+import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { isWritingAiDisabled } from "@/lib/security/writingAiPolicy";
 import { isSpaceAiDisabled } from "@/lib/security/schoolAiPolicy.server";
 import { validateStoredStudentSubmission, retainedSubmissionIdentity, SubmissionWriteError } from "@/lib/security/studentSubmissionPolicy";
@@ -266,24 +266,19 @@ export async function POST(
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
 
-    const [profileSnap, spaceSnap, memberSnap, activitySnap] = await Promise.all([
-      db.collection("users").doc(uid).get(),
-      db.collection("spaces").doc(spaceId).get(),
-      db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get(),
+    const [access, activitySnap] = await Promise.all([
+      getSpaceAccess(db, spaceId, uid, undefined, decoded),
       db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get(),
     ]);
 
-    if (!spaceSnap.exists) return json({ error: "Space not found" }, 404);
+    if (!access.space) return json({ error: "Space not found" }, 404);
     if (!activitySnap.exists) return json({ error: "Writing activity not found" }, 404);
 
-    const profile = (profileSnap.data() ?? {}) as Record<string, unknown>;
-    const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-    const activityData = (activitySnap.data() ?? {}) as Record<string, unknown>;
+    const profile = access.profile ?? {};
+    const space = access.space;
+    const activityData = activitySnap.data() ?? {};
     const ownerUid = getSpaceOwnerUid(space);
-    const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
-    const isOwner = hasSpaceOwnerAccess(space, uid, memberSnap.exists ? member : null);
-    const isAdmin = isAdminProfile(profile);
-    const hasMemberAccess = memberSnap.exists && isActiveSpaceMember(member);
+    const member = access.member ?? {};
     const participantId = safeString(member.participantId) || uid;
     const displayName = safeString(member.displayName) || null;
 
@@ -291,7 +286,7 @@ export async function POST(
       return json({ error: "Space owner missing" }, 403);
     }
 
-    if (!isOwner && !isAdmin && !hasMemberAccess) {
+    if (!access.canRead) {
       return json({ error: "No access to this space" }, 403);
     }
     if (isWritingAiDisabled(space) || await isSpaceAiDisabled(db, space, "writing")) {
@@ -334,9 +329,8 @@ export async function POST(
       return json({ error: unlockErrorMessage(unlock), unlock }, 403);
     }
 
-    const quotaUid = isOwner || isAdmin ? uid : ownerUid;
-    const quotaProfileSnap = quotaUid === uid ? profileSnap : await db.collection("users").doc(quotaUid).get();
-    const quotaProfile = (quotaProfileSnap.data() ?? {}) as Record<string, unknown>;
+    const quotaUid = access.owner || isAdminProfile(profile) ? uid : ownerUid;
+    const quotaProfile = quotaUid === uid ? profile : (await db.collection("users").doc(quotaUid).get()).data() ?? {};
     const role = readRole(quotaProfile);
     const billing =
       quotaProfile.billing && typeof quotaProfile.billing === "object"
@@ -422,6 +416,11 @@ export async function POST(
     };
 
     await db.runTransaction(async tx => {
+      const currentAccess = await getSpaceAccess(db, spaceId, uid, tx, decoded);
+      assertActiveProfile(currentAccess.profile, decoded);
+      if (!currentAccess.canRead || (safeString(currentAccess.member?.participantId) || uid) !== participantId) {
+        throw new SubmissionWriteError("No access to this space");
+      }
       const current = await tx.get(submissionRef);
       validateStoredStudentSubmission(current.data(), identityContext);
       tx.set(submissionRef, {

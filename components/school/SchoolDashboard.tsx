@@ -6,12 +6,14 @@ import ProductAnalyticsStatus from "./ProductAnalyticsStatus";
 import SchoolStatisticsCards from "./SchoolStatisticsCards";
 import type { SchoolStatistics } from "@/lib/schools/server/aggregateStatistics";
 import SchoolNav from "@/components/school/SchoolNav";
+import PupilAccessSettings from "./PupilAccessSettings";
 import "./schoolAdmin.css";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
 import { canAccessSchoolAdmin } from "@/lib/schools/access";
+import type { PupilAccountProvider } from "@/lib/security/schoolPupilProviders";
 
 type SchoolSummary = {
   ok?: boolean;
@@ -23,6 +25,8 @@ type SchoolSummary = {
     billingType?: string;
     status?: string;
     teacherSeatLimit?: number;
+    allowPupilCodeAccess?: boolean;
+    pupilAccountProviders?: PupilAccountProvider[];
   };
   activeTeacherCount?: number;
   pendingTeacherInviteCount?: number;
@@ -154,6 +158,17 @@ export default function SchoolDashboard({ view = "overview" }: { view?: "overvie
               <SchoolWelcome schoolName={school.name} activeTeacherCount={activeTeacherCount} pendingTeacherInviteCount={pendingTeacherInviteCount} teacherSeatLimit={teacherSeatLimit} seatsRemaining={seatsRemaining} />
               {isLicenseFull ? <Notice tone="warning" title={t("overview.licenseFullTitle")} text={t("overview.licenseFullText")} /> : null}
             </>
+          ) : null}
+          {view === "license" && user && !user.isAnonymous && summary.schoolId === schoolId ? (
+            <section style={styles.card}>
+              <PupilAccessSettings
+                key={`${user.uid}:${schoolId}`}
+                schoolId={schoolId}
+                user={user}
+                initialAllowCode={school.allowPupilCodeAccess !== false}
+                initialProviders={school.pupilAccountProviders}
+              />
+            </section>
           ) : null}
           {view === "license" ? <section style={styles.card}>
             <div style={styles.cardHeader}>

@@ -1,6 +1,37 @@
 {
   "teacherMembers": {
+    "accountInvite": {
+      "transferTitle": "Link student account",
+      "transferHelp": "Invite the email address the student uses for their account. The invitation is valid for 14 days. When they join with their account, their drafts and submissions in this room become available and student-code access to the room ends.",
+      "transferSave": "Register account link",
+      "transferSaved": "The account invitation is ready. Share the room code or link with the student.",
+      "transferLabel": "Account link",
+      "transferUnavailable": "Check that the student card is still active in this room.",
+      "transferPending": "The student card has a pending invitation. Withdraw it before inviting a different email address.",
+      "transferConflict": "The student card or account has another link in this room. Check the student card before trying again.",
+      "roomCode": "Room code {code}",
+      "copyRoomLink": "Copy room link",
+      "linkCopied": "Room link copied.",
+      "copyFailed": "Could not copy the room link. Share the room code with the student.",
+      "loading": "Loading invitations…",
+      "title": "Invite a student with an account",
+      "help": "Enter the student's email address and share the room code with them. The student signs in with that address and uses the room code.",
+      "email": "Student email address",
+      "save": "Register invitation",
+      "pending": "Pending invitations",
+      "withdraw": "Withdraw",
+      "withdrawNamed": "Withdraw invitation for {email}",
+      "withdrawn": "Invitation withdrawn.",
+      "saved": "Invitation registered. Share the room code with the student.",
+      "invalidEmail": "Enter a valid email address.",
+      "alreadyUsed": "The invitation for this address has already been used. See the member list to manage access.",
+      "notPending": "The invitation is no longer pending. Check the member list.",
+      "failed": "Could not change the invitation. Try again.",
+      "loadFailed": "Could not load invitations.",
+      "retry": "Try again"
+    },
     "schoolPupil": {
+      "accountLinked": "The student uses their account in this room.",
       "fullName": "Full name (teachers)",
       "displayName": "First name or alias",
       "displayNamePlaceholder": "First name if left blank",
@@ -26,6 +57,7 @@
         "action": "Print student card"
       },
       "errors": {
+        "school_pupil_code_disabled": "The school has turned off personal student codes. Invite the student by email address.",
         "failed": "Could not load or update the student profile.",
         "pupil_full_name_required": "Enter the pupil’s full name.",
         "pupil_display_name_required": "Use a first name or alias as the display name.",
@@ -41,6 +73,11 @@
     },
     "roster": {
       "schoolDescription": "Add pupils who are already registered at this school to this room.",
+      "restoreTitle": "Re-add a pupil with an account",
+      "restoreDescription": "Pupils who were removed from this room regain access with the same account.",
+      "restoreLabel": "Re-add with the same pupil account",
+      "restoreEmpty": "There are no removed pupils with accounts to re-add.",
+      "restoreFailed": "Could not re-add the pupil with the same account.",
       "title": "Add existing pupils",
       "description": "Choose pupils already in your other rooms. They get separate pupil codes here and still use just one pupil place with you.",
       "linkTitle": "Link to existing pupil",

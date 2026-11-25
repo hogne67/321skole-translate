@@ -1,5 +1,14 @@
 {
   "spaces": {
+    "areas": {
+      "label": "Romlister",
+      "school": "Skolerom",
+      "private": "Private rom",
+      "shared": "Andre rom",
+      "schoolRoom": "Skolerom",
+      "privateRoom": "Privat rom",
+      "privateCreationHint": "Bruk en privat lærerkonto for å opprette nye private rom."
+    },
     "title": "Spaces",
     "subtitle": "Spaces er klasse- eller grupperom der du kan dele oppgaver med elever, enten med hele klassen eller en mindre gruppe.",
     "newSpace": "+ Opprett nytt space",

@@ -1,4 +1,5 @@
 import "server-only";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -22,7 +23,7 @@ export async function pdfAccount(request: Request) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return fail(401, "Unauthorized");
   const decoded = await getAdmin().auth.verifyIdToken(token, true);
-  return { uid: decoded.uid, recheck: () => getAdmin().auth.verifyIdToken(token, true) };
+  return { uid: decoded.uid, decoded, recheck: () => getAdmin().auth.verifyIdToken(token, true) };
 }
 
 // Abort the consumer on byte/time limits; never accumulate an unbounded image/body.
@@ -92,11 +93,11 @@ async function posterCoverAccess(uid: string, object: string, source: string, si
   });
 }
 
-async function objectImage(uid: string, object: string, source: string, signal: AbortSignal): Promise<Buffer> {
+async function objectImage(uid: string, object: string, source: string, signal: AbortSignal, decoded?: DecodedIdToken): Promise<Buffer> {
   if (!validObjectPath(object)) return fail(400, "Invalid image reference");
   const legacy = parseLegacySpaceImagePath(object);
   if (legacy) {
-    try { return (await readLegacyFile(uid, object, "image", null, null, true, signal)).bytes; }
+    try { return (await readLegacyFile(uid, object, "image", null, null, true, signal, decoded)).bytes; }
     catch (error) { if (error instanceof LegacyFileError) return fail(error.status, error.message); throw error; }
   }
   const posterCover = /^learning-posters\/[^/]+\/[^/]+\/covers\/[^/]+$/.test(object);
@@ -147,7 +148,7 @@ export async function rasterPdfImage(bytes: Buffer): Promise<string> {
   } catch (error) { if (error instanceof SpaceFileError) throw error; return fail(415, "Invalid raster image"); }
 }
 
-export async function safePdfImage(source: unknown, uid: string): Promise<string> {
+export async function safePdfImage(source: unknown, uid: string, decoded?: DecodedIdToken): Promise<string> {
   if (source === undefined || source === null || source === "") return "";
   if (typeof source !== "string" || source.length > Math.ceil(PDF_IMAGE_BYTES / 3) * 4 + 64) return fail(400, "Invalid image source");
   const signal = AbortSignal.timeout(PDF_IMAGE_TIMEOUT_MS);
@@ -163,7 +164,7 @@ export async function safePdfImage(source: unknown, uid: string): Promise<string
       if (id) {
         const parts: Buffer[] = []; let start = 0; let total: number | undefined;
         while (true) {
-          const pending = readSpaceFile(uid, id, `bytes=${start}-`);
+          const pending = readSpaceFile(uid, id, `bytes=${start}-`, decoded);
           // A late response after timeout must not leave a live unread storage stream.
           void pending.then(response => { if (signal.aborted) void response.body?.cancel().catch(() => undefined); }, () => undefined);
           const response = await timed(pending, signal);
@@ -180,7 +181,7 @@ export async function safePdfImage(source: unknown, uid: string): Promise<string
           if (start === total) break;
         }
         bytes = Buffer.concat(parts);
-        const check = await timed(readSpaceFile(uid, id, "bytes=0-0"), signal);
+        const check = await timed(readSpaceFile(uid, id, "bytes=0-0", decoded), signal);
         await check.body?.cancel(); if (!check.ok) return fail(403, "No image access");
       } else if (source === "/logo321ny.png" || /^\/reading-test-covers\/(blue|pink)\.jpg$/.test(source) || /^\/guides\/[a-z0-9-]+\.(png|jpe?g|webp)$/.test(source)) {
         bytes = await timed(fs.readFile(path.join(process.cwd(), "public", source.slice(1))), signal);
@@ -192,7 +193,7 @@ export async function safePdfImage(source: unknown, uid: string): Promise<string
           if (query.getAll("path").length === 1 && [...query.keys()].every(key => key === "path") && parseLegacySpaceImagePath(query.get("path"))) object = query.get("path");
         }
         if (!object) return fail(400, "Use a supported image upload or internal file reference");
-        bytes = await objectImage(uid, object, source, signal);
+        bytes = await objectImage(uid, object, source, signal, decoded);
       }
     }
     return await timed(rasterPdfImage(bytes), signal);

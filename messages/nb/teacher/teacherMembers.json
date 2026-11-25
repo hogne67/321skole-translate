@@ -1,6 +1,37 @@
 {
   "teacherMembers": {
+    "accountInvite": {
+      "transferTitle": "Knytt elevkonto",
+      "transferHelp": "Inviter e-postadressen eleven bruker på kontoen. Invitasjonen er gyldig i 14 dager. Når eleven blir med med konto, følger kladder og innleveringer i dette rommet med. Da opphører kodetilgangen til rommet.",
+      "transferSave": "Registrer kontokobling",
+      "transferSaved": "Kontoinvitasjonen er registrert. Del romkoden eller romlenken med eleven.",
+      "transferLabel": "Kontokobling",
+      "transferUnavailable": "Sjekk at elevkortet fortsatt er aktivt i dette rommet.",
+      "transferPending": "Elevkortet har en ventende invitasjon. Trekk den tilbake før du inviterer en annen adresse.",
+      "transferConflict": "Elevkortet eller kontoen har en annen kobling i rommet. Sjekk elevkortet før du prøver igjen.",
+      "roomCode": "Romkode {code}",
+      "copyRoomLink": "Kopier romlenke",
+      "linkCopied": "Romlenken er kopiert.",
+      "copyFailed": "Kunne ikke kopiere romlenken. Del romkoden med eleven.",
+      "loading": "Henter invitasjoner…",
+      "title": "Inviter elev med konto",
+      "help": "Oppgi elevens e-postadresse og del romkoden med eleven. Eleven logger inn med den adressen og bruker romkoden.",
+      "email": "Elevens e-postadresse",
+      "save": "Registrer invitasjon",
+      "pending": "Ventende invitasjoner",
+      "withdraw": "Trekk tilbake",
+      "withdrawNamed": "Trekk tilbake invitasjonen til {email}",
+      "withdrawn": "Invitasjonen er trukket tilbake.",
+      "saved": "Invitasjonen er registrert. Del romkoden med eleven.",
+      "invalidEmail": "Skriv inn en gyldig e-postadresse.",
+      "alreadyUsed": "Invitasjonen til denne adressen er allerede brukt. Se medlemslisten for å administrere tilgangen.",
+      "notPending": "Invitasjonen venter ikke lenger. Sjekk medlemslisten.",
+      "failed": "Kunne ikke endre invitasjonen. Prøv igjen.",
+      "loadFailed": "Kunne ikke hente invitasjonene.",
+      "retry": "Prøv igjen"
+    },
     "schoolPupil": {
+      "accountLinked": "Eleven bruker elevkonto i dette rommet.",
       "fullName": "Fullt navn (lærere)",
       "displayName": "Fornavn eller alias",
       "displayNamePlaceholder": "Fornavn hvis feltet er tomt",
@@ -26,6 +57,7 @@
         "action": "Skriv ut elevkort"
       },
       "errors": {
+        "school_pupil_code_disabled": "Skolen har slått av personlige elevkoder. Inviter eleven med e-postadresse.",
         "failed": "Kunne ikke lagre eller hente elevkortet.",
         "pupil_full_name_required": "Skriv inn elevens fulle navn.",
         "pupil_display_name_required": "Bruk fornavn eller alias som visningsnavn.",
@@ -42,6 +74,11 @@
     "roster": {
       "schoolDescription": "Hent elever som allerede er registrert på skolen, og legg dem til i dette rommet.",
       "title": "Hent eksisterende elever",
+      "restoreTitle": "Legg tilbake elev med konto",
+      "restoreDescription": "Elever som tidligere ble fjernet fra dette rommet, får tilbake tilgangen med samme konto.",
+      "restoreLabel": "Legges tilbake med samme elevkonto",
+      "restoreEmpty": "Ingen fjernede elever med konto å legge tilbake.",
+      "restoreFailed": "Kunne ikke legge eleven tilbake med samme konto.",
       "description": "Velg elever du allerede har i andre rom. De får egne elevkoder her, men bruker fortsatt bare én elevplass hos deg.",
       "linkTitle": "Koble til eksisterende elev",
       "linkDescription": "Velg bare hvis {name} er samme person som eleven i et annet rom. Koblingen endrer lisensens elevtelling. Navn, elevkoder og besvarelser i rommene beholdes.",
