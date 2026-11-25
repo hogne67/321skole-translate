@@ -18,7 +18,7 @@ import type { AppMode } from "@/lib/mode";
 import { getTextTypeSearchTerms, normalizeTextTypeValue } from "@/lib/textTypes";
 import { getOwnSubmissions } from "@/lib/security/ownSubmissions.client";
 import { isActiveSpaceMember } from "@/lib/security/spaceAccess";
-import { canShareContentToSpace } from "@/lib/spaceSharing";
+import { canShareContentToParentSpace, canShareContentToSpace, isParentSpaceKind } from "@/lib/spaceSharing";
 
 const MY_CONTENT_QUERY_LIMIT = 250;
 const MY_SPACE_QUERY_LIMIT = 250;
@@ -402,6 +402,7 @@ function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonTy
 }
 
 function hrefForSpace(locale: string, mode: AppMode, spaceId: string) {
+  if (mode === "parent") return withLocale(locale, `/parent/spaces/${spaceId}`);
   if (mode === "student") return withLocale(locale, `/student/spaces/${spaceId}`);
   return withLocale(locale, `/teacher/spaces/${spaceId}`);
 }
@@ -987,6 +988,8 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode
 
       snap.forEach((docSnap) => {
         const d = docSnap.data() as Record<string, unknown>;
+        if (mode === "parent" && !isParentSpaceKind(d.kind)) return;
+        const member = memberships.get(docSnap.id) ?? null;
 
         results.push({
           type: "space",
@@ -998,7 +1001,9 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode
           meta: [],
           ownerUid: pickOwnerUidLoose(d),
           joinCode: readJoinCode(d),
-          canShareContent: canShareContentToSpace(d, uid, memberships.get(docSnap.id) ?? null),
+          canShareContent: mode === "parent"
+            ? canShareContentToParentSpace(d, uid, member)
+            : canShareContentToSpace(d, uid, member),
           deletedAt: toDateSafe(d.deletedAt),
         });
       });
@@ -1027,6 +1032,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
 
   const pushDoc = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
     const d = docSnap.data();
+    if (mode === "parent" && !isParentSpaceKind(d.kind)) return;
 
     results.push({
       type: "space",
@@ -1038,7 +1044,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
       meta: [],
       ownerUid: pickOwnerUidLoose(d),
       joinCode: readJoinCode(d),
-      canShareContent: canShareContentToSpace(d, uid),
+      canShareContent: mode === "parent" ? canShareContentToParentSpace(d, uid) : canShareContentToSpace(d, uid),
       deletedAt: toDateSafe(d.deletedAt),
     });
   };

@@ -1,31 +1,32 @@
 {
   "parentSpaces": {
-    "title": "Mine spaces",
-    "subtitle": "Her finner du familierom og foreldregrupper for aktiviteter hjemme.",
+    "title": "Mine familierom",
+    "subtitle": "Se hvilke oppgaver barnet jobber med, og gi tilbakemelding når noe er levert.",
     "defaultTitle": "Uten tittel",
     "actions": {
       "open": "Åpne",
-      "openSpace": "Åpne space",
-      "newSpace": "Opprett space",
-      "parentGroups": "+ Opprett nytt rom"
+      "openSpace": "Åpne rommet",
+      "newSpace": "Opprett familierom",
+      "parentGroups": "Opprett familierom",
+      "respond": "Gi tilbakemelding"
     },
     "guestPreview": {
       "title": "Vil du opprette et familierom?",
-      "subtitle": "Som gjest kan du se hvordan parent spaces fungerer. Logg inn når du vil opprette rom og lagre arbeidet.",
-      "text": "Parent spaces samler oppgaver, kurs og hjemmeaktiviteter på ett sted. Barn kan jobbe videre med innholdet, og du kan følge med og støtte underveis.",
+      "subtitle": "Logg inn for å opprette et familierom og lagre arbeidet.",
+      "text": "Legg til oppgaver i familierommet. Barnet kan jobbe i barnevisningen, og du kan følge opp underveis.",
       "loginCreate": "Logg inn for å opprette rom",
       "cards": {
         "family": {
-          "title": "Samle familien",
-          "text": "Lag rom for barn, grupper eller hjemmeøving."
+          "title": "Opprett et rom",
+          "text": "Lag et rom for et barn eller en felles aktivitet."
         },
         "share": {
-          "title": "Del innhold",
-          "text": "Bruk bibliotek, quiz og oppgaver sammen med barna."
+          "title": "Legg til en oppgave",
+          "text": "Velg en oppgave fra Mitt innhold."
         },
         "follow": {
-          "title": "Følg arbeidet",
-          "text": "Se aktivitet, gi støtte og hold oversikt på ett sted."
+          "title": "Svar barnet",
+          "text": "Les innleveringen og gi en kort tilbakemelding."
         }
       }
     },
@@ -37,20 +38,21 @@
       "parentGroup": "Foreldregruppe",
       "other": "Space"
     },
-    "empty": "Du har ingen parent spaces ennå.",
+    "empty": "Opprett et familierom for å legge til den første oppgaven.",
     "loading": "Laster…",
     "errors": {
-      "loadFailed": "Kunne ikke laste spaces."
+      "loadFailed": "Kunne ikke laste familierommene."
     },
     "counts": {
-      "groups": "{count, plural, one {# gruppe} other {# grupper}}"
+      "groups": "{count, plural, one {# rom} other {# rom}}"
     },
     "status": {
       "notStarted": "Ikke startet",
       "draft": "Utkast",
       "submitted": "Levert",
       "needsWork": "Må jobbes mer med",
-      "reviewed": "Vurdert"
+      "reviewed": "Vurdert",
+      "readyForFeedback": "Klar for tilbakemelding"
     },
     "badges": {
       "tasks": "{count} oppgaver",

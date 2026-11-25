@@ -2,7 +2,6 @@
 "use client";
 
 import { mathEditorHref } from "@/lib/math/editor";
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -36,7 +35,7 @@ import { getListeningCopy } from "@/lib/listeningTests/copy";
 import { listeningEditHref } from "@/lib/listeningTests/persistence";
 import { grammarEditHref } from "@/lib/grammarTests/types";
 import { Mic } from "lucide-react";
-import { isSpaceOpenForSharing, SPACE_NOT_OPEN_MESSAGE } from "@/lib/spaceSharing";
+import { isSpaceOpenForSharing, PARENT_SPACE_NOT_AVAILABLE_MESSAGE, SPACE_NOT_OPEN_MESSAGE } from "@/lib/spaceSharing";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "poster" | "submission" | "space";
@@ -385,7 +384,7 @@ type LoadMyContentArgs = {
   db: typeof db;
   uid: string | null;
   isAnon: boolean;
-  mode: "student" | "teacher" | "creator";
+  mode: "student" | "teacher" | "creator" | "parent";
   locale: string;
   includeSpaceContent: boolean;
 };
@@ -427,12 +426,13 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
   );
   const canUsePublishActions = isTeacher || isActivePartner;
 
-  const contentMode: "student" | "teacher" | "creator" = isTeacher ? "teacher" : isCreator ? "creator" : "student";
+  const contentMode = isParent ? "parent" : isTeacher ? "teacher" : isCreator ? "creator" : "student";
   const isTeacherApproved = canUsePublishActions;
 
   const t = useTranslations("content");
   const tLoose = t as unknown as LooseT;
   const locale = useLocale();
+  const tFamily = useTranslations("parentSpaceDetail");
 
   const [items, setItems] = useState<ContentItem[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
@@ -445,7 +445,9 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
   const [err, setErr] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
-  const initialFilter = searchParams.get("filter") === "writing" ? "writing" : searchParams.get("filter") === "poster" ? "poster" : "all";
+  const familyRoomId = isParent ? searchParams.get("familyRoom") : null;
+  const requestedFilter = searchParams.get("filter");
+  const initialFilter = familyRoomId ? "lesson" : requestedFilter === "writing" || requestedFilter === "poster" ? requestedFilter : "all";
   const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [showDeleted, setShowDeleted] = useState(false);
 
@@ -474,8 +476,12 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
   const [sharedSpaceNamesByItemKey, setSharedSpaceNamesByItemKey] = useState<Record<string, string[]>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
+  const familyRoom = familyRoomId ? mySpaces.find((space) => space.id === familyRoomId && space.canShareContent) : undefined;
+  const selectedFamilyRoomId = pickLesson?.mode !== "board" && pickLesson?.mode !== "writing" ? familyRoomId : null;
   const shareableSpaces = useMemo(() => mySpaces.filter((space) => space.canShareContent
-    && (pickLesson?.mode !== "writing" || space.ownerUid === uid)), [mySpaces, pickLesson?.mode, uid]);
+    && (!selectedFamilyRoomId || space.id === selectedFamilyRoomId)
+    && (pickLesson?.mode !== "writing" || space.ownerUid === uid)), [mySpaces, selectedFamilyRoomId, pickLesson?.mode, uid]);
+  const shareActionLabel = isParent ? tFamily("actions.addAssignment") : t("actions.shareToSpace");
   const filteredPickSpaces = useMemo(() => {
     const needle = pickSpaceQuery.trim().toLowerCase();
     if (!needle) return shareableSpaces;
@@ -1192,6 +1198,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
 
   function assignmentError(error: unknown) {
     if (!(error instanceof Error)) return t("errors.assignFailed");
+    if (error.message === PARENT_SPACE_NOT_AVAILABLE_MESSAGE) return tFamily("errors.assignmentUnavailable");
     return error.message === SPACE_NOT_OPEN_MESSAGE ? t("shareToSpace.spaceNotActive") : error.message;
   }
 
@@ -1894,7 +1901,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
         ...restoreAction,
         {key:"open",label:t("actions.open"),disabled:busy||isDeleted,onClick:()=>router.push(grammarEditHref(locale,ls.id))},
         ...(canEdit?[{key:"edit",label:t("actions.edit"),disabled:busy,onClick:()=>router.push(grammarEditHref(locale,ls.id))}]:[]),
-        ...(canShareToSpace&&!isDeleted?[{key:"shareToSpace",label:t("actions.shareToSpace"),disabled:busy,onClick:()=>openPickSpace({lessonId:ls.id,title:titleForCard(ls),sourceType:"myContent",sourceId:ls.id})}]:[]),
+        ...(canShareToSpace&&!isDeleted?[{key:"shareToSpace",label:shareActionLabel,disabled:busy,onClick:()=>openPickSpace({lessonId:ls.id,title:titleForCard(ls),sourceType:"myContent",sourceId:ls.id})}]:[]),
         ...(!isDeleted?[{key:"delete",label:t("actions.delete"),danger:true,disabled:busy||!canDelete,onClick:()=>deleteLessonSoft(ls.id,titleForCard(ls))}]:[]),
       ];
     }
@@ -2153,7 +2160,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
         ? [
           {
             key: "shareToSpace",
-            label: t("actions.shareToSpace"),
+            label: shareActionLabel,
             disabled: busy,
             onClick: () =>
               openPickSpace({
@@ -2447,7 +2454,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
                 ? (t("filters.submissions") as string)
                 : ft === "writing"
                   ? safeMsg("filters.writing", "SKRIVING")
-                  : (t("filters.spaces") as string);
+                  : isParent ? tFamily("actions.backMySpacesShort") : t("filters.spaces");
 
     if (ft === "lesson") return `${label} (${counts.lesson})`;
     if (ft === "writing") return `${label} (${counts.writing})`;
@@ -2594,7 +2601,9 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
             ? filtered.map((it) => {
               const key = `${it.type}:${it.id}`;
               if (it.type === "learningPoster") return <LearningPosterContentCard key={`${uid}:${locale}:${key}:${it.updatedAt?.getTime()}`} poster={it} accountUid={uid || ""} />;
-              const actions = buildActions(it);
+              const itemActions = buildActions(it);
+              const familyAssignment = familyRoom ? itemActions.find((action) => action.key === "shareToSpace") : null;
+              const actions = familyAssignment ? itemActions.filter((action) => action !== familyAssignment) : itemActions;
               const desktopMainActions = desktopActions(it, actions);
               const desktopExtraActions = desktopOverflowActions(it, actions);
 
@@ -2789,6 +2798,16 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
                         </div>
                       ) : null}
 
+                      {familyAssignment ? (
+                        <button
+                          type="button"
+                          disabled={familyAssignment.disabled}
+                          onClick={familyAssignment.onClick}
+                          className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-emerald-800 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-900 disabled:opacity-60"
+                        >
+                          {shareActionLabel}
+                        </button>
+                      ) : null}
                       <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                         {desktopMainActions.map((a) => {
                           if (a.key === "delete" || a.key === "deleteFromArchive") {
@@ -3006,7 +3025,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
                     ? safeMsg("shareToBoard.title", "Del til tavle")
                     : pickLesson.mode === "writing"
                       ? safeMsg("writing.shareTitle", "Tildel skriveaktivitet")
-                      : t("shareToSpace.title")}
+                      : isParent ? tFamily("actions.addAssignment") : t("shareToSpace.title")}
                 </div>
                 <div className="truncate text-sm text-slate-600">{pickLesson.title}</div>
               </div>
@@ -3021,10 +3040,10 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
             <div className="p-4">
               {err && <p role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">{err}</p>}
               {shareableSpaces.length === 0 ? (
-                <div className="text-sm text-slate-600">{t("shareToSpace.noSpaces")}</div>
+                <div className="text-sm text-slate-600">{isParent ? tFamily("errors.noAvailableRooms") : t("shareToSpace.noSpaces")}</div>
               ) : (
                 <div>
-                  <input
+                  {!selectedFamilyRoomId ? <input
                     value={pickSpaceQuery}
                     onChange={(e) => {
                       setPickSpaceQuery(e.target.value);
@@ -3032,9 +3051,9 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
                     }}
                     className="mb-3 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm font-semibold outline-none focus:border-slate-500"
                     placeholder={safeMsg("shareToSpace.searchPlaceholder", "Søk etter rom...")}
-                  />
+                  /> : null}
 
-                  {pickLesson.mode !== "board" && pickLesson.mode !== "writing" ? (
+                  {!isParent && pickLesson.mode !== "board" && pickLesson.mode !== "writing" ? (
                     <div
                       className={[
                         "mb-3 rounded-2xl border-2 p-4 shadow-sm transition",
@@ -3146,10 +3165,12 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
                         {visiblePickSpaces.map((s) => (
                           <button
                             key={s.id}
+                            type="button"
+                            disabled={!!busyByKey[`shareToSpace:${s.id}:${pickLesson.sourceType}:${pickLesson.sourceId}`]}
                             onClick={() => assignLessonToSpace(s.id)}
-                            className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50"
+                            className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50 disabled:opacity-60"
                           >
-                            {(s.title || t("titles.space")).trim() || t("titles.space")}
+                            {selectedFamilyRoomId ? tFamily("actions.assignToRoom", { room: s.title }) : (s.title || t("titles.space")).trim() || t("titles.space")}
                             <div className="mt-1 text-xs font-semibold text-slate-500">
                               {(s.meta?.join(" · ") ?? "").trim()}
                             </div>
@@ -3173,7 +3194,7 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {t("shareToSpace.activeSpacesOnly")}
+              {isParent ? tFamily("activeFamilyRoomsOnly") : t("shareToSpace.activeSpacesOnly")}
             </div>
           </div>
         </div>
@@ -3183,14 +3204,21 @@ function ContentView({ viewer }: { viewer: ReturnType<typeof useUserProfile> }) 
 
   return (
     <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <header className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+      <header className={`box-border w-full min-w-0 max-w-full rounded-2xl border p-3 shadow-sm sm:p-5 ${isParent ? "border-emerald-200 bg-emerald-50" : "border-slate-300 bg-slate-50"}`}>
         <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
-          {isParent ? t("parent.title") : t("title")}
+          {familyRoom ? tFamily("chooseAssignment.title", { room: familyRoom.title }) : isParent ? t("parent.title") : t("title")}
         </h1>
         {!isStudent ? (
           <p className="mt-2 break-words text-sm text-slate-600">
-            {isParent ? t("parent.subtitle") : t("subtitle")}
+            {familyRoom ? tFamily("chooseAssignment.description") : isParent ? t("parent.subtitle") : t("subtitle")}
           </p>
+        ) : null}
+        {familyRoom ? (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-emerald-900">
+            <Link href={`/${locale}/parent/spaces/${familyRoom.id}`} className="underline underline-offset-4">{tFamily("chooseAssignment.back")}</Link>
+            <Link href={`/${locale}/tools`} className="underline underline-offset-4">{tFamily("chooseAssignment.create")}</Link>
+            <Link href={`/${locale}/321lessons`} className="underline underline-offset-4">{tFamily("chooseAssignment.library")}</Link>
+          </div>
         ) : null}
       </header>
       {isStudent ? (

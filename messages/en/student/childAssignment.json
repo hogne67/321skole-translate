@@ -11,6 +11,7 @@
       "audioFailed": "Could not play audio.",
       "loginRequired": "An adult must be signed in.",
       "saveFailed": "Could not save assignment.",
+      "workConflict": "The draft changed on another device. Reopen the assignment to see what was saved.",
       "title": "Oops, something went wrong",
       "body": "We could not open the assignment right now."
     },
@@ -20,7 +21,8 @@
       "celebrationTitle": "Great job!",
       "celebrationText": "The assignment has been handed in.",
       "delivered": "The assignment has been handed in.",
-      "readyToSubmit": "When you are finished, you can hand in the assignment."
+      "readyToSubmit": "When you are finished, you can hand in the assignment.",
+      "draftSaved": "Your work is saved. You can come back and finish it later."
     },
     "actions": {
       "back": "Back",
@@ -32,7 +34,8 @@
       "delivered": "You have handed it in",
       "pause": "Pause",
       "continue": "Continue",
-      "stop": "Stop"
+      "stop": "Stop",
+      "saveDraft": "Save and finish later"
     },
     "feedback": {
       "kicker": "New from the assignment",
@@ -56,10 +59,10 @@
       "true": "True",
       "false": "False",
       "answerPlaceholder": "Write your answer here...",
-      "answerSaved": "Answer saved",
+      "answerSaved": "Answered",
       "notAnswered": "Not answered yet",
       "correct": "You got this!",
-      "tryAgain": "Almost! Try once more."
+      "tryAgain": "You can practise this one some more."
     },
     "selfReport": {
       "title": "Before you hand in",

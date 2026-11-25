@@ -1,6 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canShareContentToSpace, isSpaceOpenForSharing } from "./spaceSharing";
+import { canShareContentToParentSpace, canShareContentToSpace, isSpaceOpenForSharing } from "./spaceSharing";
+
+test("owners can assign to private family rooms, including legacy rooms without isOpen", () => {
+  const room = { kind: "family", ownerId: "parent", isOpen: false };
+  assert.equal(canShareContentToParentSpace(room, "parent"), true);
+  assert.equal(canShareContentToParentSpace({ ...room, isOpen: undefined }, "parent"), true);
+  assert.equal(canShareContentToSpace(room, "parent"), false);
+});
+
+test("parent sharing respects room status and owner access", () => {
+  const room = { kind: "family", ownerId: "parent", isOpen: false };
+  assert.equal(canShareContentToParentSpace(room, "other-parent"), false);
+  assert.equal(canShareContentToParentSpace(room, "parent", { status: "removed" }), false);
+  for (const changes of [
+    { archived: true }, { deletedAt: new Date() }, { active: false }, { isActive: false },
+    { status: "closed" }, { kind: "class", isOpen: true }, { kind: "parent_group" },
+  ]) assert.equal(canShareContentToParentSpace({ ...room, ...changes }, "parent"), false);
+  assert.equal(canShareContentToParentSpace({ ...room, kind: "parent_group", isOpen: true }, "parent"), true);
+});
 
 test("sharing accepts open rooms, including legacy rooms without a status", () => {
   assert.equal(isSpaceOpenForSharing({ isOpen: true }), true);

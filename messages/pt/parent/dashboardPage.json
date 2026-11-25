@@ -1,5 +1,17 @@
 {
   "dashboardPage": {
+    "followUp": {
+      "title": "Aguardando resposta",
+      "loading": "Carregando entregas…",
+      "empty": "Nenhuma entrega aguarda resposta.",
+      "failed": "Não foi possível carregar as entregas agora.",
+      "retry": "Tentar novamente",
+      "assignment": "Atividade",
+      "room": "Sala da família",
+      "submitted": "Entregue em {date}",
+      "respond": "Dar feedback",
+      "respondTo": "Dar feedback sobre {assignment} em {room}"
+    },
     "dashboardIntro": {
       "helloAnon": "Olá!",
       "helloUser": "Olá {name}!",
@@ -108,6 +120,14 @@
         "myCourses": "Meus cursos",
         "browse": "Ver cursos"
       }
+    },
+    "portal": {
+      "title": "Portal da família",
+      "description": "Proponha atividades, veja o que foi entregue e acompanhe a aprendizagem em casa.",
+      "createFirstRoom": "Criar sala da família",
+      "openRooms": "Abrir salas da família",
+      "signIn": "Entre para abrir suas salas da família.",
+      "signUp": "Crie uma conta de responsável para compartilhar atividades e acompanhar a aprendizagem em casa."
     }
   }
 }

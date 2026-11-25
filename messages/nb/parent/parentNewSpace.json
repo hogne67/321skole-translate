@@ -1,12 +1,12 @@
 {
   "parentNewSpace": {
     "title": "Opprett nytt familierom",
-    "subtitle": "Gi rommet et navn som passer hjemme hos dere. Du kan for eksempel lage ett rom per barn eller per tema.",
+    "subtitle": "Gi rommet et navn. Deretter kan du legge til den første oppgaven.",
     "loading": "Laster…",
     "fields": {
       "title": "Romnavn",
       "placeholder": "For eksempel: Knut sitt rom",
-      "help": "Du kan endre og bygge videre på rommet senere."
+      "help": "Du kan ha ett rom per barn eller et rom for noe dere gjør sammen."
     },
     "suggestions": {
       "title": "Forslag",
@@ -16,13 +16,13 @@
       "room4": "Familie matematikk"
     },
     "actions": {
-      "back": "Tilbake til mine spaces",
+      "back": "Tilbake til familierom",
       "create": "Opprett rom",
       "creating": "Oppretter…",
       "cancel": "Avbryt"
     },
     "messages": {
-      "verifyBeforeCreate": "Du kan lese og se innhold nå, men du må bekrefte e-posten før du lager familierom."
+      "verifyBeforeCreate": "Bekreft e-posten din for å opprette familierommet."
     },
     "errors": {
       "mustBeLoggedIn": "Du må være logget inn som forelder for å opprette et rom.",

@@ -1,16 +1,19 @@
 // app/[locale]/(app)/parent/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
+import { authedPost } from "@/lib/authedPost";
+import { hasParentFeedback } from "@/lib/parentFeedback";
+import { childRoomHref } from "@/lib/familyDevice";
 import {
   doc,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
-  writeBatch,
   setDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
@@ -21,7 +24,6 @@ import {
   buildOppgaveStringForParent,
   buildParentSubmissionId,
   buildSvarStringForParent,
-  childMessageFromParentAi,
   coerceTopics,
   errMessage,
   evaluateAnswers,
@@ -48,9 +50,13 @@ import {
   type SubmissionDoc,
 } from "./assignmentDetailUtils";
 
+type ParentSuggestion = { parentMessage: string; childMessage: string; nextStep: string };
+
 export default function ParentAssignmentDetailPage() {
   const { spaceId, assignmentId } = useParams<{ spaceId: string; assignmentId: string }>();
   const t = useTranslations("parentAssignmentDetail");
+  const reviewSection = useRef<HTMLElement>(null);
+  const locale = useLocale();
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -73,9 +79,8 @@ export default function ParentAssignmentDetailPage() {
   const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
-  const [parentAiSuggestion, setParentAiSuggestion] = useState<string | null>(null);
+  const [parentAiSuggestion, setParentAiSuggestion] = useState<ParentSuggestion | null>(null);
   const [parentAiBusy, setParentAiBusy] = useState(false);
   const [parentAiMsg, setParentAiMsg] = useState<string | null>(null);
 
@@ -192,7 +197,6 @@ export default function ParentAssignmentDetailPage() {
         (snap) => {
           if (!snap.exists()) {
             setSubmission(null);
-            setAiFeedback(null);
             return;
           }
 
@@ -207,7 +211,6 @@ export default function ParentAssignmentDetailPage() {
             setAnswers(next);
           }
 
-          setAiFeedback(safeString(data.aiFeedback));
         }
       );
     } catch {
@@ -241,6 +244,15 @@ export default function ParentAssignmentDetailPage() {
   const autoSummary = renderAutoSummary(submission?.auto);
   const childSelfReport = submission?.childSelfReport ?? null;
   const showChildSelfReport = hasChildSelfReport(childSelfReport);
+  const isChildWork = submission?.isChildPortal === true;
+  const detailReady = !!(space && assignment);
+
+  useEffect(() => {
+    if (detailReady && window.location.hash === "#parent-review") {
+      reviewSection.current?.scrollIntoView({ block: "start" });
+      reviewSection.current?.focus({ preventScroll: true });
+    }
+  }, [detailReady]);
 
   const answeredCount = useMemo(
     () => Object.values(answers).filter((v) => isAnswered(v)).length,
@@ -248,11 +260,12 @@ export default function ParentAssignmentDetailPage() {
   );
 
   function setAnswer(taskId: string, value: string | boolean) {
+    if (isChildWork) return;
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
   }
 
   async function generateParentFeedbackSuggestion() {
-    if (!assignment) return;
+    if (!assignment || parentAiBusy || archived) return;
     if (parentAiRequiresEmailVerification) {
       setParentAiMsg(t("parentAi.verifyRequired"));
       return;
@@ -262,101 +275,18 @@ export default function ParentAssignmentDetailPage() {
     setParentAiMsg(null);
 
     try {
-      const selfReportLines: string[] = [];
-
-      if (childSelfReport?.readSilently) selfReportLines.push(t("childSelfReport.readSilently"));
-      if (childSelfReport?.readAloud) selfReportLines.push(t("childSelfReport.readAloud"));
-      if (childSelfReport?.completedTasks) selfReportLines.push(t("childSelfReport.completedTasks"));
-      if (childSelfReport?.feltEasy) selfReportLines.push(t("childSelfReport.feltEasy"));
-      if (childSelfReport?.feltHard) selfReportLines.push(t("childSelfReport.feltHard"));
-
-      const childComment = safeString(childSelfReport?.comment);
-
-      const workStatus = [
-        tasksOriginal.length > 0
-          ? `Barnet har svart på ${answeredCount} av ${tasksOriginal.length} oppgaver.`
-          : "",
-        autoSummary ? `Autokorrekt resultat: ${autoSummary}.` : "",
-        "Ikke skriv at barnet ikke har levert arbeid hvis noen oppgaver er besvart.",
-        "Hvis åpne svar er svært korte, skriv heller at barnet kan utvikle svaret mer neste gang.",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      const answerLines = tasksOriginal.map((task, idx) => {
-        const stableId = getStableTaskId(task, idx);
-        const type = taskType(task);
-        const prompt = taskPrompt(task);
-        const answer = answers[stableId];
-
-        const answerText =
-          typeof answer === "boolean"
-            ? answer
-              ? "Sant"
-              : "Usant"
-            : typeof answer === "string"
-              ? answer.trim()
-              : "";
-
-        return [
-          `Oppgave ${task.order ?? idx + 1}`,
-          `Type: ${type}`,
-          prompt ? `Spørsmål: ${prompt}` : "",
-          answerText ? `Barnets svar: ${answerText}` : "Barnets svar: ikke svart",
-        ]
-          .filter(Boolean)
-          .join("\n");
-      });
-
-      const answersDetail = answerLines.join("\n\n");
-
-      const response = await fetch("/api/parent-support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assignmentTitle,
-          sourceText: sourceTextSafe,
-          autoSummary: autoSummary ?? "",
-          aiFeedback: aiFeedback ?? "",
-          childComment: childComment ?? "",
-          childSelfReport: selfReportLines,
-          answersSummary: `${workStatus}\n\nFaktiske svar fra barnet:\n${answersDetail}`,
-          parentGoal: "",
-        }),
-      });
-
-      if (!response.ok) throw new Error(t("parentAi.error"));
-
-      const data: unknown = await response.json();
-      const d = data as {
-        parentMessage?: unknown;
-        childMessage?: unknown;
-        nextStep?: unknown;
-      };
-
-      const parentMessage = typeof d.parentMessage === "string" ? d.parentMessage.trim() : "";
-      const childMessage = typeof d.childMessage === "string" ? d.childMessage.trim() : "";
-      const nextStep = typeof d.nextStep === "string" ? d.nextStep.trim() : "";
-
-      const combined = [
-        parentMessage ? `👨‍👩‍👧 Til forelderen\n\n${parentMessage}` : "",
-        childMessage ? `💬 Forslag til melding til barnet\n\n${childMessage}` : "",
-        nextStep ? `🎯 Neste steg hjemme\n\n${nextStep}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n--------------------\n\n");
-
-      if (!combined.trim()) throw new Error(t("parentAi.empty"));
-
-      setParentAiSuggestion(combined);
+      const suggestion = await authedPost<ParentSuggestion>("/api/parent-support", { spaceId, assignmentId, locale });
+      setParentAiSuggestion(suggestion);
     } catch (e: unknown) {
-      setParentAiMsg(e instanceof Error ? e.message : t("parentAi.error"));
+      setParentAiMsg(t(e instanceof Error && e.message === "limit_reached" ? "parentAi.limitReached" : "parentAi.error"));
     } finally {
       setParentAiBusy(false);
     }
   }
 
   async function saveParentReview() {
+    const notifyChild = hasParentFeedback({ comment: reviewComment, stars: reviewStars });
+    if (savingReview || (!review && !notifyChild)) return;
     if (!user?.uid) {
       setReviewMsg(t("errors.saveReviewLogin"));
       return;
@@ -373,6 +303,7 @@ export default function ParentAssignmentDetailPage() {
           uid: user.uid,
           comment: reviewComment.trim(),
           stars: reviewStars,
+          notifyChild,
           updatedAt: serverTimestamp(),
         },
         { merge: true }
@@ -387,6 +318,7 @@ export default function ParentAssignmentDetailPage() {
   }
 
   async function submitAssignment() {
+    if (isChildWork || submitting) return;
     if (!assignment || !user?.uid) {
       setSubmitMsg(t("errors.submitLogin"));
       return;
@@ -476,12 +408,15 @@ export default function ParentAssignmentDetailPage() {
         createdAt: serverTimestamp(),
       };
 
-      const batch = writeBatch(dbx);
-      batch.set(nestedRef, payload, { merge: true });
-      batch.set(indexRef, payload, { merge: true });
-      await batch.commit();
+      const saved = await runTransaction(dbx, async (transaction) => {
+        const current = await transaction.get(nestedRef);
+        if (current.get("isChildPortal") === true) return false;
+        transaction.set(nestedRef, payload, { merge: true });
+        transaction.set(indexRef, payload, { merge: true });
+        return true;
+      });
+      if (!saved) return;
 
-      setAiFeedback(nextAiFeedback);
       setSubmitMsg(t("submission.saved"));
 
       if (typeof window !== "undefined") {
@@ -525,7 +460,7 @@ export default function ParentAssignmentDetailPage() {
 
   return (
     <main style={pageWrap}>
-      <header style={topHeader}>
+      <header style={topHeader} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
         <div>
           <div style={{ opacity: 0.72, marginBottom: 6 }}>
             {spaceTitle} • {kindLabel(spaceKind, t)}
@@ -545,13 +480,19 @@ export default function ParentAssignmentDetailPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <a href="#parent-review" style={startBtn}>{t("review.title")}</a>
+          {!archived ? (
+            <Link href={childRoomHref(spaceId, assignmentId, true)} style={secondaryBtn}>
+              {t("actions.tryTogether")}
+            </Link>
+          ) : null}
           <Link href={backHref} style={secondaryBtn}>
             {t("actions.backToSpace")}
           </Link>
         </div>
       </header>
 
-      <div style={mainGrid}>
+      <div className="mt-[18px] grid min-w-0 items-start gap-[18px] lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.75fr)]">
         <div style={leftColumn}>
           <section style={card}>
             <div
@@ -600,7 +541,7 @@ export default function ParentAssignmentDetailPage() {
 
           <section style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-              <h2 style={sectionTitle}>{t("sections.tasks")}</h2>
+              <h2 style={sectionTitle}>{t(isChildWork ? "sections.childWork" : "sections.tasks")}</h2>
               <div style={smallMuted}>
                 {answeredCount} / {tasksOriginal.length}
               </div>
@@ -635,7 +576,6 @@ export default function ParentAssignmentDetailPage() {
                           <strong>
                             {t("task.label")} {typeof task.order === "number" ? task.order : idx + 1}
                           </strong>
-                          <span style={{ marginLeft: 8 }}>• {type}</span>
                         </div>
 
                         {typeof taskAuto?.correct === "boolean" ? (
@@ -676,6 +616,7 @@ export default function ParentAssignmentDetailPage() {
                                   type="radio"
                                   name={stableId}
                                   checked={checked}
+                                  disabled={isChildWork}
                                   onChange={() => setAnswer(stableId, opt)}
                                 />
                                 <div>{opt}</div>
@@ -689,6 +630,7 @@ export default function ParentAssignmentDetailPage() {
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button
                             type="button"
+                            disabled={isChildWork}
                             onClick={() => setAnswer(stableId, true)}
                             style={{
                               ...pillButton,
@@ -701,6 +643,7 @@ export default function ParentAssignmentDetailPage() {
 
                           <button
                             type="button"
+                            disabled={isChildWork}
                             onClick={() => setAnswer(stableId, false)}
                             style={{
                               ...pillButton,
@@ -716,6 +659,7 @@ export default function ParentAssignmentDetailPage() {
                       {type === "open" ? (
                         <textarea
                           value={typeof current === "string" ? current : ""}
+                          readOnly={isChildWork}
                           onChange={(e) => setAnswer(stableId, e.target.value)}
                           rows={4}
                           placeholder={t("task.answerHere")}
@@ -731,9 +675,11 @@ export default function ParentAssignmentDetailPage() {
             <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {submitMsg ? <div style={submitStatusText}>{submitMsg}</div> : null}
 
-              <button type="button" onClick={submitAssignment} disabled={submitting} style={startBtn}>
-                {submitting ? t("actions.submitting") : t("actions.submit")}
-              </button>
+              {!isChildWork ? (
+                <button type="button" onClick={submitAssignment} disabled={submitting} style={startBtn}>
+                  {submitting ? t("actions.submitting") : t("actions.submit")}
+                </button>
+              ) : null}
 
               <Link href={backHref} style={secondaryBtn}>
                 {t("actions.backToSpace")}
@@ -794,7 +740,7 @@ export default function ParentAssignmentDetailPage() {
             <button
               type="button"
               onClick={generateParentFeedbackSuggestion}
-              disabled={parentAiBusy || parentAiRequiresEmailVerification}
+              disabled={parentAiBusy || parentAiRequiresEmailVerification || archived}
               style={{
                 ...darkBtn,
                 width: "100%",
@@ -807,7 +753,7 @@ export default function ParentAssignmentDetailPage() {
               {parentAiBusy ? t("parentAi.generating") : t("parentAi.button")}
             </button>
 
-            {parentAiMsg ? <div style={{ marginTop: 10, color: "crimson", fontSize: 13 }}>{parentAiMsg}</div> : null}
+            {parentAiMsg ? <div role="status" style={{ marginTop: 10, color: "crimson", fontSize: 13 }}>{parentAiMsg}</div> : null}
 
             {parentAiSuggestion ? (
               <div style={innerWhiteBox}>
@@ -815,11 +761,19 @@ export default function ParentAssignmentDetailPage() {
                   {t("parentAi.suggestion")}
                 </div>
 
-                <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{parentAiSuggestion}</div>
+                {(["parentMessage", "childMessage", "nextStep"] as const).map((key) => (
+                  <div key={key}>
+                    <h3 className="mb-1 mt-3 text-sm font-bold">{t(`parentAi.${key}`)}</h3>
+                    <p className="m-0 whitespace-pre-wrap text-sm leading-6">{parentAiSuggestion[key]}</p>
+                  </div>
+                ))}
 
                 <button
                   type="button"
-                  onClick={() => setReviewComment(childMessageFromParentAi(parentAiSuggestion))}
+                  onClick={() => {
+                    setReviewComment(parentAiSuggestion.childMessage);
+                    document.getElementById("parent-review-comment")?.focus();
+                  }}
                   style={{ ...btnStyle, marginTop: 12 }}
                 >
                   {t("parentAi.useAsComment")}
@@ -828,8 +782,8 @@ export default function ParentAssignmentDetailPage() {
             ) : null}
           </section>
 
-          <section style={card}>
-            <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("review.title")}</div>
+          <section ref={reviewSection} id="parent-review" tabIndex={-1} style={card} className="scroll-mt-4">
+            <h2 style={sectionTitle}>{t("review.title")}</h2>
 
             <div style={{ opacity: 0.8, lineHeight: 1.5, marginBottom: 12 }}>{t("review.intro")}</div>
 
@@ -841,7 +795,8 @@ export default function ParentAssignmentDetailPage() {
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setReviewStars(n)}
+                    onClick={() => setReviewStars((previous) => previous === n ? 0 : n)}
+                    aria-pressed={reviewStars === n}
                     style={{
                       border: "1px solid rgba(0,0,0,0.12)",
                       borderRadius: 10,
@@ -863,6 +818,8 @@ export default function ParentAssignmentDetailPage() {
             ) : null}
 
             <textarea
+              id="parent-review-comment"
+              aria-label={t("review.title")}
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
               rows={5}
@@ -871,12 +828,12 @@ export default function ParentAssignmentDetailPage() {
             />
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12, alignItems: "center" }}>
-              <button type="button" onClick={saveParentReview} disabled={savingReview} style={darkBtn}>
+              <button type="button" onClick={saveParentReview} disabled={savingReview || (!review && !hasParentFeedback({ comment: reviewComment, stars: reviewStars }))} style={darkBtn}>
                 {savingReview ? t("review.saving") : t("actions.saveComment")}
               </button>
 
               {review ? <span style={{ opacity: 0.7, fontSize: 13 }}>{t("review.existing")}</span> : null}
-              {reviewMsg ? <span style={{ opacity: 0.8, fontSize: 13 }}>{reviewMsg}</span> : null}
+              {reviewMsg ? <span role="status" style={{ opacity: 0.8, fontSize: 13 }}>{reviewMsg}</span> : null}
             </div>
           </section>
         </aside>
@@ -897,14 +854,6 @@ const topHeader: React.CSSProperties = {
   gap: 16,
   flexWrap: "wrap",
   alignItems: "flex-start",
-};
-
-const mainGrid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1.35fr) minmax(320px, 0.75fr)",
-  gap: 18,
-  alignItems: "start",
-  marginTop: 18,
 };
 
 const leftColumn: React.CSSProperties = {

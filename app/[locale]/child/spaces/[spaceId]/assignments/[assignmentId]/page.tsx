@@ -2,7 +2,7 @@
 "use client";
 import { speechHeaders } from "@/lib/audio/headers.client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -11,94 +11,31 @@ import { getStudentSpaceMembership } from "@/lib/studentSpaceMembership";
 import {
     doc,
     onSnapshot,
+    runTransaction,
     serverTimestamp,
-    writeBatch,
     type Firestore,
 } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import type { SpaceDoc } from "@/lib/spacesClient";
+import { useChildRoomAccess } from "@/components/child/ChildRoomAccess";
+import { childRoomHref, FAMILY_GREETING_ID, familyDeviceApi, type FamilyAssignmentData, type FamilyRoomSummary } from "@/lib/familyDevice";
+import { hasParentFeedback } from "@/lib/parentFeedback";
+import { isParentSpaceKind } from "@/lib/spaceSharing";
 import { getReadingPracticeStage, readingPracticeSpokenText } from "@/lib/a1start/readingPracticeText";
 import { showsReadingPracticeWordDivisions } from "@/lib/a1start/readingPractice";
 import { activeLessonSentenceIndex, readLessonSentenceStarts, splitLessonSentences } from "@/lib/audio/lessonSentenceTiming";
 import ReadingPracticeText, { ReadingPracticeWordList } from "@/components/student/ReadingPracticeText";
 
+import {
+    buildParentSubmissionId, evaluateAnswers, firstLongText, getStableTaskId, isDelivered,
+    safeString, safeTasksArray, sortTasksByOrder, taskOptions, taskPrompt, taskType,
+    type AssignmentDoc, type ChildSelfReport, type ParentReviewDoc, type SubmissionDoc,
+} from "@/lib/familyAssignments";
+
 type TtsLang = "no" | "en" | "pt-BR";
 type AudioMode = "text" | "task" | "option" | "feedback";
-
-type AssignmentDoc = {
-    title?: string;
-    description?: string;
-    instructions?: string;
-    text?: string;
-    sourceText?: string;
-    tasks?: unknown;
-    coverImageUrl?: string;
-    imageUrl?: string;
-    sourceType?: string;
-    sourceId?: string;
-    language?: string;
-    [k: string]: unknown;
-};
-
-type Task = {
-    id?: string;
-    order?: number;
-    type?: string;
-    prompt?: string;
-    question?: string;
-    text?: string;
-    sentence?: string;
-    options?: unknown;
-    choices?: unknown;
-    alternatives?: unknown;
-    answer?: unknown;
-    correctAnswer?: unknown;
-    isTrue?: unknown;
-};
-
-type ChildSelfReport = {
-    readSilently?: boolean;
-    readAloud?: boolean;
-    completedTasks?: boolean;
-    feltEasy?: boolean;
-    feltHard?: boolean;
-    comment?: string;
-};
-
-type SubmissionDoc = {
-    answers?: Record<string, string | boolean>;
-    childSelfReport?: ChildSelfReport;
-    status?: string;
-    aiFeedback?: string | null;
-    auto?: {
-        score?: number;
-        maxScore?: number;
-        correctCount?: number;
-        totalAutoGraded?: number;
-        byTask?: Record<string, { correct?: boolean }>;
-    };
-};
-
-
-
-type ParentReviewDoc = {
-    uid?: string;
-    comment?: string;
-    stars?: number;
-    updatedAt?: unknown;
-};
 
 function requireDb(x: Firestore | null | undefined): Firestore {
     if (!x) throw new Error("Firestore is not initialized.");
     return x;
-}
-
-function safeString(v: unknown): string | null {
-    return typeof v === "string" && v.trim() ? v.trim() : null;
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-    return typeof v === "object" && v !== null;
 }
 
 function toTtsLang(lang: string | undefined | null): TtsLang {
@@ -114,174 +51,6 @@ function fmtTime(sec: number) {
     const m = Math.floor(s / 60);
     const r = s % 60;
     return `${m}:${String(r).padStart(2, "0")}`;
-}
-
-function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
-    return `${spaceId}_${assignmentId}_${uid}`;
-}
-
-function safeTasksArray(tasks: unknown): Task[] {
-    if (Array.isArray(tasks)) return tasks as Task[];
-
-    if (typeof tasks === "string") {
-        try {
-            const parsed: unknown = JSON.parse(tasks);
-            return Array.isArray(parsed) ? (parsed as Task[]) : [];
-        } catch {
-            return [];
-        }
-    }
-
-    return [];
-}
-
-function sortTasksByOrder(a: Task, b: Task) {
-    const ao = typeof a.order === "number" ? a.order : 999;
-    const bo = typeof b.order === "number" ? b.order : 999;
-    return ao - bo;
-}
-
-function getStableTaskId(t: Task, idx: number): string {
-    if (t.id != null && String(t.id).trim()) return String(t.id).trim();
-
-    const orderPart = t.order != null ? String(t.order) : "x";
-    const prompt =
-        safeString(t.prompt) ??
-        safeString(t.question) ??
-        safeString(t.text) ??
-        safeString(t.sentence) ??
-        "";
-
-    if (prompt) return `${orderPart}__${prompt.slice(0, 80)}`;
-    return `${orderPart}__idx${idx}`;
-}
-
-function taskPrompt(t: Task): string {
-    return (
-        safeString(t.prompt) ??
-        safeString(t.question) ??
-        safeString(t.text) ??
-        safeString(t.sentence) ??
-        ""
-    );
-}
-
-function taskType(t: Task): "mcq" | "truefalse" | "open" {
-    const raw = (safeString(t.type) ?? "open").toLowerCase();
-
-    if (raw === "mcq" || raw === "multiplechoice" || raw === "multiple_choice") return "mcq";
-    if (raw === "truefalse" || raw === "true_false" || raw === "boolean") return "truefalse";
-
-    return "open";
-}
-
-function taskOptions(t: Task): string[] {
-    const raw = Array.isArray(t.options)
-        ? t.options
-        : Array.isArray(t.choices)
-            ? t.choices
-            : Array.isArray(t.alternatives)
-                ? t.alternatives
-                : [];
-
-    return raw
-        .map((v) => {
-            if (typeof v === "string") return v.trim();
-
-            if (isRecord(v)) {
-                return (
-                    safeString(v.text) ??
-                    safeString(v.label) ??
-                    safeString(v.value) ??
-                    safeString(v.title) ??
-                    ""
-                );
-            }
-
-            return "";
-        })
-        .filter(Boolean);
-}
-
-function normalizeAnswerString(v: unknown): string {
-    if (typeof v === "boolean") return v ? "true" : "false";
-    if (typeof v === "string") return v.trim().toLowerCase();
-    return "";
-}
-
-function evaluateAnswers(tasks: Task[], answers: Record<string, string | boolean>) {
-    let score = 0;
-    let maxScore = 0;
-    let correctCount = 0;
-
-    const byTask: Record<string, { correct?: boolean }> = {};
-
-    tasks.forEach((t, idx) => {
-        const stableId = getStableTaskId(t, idx);
-        const type = taskType(t);
-        const answer = answers[stableId];
-
-        if (type === "open") {
-            byTask[stableId] = {};
-            return;
-        }
-
-        maxScore += 1;
-
-        const expectedRaw =
-            typeof t.correctAnswer !== "undefined"
-                ? t.correctAnswer
-                : typeof t.answer !== "undefined"
-                    ? t.answer
-                    : typeof t.isTrue !== "undefined"
-                        ? t.isTrue
-                        : null;
-
-        let correct = false;
-
-        if (type === "truefalse") {
-            const expected =
-                typeof expectedRaw === "boolean"
-                    ? expectedRaw
-                    : normalizeAnswerString(expectedRaw) === "true";
-
-            const actual =
-                typeof answer === "boolean"
-                    ? answer
-                    : normalizeAnswerString(answer) === "true";
-
-            correct = expected === actual;
-        } else {
-            const expected = normalizeAnswerString(expectedRaw);
-            const actual = normalizeAnswerString(answer);
-            correct = !!expected && expected === actual;
-        }
-
-        byTask[stableId] = { correct };
-
-        if (correct) {
-            score += 1;
-            correctCount += 1;
-        }
-    });
-
-    return {
-        score,
-        maxScore,
-        correctCount,
-        totalAutoGraded: maxScore,
-        byTask,
-    };
-}
-
-function firstLongText(d: AssignmentDoc): string {
-    return (
-        safeString(d.sourceText) ??
-        safeString(d.text) ??
-        safeString(d.description) ??
-        safeString(d.instructions) ??
-        ""
-    );
 }
 
 function pickImageUrl(a: AssignmentDoc): string | null {
@@ -354,23 +123,38 @@ export default function ChildAssignmentPage() {
         assignmentId: string;
     }>();
     const t = useTranslations("childAssignment");
+    const access = useChildRoomAccess();
+    const user = access.mode === "parent" ? access.user : null;
+    const deviceApi = access.mode === "device"
+        ? familyDeviceApi(spaceId) + "/assignments/" + encodeURIComponent(assignmentId)
+        : null;
+    const refreshRoom = access.mode === "device" ? access.refreshRoom : null;
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const greetingRef = useRef<HTMLElement | null>(null);
+    const speechRequest = useRef<AbortController | null>(null);
+    const deviceReadVersion = useRef(0);
 
-    const [user, setUser] = useState<User | null>(null);
     const [participantId, setParticipantId] = useState<string | null>(null);
-    const [space, setSpace] = useState<SpaceDoc | null>(null);
+    const [space, setSpace] = useState<FamilyRoomSummary | null>(null);
     const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
     const [submission, setSubmission] = useState<SubmissionDoc | null>(null);
     const [parentReview, setParentReview] = useState<ParentReviewDoc | null>(null);
+    const [unreadFeedbackRevision, setUnreadFeedbackRevision] = useState<string | null>(null);
 
     const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
     const [childSelfReport, setChildSelfReport] = useState<ChildSelfReport>({});
-    const [saving, setSaving] = useState(false);
+    const [submissionReady, setSubmissionReady] = useState(false);
+    const [revision, setRevision] = useState<string | null>(null);
+    const [deviceRefresh, setDeviceRefresh] = useState(0);
+    const [savingStatus, setSavingStatus] = useState<"draft" | "submitted" | null>(null);
+    const saving = savingStatus !== null;
+    const savingRef = useRef(false);
+    const hasUnsavedEdits = useRef(false);
     const [msg, setMsg] = useState<string | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [celebrate, setCelebrate] = useState(false);
-    const [feedbackOpen, setFeedbackOpen] = useState(false);
+    const [feedbackChoice, setFeedbackChoice] = useState<boolean | null>(null);
 
     const [ttsBusy, setTtsBusy] = useState<AudioMode | null>(null);
     const [activeAudioLabel, setActiveAudioLabel] = useState<string | null>(null);
@@ -380,12 +164,54 @@ export default function ChildAssignmentPage() {
     const [duration, setDuration] = useState(0);
     const [activeSentence, setActiveSentence] = useState<number | null>(null);
 
-    const backHref = `/child/spaces/${spaceId}`;
+    const backHref = childRoomHref(spaceId, undefined, access.mode === "parent");
+
+    const applySubmission = useCallback((data: SubmissionDoc | null) => {
+        setSubmissionReady(true);
+        setSubmission(data);
+        if (hasUnsavedEdits.current && !isDelivered(data?.status)) return;
+        setAnswers(Object.fromEntries(Object.entries(data?.answers ?? {})
+            .filter(([, value]) => typeof value === "string" || typeof value === "boolean")));
+        setChildSelfReport(data?.childSelfReport ?? {});
+    }, []);
+
+    const applyDeviceView = useCallback((view: FamilyAssignmentData) => {
+        setSpace(view.room);
+        setAssignment(view.assignment);
+        setParentReview(view.parentReview);
+        setUnreadFeedbackRevision(view.unreadFeedbackRevision);
+        if (!hasUnsavedEdits.current || isDelivered(view.submission?.status)) setRevision(view.revision);
+        applySubmission(view.submission);
+        setErr(null);
+    }, [applySubmission]);
 
     useEffect(() => {
-        const auth = getAuth();
-        return onAuthStateChanged(auth, (u) => setUser(u));
-    }, []);
+        if (!deviceApi) return;
+        let controller: AbortController | null = null;
+        async function load() {
+            if (!deviceApi || savingRef.current) return;
+            controller?.abort();
+            const request = new AbortController();
+            controller = request;
+            const version = ++deviceReadVersion.current;
+            try {
+                const response = await fetch(deviceApi, { cache: "no-store", signal: request.signal });
+                if (!response.ok) throw new Error(t(response.status === 401 ? "errors.readRoom" : "errors.readAssignment"));
+                const view: FamilyAssignmentData = await response.json();
+                if (!request.signal.aborted && version === deviceReadVersion.current) applyDeviceView(view);
+            } catch (error) {
+                if (!request.signal.aborted && version === deviceReadVersion.current) {
+                    setErr(error instanceof Error ? error.message : t("errors.readAssignment"));
+                }
+            }
+        }
+        void load();
+        window.addEventListener("focus", load);
+        return () => {
+            controller?.abort();
+            window.removeEventListener("focus", load);
+        };
+    }, [applyDeviceView, deviceApi, deviceRefresh, t]);
 
     useEffect(() => {
         if (!user?.uid) {
@@ -414,6 +240,7 @@ export default function ChildAssignmentPage() {
     }, [spaceId, user?.uid]);
 
     useEffect(() => {
+        if (!user) return;
         let unsub: (() => void) | null = null;
 
         try {
@@ -421,7 +248,11 @@ export default function ChildAssignmentPage() {
 
             unsub = onSnapshot(
                 doc(dbx, "spaces", spaceId),
-                (snap) => setSpace(snap.exists() ? (snap.data() as SpaceDoc) : null),
+                (snap) => {
+                    const room = snap.data();
+                    if (room && isParentSpaceKind(room.kind) && !room.deletedAt) setSpace(room as FamilyRoomSummary);
+                    else setErr(t("errors.readRoom"));
+                },
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
@@ -429,9 +260,10 @@ export default function ChildAssignmentPage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, t]);
+    }, [spaceId, t, user]);
 
     useEffect(() => {
+        if (!user) return;
         let unsub: (() => void) | null = null;
 
         try {
@@ -439,7 +271,11 @@ export default function ChildAssignmentPage() {
 
             unsub = onSnapshot(
                 doc(dbx, "spaces", spaceId, "lessons", assignmentId),
-                (snap) => setAssignment(snap.exists() ? (snap.data() as AssignmentDoc) : null),
+                (snap) => {
+                    const data = snap.data();
+                    if (data && data.archived !== true && data.status !== "archived") setAssignment(data as AssignmentDoc);
+                    else setErr(t("errors.readAssignment"));
+                },
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
@@ -447,56 +283,28 @@ export default function ChildAssignmentPage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, assignmentId, t]);
+    }, [spaceId, assignmentId, t, user]);
 
     useEffect(() => {
-        const activeParticipantId = participantId || user?.uid || null;
-        if (!user?.uid || !activeParticipantId) return;
+        if (!user?.uid || !participantId) return;
 
         let unsub: (() => void) | null = null;
 
         try {
             const dbx = requireDb(db);
-            const submissionId = buildParentSubmissionId(spaceId, assignmentId, activeParticipantId);
+            const submissionId = buildParentSubmissionId(spaceId, assignmentId, participantId);
 
             unsub = onSnapshot(
                 doc(dbx, "spaces", spaceId, "lessons", assignmentId, "submissions", submissionId),
-                (snap) => {
-                    if (!snap.exists()) {
-                        setSubmission(null);
-                        return;
-                    }
-
-                    const data = snap.data() as SubmissionDoc;
-                    setSubmission(data);
-
-                    if (isRecord(data.answers)) {
-                        const next: Record<string, string | boolean> = {};
-
-                        for (const [k, v] of Object.entries(data.answers)) {
-                            if (typeof v === "string" || typeof v === "boolean") next[k] = v;
-                        }
-
-                        setAnswers(next);
-                    }
-                    if (isRecord(data.childSelfReport)) {
-                        setChildSelfReport({
-                            readSilently: data.childSelfReport.readSilently === true,
-                            readAloud: data.childSelfReport.readAloud === true,
-                            completedTasks: data.childSelfReport.completedTasks === true,
-                            feltEasy: data.childSelfReport.feltEasy === true,
-                            feltHard: data.childSelfReport.feltHard === true,
-                            comment: safeString(data.childSelfReport.comment) ?? "",
-                        });
-                    }
-                }
+                (snap) => applySubmission(snap.exists() ? snap.data() as SubmissionDoc : null),
+                () => setErr(t("errors.readAssignment"))
             );
         } catch {
             // ignore
         }
 
         return () => unsub?.();
-    }, [spaceId, assignmentId, user?.uid, participantId]);
+    }, [spaceId, assignmentId, user?.uid, participantId, t, applySubmission]);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -526,6 +334,11 @@ export default function ChildAssignmentPage() {
         a.playbackRate = playbackRate;
     }, [playbackRate]);
 
+    useEffect(() => () => {
+        speechRequest.current?.abort();
+        audioRef.current?.pause();
+    }, []);
+
     const tasks = useMemo(() => {
         return safeTasksArray(assignment?.tasks).slice().sort(sortTasksByOrder);
     }, [assignment?.tasks]);
@@ -547,14 +360,62 @@ export default function ChildAssignmentPage() {
     const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
     const autoSummary = renderAutoSummary(submission?.auto);
     const ttsLang = toTtsLang(assignment?.language);
-    const submitted = submission?.status === "submitted";
+    const submitted = isDelivered(submission?.status);
+    const hasFamilyFeedback = hasParentFeedback(parentReview);
+    const feedbackOpen = feedbackChoice ?? hasFamilyFeedback;
+
+    useEffect(() => {
+        if (!feedbackOpen || !hasFamilyFeedback || window.location.hash !== "#" + FAMILY_GREETING_ID) return;
+        greetingRef.current?.scrollIntoView({ block: "start" });
+        greetingRef.current?.focus({ preventScroll: true });
+    }, [feedbackOpen, hasFamilyFeedback]);
+
+    useEffect(() => {
+        const greeting = greetingRef.current;
+        if (!deviceApi || !refreshRoom || !unreadFeedbackRevision || !feedbackOpen || !greeting) return;
+        let sending = false;
+        let active = true;
+        async function recordIfVisible() {
+            if (!active || sending || document.hidden || !greeting) return;
+            const bounds = greeting.getBoundingClientRect();
+            if (bounds.top >= window.innerHeight || bounds.bottom <= 0) return;
+            sending = true;
+            try {
+                const response = await fetch(deviceApi + "/feedback-read", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ revision: unreadFeedbackRevision }),
+                    cache: "no-store",
+                });
+                if (response.ok) {
+                    if (active) setUnreadFeedbackRevision((current) => current === unreadFeedbackRevision ? null : current);
+                    refreshRoom?.();
+                    return;
+                }
+                if (response.status === 409) {
+                    if (active) setDeviceRefresh((value) => value + 1);
+                    refreshRoom?.();
+                }
+            } catch {
+                // A later visit can record the greeting if the connection is interrupted.
+            }
+            sending = false;
+        }
+        const observer = new IntersectionObserver(() => void recordIfVisible());
+        observer.observe(greeting);
+        document.addEventListener("visibilitychange", recordIfVisible);
+        return () => {
+            active = false;
+            observer.disconnect();
+            document.removeEventListener("visibilitychange", recordIfVisible);
+        };
+    }, [deviceApi, feedbackOpen, refreshRoom, unreadFeedbackRevision]);
 
     const hasFeedback = !!(
         submitted ||
         autoSummary ||
         submission?.aiFeedback ||
-        parentReview?.comment ||
-        parentReview?.stars
+        hasFamilyFeedback
     );
 
     function stopAudio() {
@@ -579,7 +440,7 @@ export default function ChildAssignmentPage() {
         audioRef.current?.play().catch(() => { });
     }
 
-    async function playTTS(text: string, mode: AudioMode, label: string) {
+    async function playTTS(text: string, mode: AudioMode, label: string, taskIndex?: number, optionIndex?: number) {
         const useFullPlayer = mode === "text" || mode === "feedback";
         const readingPassage = mode === "text" && readingStage !== null;
         const clean = (readingPassage && showWordDivisions ? readingPracticeSpokenText(text) : text).trim();
@@ -587,14 +448,18 @@ export default function ChildAssignmentPage() {
 
         setTtsBusy(mode);
         setMsg(null);
+        speechRequest.current?.abort();
+        const request = new AbortController();
+        speechRequest.current = request;
 
         try {
             stopAudio();
 
-            const res = await fetch("/api/tts", {
+            const res = await fetch(deviceApi ? deviceApi + "/speech" : "/api/tts", {
                 method: "POST",
-                headers: await speechHeaders(),
-                body: JSON.stringify({
+                headers: deviceApi ? { "Content-Type": "application/json" } : await speechHeaders(),
+                signal: request.signal,
+                body: JSON.stringify(deviceApi ? { mode, taskIndex, optionIndex } : {
                     lessonId: assignmentId,
                     spaceId,
                     lang: ttsLang,
@@ -605,6 +470,7 @@ export default function ChildAssignmentPage() {
             });
 
             const raw = await res.text();
+            if (request.signal.aborted) return;
 
             let data: unknown = {};
             try {
@@ -615,7 +481,7 @@ export default function ChildAssignmentPage() {
 
             const d = data as { error?: unknown; url?: unknown; sentenceStarts?: unknown };
 
-            if (!res.ok) throw new Error(d?.error ? String(d.error) : `TTS error ${res.status}`);
+            if (!res.ok) throw new Error(deviceApi ? t("errors.audioFailed") : d?.error ? String(d.error) : `TTS error ${res.status}`);
 
             const url = String(d.url ?? "").trim();
             if (!url) throw new Error("TTS returned no url");
@@ -672,78 +538,100 @@ export default function ChildAssignmentPage() {
 
             await a.play();
         } catch (e: unknown) {
+            if (request.signal.aborted) return;
             setMsg(e instanceof Error ? e.message : t("errors.audioFailed"));
             stopAudio();
         } finally {
-            setTtsBusy(null);
+            if (speechRequest.current === request) setTtsBusy(null);
         }
     }
 
     function setAnswer(taskId: string, value: string | boolean) {
+        if (savingRef.current || submitted) return;
+        hasUnsavedEdits.current = true;
         setAnswers((prev) => ({ ...prev, [taskId]: value }));
     }
 
-    async function submitAssignment() {
-        if (!assignment || !user?.uid) {
-            setMsg(t("errors.loginRequired"));
-            return;
-        }
+    async function saveParentPreview(status: "draft" | "submitted") {
+        if (!user || !participantId) return false;
+        const dbx = requireDb(db);
+        const uid = user.uid;
+        const submissionId = buildParentSubmissionId(spaceId, assignmentId, participantId);
+        const nestedRef = doc(dbx, "spaces", spaceId, "lessons", assignmentId, "submissions", submissionId);
+        const indexRef = doc(dbx, "spaceSubmissions", submissionId);
 
-        setSaving(true);
-        setMsg(null);
-        setErr(null);
-
-        try {
-            const dbx = requireDb(db);
-            const auto = evaluateAnswers(tasks, answers);
-            const activeParticipantId = participantId || user.uid;
-            const submissionId = buildParentSubmissionId(spaceId, assignmentId, activeParticipantId);
-
-            const nestedRef = doc(
-                dbx,
-                "spaces",
-                spaceId,
-                "lessons",
-                assignmentId,
-                "submissions",
-                submissionId
-            );
-
-            const indexRef = doc(dbx, "spaceSubmissions", submissionId);
-
+        return runTransaction(dbx, async (transaction) => {
+            const current = await transaction.get(nestedRef);
+            if (isDelivered(current.get("status"))) return false;
             const payload = {
                 spaceId,
                 assignmentId,
-                uid: user.uid,
-                participantId: activeParticipantId,
+                uid,
+                participantId,
                 role: "parent",
                 isParentFlow: true,
                 isChildPortal: true,
                 title,
-                status: "submitted",
+                status,
                 answers,
                 childSelfReport,
-                auto,
-                aiFeedback: submission?.aiFeedback ?? null,
-                submittedAt: Date.now(),
+                ...(status === "submitted" ? { auto: evaluateAnswers(tasks, answers), submittedAt: Date.now() } : {}),
                 updatedAt: serverTimestamp(),
-                createdAt: serverTimestamp(),
-                auth: { uid: user.uid, participantId: activeParticipantId },
+                createdAt: current.get("createdAt") ?? serverTimestamp(),
+                auth: { uid, participantId },
             };
+            transaction.set(nestedRef, payload, { merge: true });
+            transaction.set(indexRef, payload, { merge: true });
+            return true;
+        });
+    }
 
-            const batch = writeBatch(dbx);
-            batch.set(nestedRef, payload, { merge: true });
-            batch.set(indexRef, payload, { merge: true });
-            await batch.commit();
+    async function saveAssignment(status: "draft" | "submitted") {
+        if (!space || !assignment || (!deviceApi && (!user?.uid || !participantId)) || !submissionReady || submitted || savingRef.current) return;
 
-            setCelebrate(true);
-            setFeedbackOpen(true);
-            setTimeout(() => setCelebrate(false), 3500);
-            setMsg(t("messages.submitted"));
-        } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : t("errors.saveFailed"));
+        savingRef.current = true;
+        deviceReadVersion.current++;
+        setSavingStatus(status);
+        setMsg(null);
+
+        try {
+            if (deviceApi) {
+                const response = await fetch(deviceApi, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status, revision, answers, childSelfReport }),
+                    cache: "no-store",
+                });
+                if (response.status === 409) {
+                    const { error } = await response.json();
+                    if (error === "already_delivered") {
+                        setMsg(t("messages.delivered"));
+                        setDeviceRefresh((value) => value + 1);
+                    } else {
+                        setMsg(t("errors.workConflict"));
+                    }
+                    return;
+                }
+                if (!response.ok) throw new Error("Could not save family work.");
+                const view: FamilyAssignmentData = await response.json();
+                hasUnsavedEdits.current = false;
+                applyDeviceView(view);
+            } else if (!await saveParentPreview(status)) {
+                setMsg(t("messages.delivered"));
+                return;
+            }
+            hasUnsavedEdits.current = false;
+            if (status === "submitted") {
+                setCelebrate(true);
+                setFeedbackChoice(true);
+                setTimeout(() => setCelebrate(false), 3500);
+            }
+            setMsg(t(status === "draft" ? "messages.draftSaved" : "messages.submitted"));
+        } catch {
+            setMsg(t("errors.saveFailed"));
         } finally {
-            setSaving(false);
+            savingRef.current = false;
+            setSavingStatus(null);
         }
     }
 
@@ -774,14 +662,14 @@ export default function ChildAssignmentPage() {
         );
     }
 
-    if (!assignment) {
-        return <main className="p-4 text-sm text-slate-600">{t("messages.loading")}</main>;
+    if (!space || !assignment || !submissionReady) {
+        return <p role="status" className="p-4 text-sm text-slate-600">{t("messages.loading")}</p>;
     }
 
     return (
         <main className="mx-auto w-full max-w-4xl space-y-4 pb-40">
             {celebrate ? (
-                <section className="animate-pulse rounded-3xl border border-green-200 bg-gradient-to-br from-green-100 to-emerald-50 p-8 text-center shadow-lg">
+                <section className="rounded-3xl border border-green-200 bg-gradient-to-br from-green-100 to-emerald-50 p-8 text-center shadow-lg motion-safe:animate-pulse">
                     <div className="text-6xl">🎉</div>
                     <h2 className="mt-4 text-4xl font-black text-green-900">{t("messages.celebrationTitle")}</h2>
                     <div className="mt-3 text-lg font-bold text-green-800">
@@ -815,7 +703,9 @@ export default function ChildAssignmentPage() {
                 <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
                     <button
                         type="button"
-                        onClick={() => setFeedbackOpen((v) => !v)}
+                        onClick={() => setFeedbackChoice(!feedbackOpen)}
+                        aria-expanded={feedbackOpen}
+                        aria-controls="child-assignment-feedback"
                         className="flex w-full items-center justify-between gap-3 text-left"
                     >
                         <div>
@@ -823,7 +713,7 @@ export default function ChildAssignmentPage() {
                                 {t("feedback.kicker")}
                             </div>
                             <div className="mt-1 text-2xl font-black text-emerald-950">
-                                {t("feedback.title")}
+                                {t(hasFamilyFeedback ? "feedback.homeGreeting" : submission?.aiFeedback ? "feedback.title" : "feedback.resultTitle")}
                             </div>
                             <div className="mt-1 text-sm font-semibold text-emerald-800">
                                 {t("feedback.hint")}
@@ -836,7 +726,7 @@ export default function ChildAssignmentPage() {
                     </button>
 
                     {feedbackOpen ? (
-                        <div className="mt-5 space-y-4">
+                        <div id="child-assignment-feedback" className="mt-5 space-y-4">
                             {submitted ? (
                                 <div className="rounded-2xl border border-sky-200 bg-white p-4">
                                     <div className="text-sm font-black text-sky-700">
@@ -887,8 +777,8 @@ export default function ChildAssignmentPage() {
                                 </div>
                             ) : null}
 
-                            {(parentReview?.comment || parentReview?.stars) ? (
-                                <div className="rounded-2xl border border-yellow-200 bg-white p-4">
+                            {hasFamilyFeedback ? (
+                                <section id={FAMILY_GREETING_ID} ref={greetingRef} tabIndex={-1} className="scroll-mt-4 rounded-2xl border border-yellow-200 bg-white p-4">
                                     <div className="text-sm font-black text-yellow-700">
                                         {t("feedback.homeGreeting")} 💛
                                     </div>
@@ -904,7 +794,7 @@ export default function ChildAssignmentPage() {
                                             {parentReview.comment}
                                         </div>
                                     ) : null}
-                                </div>
+                                </section>
                             ) : null}
                         </div>
                     ) : null}
@@ -992,7 +882,7 @@ export default function ChildAssignmentPage() {
 
                                         <button
                                             type="button"
-                                            onClick={() => playTTS(prompt, "task", t("content.taskNumber", { number: taskNumber }))}
+                                            onClick={() => playTTS(prompt, "task", t("content.taskNumber", { number: taskNumber }), idx)}
                                             disabled={ttsBusy === "task" || !prompt}
                                             className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-900 hover:bg-sky-200 disabled:opacity-60"
                                         >
@@ -1027,6 +917,7 @@ export default function ChildAssignmentPage() {
                                                             type="radio"
                                                             name={stableId}
                                                             checked={checked}
+                                                            disabled={submitted || saving}
                                                             onChange={() => setAnswer(stableId, opt)}
                                                             className="mt-1"
                                                         />
@@ -1040,7 +931,7 @@ export default function ChildAssignmentPage() {
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
-                                                                    playTTS(opt, "option", t("content.optionLabel", { number: i + 1 }));
+                                                                    playTTS(opt, "option", t("content.optionLabel", { number: i + 1 }), idx, i);
                                                                 }}
                                                                 disabled={ttsBusy === "option"}
                                                                 className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-900 hover:bg-sky-200 disabled:opacity-60"
@@ -1059,6 +950,8 @@ export default function ChildAssignmentPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setAnswer(stableId, true)}
+                                                disabled={submitted || saving}
+                                                aria-pressed={current === true}
                                                 className={[
                                                     "rounded-2xl border px-6 py-4 text-base font-black",
                                                     current === true
@@ -1076,6 +969,8 @@ export default function ChildAssignmentPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setAnswer(stableId, false)}
+                                                disabled={submitted || saving}
+                                                aria-pressed={current === false}
                                                 className={[
                                                     "rounded-2xl border px-6 py-4 text-base font-black",
                                                     current === false
@@ -1095,6 +990,7 @@ export default function ChildAssignmentPage() {
                                     {type === "open" ? (
                                         <textarea
                                             value={typeof current === "string" ? current : ""}
+                                            readOnly={submitted || saving}
                                             onChange={(e) => setAnswer(stableId, e.target.value)}
                                             rows={6}
                                             placeholder={t("content.answerPlaceholder")}
@@ -1154,33 +1050,36 @@ export default function ChildAssignmentPage() {
                         >
                             <input
                                 type="checkbox"
-                                disabled={submitted}
+                                disabled={submitted || saving}
                                 checked={Boolean(childSelfReport[key as keyof ChildSelfReport])}
-                                onChange={() =>
+                                onChange={() => {
+                                    hasUnsavedEdits.current = true;
                                     setChildSelfReport((prev) => ({
                                         ...prev,
                                         [key]: !prev[key as keyof ChildSelfReport],
-                                    }))
-                                }
+                                    }));
+                                }}
                             />
                             {label}
                         </label>
                     ))}
                 </div>
 
-                <label className="mt-5 block text-sm font-black text-emerald-950">
+                <label htmlFor="child-comment" className="mt-5 block text-sm font-black text-emerald-950">
                     {t("selfReport.comment")}
                 </label>
 
                 <textarea
-                    disabled={submitted}
+                    id="child-comment"
+                    disabled={submitted || saving}
                     value={childSelfReport.comment ?? ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                        hasUnsavedEdits.current = true;
                         setChildSelfReport((prev) => ({
                             ...prev,
                             comment: e.target.value,
-                        }))
-                    }
+                        }));
+                    }}
                     placeholder={t("selfReport.commentPlaceholder")}
                     rows={4}
                     className="mt-2 w-full rounded-2xl border border-emerald-200 bg-white p-4 text-base leading-7 text-slate-900 outline-none focus:border-emerald-500 disabled:bg-slate-100"
@@ -1189,23 +1088,30 @@ export default function ChildAssignmentPage() {
 
             <section className="sticky bottom-0 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm font-semibold text-slate-600">
+                    <div role="status" className="text-sm font-semibold text-slate-600">
                         {msg ?? (submitted ? t("messages.delivered") : t("messages.readyToSubmit"))}
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={submitAssignment}
-                        disabled={saving || submitted}
-                        className={[
-                            "inline-flex items-center justify-center rounded-2xl px-6 py-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-90",
-                            submitted
-                                ? "bg-sky-600"
-                                : "bg-green-600 hover:bg-green-500",
-                        ].join(" ")}
-                    >
-                        {saving ? t("actions.saving") : submitted ? t("actions.delivered") : t("actions.save")}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                        {!submitted ? (
+                            <button
+                                type="button"
+                                onClick={() => saveAssignment("draft")}
+                                disabled={saving}
+                                className="inline-flex min-h-12 items-center rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-base font-bold text-emerald-950 hover:bg-emerald-50 disabled:opacity-60"
+                            >
+                                {t(savingStatus === "draft" ? "actions.saving" : "actions.saveDraft")}
+                            </button>
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={() => saveAssignment("submitted")}
+                            disabled={saving || submitted}
+                            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-800 px-5 py-3 text-base font-black text-white shadow-sm hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {savingStatus === "submitted" ? t("actions.saving") : submitted ? t("actions.delivered") : t("actions.save")}
+                        </button>
+                    </div>
                 </div>
             </section>
 

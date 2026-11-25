@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import ChildRoomAccess from "@/components/child/ChildRoomAccess";
 
 type Props = {
   children: ReactNode;
@@ -11,9 +12,11 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
 
   return {
     manifest: `/${locale}/child/spaces/${encodeURIComponent(spaceId)}/manifest.webmanifest`,
+    robots: { index: false, follow: false },
   };
 }
 
-export default function ChildSpaceLayout({ children }: Props) {
-  return children;
+export default async function ChildSpaceLayout({ children, params }: Props) {
+  const { spaceId } = await params;
+  return <Suspense><ChildRoomAccess key={spaceId} spaceId={spaceId}>{children}</ChildRoomAccess></Suspense>;
 }

@@ -21,6 +21,9 @@
     "users": "Users",
     "review": "Review",
     "submissions": "Submissions",
-    "tools": "+ Create lesson"
+    "tools": "+ Create lesson",
+    "parentHome": "Parent portal",
+    "familyRooms": "Family rooms",
+    "parentTools": "Create an activity"
   }
 }

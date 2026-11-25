@@ -22,7 +22,7 @@ export default function ChildLayout({
                 </div>
             </header>
 
-            <main className="mx-auto w-full max-w-5xl p-4">{children}</main>
+            <div className="mx-auto box-border w-full max-w-5xl p-4">{children}</div>
         </div>
     );
 }

@@ -2,14 +2,15 @@
   "childSpace": {
     "brand": "321school",
     "fallbacks": {
-      "spaceTitle": "Mitt rom",
+      "spaceTitle": "Mitt familierom",
       "assignmentTitle": "Oppgave"
     },
     "errors": {
       "title": "Noe gikk galt",
       "readRoom": "Kunne ikke lese rommet.",
       "readAssignments": "Kunne ikke lese oppgaver.",
-      "readGoals": "Kunne ikke lese mål."
+      "readGoals": "Kunne ikke lese mål.",
+      "askAdult": "Be en forelder åpne rommet sammen med deg."
     },
     "install": {
       "button": "Legg til på startskjerm",
@@ -22,7 +23,8 @@
       "start": "Start",
       "delivered": "Levert",
       "continue": "Fortsett",
-      "viewCompleted": "Se ferdig oppgave"
+      "viewCompleted": "Se ferdig oppgave",
+      "viewParentFeedback": "Les hilsenen"
     },
     "goal": {
       "title": "Mål",
@@ -32,17 +34,37 @@
     "assignments": {
       "title": "Oppgaver",
       "moreTitle": "Flere oppgaver",
-      "none": "Ingen oppgaver akkurat nå.",
+      "none": "Når en voksen legger til en oppgave, finner du den her.",
       "noneMore": "Ingen flere oppgaver akkurat nå.",
       "result": "Resultat: {value}",
       "feedbackReady": "Tilbakemelding klar",
-      "feedback": "Tilbakemelding"
+      "feedback": "Tilbakemelding",
+      "parentFeedback": "Hilsen hjemmefra"
+    },
+    "greetings": {
+      "title": "{count, plural, one {Ny hilsen hjemmefra} other {Nye hilsener hjemmefra}}",
+      "open": "Les hilsenen",
+      "openFor": "Les hilsenen til {assignment}"
     },
     "startPage": {
       "title": "Barnerom",
       "opening": "Åpner barnerommet...",
-      "missingSavedRoom": "Åpne barnerommet fra foreldresiden én gang til, så husker startskjerm-ikonet riktig rom.",
-      "parentSpaces": "Gå til foreldrerom"
+      "missingSavedRoom": "Bruk lenken du har fått hjemmefra for å åpne familierommet på denne enheten."
+    },
+    "access": {
+      "title": "Hent en voksen",
+      "description": "Be en voksen sende deg en ny lenke til familierommet.",
+      "connectionError": "Vi får ikke åpnet rommet akkurat nå. Prøv igjen om litt.",
+      "retry": "Prøv igjen",
+      "parentSignIn": "Logg inn i foreldreportalen"
+    },
+    "connect": {
+      "title": "Åpne familierommet ditt",
+      "description": "Trykk på knappen for å koble denne enheten til rommet ditt. Da kan du åpne rommet igjen direkte.",
+      "open": "Åpne familierommet",
+      "opening": "Åpner rommet …",
+      "invalidTitle": "Du trenger en ny lenke",
+      "invalid": "Denne lenken kan ha utløpt eller blitt brukt. Be en voksen sende deg en ny."
     }
   }
 }

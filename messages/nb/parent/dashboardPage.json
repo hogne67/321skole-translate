@@ -1,5 +1,17 @@
 {
   "dashboardPage": {
+    "followUp": {
+      "title": "Venter på svar",
+      "loading": "Henter innleveringer …",
+      "empty": "Ingen innleveringer venter på svar.",
+      "failed": "Vi får ikke hentet innleveringene akkurat nå.",
+      "retry": "Prøv igjen",
+      "assignment": "Oppgave",
+      "room": "Familierom",
+      "submitted": "Levert {date}",
+      "respond": "Gi tilbakemelding",
+      "respondTo": "Gi tilbakemelding på {assignment} i {room}"
+    },
     "dashboardIntro": {
       "helloAnon": "Hei!",
       "helloUser": "Hei {name}!",
@@ -108,6 +120,14 @@
         "myCourses": "Mine kurs",
         "browse": "Se kurs"
       }
+    },
+    "portal": {
+      "title": "Foreldreportalen",
+      "description": "Gi barnet oppgaver, se hva som er levert og følg opp hjemme.",
+      "createFirstRoom": "Opprett familierom",
+      "openRooms": "Åpne familierom",
+      "signIn": "Logg inn for å åpne familierommene dine.",
+      "signUp": "Opprett en foreldrekonto for å dele oppgaver og følge opp hjemme."
     }
   }
 }

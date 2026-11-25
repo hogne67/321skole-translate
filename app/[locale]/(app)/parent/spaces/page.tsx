@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { auth, db } from "@/lib/firebase";
 
@@ -21,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { listMySpaceIds } from "@/lib/spaceMembership";
 import type { SpaceDoc } from "@/lib/spacesClient";
+import { hasParentFeedback, needsParentReply } from "@/lib/parentFeedback";
 
 type TFn = ReturnType<typeof useTranslations>;
 
@@ -112,8 +112,10 @@ type SpaceCardMeta = {
   activeLessonId: string | null;
   activeLessonTitle: string | null;
   activeSubmissionStatus: string | null;
+  activeIsChildWork: boolean;
   activeHasAiFeedback: boolean;
   activeHasParentReview: boolean;
+  reviewLoaded: boolean;
   activeReviewStars: number | null;
 };
 
@@ -187,7 +189,6 @@ function Badge({
 export default function ParentSpacesPage() {
   const t = useTranslations("parentSpaces");
   const locale = useLocale();
-  const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
   const [spaces, setSpaces] = useState<Array<{ id: string; data: SpaceDoc }>>([]);
@@ -289,8 +290,10 @@ export default function ParentSpacesPage() {
           activeLessonId: null,
           activeLessonTitle: null,
           activeSubmissionStatus: null,
+          activeIsChildWork: false,
           activeHasAiFeedback: false,
           activeHasParentReview: false,
+          reviewLoaded: false,
           activeReviewStars: null,
         };
 
@@ -321,25 +324,23 @@ export default function ParentSpacesPage() {
 
           const lessons: Array<{ id: string; data: AssignmentDoc }> = [];
           snap.forEach((d: QueryDocumentSnapshot<DocumentData>) => {
-            lessons.push({ id: d.id, data: d.data() as AssignmentDoc });
+            const data = d.data() as AssignmentDoc;
+            if (data.archived !== true && data.status !== "archived") lessons.push({ id: d.id, data });
           });
 
           const spaceData = space.data as Record<string, unknown>;
-          const activeLessonId = safeString(spaceData.activeLessonId);
-          const activeLessonDoc = activeLessonId
-            ? lessons.find((x) => x.id === activeLessonId)?.data ?? null
-            : null;
+          const activeLesson = lessons.find((x) => x.id === safeString(spaceData.activeLessonId)) ?? lessons[0];
+          const activeLessonId = activeLesson?.id ?? null;
 
           patchMeta(sid, {
             lessonCount: lessons.length,
             activeLessonId,
-            activeLessonTitle:
-              safeString(spaceData.activeLessonTitle) ??
-              safeString(activeLessonDoc?.title) ??
-              null,
+            activeLessonTitle: safeString(activeLesson?.data.title),
             activeSubmissionStatus: null,
+            activeIsChildWork: false,
             activeHasAiFeedback: false,
             activeHasParentReview: false,
+            reviewLoaded: false,
             activeReviewStars: null,
           });
 
@@ -353,6 +354,7 @@ export default function ParentSpacesPage() {
               if (!submissionSnap.exists()) {
                 patchMeta(sid, {
                   activeSubmissionStatus: null,
+                  activeIsChildWork: false,
                   activeHasAiFeedback: false,
                 });
                 return;
@@ -361,6 +363,7 @@ export default function ParentSpacesPage() {
               const data = submissionSnap.data() as ParentSpaceSubmissionDoc;
               patchMeta(sid, {
                 activeSubmissionStatus: safeString(data.status),
+                activeIsChildWork: data.isChildPortal === true,
                 activeHasAiFeedback: !!safeString(data.aiFeedback),
               });
             },
@@ -373,6 +376,7 @@ export default function ParentSpacesPage() {
               if (!reviewSnap.exists()) {
                 patchMeta(sid, {
                   activeHasParentReview: false,
+                  reviewLoaded: true,
                   activeReviewStars: null,
                 });
                 return;
@@ -380,7 +384,8 @@ export default function ParentSpacesPage() {
 
               const data = reviewSnap.data() as ParentReviewDoc;
               patchMeta(sid, {
-                activeHasParentReview: true,
+                activeHasParentReview: hasParentFeedback(data),
+                reviewLoaded: true,
                 activeReviewStars: safeNumber(data.stars),
               });
             },
@@ -456,10 +461,10 @@ export default function ParentSpacesPage() {
 
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+      <header className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-sm sm:p-6">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+            <h1 className="m-0 break-words text-3xl font-extrabold tracking-tight text-emerald-950">{t("title")}</h1>
             <div className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</div>
           </div>
 
@@ -472,7 +477,7 @@ export default function ParentSpacesPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </header>
 
       {err ? (
         <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -480,15 +485,7 @@ export default function ParentSpacesPage() {
         </div>
       ) : null}
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
-        <div className="min-w-0">
-          <div className="text-base font-semibold text-slate-900">{t("title")}</div>
-          <div className="mt-1 break-words text-sm text-slate-600">
-            {t("counts.groups", { count: spaces.length })}
-          </div>
-        </div>
-
-        <div className="mt-4">
+      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5" aria-label={t("title")}>
           {spaces.length === 0 ? (
             <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:p-6">
               {t.rich("empty", {
@@ -504,21 +501,18 @@ export default function ParentSpacesPage() {
 
                 const openHref = `/parent/spaces/${s.id}`;
                 const meta = spaceMeta[s.id] ?? null;
+                const readyForFeedback = !!meta?.reviewLoaded && needsParentReply(meta.activeSubmissionStatus, meta.activeIsChildWork, meta.activeHasParentReview);
 
                 return (
-                  <div
+                  <article
                     key={s.id}
-                    role="link"
-                    tabIndex={0}
-                    onClick={() => router.push(openHref)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") router.push(openHref);
-                    }}
-                    className="box-border w-full min-w-0 max-w-full cursor-pointer rounded-2xl border border-slate-300 bg-white p-3 shadow-sm transition hover:shadow-md sm:p-5"
+                    className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
                   >
                     <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+                        <h2 className="m-0 break-words text-lg font-bold text-slate-900">
+                          <Link href={openHref} className="text-inherit no-underline hover:underline">{title}</Link>
+                        </h2>
 
                         <div className="mt-2 text-sm text-slate-600">{subtitle}</div>
 
@@ -534,10 +528,10 @@ export default function ParentSpacesPage() {
                             {meta.activeLessonTitle ? (
                               <Badge text={t("badges.active", { title: meta.activeLessonTitle })} tone="neutral" />
                             ) : null}
-                            <Badge
-                              text={statusLabel(meta.activeSubmissionStatus, t)}
-                              tone={statusTone(meta.activeSubmissionStatus)}
-                            />
+                            {meta.activeLessonId ? <Badge
+                              text={readyForFeedback ? t("status.readyForFeedback") : statusLabel(meta.activeSubmissionStatus, t)}
+                              tone={readyForFeedback ? "warn" : statusTone(meta.activeSubmissionStatus)}
+                            /> : null}
                             {meta.activeHasAiFeedback ? (
                               <Badge text={t("badges.aiFeedback")} tone="good" />
                             ) : null}
@@ -554,27 +548,23 @@ export default function ParentSpacesPage() {
                           </div>
                         ) : null}
 
-                        <div className="mt-3 break-words text-sm text-slate-500">{t("actions.openSpace")}</div>
                       </div>
 
                       <div className="w-full min-w-0 sm:w-auto">
                         <Link
-                          href={openHref}
-                          onClick={(e) => e.stopPropagation()}
+                          href={readyForFeedback ? openHref + "/assignments/" + meta.activeLessonId + "#parent-review" : openHref}
                           className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
-                          title={t("actions.openSpace")}
                         >
-                          {t("actions.openSpace")}
+                          {t(readyForFeedback ? "actions.respond" : "actions.openSpace")}
                         </Link>
                       </div>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
           )}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

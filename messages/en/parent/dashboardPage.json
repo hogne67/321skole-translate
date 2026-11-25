@@ -1,5 +1,17 @@
 {
   "dashboardPage": {
+    "followUp": {
+      "title": "Waiting for a reply",
+      "loading": "Loading submissions…",
+      "empty": "No submissions are waiting for a reply.",
+      "failed": "We couldn’t load submissions right now.",
+      "retry": "Try again",
+      "assignment": "Assignment",
+      "room": "Family room",
+      "submitted": "Submitted {date}",
+      "respond": "Give feedback",
+      "respondTo": "Give feedback on {assignment} in {room}"
+    },
     "dashboardIntro": {
       "helloAnon": "Hello!",
       "helloUser": "Hello {name}!",
@@ -108,6 +120,14 @@
         "myCourses": "My courses",
         "browse": "Browse courses"
       }
+    },
+    "portal": {
+      "title": "Parent portal",
+      "description": "Give your child activities, see what they’ve finished and support their learning at home.",
+      "createFirstRoom": "Create a family room",
+      "openRooms": "Open family rooms",
+      "signIn": "Sign in to open your family rooms.",
+      "signUp": "Create a parent account to share activities and support learning at home."
     }
   }
 }

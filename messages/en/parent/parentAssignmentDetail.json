@@ -11,9 +11,9 @@
       "other": "Space"
     },
     "actions": {
-      "backToSpace": "Back to space",
+      "backToSpace": "Back to the family room",
       "openBoard": "Open board",
-      "saveComment": "Save comment",
+      "saveComment": "Send to your child",
       "submit": "SUBMIT",
       "submitting": "Submitting…",
       "translateText": "Translate text",
@@ -30,7 +30,8 @@
       "showTranslation": "Show translation",
       "hideTranslation": "Hide translation",
       "showAllTranslations": "Show all translations",
-      "hideAllTranslations": "Hide all translations"
+      "hideAllTranslations": "Hide all translations",
+      "tryTogether": "Open the activity in child view"
     },
     "missing": {
       "title": "Assignment not found",
@@ -71,11 +72,11 @@
       "noTasks": "No tasks in this lesson."
     },
     "review": {
-      "title": "Parent review",
-      "intro": "Here you can write a comment and give stars for how the activity worked at home.",
+      "title": "Feedback for your child",
+      "intro": "Leave a note or give stars. Your child can see your feedback in the activity.",
       "placeholder": "Write a comment …",
       "saving": "Saving …",
-      "saved": "Comment saved.",
+      "saved": "Your feedback was sent to your child.",
       "existing": "Previous review found."
     },
     "translation": {
@@ -89,6 +90,7 @@
       "generating": "Generating audio …"
     },
     "sections": {
+      "childWork": "Your child’s work",
       "text": "Text",
       "tasks": "Tasks",
       "feedback": "Feedback"
@@ -142,14 +144,18 @@
     },
     "parentAi": {
       "title": "AI support for the parent",
-      "intro": "Get a warm and specific feedback suggestion based on the child’s self-report, answers and result.",
+      "intro": "Get a suggestion based on your child’s progress and the boxes they checked in their self-assessment.",
       "button": "Get feedback suggestion",
       "generating": "Generating suggestion…",
       "suggestion": "Suggestion",
       "useAsComment": "Send for parent review",
       "verifyRequired": "Verify your email before using AI support in the parent area.",
       "error": "Could not generate a suggestion right now.",
-      "empty": "The AI did not generate a suggestion."
+      "empty": "The AI did not generate a suggestion.",
+      "limitReached": "You’ve used your AI feedback allowance for this month.",
+      "parentMessage": "Advice for you",
+      "childMessage": "Suggested note",
+      "nextStep": "Try this together"
     }
   }
 }

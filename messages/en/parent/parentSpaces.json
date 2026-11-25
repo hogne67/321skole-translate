@@ -1,31 +1,32 @@
 {
   "parentSpaces": {
-    "title": "My spaces",
-    "subtitle": "Here you will find family rooms and parent spaces for activities at home.",
+    "title": "My family rooms",
+    "subtitle": "See what your child is working on and respond when they hand something in.",
     "defaultTitle": "Untitled space",
     "actions": {
       "open": "Open",
-      "openSpace": "Open space",
-      "newSpace": "Create space",
-      "parentGroups": "+ Create new room"
+      "openSpace": "Open room",
+      "newSpace": "Create a family room",
+      "parentGroups": "Create a family room",
+      "respond": "Give feedback"
     },
     "guestPreview": {
       "title": "Want to create a family room?",
-      "subtitle": "As a guest, you can see how parent spaces work. Sign in when you want to create rooms and save your work.",
-      "text": "Parent spaces bring assignments, courses and home activities together in one place. Children can keep working with the content, and you can follow along and support them.",
+      "subtitle": "Sign in to create a family room and save your work.",
+      "text": "Add activities to a family room. Your child can work in their view while you follow their progress.",
       "loginCreate": "Sign in to create a room",
       "cards": {
         "family": {
-          "title": "Gather the family",
-          "text": "Create rooms for children, groups or home practice."
+          "title": "Create a room",
+          "text": "Make a room for a child or an activity you do together."
         },
         "share": {
-          "title": "Share content",
-          "text": "Use the library, quizzes and assignments together with children."
+          "title": "Add an activity",
+          "text": "Choose an activity from My content."
         },
         "follow": {
-          "title": "Follow the work",
-          "text": "See activity, support learning and keep an overview in one place."
+          "title": "Reply to your child",
+          "text": "Read their work and leave a short note."
         }
       }
     },
@@ -37,20 +38,21 @@
       "parentGroup": "Parent group",
       "other": "Space"
     },
-    "empty": "You do not have any parent spaces yet.",
+    "empty": "Create a family room to add your first activity.",
     "loading": "Loading…",
     "errors": {
-      "loadFailed": "Could not load spaces."
+      "loadFailed": "Could not load family rooms."
     },
     "counts": {
-      "groups": "{count, plural, one {# group} other {# groups}}"
+      "groups": "{count, plural, one {# room} other {# rooms}}"
     },
     "status": {
       "notStarted": "Not started",
       "draft": "Draft",
       "submitted": "Submitted",
       "needsWork": "Needs work",
-      "reviewed": "Reviewed"
+      "reviewed": "Reviewed",
+      "readyForFeedback": "Ready for feedback"
     },
     "badges": {
       "tasks": "{count} tasks",

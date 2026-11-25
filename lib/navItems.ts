@@ -49,9 +49,10 @@ export function navItemsForRole(
 
   if (role === "parent") {
     const parentItems = [
-      ...base,
-      { href: "/parent/spaces", labelKey: "spaces" },
-      { href: "/tools", labelKey: "tools" },
+      { href: "/parent", labelKey: "parentHome" },
+      { href: "/parent/spaces", labelKey: "familyRooms" },
+      { href: "/content", labelKey: "myContent" },
+      { href: "/tools", labelKey: "parentTools" },
     ];
 
     if (opts?.hasPartnerAccess) {

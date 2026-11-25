@@ -1,12 +1,12 @@
 {
   "parentNewSpace": {
     "title": "Criar nova sala familiar",
-    "subtitle": "Dê um nome à sala que combine com sua casa. Por exemplo, você pode criar uma sala para cada criança ou para cada tema.",
+    "subtitle": "Dê um nome à sala. Depois você pode adicionar a primeira atividade.",
     "loading": "Carregando…",
     "fields": {
       "title": "Nome da sala",
       "placeholder": "Por exemplo: Sala do Knut",
-      "help": "Você pode alterar e desenvolver a sala depois."
+      "help": "Use uma sala por criança ou crie uma sala para uma atividade em família."
     },
     "suggestions": {
       "title": "Sugestões",
@@ -16,13 +16,13 @@
       "room4": "Matemática da família"
     },
     "actions": {
-      "back": "Voltar para meus spaces",
+      "back": "Voltar às salas da família",
       "create": "Criar sala",
       "creating": "Criando…",
       "cancel": "Cancelar"
     },
     "messages": {
-      "verifyBeforeCreate": "Você pode ler e ver conteúdo agora, mas precisa confirmar o e-mail antes de criar salas familiares."
+      "verifyBeforeCreate": "Confirme seu e-mail para criar a sala da família."
     },
     "errors": {
       "mustBeLoggedIn": "Você deve estar logado como responsável para criar uma sala.",

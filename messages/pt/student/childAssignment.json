@@ -11,6 +11,7 @@
       "audioFailed": "Não foi possível tocar o áudio.",
       "loginRequired": "Um adulto precisa estar conectado.",
       "saveFailed": "Não foi possível salvar a atividade.",
+      "workConflict": "O rascunho foi alterado em outro dispositivo. Abra a atividade novamente para ver o que foi salvo.",
       "title": "Ops, algo deu errado",
       "body": "Não conseguimos abrir a atividade agora."
     },
@@ -20,7 +21,8 @@
       "celebrationTitle": "Muito bem!",
       "celebrationText": "A atividade foi entregue.",
       "delivered": "A atividade foi entregue.",
-      "readyToSubmit": "Quando terminar, você pode entregar a atividade."
+      "readyToSubmit": "Quando terminar, você pode entregar a atividade.",
+      "draftSaved": "Seu trabalho está salvo. Você pode terminar depois."
     },
     "actions": {
       "back": "Voltar",
@@ -32,7 +34,8 @@
       "delivered": "Você entregou",
       "pause": "Pausar",
       "continue": "Continuar",
-      "stop": "Parar"
+      "stop": "Parar",
+      "saveDraft": "Salvar e continuar depois"
     },
     "feedback": {
       "kicker": "Novidade da atividade",
@@ -56,10 +59,10 @@
       "true": "Verdadeiro",
       "false": "Falso",
       "answerPlaceholder": "Escreva sua resposta aqui...",
-      "answerSaved": "Resposta salva",
+      "answerSaved": "Você respondeu",
       "notAnswered": "Ainda não respondido",
       "correct": "Você conseguiu!",
-      "tryAgain": "Quase! Tente mais uma vez."
+      "tryAgain": "Você pode praticar mais esta resposta."
     },
     "selfReport": {
       "title": "Antes de entregar",

@@ -31,6 +31,7 @@ import { trackEvent } from "@/lib/trackEvent";
 import { Eye, EyeOff } from "lucide-react";
 import { requestPasswordReset } from "@/lib/email/passwordResetClient";
 import { passwordResetCopy } from "@/lib/email/passwordResetEmail";
+import { roleFromPathname } from "@/lib/guestRole";
 
 function toErrorString(err: unknown): string {
   if (!err) return "";
@@ -128,6 +129,8 @@ export default function LoginClient() {
     const q = rawNext ? `?next=${encodeURIComponent(rawNext)}` : "";
     return `/${locale}/post-login${q}`;
   }, [sp, locale]);
+  const tParent = useTranslations("dashboardPage");
+  const isParentEntry = roleFromPathname(sp.get("next")) === "parent";
 
   const [mode, setMode] = useState<Mode>(sp.get("mode") === "signup" ? "signup" : "signin");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("choice");
@@ -918,7 +921,7 @@ export default function LoginClient() {
 
             <div style={headerStyle}>
               <h1 style={titleStyle}>
-                {isAnonUpgrade
+                {isParentEntry ? tParent("portal.title") : isAnonUpgrade
                   ? safeT("title.anon", "Save your work")
                   : mode === "signin"
                   ? safeT("title.signin", "Welcome back")
@@ -926,7 +929,7 @@ export default function LoginClient() {
               </h1>
 
               <p style={subtitleStyle}>
-                {isAnonUpgrade
+                {isParentEntry ? tParent(mode === "signin" ? "portal.signIn" : "portal.signUp") : isAnonUpgrade
                   ? safeT(
                     "intro.anon",
                     "Create an account or log in to keep everything you have made."

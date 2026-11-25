@@ -12,13 +12,16 @@
       "other": "Space"
     },
     "actions": {
-      "backToMySpaces": "Tilbake til mine spaces",
-      "backMySpacesShort": "Mine spaces",
-      "open": "Åpne",
+      "backToMySpaces": "Tilbake til familierom",
+      "backMySpacesShort": "Mine familierom",
+      "open": "Se oppgaven",
       "openSpace": "Åpne space",
       "archive": "Arkiver",
       "archiving": "Arkiverer…",
-      "childRoomView": "Barneromsvisning"
+      "childRoomView": "Barneromsvisning",
+      "addAssignment": "Legg til oppgave",
+      "assignToRoom": "Legg til i {room}",
+      "respond": "Gi tilbakemelding"
     },
     "missing": {
       "title": "Space ikke funnet",
@@ -32,7 +35,9 @@
       "listenStart": "Kunne ikke starte lytting på space.",
       "readAssignments": "Kunne ikke lese oppgaver.",
       "listenAssignmentsStart": "Kunne ikke starte lytting på oppgaver.",
-      "archiveAssignment": "Kunne ikke arkivere oppgaven."
+      "archiveAssignment": "Kunne ikke arkivere oppgaven.",
+      "assignmentUnavailable": "Rommet kan ikke ta imot oppgaver akkurat nå.",
+      "noAvailableRooms": "Ingen tilgjengelige familierom."
     },
     "active": {
       "title": "Aktiv aktivitet",
@@ -47,17 +52,19 @@
       "parentGroup": "En foreldregruppe kan brukes til å dele ressurser, aktiviteter og felles fokusområder."
     },
     "all": {
-      "title": "Alle aktiviteter i dette rommet",
+      "title": "Oppgaver i rommet",
       "showArchived": "Vis arkiverte",
-      "none": "Ingen aktiviteter i dette rommet.",
-      "archivedTag": "(arkivert)"
+      "none": "Rommet har ingen oppgaver ennå.",
+      "archivedTag": "(arkivert)",
+      "firstAssignment": "Legg til en oppgave fra Mitt innhold. Da blir den tilgjengelig i barnevisningen."
     },
     "status": {
       "notStarted": "Ikke startet",
       "draft": "Utkast",
       "submitted": "Levert",
       "needsWork": "Må jobbes mer med",
-      "reviewed": "Vurdert"
+      "reviewed": "Vurdert",
+      "readyForFeedback": "Klar for tilbakemelding"
     },
     "badges": {
       "auto": "Auto: {value}",
@@ -82,15 +89,41 @@
       "tasksCount": "{count} oppgaver",
       "empty": "Lag et enkelt mål barnet kan jobbe mot i barnevisningen.",
       "newGoal": "Nytt mål",
-      "placeholder": "Fullfør 3 oppgaver denne uka",
+      "placeholder": "Fullfør 3 oppgaver",
       "targetLabel": "Antall oppgaver",
       "save": "Lagre mål",
       "saving": "Lagrer..."
     },
     "childRoomCard": {
       "title": "Barneromsvisning",
-      "text": "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også.",
-      "button": "Åpne barneromsvisning"
+      "text": "Åpne barnevisningen når dere jobber sammen.",
+      "button": "Åpne barnevisningen"
+    },
+    "childAccess": {
+      "title": "Barnets tilgang",
+      "description": "Koble barnets enhet til dette familierommet. På den enheten kan barnet jobbe med oppgaver og lese hilsener hjemmefra på egen hånd.",
+      "create": "Koble til en enhet",
+      "creating": "Lager lenke …",
+      "replace": "Lag ny lenke",
+      "share": "Skann QR-koden på barnets enhet, eller del lenken med barnet. Lenken kan brukes én gang innen {minutes} minutter.",
+      "pending": "En engangslenke venter på å bli brukt. Du kan lage en ny lenke her.",
+      "qrAlt": "QR-kode for å koble til familierommet",
+      "link": "Engangslenke til familierommet",
+      "copy": "Kopier lenke",
+      "cancel": "Trekk lenken tilbake",
+      "devices": "Tilkoblede enheter",
+      "device": "Enhet {number}",
+      "connected": "Tilkoblet {date}",
+      "expires": "Utløper {date}",
+      "revoke": "Koble fra",
+      "revokeDevice": "Koble fra enhet {number}",
+      "duration": "Enheten har tilgang i {days} dager. Du kan koble den fra når som helst.",
+      "copied": "Lenken er kopiert.",
+      "copyManually": "Lenken er markert. Du kan kopiere den.",
+      "failed": "Kunne ikke oppdatere tilgangen. Prøv igjen.",
+      "limit": "Familierommet har nådd grensen for tilkoblede enheter.",
+      "revoked": "Enheten er koblet fra.",
+      "cancelled": "Lenken er trukket tilbake."
     },
     "childSelfReport": {
       "title": "Før du leverer",
@@ -102,6 +135,14 @@
       "feltHard": "Dette var vanskelig.",
       "comment": "Vil du skrive noe til den voksne?",
       "commentPlaceholder": "Skriv her hvis du vil..."
-    }
+    },
+    "chooseAssignment": {
+      "title": "Velg en oppgave til {room}",
+      "description": "Velg «Legg til oppgave» ved oppgaven du vil gi barnet.",
+      "back": "Tilbake til rommet",
+      "create": "Lag en oppgave",
+      "library": "Finn og lagre fra biblioteket"
+    },
+    "activeFamilyRoomsOnly": "Her vises aktive familierom du kan tildele til."
   }
 }

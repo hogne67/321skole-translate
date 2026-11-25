@@ -2,9 +2,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import FamilyDeviceAccessPanel from "@/components/child/FamilyDeviceAccessPanel";
+import { childRoomHref } from "@/lib/familyDevice";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { ArrowLeft, BookOpen, Plus } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -22,6 +25,8 @@ import {
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
+import { canShareContentToParentSpace } from "@/lib/spaceSharing";
+import { hasParentFeedback, needsParentReply } from "@/lib/parentFeedback";
 
 type TFn = ReturnType<typeof useTranslations>;
 
@@ -89,12 +94,18 @@ type ParentReviewDoc = {
 
 type AssignmentStatusMeta = {
   hasSubmission: boolean;
+  isChildWork: boolean;
   submissionStatus: string | null;
   hasAiFeedback: boolean;
   autoSummary: string | null;
   hasParentReview: boolean;
+  reviewLoaded: boolean;
   reviewStars: number | null;
 };
+
+function needsFeedback(meta?: AssignmentStatusMeta | null): boolean {
+  return !!meta?.reviewLoaded && needsParentReply(meta.submissionStatus, meta.isChildWork, meta.hasParentReview);
+}
 
 type GoalItem = {
   id: string;
@@ -435,10 +446,12 @@ export default function ParentSpaceDetailPage() {
     function patch(id: string, patchObj: Partial<AssignmentStatusMeta>) {
       const prev = nextMap[id] ?? {
         hasSubmission: false,
+        isChildWork: false,
         submissionStatus: null,
         hasAiFeedback: false,
         autoSummary: null,
         hasParentReview: false,
+        reviewLoaded: false,
         reviewStars: null,
       };
 
@@ -459,6 +472,7 @@ export default function ParentSpaceDetailPage() {
           if (!snap.exists()) {
             patch(assignmentId, {
               hasSubmission: false,
+              isChildWork: false,
               submissionStatus: null,
               hasAiFeedback: false,
               autoSummary: null,
@@ -469,6 +483,7 @@ export default function ParentSpaceDetailPage() {
           const data = snap.data() as ParentSpaceSubmissionDoc;
           patch(assignmentId, {
             hasSubmission: true,
+            isChildWork: data.isChildPortal === true,
             submissionStatus: safeString(data.status),
             hasAiFeedback: !!safeString(data.aiFeedback),
             autoSummary: renderAutoSummary(data.auto),
@@ -483,6 +498,7 @@ export default function ParentSpaceDetailPage() {
           if (!snap.exists()) {
             patch(assignmentId, {
               hasParentReview: false,
+              reviewLoaded: true,
               reviewStars: null,
             });
             return;
@@ -490,7 +506,8 @@ export default function ParentSpaceDetailPage() {
 
           const data = snap.data() as ParentReviewDoc;
           patch(assignmentId, {
-            hasParentReview: true,
+            hasParentReview: hasParentFeedback(data),
+            reviewLoaded: true,
             reviewStars: safeNumber(data.stars),
           });
         },
@@ -506,8 +523,9 @@ export default function ParentSpaceDetailPage() {
   }, [assignments, spaceId, user?.uid]);
 
   const activeAssignments = useMemo(
-    () => assignments.filter((x) => !isArchived(x.data)),
-    [assignments]
+    () => assignments.filter((x) => !isArchived(x.data)).sort((a, b) =>
+      Number(needsFeedback(statusMap[b.id])) - Number(needsFeedback(statusMap[a.id]))),
+    [assignments, statusMap]
   );
 
   const archivedAssignments = useMemo(
@@ -519,6 +537,8 @@ export default function ParentSpaceDetailPage() {
   const spaceTitle = safeString(spaceRec.title) ?? tx("header.untitled", "Untitled space");
   const spaceCode = safeString(spaceRec.code);
   const spaceKind = safeString(spaceRec.kind);
+  const canAssign = !!user && canShareContentToParentSpace(spaceRec, user.uid);
+  const addAssignmentHref = "/content?familyRoom=" + encodeURIComponent(spaceId);
   const activeGoalId = safeString(spaceRec.activeGoalId);
   const activeGoal =
     (activeGoalId ? goals.find((goal) => goal.id === activeGoalId) : null) ??
@@ -530,6 +550,7 @@ export default function ParentSpaceDetailPage() {
     const snippet = assignmentSnippet(it.data);
     const href = `/parent/spaces/${spaceId}/assignments/${it.id}`;
     const meta = statusMap[it.id] ?? null;
+    const readyForFeedback = !archivedSection && needsFeedback(meta);
     const busy = archiveBusyId === it.id;
 
     return (
@@ -556,7 +577,10 @@ export default function ParentSpaceDetailPage() {
 
             {meta ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                <Badge text={statusLabel(meta.submissionStatus, t)} tone={statusTone(meta.submissionStatus)} />
+                <Badge
+                  text={readyForFeedback ? t("status.readyForFeedback") : statusLabel(meta.submissionStatus, t)}
+                  tone={readyForFeedback ? "warn" : statusTone(meta.submissionStatus)}
+                />
                 {meta.autoSummary ? (
                   <Badge text={t("badges.auto", { value: meta.autoSummary })} tone="neutral" />
                 ) : null}
@@ -585,10 +609,10 @@ export default function ParentSpaceDetailPage() {
 
           <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row xl:flex-col">
             <Link
-              href={href}
+              href={readyForFeedback ? href + "#parent-review" : href}
               className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
             >
-              {tx("actions.open", "Open")}
+              {readyForFeedback ? t("actions.respond") : t("actions.open")}
             </Link>
 
             {!archivedSection ? (
@@ -651,14 +675,15 @@ export default function ParentSpaceDetailPage() {
 
   return (
     <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+      <Link href="/parent/spaces" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 hover:underline">
+        <ArrowLeft size={16} aria-hidden="true" />
+        {t("actions.backToMySpaces")}
+      </Link>
+      <header className="box-border w-full min-w-0 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-sm sm:p-6">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{spaceTitle}</h1>
-
-            <div className="mt-2 break-words text-sm text-slate-600">
-              {tx("header.kind", "Type")}: <b>{kindLabel(spaceKind, t)}</b>
-            </div>
+            <p className="mb-1 mt-0 text-sm font-semibold text-emerald-800">{kindLabel(spaceKind, t)}</p>
+            <h1 className="m-0 break-words text-3xl font-extrabold tracking-tight text-emerald-950">{spaceTitle}</h1>
 
             {spaceCode ? (
               <div className="mt-1 break-words text-sm text-slate-600">
@@ -668,35 +693,38 @@ export default function ParentSpaceDetailPage() {
           </div>
 
           <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
+            {canAssign ? (
+              <Link href={addAssignmentHref} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-emerald-900">
+                <Plus size={17} aria-hidden="true" />
+                {t("actions.addAssignment")}
+              </Link>
+            ) : null}
 
-
-            <Link
-              href="/parent/spaces"
-              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
-            >
-              {tx("actions.backToMySpaces", "Back to my spaces")}
+            <Link href={childRoomHref(spaceId, undefined, true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-950 no-underline hover:bg-emerald-50">
+              <BookOpen size={17} aria-hidden="true" />
+              {t("childRoomCard.button")}
             </Link>
           </div>
         </div>
-      </div>
+      </header>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm sm:p-5">
-        <div className="text-base font-semibold text-emerald-950">
-          {t("childRoomCard.title")}
-        </div>
-        <div className="mt-1 text-sm leading-6 text-emerald-900">
-          {tx(
-            "childRoomCard.text",
-            "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også."
-          )}
-        </div>
+      {user && spaceKind === "family" && canAssign ? (
+        <FamilyDeviceAccessPanel key={spaceId + user.uid} spaceId={spaceId} user={user} />
+      ) : null}
 
-        <Link
-          href={`/child/spaces/${spaceId}`}
-          className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-emerald-600 sm:w-auto"
-        >
-          {tx("childRoomCard.button", "Åpne barneromsvisning")}
-        </Link>
+      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+        <h2 className="m-0 text-lg font-bold text-slate-900">{t("all.title")}</h2>
+        {assignErr ? (
+          <p role="alert" className="mb-0 mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</p>
+        ) : activeAssignments.length === 0 ? (
+          <p className="mb-0 mt-4 rounded-xl border border-dashed border-emerald-200 bg-white p-4 text-sm leading-6 text-slate-700">
+            {t(canAssign ? "all.firstAssignment" : "all.none")}
+          </p>
+        ) : (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {activeAssignments.map((item) => renderAssignmentCard(item))}
+          </div>
+        )}
       </section>
 
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5">
@@ -776,39 +804,14 @@ export default function ParentSpaceDetailPage() {
         </div>
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
-        <div className="text-base font-semibold text-slate-900">
-          {tx("all.title", "All lessons")}
-        </div>
-
-        {assignErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
-        ) : activeAssignments.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
-            {tx("all.none", "No lessons yet.")}
-          </div>
-        ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {activeAssignments.map((it) => renderAssignmentCard(it, false))}
-          </div>
-        )}
-      </section>
-
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
-        <div className="text-base font-semibold text-slate-900">
-          {tx("archive.title", "Archived assignments")}
-        </div>
-
-        {archivedAssignments.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
-            {tx("archive.none", "No archived assignments yet.")}
-          </div>
-        ) : (
+      {archivedAssignments.length > 0 ? (
+        <details className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <summary className="cursor-pointer font-semibold text-slate-900">{t("archive.title")}</summary>
           <div className="mt-4 grid min-w-0 gap-3">
             {archivedAssignments.map((it) => renderAssignmentCard(it, true))}
           </div>
-        )}
-      </section>
+        </details>
+      ) : null}
     </main>
   );
 }

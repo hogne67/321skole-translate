@@ -2,12 +2,14 @@
 
 import DashboardCoursesSection from "@/components/DashboardCoursesSection";
 import { useEffect, useState } from "react";
-import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { ArrowRight, House } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
+import ParentFollowUp from "@/components/parent/ParentFollowUp";
 import { useUsage } from "@/lib/useUsage";
 import {
   getBucketLimit,
@@ -16,6 +18,7 @@ import {
   type PlanKey,
 } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
+import type { ParentFollowUpData } from "@/lib/parentFeedback";
 import { useLocale, useTranslations } from "next-intl";
 
 function safePlan(plan?: string): PlanKey {
@@ -242,37 +245,46 @@ function StatCard({ title, used, limit, accent = "slate", t }: StatCardProps) {
 export default function ParentPage() {
   const locale = useLocale();
   const t = useTranslations("dashboardPage");
-  const { profile } = useUserProfile();
-
-  const [isAnon, setIsAnon] = useState(true);
-  const [uid, setUid] = useState<string | undefined>(undefined);
+  const { user, profile } = useUserProfile();
+  const isAnon = !user || user.isAnonymous;
+  const uid = user?.uid;
+  const parent = user && !isAnon && profile?.role === "parent" ? user : null;
+  const [followUp, setFollowUp] = useState<{ uid: string; data: ParentFollowUpData | "error" } | null>(null);
+  const [retryFollowUp, setRetryFollowUp] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
   const { usage, loading } = useUsage(uid);
 
   useEffect(() => {
-    let alive = true;
-
-    const run = async () => {
+    if (!parent) return;
+    const account = parent;
+    let controller: AbortController | null = null;
+    async function refresh() {
+      controller?.abort();
+      const request = new AbortController();
+      controller = request;
       try {
-        const user = await ensureAnonymousUser();
-        if (!alive) return;
-
-        setIsAnon(Boolean(user.isAnonymous));
-        setUid(user.uid);
+        const token = await account.getIdToken();
+        const response = await fetch("/api/parent/follow-up", {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}` },
+          signal: request.signal,
+        });
+        if (!response.ok) throw new Error("Could not read follow-up.");
+        const data: ParentFollowUpData = await response.json();
+        if (!request.signal.aborted) setFollowUp({ uid: account.uid, data });
       } catch {
-        if (!alive) return;
-        setIsAnon(true);
-        setUid(undefined);
+        if (!request.signal.aborted) setFollowUp({ uid: account.uid, data: "error" });
       }
-    };
-
-    void run();
+    }
+    void refresh();
+    window.addEventListener("focus", refresh);
 
     return () => {
-      alive = false;
+      controller?.abort();
+      window.removeEventListener("focus", refresh);
     };
-  }, []);
+  }, [parent, retryFollowUp]);
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 720);
@@ -316,6 +328,8 @@ export default function ParentPage() {
   const billingHref = isAnon ? parentLoginHref : `/${locale}/account/billing`;
 
   const role = "parent" as const;
+  const followUpData = followUp && followUp.uid === parent?.uid ? followUp.data : null;
+  const needsFirstRoom = followUpData && followUpData !== "error" && followUpData.roomCount === 0;
 
   const generatorsUsed = usage["premium_generators"] ?? 0;
   const generatorsLimit = getBucketLimit(role, effectivePlan, "premium_generators");
@@ -352,6 +366,25 @@ export default function ParentPage() {
 
   return (
     <main style={dashboardShellStyle}>
+      <section className="mb-4 flex flex-col gap-5 rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-8">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-800 text-white" aria-hidden="true">
+            <House size={22} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-emerald-950 sm:text-4xl">{t("portal.title")}</h1>
+            <p className="mb-0 mt-2 max-w-xl text-sm leading-6 text-emerald-900 sm:text-base">{t("portal.description")}</p>
+          </div>
+        </div>
+        <Link
+          href={needsFirstRoom ? "/parent/spaces/new" : "/parent/spaces"}
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-emerald-800 px-5 py-3 font-bold text-white no-underline hover:bg-emerald-900 sm:self-center"
+        >
+          {t(needsFirstRoom ? "portal.createFirstRoom" : "portal.openRooms")}
+          <ArrowRight size={18} aria-hidden="true" />
+        </Link>
+      </section>
+      {parent ? <ParentFollowUp data={followUpData} retry={() => setRetryFollowUp((value) => value + 1)} /> : null}
       <DashboardIntro
         userIsAnon={isAnon}
         guestRole="parent"

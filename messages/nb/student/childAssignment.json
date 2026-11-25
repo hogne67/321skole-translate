@@ -11,6 +11,7 @@
       "audioFailed": "Kunne ikke spille lyd.",
       "loginRequired": "En voksen må være innlogget.",
       "saveFailed": "Kunne ikke lagre oppgaven.",
+      "workConflict": "Kladden er endret på en annen enhet. Åpne oppgaven på nytt for å se hva som er lagret.",
       "title": "Oi, noe gikk galt",
       "body": "Vi klarte ikke å åpne oppgaven akkurat nå."
     },
@@ -20,7 +21,8 @@
       "celebrationTitle": "Bra jobbet!",
       "celebrationText": "Oppgaven er levert.",
       "delivered": "Oppgaven er levert.",
-      "readyToSubmit": "Når du er ferdig, kan du levere oppgaven."
+      "readyToSubmit": "Når du er ferdig, kan du levere oppgaven.",
+      "draftSaved": "Arbeidet ditt er lagret. Du kan fortsette senere."
     },
     "actions": {
       "back": "Tilbake",
@@ -32,12 +34,13 @@
       "delivered": "Du har levert",
       "pause": "Pause",
       "continue": "Fortsett",
-      "stop": "Stopp"
+      "stop": "Stopp",
+      "saveDraft": "Lagre og fortsett senere"
     },
     "feedback": {
       "kicker": "Nytt fra oppgaven",
       "title": "Du har fått resultat og tilbakemelding",
-      "hint": "Trykk her for å se resultat, stjerner og hilsen hjemmefra.",
+      "hint": "Åpne for å se mer.",
       "submittedTitle": "Oppgaven er levert",
       "submittedText": "Bra jobbet! Du har sendt inn oppgaven.",
       "resultTitle": "Resultat",
@@ -56,10 +59,10 @@
       "true": "Sant",
       "false": "Usant",
       "answerPlaceholder": "Skriv svaret ditt her...",
-      "answerSaved": "Svar lagret",
+      "answerSaved": "Du har svart",
       "notAnswered": "Ikke svart ennå",
       "correct": "Dette klarte du!",
-      "tryAgain": "Nesten! Prøv en gang til."
+      "tryAgain": "Dette kan du øve mer på."
     },
     "selfReport": {
       "title": "Før du leverer",

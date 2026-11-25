@@ -12,13 +12,16 @@
       "other": "Space"
     },
     "actions": {
-      "backToMySpaces": "Voltar para meus spaces",
-      "backMySpacesShort": "Meus spaces",
-      "open": "Abrir",
+      "backToMySpaces": "Voltar às salas da família",
+      "backMySpacesShort": "Minhas salas da família",
+      "open": "Ver atividade",
       "openSpace": "Abrir space",
       "archive": "Arquivar",
       "archiving": "Arquivando…",
-      "childRoomView": "Visualização da sala da criança"
+      "childRoomView": "Visualização da sala da criança",
+      "addAssignment": "Adicionar atividade",
+      "assignToRoom": "Adicionar a {room}",
+      "respond": "Dar feedback"
     },
     "missing": {
       "title": "Space não encontrado",
@@ -32,7 +35,9 @@
       "listenStart": "Não foi possível iniciar a escuta do space.",
       "readAssignments": "Não foi possível ler as atividades.",
       "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades.",
-      "archiveAssignment": "Não foi possível arquivar a atividade."
+      "archiveAssignment": "Não foi possível arquivar a atividade.",
+      "assignmentUnavailable": "Esta sala não pode receber atividades agora.",
+      "noAvailableRooms": "Nenhuma sala da família disponível."
     },
     "active": {
       "title": "Atividade ativa",
@@ -47,17 +52,19 @@
       "parentGroup": "Um grupo de pais pode ser usado para compartilhar recursos, atividades e áreas de foco em comum."
     },
     "all": {
-      "title": "Todas as atividades neste space",
+      "title": "Atividades da sala",
       "showArchived": "Mostrar arquivados",
-      "none": "Nenhuma atividade neste space.",
-      "archivedTag": "(arquivado)"
+      "none": "Ainda não há atividades nesta sala.",
+      "archivedTag": "(arquivado)",
+      "firstAssignment": "Adicione uma atividade de Meus conteúdos. Depois a criança poderá abri-la na sua tela."
     },
     "status": {
       "notStarted": "Não iniciado",
       "draft": "Rascunho",
       "submitted": "Enviado",
       "needsWork": "Precisa melhorar",
-      "reviewed": "Revisado"
+      "reviewed": "Revisado",
+      "readyForFeedback": "Pronto para receber feedback"
     },
     "badges": {
       "auto": "Auto: {value}",
@@ -82,15 +89,41 @@
       "tasksCount": "{count} atividades",
       "empty": "Crie uma meta simples para a criança trabalhar na visualização infantil.",
       "newGoal": "Nova meta",
-      "placeholder": "Concluir 3 atividades esta semana",
+      "placeholder": "Concluir 3 atividades",
       "targetLabel": "Número de atividades",
       "save": "Salvar meta",
       "saving": "Salvando..."
     },
     "childRoomCard": {
       "title": "Visualização da sala da criança",
-      "text": "Clique aqui para abrir e adicionar a versão infantil nos dispositivos das crianças. Lembre-se de que você também precisa entrar com o seu usuário nos dispositivos delas.",
-      "button": "Abrir visualização infantil"
+      "text": "Abra a tela da criança quando forem trabalhar juntos.",
+      "button": "Abrir tela da criança"
+    },
+    "childAccess": {
+      "title": "Acesso da criança",
+      "description": "Conecte o dispositivo da criança a esta sala da família para que ela faça atividades e leia recados da família por conta própria.",
+      "create": "Conectar um dispositivo",
+      "creating": "Criando link…",
+      "replace": "Criar um novo link",
+      "share": "Escaneie o QR code no dispositivo da criança ou compartilhe o link com ela. O link só pode ser usado uma vez em até {minutes} minutos.",
+      "pending": "Há um link de uso único aguardando. Você pode criar um novo aqui.",
+      "qrAlt": "QR code para entrar na sala da família",
+      "link": "Link de uso único para a sala da família",
+      "copy": "Copiar link",
+      "cancel": "Cancelar link",
+      "devices": "Dispositivos conectados",
+      "device": "Dispositivo {number}",
+      "connected": "Conectado em {date}",
+      "expires": "Expira em {date}",
+      "revoke": "Desconectar",
+      "revokeDevice": "Desconectar dispositivo {number}",
+      "duration": "O dispositivo tem acesso por {days} dias. Você pode desconectá-lo a qualquer momento.",
+      "copied": "Link copiado.",
+      "copyManually": "O link está selecionado. Você pode copiá-lo.",
+      "failed": "Não foi possível atualizar o acesso. Tente novamente.",
+      "limit": "Esta sala da família atingiu o limite de dispositivos conectados.",
+      "revoked": "O dispositivo foi desconectado.",
+      "cancelled": "O link foi cancelado."
     },
     "childSelfReport": {
       "title": "Antes de entregar",
@@ -102,6 +135,14 @@
       "feltHard": "Isso foi difícil.",
       "comment": "Você quer escrever algo para o adulto?",
       "commentPlaceholder": "Escreva aqui se quiser..."
-    }
+    },
+    "chooseAssignment": {
+      "title": "Escolha uma atividade para {room}",
+      "description": "Selecione «Adicionar atividade» na atividade que deseja propor à criança.",
+      "back": "Voltar à sala",
+      "create": "Criar uma atividade",
+      "library": "Encontrar e salvar da biblioteca"
+    },
+    "activeFamilyRoomsOnly": "Veja as salas ativas da família que podem receber atividades."
   }
 }

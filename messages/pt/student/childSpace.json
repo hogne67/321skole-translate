@@ -2,14 +2,15 @@
   "childSpace": {
     "brand": "321school",
     "fallbacks": {
-      "spaceTitle": "Minha sala",
+      "spaceTitle": "Minha sala da família",
       "assignmentTitle": "Atividade"
     },
     "errors": {
       "title": "Algo deu errado",
       "readRoom": "Não foi possível ler a sala.",
       "readAssignments": "Não foi possível ler as atividades.",
-      "readGoals": "Não foi possível ler as metas."
+      "readGoals": "Não foi possível ler as metas.",
+      "askAdult": "Peça a um responsável para abrir a sala com você."
     },
     "install": {
       "button": "Adicionar à tela inicial",
@@ -22,7 +23,8 @@
       "start": "Começar",
       "delivered": "Entregue",
       "continue": "Continuar",
-      "viewCompleted": "Ver atividade concluída"
+      "viewCompleted": "Ver atividade concluída",
+      "viewParentFeedback": "Ler o recado"
     },
     "goal": {
       "title": "Meta",
@@ -32,17 +34,37 @@
     "assignments": {
       "title": "Atividades",
       "moreTitle": "Mais atividades",
-      "none": "Nenhuma atividade no momento.",
+      "none": "Quando um adulto adicionar uma atividade, você vai encontrá-la aqui.",
       "noneMore": "Nenhuma outra atividade no momento.",
       "result": "Resultado: {value}",
       "feedbackReady": "Feedback pronto",
-      "feedback": "Feedback"
+      "feedback": "Feedback",
+      "parentFeedback": "Recado de casa"
+    },
+    "greetings": {
+      "title": "{count, plural, one {Novo recado da família} other {Novos recados da família}}",
+      "open": "Ler recado",
+      "openFor": "Ler o recado sobre {assignment}"
     },
     "startPage": {
       "title": "Sala da criança",
       "opening": "Abrindo a sala da criança...",
-      "missingSavedRoom": "Abra a sala da criança pela página dos pais mais uma vez, para que o ícone da tela inicial lembre a sala certa.",
-      "parentSpaces": "Ir para as salas dos pais"
+      "missingSavedRoom": "Abra o link enviado pela sua família para acessar a sala neste dispositivo."
+    },
+    "access": {
+      "title": "Chame um adulto",
+      "description": "Peça a um adulto para enviar um novo link para sua sala da família.",
+      "connectionError": "Não conseguimos abrir a sala agora. Tente novamente.",
+      "retry": "Tentar novamente",
+      "parentSignIn": "Entrar no portal da família"
+    },
+    "connect": {
+      "title": "Abra sua sala da família",
+      "description": "Toque no botão para conectar este dispositivo. Depois, você poderá voltar à sala sem fazer login.",
+      "open": "Abrir sala da família",
+      "opening": "Abrindo sua sala…",
+      "invalidTitle": "Você precisa de um novo link",
+      "invalid": "Este link pode ter expirado ou já ter sido usado. Peça a um adulto para enviar outro."
     }
   }
 }

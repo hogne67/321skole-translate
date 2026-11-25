@@ -1,142 +1,120 @@
-// app/api/parent-support/route.ts
 import "server-only";
 
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
+import { getAdmin } from "@/lib/firebaseAdmin";
+import { accountErrorStatus } from "@/lib/security/accountAccess.server";
+import { getSpaceAccess, ownsSpaceSubmission, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
+import { reserveServerFeature } from "@/lib/serverFeatureGuard";
+import { isParentSpaceKind } from "@/lib/spaceSharing";
 
 export const runtime = "nodejs";
 
-const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const systemPrompt = [
+  "You help parents encourage learning at home. Return a JSON object with parentMessage, childMessage and nextStep.",
+  "Give the parent brief, concrete advice. Write a short, warm message to the child in simple language and suggest one small next step.",
+  "Use only the supplied information. Do not invent the child's answers, mistakes, reading level, or performance. Never assign a grade.",
+].join(" ");
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-    return typeof v === "object" && v !== null && !Array.isArray(v);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function safeString(v: unknown): string {
-    return typeof v === "string" ? v.trim() : "";
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
-export async function POST(req: Request) {
-    try {
-        const body: unknown = await req.json().catch(() => ({}));
-
-        if (!isRecord(body)) {
-            return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-        }
-
-        const assignmentTitle = safeString(body.assignmentTitle);
-        const sourceText = safeString(body.sourceText);
-        const autoSummary = safeString(body.autoSummary);
-        const aiFeedback = safeString(body.aiFeedback);
-        const childComment = safeString(body.childComment);
-        const childSelfReport = Array.isArray(body.childSelfReport)
-            ? body.childSelfReport.map(String).filter(Boolean)
-            : [];
-
-        const answersSummary = safeString(body.answersSummary);
-        const parentGoal = safeString(body.parentGoal);
-
-        const system = `
-Du er en varm, konkret og pedagogisk veileder for foreldre.
-
-Forelderen er en viktig læringsstøtte hjemme. Du skal hjelpe forelderen å forstå barnets arbeid og kommunisere godt med barnet.
-
-Du skal IKKE skrive som en streng lærer.
-Du skal IKKE gi karakter.
-Du skal IKKE bruke CEFR-nivåer med mindre det er helt nødvendig.
-Du skal IKKE overdrive feil.
-Du skal løfte innsats, lesing, refleksjon og utvikling.
-
-Svar alltid som gyldig JSON med nøyaktig disse feltene:
-{
-  "parentMessage": "...",
-  "childMessage": "...",
-  "nextStep": "..."
+function count(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
-parentMessage:
-- Råd til forelderen.
-- Varmt og konkret.
-- 80–140 ord.
-- Forklar hva barnet viser, og hvordan forelderen kan støtte videre.
+export async function POST(request: Request) {
+  const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-childMessage:
-- En melding forelderen kan lime inn til barnet.
-- Skriv direkte til barnet.
-- 100–180 ord.
-- Struktur:
-  1. Noe positivt først.
-  2. Kort kommentar om resultat/arbeidsmåte.
-  3. Konkret språk/grammatikk hvis relevant, maks tre eksempler.
-  4. Positiv avslutning og neste steg.
-- Bruk enkel, trygg og motiverende språkføring.
+  const body: unknown = await request.json().catch(() => null);
+  if (!isRecord(body)) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  const spaceId = text(body.spaceId);
+  const assignmentId = text(body.assignmentId);
+  if (!spaceId || !assignmentId || spaceId.includes("/") || assignmentId.includes("/")) {
+    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  }
 
-nextStep:
-- Ett konkret forslag til hva forelder og barn kan gjøre hjemme.
-- Kort og praktisk.
-`.trim();
-
-        const user = `
-Oppgave: ${assignmentTitle || "Uten tittel"}
-
-Barnets egenmelding:
-${childSelfReport.length ? childSelfReport.map((x) => `- ${x}`).join("\n") : "Ingen egenmelding registrert."}
-
-Kommentar fra barnet:
-${childComment || "Ingen kommentar."}
-
-Autokorrekt/resultat:
-${autoSummary || "Ikke tilgjengelig."}
-
-Eksisterende AI-feedback/retting:
-${aiFeedback || "Ikke tilgjengelig."}
-
-Kort sammendrag av svar:
-${answersSummary || "Ikke tilgjengelig."}
-
-Eventuelt mål hjemme:
-${parentGoal || "Ikke oppgitt."}
-
-Tekst/oppgavegrunnlag:
-${sourceText.slice(0, 6000) || "Ikke tilgjengelig."}
-`.trim();
-
-        const completion = await client.chat.completions.create({
-            store: false,
-            model: "gpt-4.1-mini",
-            temperature: 0.5,
-            response_format: { type: "json_object" },
-            messages: [
-                { role: "system", content: system },
-                { role: "user", content: user },
-            ],
-        });
-
-        const raw = completion.choices[0]?.message?.content ?? "{}";
-
-        let parsed: unknown = {};
-        try {
-            parsed = JSON.parse(raw);
-        } catch {
-            return NextResponse.json(
-                { error: "AI returned invalid JSON", raw },
-                { status: 500 }
-            );
-        }
-
-        if (!isRecord(parsed)) {
-            return NextResponse.json({ error: "Invalid AI response" }, { status: 500 });
-        }
-
-        return NextResponse.json({
-            parentMessage: safeString(parsed.parentMessage),
-            childMessage: safeString(parsed.childMessage),
-            nextStep: safeString(parsed.nextStep),
-        });
-    } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Could not generate parent support.";
-        return NextResponse.json({ error: message }, { status: 500 });
+  try {
+    const { auth, db } = getAdmin();
+    const decoded = await auth.verifyIdToken(token);
+    const { uid } = decoded;
+    if (decoded.firebase?.sign_in_provider === "anonymous") {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
+    if (needsEmailVerification(decoded)) return emailVerificationRequiredResponse();
+    const access = await getSpaceAccess(db, spaceId, uid);
+    if (access.profile?.role !== "parent" || !access.owner || !isParentSpaceKind(access.space?.kind) || access.space?.deletedAt) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const assignmentRef = db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId);
+    const submissionId = [spaceId, assignmentId, access.participantId].join("_");
+    const [assignmentSnapshot, submissionSnapshot] = await Promise.all([
+      assignmentRef.get(),
+      assignmentRef.collection("submissions").doc(submissionId).get(),
+    ]);
+    const assignment = assignmentSnapshot.data();
+    if (!assignment || assignment.archived === true || assignment.status === "archived") {
+      return NextResponse.json({ error: "assignment_not_found" }, { status: 404 });
+    }
+    const stored = submissionSnapshot.data();
+    const submission = stored && submissionBelongsToPath(stored, spaceId, assignmentId) &&
+      ownsSpaceSubmission(stored, uid, access.participantId) ? stored : null;
+    const answers = isRecord(submission?.answers) ? Object.values(submission.answers) : [];
+    const selfReport = isRecord(submission?.childSelfReport) ? submission.childSelfReport : {};
+    const auto = isRecord(submission?.auto) ? submission.auto : {};
+
+    const context = {
+      language: body.locale === "en" ? "English" : body.locale === "pt" ? "Portuguese" : "Norwegian Bokmål",
+      taskCount: Array.isArray(assignment.tasks) ? assignment.tasks.length : 0,
+      answeredCount: answers.filter((answer) => typeof answer === "boolean" || !!text(answer)).length,
+      submitted: submission?.status === "submitted" || submission?.status === "reviewed" || submission?.status === "approved",
+      correct: count(auto.correctCount ?? auto.score),
+      gradable: count(auto.totalAutoGraded ?? auto.maxScore),
+      selfReport: ["readSilently", "readAloud", "completedTasks", "feltEasy", "feltHard"].filter((key) => selfReport[key] === true),
+    };
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "parent_support_unavailable" }, { status: 503 });
+    }
+    const release = await reserveServerFeature({ ...access.profile, db, uid, feature: "ai_feedback" });
+    if (!release) return NextResponse.json({ error: "limit_reached" }, { status: 429 });
+
+    try {
+      const completion = await new OpenAI().chat.completions.create({
+        store: false,
+        model: "gpt-4.1-mini",
+        max_completion_tokens: 600,
+        temperature: 0.5,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: JSON.stringify(context) },
+        ],
+      });
+      const output: unknown = JSON.parse(completion.choices[0]?.message?.content ?? "null");
+      if (!isRecord(output)) throw new Error("invalid_parent_support");
+      const suggestion = {
+        parentMessage: text(output.parentMessage),
+        childMessage: text(output.childMessage),
+        nextStep: text(output.nextStep),
+      };
+      if (!suggestion.parentMessage || !suggestion.childMessage || !suggestion.nextStep) {
+        throw new Error("incomplete_parent_support");
+      }
+      return NextResponse.json(suggestion);
+    } catch {
+      await release().catch(() => console.error("parent_support_quota_release_failed"));
+      return NextResponse.json({ error: "parent_support_unavailable" }, { status: 502 });
+    }
+  } catch (error) {
+    return NextResponse.json({ error: "parent_support_unavailable" }, { status: accountErrorStatus(error) ?? 503 });
+  }
 }

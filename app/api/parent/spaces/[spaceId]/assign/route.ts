@@ -1,7 +1,7 @@
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
-import { accountErrorStatus } from "@/lib/security/accountAccess.server";
-import { isSpaceOpenForSharing, SpaceNotOpenError } from "@/lib/spaceSharing";
+import { AccountAccessError, accountErrorStatus, isGloballyEnabled } from "@/lib/security/accountAccess.server";
 import { currentPosterAttachments } from "@/lib/learningPosters/attachmentsPolicy.server";
+import { isParentSpaceAvailableForSharing, isParentSpaceKind, PARENT_SPACE_NOT_AVAILABLE_MESSAGE, SpaceNotOpenError } from "@/lib/spaceSharing";
 // app/api/parent/spaces/[spaceId]/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
@@ -23,10 +23,6 @@ function readBearerToken(req: NextRequest): string | null {
   return token || null;
 }
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
 function safeString(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
@@ -35,22 +31,19 @@ async function readSourceLesson(
   db: FirebaseFirestore.Firestore,
   sourceId: string,
   uid: string,
-  isAdmin: boolean
+  isAdmin: boolean,
+  fromLibrary: boolean,
 ): Promise<{
   data: Record<string, unknown> | null;
   sourceCollection: "lessons" | "published_lessons" | null;
 }> {
-  const draftSnap = await db.collection("lessons").doc(sourceId).get();
-
-  if (draftSnap.exists) {
-    const raw = draftSnap.data();
-    const data = isRecord(raw) ? raw : {};
-    if (!isAdmin && data.ownerId !== uid) return { data: null, sourceCollection: null };
-
-    return {
-      data,
-      sourceCollection: "lessons",
-    };
+  if (!fromLibrary) {
+    const draft = (await db.collection("lessons").doc(sourceId).get()).data();
+    if (draft) {
+      return (isAdmin || draft.ownerId === uid) && !draft.deletedAt
+        ? { data: draft, sourceCollection: "lessons" }
+        : { data: null, sourceCollection: null };
+    }
   }
 
   const publishedSnap = await db
@@ -58,17 +51,10 @@ async function readSourceLesson(
     .doc(sourceId)
     .get();
 
-  if (publishedSnap.exists) {
-    const raw = publishedSnap.data();
-    const data = isRecord(raw) ? raw : {};
-    if (data.isActive !== true || (data.visibility !== "public" && data.visibility !== "unlisted" && !isAdmin && data.ownerId !== uid)) {
-      return { data: null, sourceCollection: null };
-    }
-
-    return {
-      data,
-      sourceCollection: "published_lessons",
-    };
+  const published = publishedSnap.data();
+  if (published?.isActive === true && !published.deletedAt &&
+    (published.visibility === "public" || published.visibility === "unlisted" || isAdmin || published.ownerId === uid)) {
+    return { data: published, sourceCollection: "published_lessons" };
   }
 
   return {
@@ -84,7 +70,7 @@ export async function POST(
   try {
     const { spaceId } = await params;
 
-    if (!spaceId) {
+    if (!spaceId || spaceId.includes("/")) {
       return NextResponse.json(
         { error: "Missing spaceId." },
         { status: 400 }
@@ -112,7 +98,7 @@ export async function POST(
     const normalizedSourceType =
       sourceType === "library" ? "library" : "myContent";
 
-    if (!sourceId) {
+    if (!sourceId || sourceId.includes("/")) {
       return NextResponse.json(
         { error: "Missing sourceId." },
         { status: 400 }
@@ -124,18 +110,8 @@ export async function POST(
     const decoded = await adminAuth.verifyIdToken(token);
     const uid = decoded.uid;
 
-    const userRef = adminDb.collection("users").doc(uid);
-    const userSnap = await userRef.get();
-
-    if (!userSnap.exists) {
-      return NextResponse.json(
-        { error: "User profile not found." },
-        { status: 403 }
-      );
-    }
-
-    const userData = (userSnap.data() ?? {}) as Record<string, unknown>;
-    const role = safeString(userData.role);
+    const access = await getSpaceAccess(adminDb, spaceId, uid);
+    const role = access.profile?.role;
 
     if (role !== "parent" && role !== "admin") {
       return NextResponse.json(
@@ -145,33 +121,29 @@ export async function POST(
     }
 
     const spaceRef = adminDb.collection("spaces").doc(spaceId);
-    const spaceSnap = await spaceRef.get();
 
-    if (!spaceSnap.exists) {
+    if (!access.exists) {
       return NextResponse.json(
         { error: "Space not found." },
         { status: 404 }
       );
     }
 
-    const spaceData = (spaceSnap.data() ?? {}) as Record<string, unknown>;
-    const kind = safeString(spaceData.kind);
-
-    if (role !== "admin" && !(await getSpaceAccess(adminDb, spaceId, uid)).owner) {
+    if (role !== "admin" && !access.owner) {
       return NextResponse.json(
         { error: "You do not own this parent space." },
         { status: 403 }
       );
     }
 
-    if (kind !== "family" && kind !== "parent_group") {
+    if (!isParentSpaceKind(access.space?.kind)) {
       return NextResponse.json(
         { error: "This is not a parent space." },
         { status: 400 }
       );
     }
 
-    const source = await readSourceLesson(adminDb, sourceId, uid, role === "admin");
+    const source = await readSourceLesson(adminDb, sourceId, uid, role === "admin", normalizedSourceType === "library");
 
     if (!source.data || !source.sourceCollection) {
       return NextResponse.json(
@@ -216,7 +188,11 @@ export async function POST(
     };
 
     await adminDb.runTransaction(async (tx) => {
-      if (!isSpaceOpenForSharing((await tx.get(spaceRef)).data())) throw new SpaceNotOpenError();
+      const current = await getSpaceAccess(adminDb, spaceId, uid, tx);
+      if (current.profile?.role !== role || !isGloballyEnabled(current.profile) || (role !== "admin" && !current.owner)) {
+        throw new AccountAccessError("You do not own this parent space.", 403, "auth/forbidden");
+      }
+      if (!isParentSpaceAvailableForSharing(current.space)) throw new SpaceNotOpenError(PARENT_SPACE_NOT_AVAILABLE_MESSAGE);
 
       tx.set(targetRef, assignmentDoc, { merge: false });
 

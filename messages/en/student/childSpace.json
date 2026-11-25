@@ -2,14 +2,15 @@
   "childSpace": {
     "brand": "321school",
     "fallbacks": {
-      "spaceTitle": "My room",
+      "spaceTitle": "My family room",
       "assignmentTitle": "Assignment"
     },
     "errors": {
       "title": "Something went wrong",
       "readRoom": "Could not read room.",
       "readAssignments": "Could not read assignments.",
-      "readGoals": "Could not read goals."
+      "readGoals": "Could not read goals.",
+      "askAdult": "Ask a parent to open this room with you."
     },
     "install": {
       "button": "Add to Home Screen",
@@ -22,7 +23,8 @@
       "start": "Start",
       "delivered": "Delivered",
       "continue": "Continue",
-      "viewCompleted": "See completed assignment"
+      "viewCompleted": "See completed assignment",
+      "viewParentFeedback": "Read your note"
     },
     "goal": {
       "title": "Goal",
@@ -32,17 +34,37 @@
     "assignments": {
       "title": "Assignments",
       "moreTitle": "More assignments",
-      "none": "No assignments right now.",
+      "none": "When a grown-up adds an activity, you’ll find it here.",
       "noneMore": "No more assignments right now.",
       "result": "Result: {value}",
       "feedbackReady": "Feedback ready",
-      "feedback": "Feedback"
+      "feedback": "Feedback",
+      "parentFeedback": "A note from home"
+    },
+    "greetings": {
+      "title": "{count, plural, one {A new message from home} other {New messages from home}}",
+      "open": "Read message",
+      "openFor": "Read the message for {assignment}"
     },
     "startPage": {
       "title": "Child room",
       "opening": "Opening child room...",
-      "missingSavedRoom": "Open the child room from the parent page one more time, then the Home Screen icon will remember the right room.",
-      "parentSpaces": "Go to parent rooms"
+      "missingSavedRoom": "Use the link your family sent you to open your family room on this device."
+    },
+    "access": {
+      "title": "Ask a grown-up",
+      "description": "Ask a grown-up to send you a new link to your family room.",
+      "connectionError": "We couldn’t open the room right now. Please try again.",
+      "retry": "Try again",
+      "parentSignIn": "Sign in to the parent portal"
+    },
+    "connect": {
+      "title": "Open your family room",
+      "description": "Tap the button to connect this device. You can open your room again without signing in.",
+      "open": "Open family room",
+      "opening": "Opening your room…",
+      "invalidTitle": "You need a new link",
+      "invalid": "This link may have expired or been used. Ask a grown-up to send you a new one."
     }
   }
 }

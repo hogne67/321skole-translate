@@ -109,3 +109,23 @@ export async function consumeServerFeature(params: {
         { merge: true }
     );
 }
+
+export async function reserveServerFeature(params: ServerFeatureParams): Promise<(() => Promise<void>) | null> {
+    const { db, uid, feature } = params;
+    const decision = getFeatureDecisionFromProfile(params);
+    if (!decision.allowed || decision.limit <= 0) return null;
+
+    const bucket = getQuotaBucket(feature);
+    const ref = db.collection("users").doc(uid).collection("usage").doc(getMonthId());
+    const reserved = await db.runTransaction(async (transaction) => {
+        const value = (await transaction.get(ref)).get(bucket);
+        const usage = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+        if (usage >= decision.limit) return false;
+        transaction.set(ref, { [bucket]: usage + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        return true;
+    });
+
+    return reserved ? async () => {
+        await ref.update({ [bucket]: FieldValue.increment(-1), updatedAt: FieldValue.serverTimestamp() });
+    } : null;
+}

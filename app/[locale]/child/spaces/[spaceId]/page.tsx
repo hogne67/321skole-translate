@@ -5,7 +5,8 @@ import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
-import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { useChildRoomAccess } from "@/components/child/ChildRoomAccess";
+import { childRoomHref, FAMILY_GREETING_ID, rememberChildRoom, type FamilyGoal } from "@/lib/familyDevice";
 
 import {
     collection,
@@ -21,8 +22,8 @@ import {
 
 import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
-
-const CHILD_START_URL_KEY = "321skole.childStartUrl";
+import { hasParentFeedback } from "@/lib/parentFeedback";
+import { isParentSpaceKind } from "@/lib/spaceSharing";
 
 type TFn = ReturnType<typeof useTranslations>;
 
@@ -52,6 +53,7 @@ function safeNumber(v: unknown): number | null {
 
 function safeMillis(v: unknown): number {
     if (!v) return 0;
+    if (typeof v === "number") return v;
 
     if (typeof v === "object" && v !== null && "toMillis" in v) {
         try {
@@ -74,8 +76,8 @@ type AssignmentDoc = {
     imageUrl?: string;
     archived?: boolean;
     status?: string;
-    updatedAt?: Timestamp;
-    createdAt?: Timestamp;
+    updatedAt?: Timestamp | number;
+    createdAt?: Timestamp | number;
     [k: string]: unknown;
 };
 
@@ -104,7 +106,7 @@ type StatusTone = "ready" | "working" | "delivered" | "done";
 
 type GoalItem = {
     id: string;
-    data: ParentSpaceGoalDoc;
+    data: FamilyGoal;
 };
 
 function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
@@ -208,9 +210,11 @@ function Badge({
 function AssignmentActionButton({
     href,
     status,
+    hasFeedback = false,
 }: {
     href: string;
     status: string | null;
+    hasFeedback?: boolean;
 }) {
     const t = useTranslations("childSpace");
     const delivered = isDelivered(status);
@@ -223,12 +227,12 @@ function AssignmentActionButton({
                 delivered ? "bg-blue-600 hover:bg-blue-500" : "bg-green-600 hover:bg-green-500",
             ].join(" ")}
         >
-            {buttonText(status, t)}
+            {hasFeedback ? t("actions.viewParentFeedback") : buttonText(status, t)}
         </Link>
     );
 }
 
-function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: number }) {
+function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
     const t = useTranslations("childSpace");
     const target = typeof goal.targetCount === "number" && goal.targetCount > 0 ? goal.targetCount : null;
     const cappedDone = target ? Math.min(done, target) : done;
@@ -274,27 +278,15 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
 
 function AddToHomeScreenButton() {
     const t = useTranslations("childSpace");
-    const [canInstall, setCanInstall] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
     useEffect(() => {
-        if (window.__childInstallPrompt) setCanInstall(true);
-
         const onBeforeInstallPrompt = (event: Event) => {
             event.preventDefault();
             window.__childInstallPrompt = event as BeforeInstallPromptEvent;
-            setCanInstall(true);
         };
-
-        const onPromptReady = () => setCanInstall(true);
-
         window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-        window.addEventListener("childinstallpromptready", onPromptReady);
-
-        return () => {
-            window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-            window.removeEventListener("childinstallpromptready", onPromptReady);
-        };
+        return () => window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     }, []);
 
     async function handleInstall() {
@@ -310,7 +302,6 @@ function AddToHomeScreenButton() {
 
         if (choice.outcome === "accepted") {
             setMessage(t("install.accepted"));
-            setCanInstall(false);
             window.__childInstallPrompt = undefined;
         } else {
             setMessage(t("install.dismissed"));
@@ -327,13 +318,7 @@ function AddToHomeScreenButton() {
                 {t("install.button")}
             </button>
 
-            {message ? <div className="mt-2 text-xs font-bold text-slate-500">{message}</div> : null}
-
-            {!canInstall ? (
-                <div className="mt-2 text-xs text-slate-400">
-                    {t("install.tip")}
-                </div>
-            ) : null}
+            {message ? <div role="status" className="mt-2 text-xs font-bold text-slate-500">{message}</div> : null}
         </div>
     );
 }
@@ -341,27 +326,32 @@ function AddToHomeScreenButton() {
 export default function ChildSpacePage() {
     const { spaceId } = useParams<{ spaceId: string }>();
     const t = useTranslations("childSpace");
+    const access = useChildRoomAccess();
 
-    const [user, setUser] = useState<User | null>(null);
-    const [space, setSpace] = useState<SpaceDoc | null>(null);
-    const [assignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
-    const [goals, setGoals] = useState<GoalItem[]>([]);
-    const [progressMap, setProgressMap] = useState<Record<string, AssignmentProgress>>({});
+    const user = access.mode === "parent" ? access.user : null;
+    const room = access.mode === "device" ? access.room : null;
+    const [previewSpace, setSpace] = useState<SpaceDoc | null>(null);
+    const [previewAssignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
+    const [previewGoals, setGoals] = useState<GoalItem[]>([]);
+    const [previewProgressMap, setProgressMap] = useState<Record<string, AssignmentProgress>>({});
+    const [previewFeedback, setParentFeedbackByAssignment] = useState<Record<string, boolean>>({});
     const [err, setErr] = useState<string | null>(null);
+    const space = room?.room ?? previewSpace;
+    const assignments = room?.assignments ?? previewAssignments;
+    const goals = room?.goals ?? previewGoals;
+    const progressMap = useMemo(() => room
+        ? Object.fromEntries(room.assignments.map(({ id, progress }) => [id, progress]))
+        : previewProgressMap, [room, previewProgressMap]);
+    const parentFeedbackByAssignment = useMemo(() => room
+        ? Object.fromEntries(room.assignments.map(({ id, hasParentFeedback }) => [id, hasParentFeedback]))
+        : previewFeedback, [room, previewFeedback]);
 
     useEffect(() => {
-        const auth = getAuth();
-        return onAuthStateChanged(auth, (u) => setUser(u));
-    }, []);
+        if (space) rememberChildRoom();
+    }, [space]);
 
     useEffect(() => {
-        window.localStorage.setItem(
-            CHILD_START_URL_KEY,
-            window.location.pathname + window.location.search
-        );
-    }, []);
-
-    useEffect(() => {
+        if (!user) return;
         let unsub: (() => void) | null = null;
 
         try {
@@ -370,7 +360,12 @@ export default function ChildSpacePage() {
             unsub = onSnapshot(
                 doc(dbx, "spaces", spaceId),
                 (snap) => {
-                    setSpace(snap.exists() ? (snap.data() as SpaceDoc) : null);
+                    const room = snap.data();
+                    if (!room || !isParentSpaceKind(room.kind) || room.deletedAt) {
+                        setErr(t("errors.readRoom"));
+                        return;
+                    }
+                    setSpace(room as SpaceDoc);
                 },
                 (e) => setErr(e.message)
             );
@@ -379,9 +374,10 @@ export default function ChildSpacePage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, t]);
+    }, [spaceId, user, t]);
 
     useEffect(() => {
+        if (!user) return;
         let unsub: (() => void) | null = null;
 
         try {
@@ -410,9 +406,10 @@ export default function ChildSpacePage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, t]);
+    }, [spaceId, user, t]);
 
     useEffect(() => {
+        if (!user) return;
         let unsub: (() => void) | null = null;
 
         try {
@@ -440,10 +437,10 @@ export default function ChildSpacePage() {
         }
 
         return () => unsub?.();
-    }, [spaceId, t]);
+    }, [spaceId, user, t]);
 
     useEffect(() => {
-        if (!user?.uid || assignments.length === 0) {
+        if (!user?.uid || previewAssignments.length === 0) {
             setProgressMap({});
             return;
         }
@@ -451,7 +448,7 @@ export default function ChildSpacePage() {
         const dbx = requireDb(db);
         const unsubs: Array<() => void> = [];
 
-        for (const item of assignments) {
+        for (const item of previewAssignments) {
             const submissionId = buildParentSubmissionId(spaceId, item.id, user.uid);
 
             const unsub = onSnapshot(
@@ -488,13 +485,22 @@ export default function ChildSpacePage() {
                 () => { }
             );
 
-            unsubs.push(unsub);
+            const unsubscribeReview = onSnapshot(
+                doc(dbx, "spaces", spaceId, "lessons", item.id, "parentReviews", user.uid),
+                (snap) => {
+                    const available = hasParentFeedback(snap.data());
+                    setParentFeedbackByAssignment((current) =>
+                        current[item.id] === available ? current : { ...current, [item.id]: available });
+                },
+                () => { }
+            );
+            unsubs.push(unsub, unsubscribeReview);
         }
 
         return () => {
             for (const unsub of unsubs) unsub();
         };
-    }, [assignments, spaceId, user?.uid]);
+    }, [previewAssignments, spaceId, user?.uid]);
 
     const activeAssignmentId = useMemo(() => {
         const rec = typeof space === "object" && space ? (space as Record<string, unknown>) : null;
@@ -543,10 +549,15 @@ export default function ChildSpacePage() {
     }, [assignments, activeAssignmentId, progressMap]);
 
     const featuredAssignment = sortedAssignments[0] ?? null;
+    const featuredCover = featuredAssignment ? pickImageUrl(featuredAssignment.data) : null;
     const featuredProgress = featuredAssignment ? progressMap[featuredAssignment.id] ?? null : null;
+    const featuredHasParentFeedback = !!featuredAssignment && !!parentFeedbackByAssignment[featuredAssignment.id];
     const otherAssignments = featuredAssignment
         ? sortedAssignments.filter((a) => a.id !== featuredAssignment.id)
         : [];
+    const unreadGreetings = room?.assignments
+        .filter((item) => typeof item.unreadFeedbackAt === "number")
+        .sort((a, b) => (b.unreadFeedbackAt ?? 0) - (a.unreadFeedbackAt ?? 0)) ?? [];
 
     const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
 
@@ -570,26 +581,53 @@ export default function ChildSpacePage() {
             <main className="mx-auto max-w-4xl p-4">
                 <section className="rounded-3xl border border-red-200 bg-red-50 p-6">
                     <h1 className="text-2xl font-black text-red-900">{t("errors.title")}</h1>
-                    <div className="mt-3 whitespace-pre-wrap text-sm text-red-800">{err}</div>
+                    <p className="mt-3 text-sm text-red-800">{t("errors.askAdult")}</p>
                 </section>
             </main>
         );
     }
 
+    if (!space) return <p role="status" className="text-sm text-slate-600">{t("startPage.opening")}</p>;
+
     return (
         <main className="mx-auto flex w-full max-w-5xl flex-col gap-5">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <div className="text-sm font-black uppercase tracking-wide text-slate-400">{t("brand")}</div>
-                        <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900">{spaceTitle}</h1>
+                        <p className="m-0 text-sm font-bold text-emerald-800">{t("fallbacks.spaceTitle")}</p>
+                        <h1 className="mb-0 mt-2 break-words text-3xl font-extrabold tracking-tight text-emerald-950 sm:text-4xl">{spaceTitle}</h1>
                     </div>
 
                     <AddToHomeScreenButton />
                 </div>
             </section>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            {unreadGreetings.length > 0 ? (
+                <section aria-labelledby="new-greetings" className="rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:p-6">
+                    <h2 id="new-greetings" className="m-0 text-xl font-extrabold text-amber-950">
+                        {t("greetings.title", { count: unreadGreetings.length })}
+                    </h2>
+                    <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+                        {unreadGreetings.map(({ id, data }) => {
+                            const title = safeString(data.title) ?? t("fallbacks.assignmentTitle");
+                            return (
+                                <li key={id} className="min-w-0">
+                                    <Link
+                                        href={childRoomHref(spaceId, id) + "#" + FAMILY_GREETING_ID}
+                                        aria-label={t("greetings.openFor", { assignment: title })}
+                                        className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-amber-950 no-underline hover:bg-amber-100"
+                                    >
+                                        <span className="min-w-0 break-words font-bold">{title}</span>
+                                        <span className="text-sm font-semibold">{t("greetings.open")} <span aria-hidden="true">→</span></span>
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            ) : null}
+
+            <div className={`grid gap-4 lg:items-start ${activeGoal ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                     <div className="flex items-center justify-between gap-3">
                         <h2 className="text-2xl font-black text-slate-900">{t("assignments.title")}</h2>
@@ -602,7 +640,7 @@ export default function ChildSpacePage() {
                                 progressTone(featuredProgress?.status ?? null)
                             )}`}
                         >
-                            <div className="grid gap-0 xl:grid-cols-2">
+                            <div className={`grid ${featuredCover ? "xl:grid-cols-2" : ""}`}>
                                 <div className="flex flex-col justify-center p-5 sm:p-6">
                                     <div className="flex flex-wrap gap-2">
                                         {featuredProgress?.autoSummary ? (
@@ -611,7 +649,9 @@ export default function ChildSpacePage() {
                                             </Badge>
                                         ) : null}
 
-                                        {featuredProgress?.hasAiFeedback ? (
+                                        {featuredHasParentFeedback ? (
+                                            <Badge tone="done">{t("assignments.parentFeedback")}</Badge>
+                                        ) : featuredProgress?.hasAiFeedback ? (
                                             <Badge tone="done">{t("assignments.feedbackReady")}</Badge>
                                         ) : null}
                                     </div>
@@ -628,26 +668,23 @@ export default function ChildSpacePage() {
 
                                     <div className="mt-6">
                                         <AssignmentActionButton
-                                            href={`/child/spaces/${spaceId}/assignments/${featuredAssignment.id}`}
+                                            href={childRoomHref(spaceId, featuredAssignment.id, access.mode === "parent")}
                                             status={featuredProgress?.status ?? null}
+                                            hasFeedback={featuredHasParentFeedback}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="min-h-[220px] bg-white/40">
-                                    {pickImageUrl(featuredAssignment.data) ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
+                                {featuredCover ? (
+                                    <div className="min-h-[220px] bg-white/40">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
-                                            src={pickImageUrl(featuredAssignment.data) ?? ""}
+                                            src={featuredCover}
                                             alt={safeString(featuredAssignment.data.title) ?? t("fallbacks.assignmentTitle")}
                                             className="h-full w-full object-cover"
                                         />
-                                    ) : (
-                                        <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
-                                            {t("fallbacks.assignmentTitle")}
-                                        </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     ) : (
@@ -660,20 +697,17 @@ export default function ChildSpacePage() {
                 {activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : null}
             </div>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            {otherAssignments.length > 0 ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-2xl font-black text-slate-900">{t("assignments.moreTitle")}</h2>
 
-                {otherAssignments.length === 0 ? (
-                    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                        {t("assignments.noneMore")}
-                    </div>
-                ) : (
                     <div className="mt-5 grid gap-4 sm:grid-cols-2">
                         {otherAssignments.map((item) => {
                             const title = safeString(item.data.title) ?? t("fallbacks.assignmentTitle");
                             const snippet = assignmentSnippet(item.data);
                             const progress = progressMap[item.id] ?? null;
+                            const hasFamilyFeedback = !!parentFeedbackByAssignment[item.id];
                             const tone = progressTone(progress?.status ?? null);
+                            const cover = pickImageUrl(item.data);
 
                             return (
                                 <div
@@ -682,20 +716,16 @@ export default function ChildSpacePage() {
                                         tone
                                     )}`}
                                 >
-                                    <div className="aspect-[16/9] bg-white/50">
-                                        {pickImageUrl(item.data) ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
+                                    {cover ? (
+                                        <div className="aspect-[16/9] bg-white/50">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
-                                                src={pickImageUrl(item.data) ?? ""}
+                                                src={cover}
                                                 alt={title}
                                                 className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                                             />
-                                        ) : (
-                                            <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
-                                                {t("fallbacks.assignmentTitle")}
-                                            </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    ) : null}
 
                                     <div className="p-5">
                                         <div className="flex flex-wrap gap-2">
@@ -705,7 +735,9 @@ export default function ChildSpacePage() {
                                                 </Badge>
                                             ) : null}
 
-                                            {progress?.hasAiFeedback ? (
+                                            {hasFamilyFeedback ? (
+                                                <Badge tone="done">{t("assignments.parentFeedback")}</Badge>
+                                            ) : progress?.hasAiFeedback ? (
                                                 <Badge tone="done">{t("assignments.feedback")}</Badge>
                                             ) : null}
                                         </div>
@@ -720,8 +752,9 @@ export default function ChildSpacePage() {
 
                                         <div className="mt-5">
                                             <AssignmentActionButton
-                                                href={`/child/spaces/${spaceId}/assignments/${item.id}`}
+                                                href={childRoomHref(spaceId, item.id, access.mode === "parent")}
                                                 status={progress?.status ?? null}
+                                                hasFeedback={hasFamilyFeedback}
                                             />
                                         </div>
                                     </div>
@@ -729,8 +762,7 @@ export default function ChildSpacePage() {
                             );
                         })}
                     </div>
-                )}
-            </section>
+            </section> : null}
         </main>
     );
 }

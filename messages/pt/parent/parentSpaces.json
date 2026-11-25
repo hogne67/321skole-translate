@@ -1,31 +1,32 @@
 {
   "parentSpaces": {
-    "title": "Meus spaces",
-    "subtitle": "Aqui você encontra salas familiares e grupos de pais para atividades em casa.",
+    "title": "Minhas salas da família",
+    "subtitle": "Acompanhe as atividades da criança e responda quando ela entregar um trabalho.",
     "defaultTitle": "Sem título",
     "actions": {
       "open": "Abrir",
-      "openSpace": "Abrir space",
-      "newSpace": "Criar space",
-      "parentGroups": "+ Criar nova sala"
+      "openSpace": "Abrir sala",
+      "newSpace": "Criar sala da família",
+      "parentGroups": "Criar sala da família",
+      "respond": "Dar feedback"
     },
     "guestPreview": {
       "title": "Quer criar uma sala familiar?",
-      "subtitle": "Como convidado, você pode ver como os parent spaces funcionam. Entre quando quiser criar salas e salvar o trabalho.",
-      "text": "Parent spaces reúnem atividades, cursos e tarefas de casa em um só lugar. As crianças podem continuar trabalhando com o conteúdo, e você pode acompanhar e apoiar.",
+      "subtitle": "Entre para criar uma sala da família e salvar o trabalho.",
+      "text": "Adicione atividades à sala da família. A criança pode trabalhar na sua tela e você pode acompanhar o progresso.",
       "loginCreate": "Entrar para criar sala",
       "cards": {
         "family": {
-          "title": "Reunir a família",
-          "text": "Crie salas para crianças, grupos ou prática em casa."
+          "title": "Crie uma sala",
+          "text": "Crie uma sala para uma criança ou para uma atividade em família."
         },
         "share": {
-          "title": "Partilhar conteúdo",
-          "text": "Use biblioteca, quizzes e atividades junto com as crianças."
+          "title": "Adicione uma atividade",
+          "text": "Escolha uma atividade em Meus conteúdos."
         },
         "follow": {
-          "title": "Acompanhar o trabalho",
-          "text": "Veja a atividade, apoie a aprendizagem e mantenha a visão geral."
+          "title": "Responda à criança",
+          "text": "Leia o trabalho e deixe um recado curto."
         }
       }
     },
@@ -37,20 +38,21 @@
       "parentGroup": "Grupo de pais",
       "other": "Space"
     },
-    "empty": "Você ainda não tem spaces de pais.",
+    "empty": "Crie uma sala da família para adicionar a primeira atividade.",
     "loading": "Carregando…",
     "errors": {
-      "loadFailed": "Não foi possível carregar os spaces."
+      "loadFailed": "Não foi possível carregar as salas da família."
     },
     "counts": {
-      "groups": "{count, plural, one {# grupo} other {# grupos}}"
+      "groups": "{count, plural, one {# sala} other {# salas}}"
     },
     "status": {
       "notStarted": "Não iniciado",
       "draft": "Rascunho",
       "submitted": "Enviado",
       "needsWork": "Precisa melhorar",
-      "reviewed": "Revisado"
+      "reviewed": "Revisado",
+      "readyForFeedback": "Pronto para receber feedback"
     },
     "badges": {
       "tasks": "{count} tarefas",

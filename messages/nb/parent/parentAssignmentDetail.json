@@ -11,9 +11,9 @@
       "other": "Space"
     },
     "actions": {
-      "backToSpace": "Tilbake til space",
+      "backToSpace": "Tilbake til familierommet",
       "openBoard": "Åpne tavle",
-      "saveComment": "Lagre kommentar",
+      "saveComment": "Send til barnet",
       "submit": "SEND INN",
       "submitting": "Sender…",
       "translateText": "Oversett tekst",
@@ -30,7 +30,8 @@
       "showTranslation": "Vis oversettelse",
       "hideTranslation": "Skjul oversettelse",
       "showAllTranslations": "Vis alle oversettelser",
-      "hideAllTranslations": "Skjul alle oversettelser"
+      "hideAllTranslations": "Skjul alle oversettelser",
+      "tryTogether": "Åpne oppgaven i barnevisningen"
     },
     "missing": {
       "title": "Oppgave ikke funnet",
@@ -71,11 +72,11 @@
       "noTasks": "Ingen oppgaver i denne oppgaven."
     },
     "review": {
-      "title": "Foreldrevurdering",
-      "intro": "Her kan du skrive en kommentar og gi stjerner for hvordan aktiviteten fungerte hjemme.",
+      "title": "Tilbakemelding til barnet",
+      "intro": "Skriv en hilsen eller gi stjerner. Barnet ser tilbakemeldingen i oppgaven.",
       "placeholder": "Skriv en kommentar …",
       "saving": "Lagrer …",
-      "saved": "Kommentar lagret.",
+      "saved": "Tilbakemeldingen er sendt til barnet.",
       "existing": "Tidligere vurdering funnet."
     },
     "translation": {
@@ -89,6 +90,7 @@
       "generating": "Genererer lyd …"
     },
     "sections": {
+      "childWork": "Barnets arbeid",
       "text": "Tekst",
       "tasks": "Oppgaver",
       "feedback": "Tilbakemelding"
@@ -142,14 +144,18 @@
     },
     "parentAi": {
       "title": "AI-støtte til forelderen",
-      "intro": "Få et forslag til en varm og konkret tilbakemelding basert på barnets egenmelding, svar og resultat.",
+      "intro": "Få et forslag basert på fremdriften og avkryssingene fra barnets egenvurdering.",
       "button": "Få forslag til tilbakemelding",
       "generating": "Lager forslag…",
       "suggestion": "Forslag",
       "useAsComment": "Send til foreldrevurdering",
       "verifyRequired": "Bekreft e-posten din før du bruker AI-støtte på foreldresiden.",
       "error": "Kunne ikke lage forslag akkurat nå.",
-      "empty": "AI laget ikke noe forslag."
+      "empty": "AI laget ikke noe forslag.",
+      "limitReached": "Du har brukt opp kvoten for KI-tilbakemeldinger denne måneden.",
+      "parentMessage": "Råd til deg",
+      "childMessage": "Forslag til hilsen",
+      "nextStep": "Prøv dette sammen"
     }
   }
 }

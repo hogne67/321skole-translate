@@ -1,12 +1,12 @@
 {
-    "parentNewSpace": {
+  "parentNewSpace": {
     "title": "Create new family room",
-    "subtitle": "Give the room a name that fits your home. For example, you can create one room per child or per topic.",
+    "subtitle": "Give the room a name. Then you can add the first activity.",
     "loading": "Loading…",
     "fields": {
       "title": "Room name",
       "placeholder": "For example: Knut's room",
-      "help": "You can change and build on the room later."
+      "help": "Use one room per child or make a room for an activity you do together."
     },
     "suggestions": {
       "title": "Suggestions",
@@ -16,13 +16,13 @@
       "room4": "Family math"
     },
     "actions": {
-      "back": "Back to my spaces",
+      "back": "Back to family rooms",
       "create": "Create room",
       "creating": "Creating…",
       "cancel": "Cancel"
     },
     "messages": {
-      "verifyBeforeCreate": "You can read and view content now, but you must verify your email before creating family rooms."
+      "verifyBeforeCreate": "Verify your email to create the family room."
     },
     "errors": {
       "mustBeLoggedIn": "You must be logged in as a parent to create a room.",

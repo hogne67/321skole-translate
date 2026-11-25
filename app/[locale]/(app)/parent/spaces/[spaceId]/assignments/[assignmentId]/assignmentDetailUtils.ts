@@ -89,6 +89,7 @@ export type ChildSelfReport = {
 export type SubmissionDoc = {
   uid?: string;
   role?: string;
+  isChildPortal?: boolean;
   answers?: Record<string, string | boolean>;
   childSelfReport?: ChildSelfReport;
   auto?: {
@@ -245,6 +246,8 @@ export function looksLikeLibraryAssignment(a: AssignmentDoc | null): boolean {
 
   if (st.includes("library")) return true;
   if (st.includes("published")) return true;
+  if (a.sourceCollection === "published_lessons") return true;
+  if (st === "mycontent" || a.sourceCollection === "lessons") return false;
   if (st.includes("lesson")) return true;
   if (sid) return true;
 
@@ -531,21 +534,6 @@ export function hasChildSelfReport(report: ChildSelfReport | undefined | null) {
     report.feltHard ||
     safeString(report.comment)
   );
-}
-
-export function childMessageFromParentAi(text: string | null): string {
-  if (!text) return "";
-
-  const startMarker = "💬 Forslag til melding til barnet";
-  const endMarker = "🎯 Neste steg hjemme";
-
-  const start = text.indexOf(startMarker);
-  if (start === -1) return text.trim();
-
-  const afterStart = text.slice(start + startMarker.length).trim();
-  const end = afterStart.indexOf(endMarker);
-
-  return (end === -1 ? afterStart : afterStart.slice(0, end)).replace(/^-{5,}/g, "").trim();
 }
 
 export function isAnswered(v: string | boolean | undefined) {

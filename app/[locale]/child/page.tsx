@@ -1,21 +1,22 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-
-const CHILD_START_URL_KEY = "321skole.childStartUrl";
+import { CHILD_START_URL_KEY } from "@/lib/familyDevice";
 
 export default function ChildStartPage() {
   const t = useTranslations("childSpace");
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const savedUrl = window.localStorage.getItem(CHILD_START_URL_KEY);
-
-    if (savedUrl && savedUrl.startsWith("/")) {
-      window.location.replace(savedUrl);
-      return;
+    try {
+      const savedUrl = window.localStorage.getItem(CHILD_START_URL_KEY);
+      if (savedUrl && /^\/(nb|en|pt)\/child\/spaces\/[A-Za-z0-9_-]{1,128}$/.test(savedUrl)) {
+        window.location.replace(savedUrl);
+        return;
+      }
+    } catch {
+      // Storage can be disabled in the browser.
     }
 
     setChecking(false);
@@ -36,16 +37,6 @@ export default function ChildStartPage() {
             : t("startPage.missingSavedRoom")}
         </p>
 
-        {!checking ? (
-          <div className="mt-6">
-            <Link
-              href="/parent/spaces"
-              className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white no-underline hover:bg-emerald-600"
-            >
-              {t("startPage.parentSpaces")}
-            </Link>
-          </div>
-        ) : null}
       </section>
     </main>
   );

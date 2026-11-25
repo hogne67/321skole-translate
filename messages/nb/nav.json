@@ -21,6 +21,9 @@
     "users": "Brukere",
     "review": "Vurdering",
     "submissions": "Besvarelser",
-    "tools": "+ Ny oppgave"
+    "tools": "+ Ny oppgave",
+    "parentHome": "Foreldreportal",
+    "familyRooms": "Familierom",
+    "parentTools": "Lag oppgave"
   }
 }
