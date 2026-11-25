@@ -10,31 +10,56 @@ export default function ChildDeviceConnect({ spaceId }: { spaceId: string }) {
     const [state, setState] = useState<"loading" | "ready" | "invalid" | "error">("loading");
     const [connecting, setConnecting] = useState(false);
     const secret = useRef("");
+    const request = useRef<AbortController | null>(null);
 
     useEffect(() => {
-        secret.current = window.location.hash.slice(1);
-        setState(FAMILY_LINK_TOKEN.test(secret.current) ? "ready" : "invalid");
+        function readInvite() {
+            request.current?.abort();
+            request.current = null;
+            secret.current = window.location.hash.slice(1);
+            setState(FAMILY_LINK_TOKEN.test(secret.current) ? "ready" : "invalid");
+            setConnecting(false);
+        }
+
+        readInvite();
+        window.addEventListener("hashchange", readInvite);
+        return () => {
+            window.removeEventListener("hashchange", readInvite);
+            const pending = request.current;
+            request.current = null;
+            pending?.abort();
+        };
     }, []);
 
     async function connect() {
-        if (connecting || !FAMILY_LINK_TOKEN.test(secret.current)) return;
+        if (request.current || !FAMILY_LINK_TOKEN.test(secret.current)) return;
+        const controller = new AbortController();
+        request.current = controller;
         setConnecting(true);
+        let connected = false;
         try {
             const response = await fetch(familyDeviceApi(spaceId) + "/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ secret: secret.current }),
                 cache: "no-store",
+                signal: controller.signal,
             });
+            if (controller.signal.aborted) return;
             if (response.ok) {
-                window.location.replace(`/${locale}/child/spaces/${encodeURIComponent(spaceId)}`);
+                connected = true;
+                window.location.replace("/" + locale + "/child/spaces/" + encodeURIComponent(spaceId));
                 return;
             }
             setState([400, 401, 404, 409].includes(response.status) ? "invalid" : "error");
         } catch {
-            setState("error");
+            if (!controller.signal.aborted) setState("error");
+        } finally {
+            if (!connected && request.current === controller) {
+                request.current = null;
+                setConnecting(false);
+            }
         }
-        setConnecting(false);
     }
 
     return (
