@@ -12,21 +12,16 @@
     },
     "tiers": {
       "free": {
-        "name": "Free",
-        "price": "0 NOK"
+        "name": "Free"
       },
       "basic": {
-        "name": "Basic",
-        "price": "79 NOK"
+        "name": "Basic"
       },
       "plus": {
-        "name": "Plus",
-        "price": "139 NOK"
+        "name": "Plus"
       },
       "pro": {
-        "name": "Pro",
-        "price": "99.90 NOK",
-        "studentParentPrice": "79 NOK"
+        "name": "Pro"
       }
     },
     "compare": {
@@ -60,10 +55,12 @@
       "starFeedback": "Feedback with stars"
     },
     "footer": {
-      "note": "Prices, limits, and content may be adjusted before launch.",
+      "note": "The current price is shown before you confirm payment.",
       "salesTerms": "Sales terms",
       "privacy": "Privacy",
       "contact": "Contact"
-    }
+    },
+    "perMonth": "/ month",
+    "priceUnavailable": "See price at checkout"
   }
 }

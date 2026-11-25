@@ -12,21 +12,16 @@
     },
     "tiers": {
       "free": {
-        "name": "Free",
-        "price": "0 kr"
+        "name": "Free"
       },
       "basic": {
-        "name": "Basic",
-        "price": "79 kr"
+        "name": "Basic"
       },
       "plus": {
-        "name": "Plus",
-        "price": "139 kr"
+        "name": "Plus"
       },
       "pro": {
-        "name": "Pro",
-        "price": "99,90 kr",
-        "studentParentPrice": "79 kr"
+        "name": "Pro"
       }
     },
     "compare": {
@@ -60,10 +55,12 @@
       "starFeedback": "Feedback med stjerner"
     },
     "footer": {
-      "note": "Priser, grenser og innhold kan bli justert før lansering.",
+      "note": "Gjeldende pris vises før du bekrefter betalingen.",
       "salesTerms": "Salgsvilkår",
       "privacy": "Personvern",
       "contact": "Kontakt"
-    }
+    },
+    "perMonth": "/ mnd",
+    "priceUnavailable": "Se pris ved bestilling"
   }
 }

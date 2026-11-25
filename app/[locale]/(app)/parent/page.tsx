@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
-import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
@@ -381,8 +380,6 @@ export default function ParentPage() {
       <InstallAppButton />
 
       <section style={shortcutSectionStyle}>
-        <LaunchCampaignBanner locale={locale} href={billingHref} />
-
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}

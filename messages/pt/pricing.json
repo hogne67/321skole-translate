@@ -12,21 +12,16 @@
     },
     "tiers": {
       "free": {
-        "name": "Free",
-        "price": "R$ 0"
+        "name": "Free"
       },
       "basic": {
-        "name": "Basic",
-        "price": "R$ 79"
+        "name": "Basic"
       },
       "plus": {
-        "name": "Plus",
-        "price": "R$ 139"
+        "name": "Plus"
       },
       "pro": {
-        "name": "Pro",
-        "price": "R$ 99,90",
-        "studentParentPrice": "R$ 79"
+        "name": "Pro"
       }
     },
     "compare": {
@@ -60,10 +55,12 @@
       "starFeedback": "Feedback com estrelas"
     },
     "footer": {
-      "note": "Preços, limites e conteúdo podem ser ajustados antes do lançamento.",
+      "note": "O preço atual é exibido antes de você confirmar o pagamento.",
       "salesTerms": "Termos de venda",
       "privacy": "Privacidade",
       "contact": "Contato"
-    }
+    },
+    "perMonth": "/ mês",
+    "priceUnavailable": "Veja o preço no checkout"
   }
 }

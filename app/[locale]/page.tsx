@@ -4,7 +4,6 @@ import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import NorwayLegacyNotice from "@/components/domain/NorwayLegacyNotice";
-import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import LandingAuthRedirect from "./LandingAuthRedirect";
 
 const brand = {
@@ -374,12 +373,6 @@ export default async function HomePage() {
         locale={locale}
         schoolLabel={tr("brandLogo.school")}
         loginLabel={t("common.login")}
-      />
-
-      <LaunchCampaignBanner
-        locale={locale}
-        href={localizedPath(locale, "/pricing")}
-        variant="landing"
       />
 
       <HeroSection t={t} locale={locale} />

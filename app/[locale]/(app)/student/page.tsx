@@ -9,7 +9,6 @@ import { DashboardIntro } from "@/components/DashboardIntro";
 import { SpacePupilContext } from "@/components/SpacePupilMenu";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
-import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { db } from "@/lib/firebase";
@@ -28,7 +27,6 @@ import {
   type SubmissionDashboardStats,
 } from "@/lib/dashboardSubmissionStats";
 
-const showStudentLaunchCampaign = false;
 const showStudentQuizSection = false;
 
 function safePlan(plan?: string): PlanKey {
@@ -736,10 +734,6 @@ export default function StudentDashboard() {
 
       {!isSpaceOnly || hasActivePartnerAccess ? (
         <section style={shortcutSectionStyle}>
-          {showStudentLaunchCampaign ? (
-            <LaunchCampaignBanner locale={locale} href={`/${locale}/account/billing`} />
-          ) : null}
-
           {hasActivePartnerAccess ? (
             <DashboardShortcutRow
               title={t("partnerCard.title")}

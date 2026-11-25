@@ -10,7 +10,6 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { DashboardIntro } from "@/components/DashboardIntro";
-import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
@@ -1143,8 +1142,6 @@ export default function TeacherPage() {
       <InstallAppButton />
 
       <section style={shortcutSectionStyle}>
-        <LaunchCampaignBanner locale={locale} href={billingHref} />
-
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}
