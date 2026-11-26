@@ -13,6 +13,7 @@ export type FamilyDeviceStatus = { inviteExpiresAt: number | null; inviteName?: 
 export type FamilyRoomSummary = { title?: string; activeLessonId?: string; activeGoalId?: string };
 export type FamilyRoomData = {
     room: FamilyRoomSummary;
+    device: { number: number; name?: string };
     goals: FamilyGoalProgress[];
     assignments: Array<{
         id: string;

@@ -5,6 +5,10 @@
       "spaceTitle": "My family room",
       "assignmentTitle": "Assignment"
     },
+    "device": {
+      "label": "This device",
+      "number": "Device {number}"
+    },
     "errors": {
       "title": "Something went wrong",
       "readRoom": "Could not read room.",

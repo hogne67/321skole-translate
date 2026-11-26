@@ -226,13 +226,19 @@ export async function requireFamilyDevice(req: NextRequest, db: Firestore, space
     const snapshot = await (tx ? tx.get(ref) : ref.get());
     const access = currentAccess(snapshot.data(), Date.now());
     const tokenDigest = digest(secret);
-    const device = access?.devices.find((candidate) => candidate.digest === tokenDigest);
-    if (!access || !device) {
+    if (!access || !access.devices.some((candidate) => candidate.digest === tokenDigest)) {
         throw new FamilyAccessError(401, "device_required");
     }
     const owner = await requireFamilyOwner(db, spaceId, access.ownerUid, tx);
-    if (!owner || !grantedAfterAccountRevocation(device.createdAt, owner.profile)) {
+    const devices = owner ? access.devices.filter((candidate) => grantedAfterAccountRevocation(candidate.createdAt, owner.profile)) : [];
+    const deviceIndex = devices.findIndex((candidate) => candidate.digest === tokenDigest);
+    if (!owner || deviceIndex < 0) {
         throw new FamilyAccessError(401, "device_required");
     }
-    return { ...owner, ownerUid: access.ownerUid };
+    const name = deviceName(devices[deviceIndex].name);
+    return {
+        ...owner,
+        ownerUid: access.ownerUid,
+        device: { number: deviceIndex + 1, ...(name ? { name } : {}) },
+    };
 }

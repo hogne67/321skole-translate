@@ -5,6 +5,10 @@
       "spaceTitle": "Minha sala da família",
       "assignmentTitle": "Atividade"
     },
+    "device": {
+      "label": "Este dispositivo",
+      "number": "Dispositivo {number}"
+    },
     "errors": {
       "title": "Algo deu errado",
       "readRoom": "Não foi possível ler a sala.",

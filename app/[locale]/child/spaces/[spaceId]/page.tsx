@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { MonitorSmartphone } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -364,6 +365,7 @@ export default function ChildSpacePage() {
 
     const user = access.mode === "parent" ? access.user : null;
     const room = access.mode === "device" ? access.room : null;
+    const device = room?.device;
     const [previewSpace, setSpace] = useState<SpaceDoc | null>(null);
     const [previewAssignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
     const [previewGoals, setGoals] = useState<FamilyGoalItem[]>([]);
@@ -625,6 +627,15 @@ export default function ChildSpacePage() {
                     <div className="min-w-0">
                         <p className="m-0 text-sm font-bold text-emerald-800">{t("fallbacks.spaceTitle")}</p>
                         <h1 className="mb-0 mt-2 break-words text-3xl font-extrabold tracking-tight text-emerald-950 sm:text-4xl">{spaceTitle}</h1>
+                        {device ? (
+                            <div className="mt-3 inline-flex max-w-full items-center gap-3 rounded-xl border border-emerald-200 bg-white/80 px-3 py-2 text-emerald-950">
+                                <MonitorSmartphone aria-hidden="true" size={18} className="shrink-0 text-emerald-700" />
+                                <dl className="m-0 min-w-0 break-words">
+                                    <dt className="text-xs font-semibold text-emerald-800">{t("device.label")}</dt>
+                                    <dd className="m-0 text-sm font-bold">{device.name ?? t("device.number", { number: device.number })}</dd>
+                                </dl>
+                            </div>
+                        ) : null}
                     </div>
 
                     <div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">

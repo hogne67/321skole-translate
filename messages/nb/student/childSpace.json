@@ -5,6 +5,10 @@
       "spaceTitle": "Mitt familierom",
       "assignmentTitle": "Oppgave"
     },
+    "device": {
+      "label": "Denne enheten",
+      "number": "Enhet {number}"
+    },
     "errors": {
       "title": "Noe gikk galt",
       "readRoom": "Kunne ikke lese rommet.",

@@ -299,6 +299,7 @@ export async function readFamilyRoom(req: NextRequest, spaceId: string): Promise
     const deliveries = familyDeliveries(lessonsWithWork);
     return {
         room,
+        device: access.device,
         goals: goals.flatMap((goal) => familyGoalProgress(goal, deliveries) ?? []),
         assignments: lessonsWithWork.flatMap(({ id, data, refs, archived, work }) => {
             if (archived) return [];
