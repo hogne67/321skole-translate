@@ -15,6 +15,7 @@
       "copyFailed": "Kunne ikke kopiere romlenken. Del romkoden med eleven.",
       "loading": "Henter invitasjoner…",
       "title": "Inviter elev med konto",
+      "summary": "Bruk e-postadressen til elevkontoen.",
       "help": "Oppgi e-postadressen eleven bruker på kontoen. Del lenken eller romkoden med eleven når invitasjonen er registrert.",
       "email": "Elevens e-postadresse",
       "save": "Registrer invitasjon",
@@ -74,7 +75,10 @@
     "roster": {
       "schoolDescription": "Hent elever som allerede er registrert på skolen, og legg dem til i dette rommet.",
       "title": "Hent eksisterende elever",
+      "schoolSummary": "Velg fra skolens elevliste.",
+      "summary": "Velg elever fra dine andre rom.",
       "restoreTitle": "Legg tilbake elev med konto",
+      "restoreSummary": "Gi en tidligere elev tilgang igjen.",
       "restoreDescription": "Elever som tidligere ble fjernet fra dette rommet, får tilbake tilgangen med samme konto.",
       "restoreLabel": "Legges tilbake med samme elevkonto",
       "restoreEmpty": "Ingen fjernede elever med konto å legge tilbake.",
@@ -143,6 +147,7 @@
       "parent": "Foresatt"
     },
     "createStudent": {
+      "summary": "Eleven får en personlig elevkode.",
       "checkExisting": "Sjekk om eleven allerede finnes under «Hent eksisterende elever».",
       "description": "Opprett en elev i dette spacet og få elevkode/lenke før eleven logger inn.",
       "placeholder": "Elevnavn",
@@ -210,7 +215,8 @@
     },
     "sections": {
       "addTitle": "Legg til medlemmer",
-      "newMemberTitle": "Nytt medlem",
+      "createCodePupil": "Opprett elev med kode",
+      "inviteStaff": "Inviter medlærer eller observatør",
       "manageTitle": "Medlemsliste",
       "memberDetails": "Tekniske detaljer",
       "roomDetails": "Romdetaljer"

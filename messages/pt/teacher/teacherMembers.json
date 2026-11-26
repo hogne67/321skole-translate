@@ -15,6 +15,7 @@
       "copyFailed": "Não foi possível copiar a ligação da sala. Partilhe o código da sala com o aluno.",
       "loading": "A carregar os convites…",
       "title": "Convidar aluno com conta",
+      "summary": "Use o endereço de e-mail da conta do aluno.",
       "help": "Introduza o endereço de e-mail que o aluno usa na sua conta. Partilhe a ligação ou o código da sala após registar o convite.",
       "email": "Endereço de e-mail do aluno",
       "save": "Registar convite",
@@ -74,11 +75,14 @@
     "roster": {
       "schoolDescription": "Adicione a esta sala alunos já cadastrados na escola.",
       "restoreTitle": "Readicionar aluno com conta",
+      "restoreSummary": "Volte a dar acesso a um antigo membro da sala.",
       "restoreDescription": "Alunos removidos desta sala recuperam o acesso com a mesma conta.",
       "restoreLabel": "Readicionar com a mesma conta do aluno",
       "restoreEmpty": "Não há alunos removidos com conta para readicionar.",
       "restoreFailed": "Não foi possível readicionar o aluno com a mesma conta.",
       "title": "Adicionar alunos existentes",
+      "schoolSummary": "Escolha na lista de alunos da escola.",
+      "summary": "Escolha alunos das suas outras salas.",
       "description": "Escolha alunos que já estão nas suas outras salas. Recebem códigos próprios nesta sala e continuam a ocupar apenas uma vaga consigo.",
       "linkTitle": "Ligar a aluno existente",
       "linkDescription": "Selecione apenas se {name} for a mesma pessoa que o aluno noutra sala. A ligação altera a contagem da licença. Os nomes, códigos e respostas nas salas são mantidos.",
@@ -143,6 +147,7 @@
       "parent": "Responsável"
     },
     "createStudent": {
+      "summary": "O aluno recebe um código pessoal.",
       "checkExisting": "Confira se o aluno já está cadastrado em “Adicionar alunos existentes”.",
       "description": "Crie um aluno neste space e gere código/link antes de o aluno entrar.",
       "placeholder": "Nome do aluno",
@@ -210,7 +215,8 @@
     },
     "sections": {
       "addTitle": "Adicionar membros",
-      "newMemberTitle": "Novo membro",
+      "createCodePupil": "Criar aluno com código",
+      "inviteStaff": "Convidar professor auxiliar ou observador",
       "manageTitle": "Lista de membros",
       "memberDetails": "Detalhes técnicos",
       "roomDetails": "Detalhes da sala"

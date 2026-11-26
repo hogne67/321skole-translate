@@ -15,6 +15,7 @@
       "copyFailed": "Could not copy the room link. Share the room code with the student.",
       "loading": "Loading invitations…",
       "title": "Invite a student with an account",
+      "summary": "Use the email address on the pupil’s account.",
       "help": "Enter the email address the student uses for their account. Share the link or room code once the invitation is registered.",
       "email": "Student email address",
       "save": "Register invitation",
@@ -74,11 +75,14 @@
     "roster": {
       "schoolDescription": "Add pupils who are already registered at this school to this room.",
       "restoreTitle": "Re-add a pupil with an account",
+      "restoreSummary": "Give a former room member access again.",
       "restoreDescription": "Pupils who were removed from this room regain access with the same account.",
       "restoreLabel": "Re-add with the same pupil account",
       "restoreEmpty": "There are no removed pupils with accounts to re-add.",
       "restoreFailed": "Could not re-add the pupil with the same account.",
       "title": "Add existing pupils",
+      "schoolSummary": "Choose from the school’s pupil list.",
+      "summary": "Choose pupils from your other rooms.",
       "description": "Choose pupils already in your other rooms. They get separate pupil codes here and still use just one pupil place with you.",
       "linkTitle": "Link to existing pupil",
       "linkDescription": "Select only if {name} is the same person as the pupil in another room. Linking changes the licence count. Room names, pupil codes and answers are kept.",
@@ -143,6 +147,7 @@
       "parent": "Guardian"
     },
     "createStudent": {
+      "summary": "The pupil receives a personal pupil code.",
       "checkExisting": "Check under “Add existing pupils” before creating a new student.",
       "description": "Create a student in this space and get a student code/link before the student signs in.",
       "placeholder": "Student name",
@@ -210,7 +215,8 @@
     },
     "sections": {
       "addTitle": "Add members",
-      "newMemberTitle": "New member",
+      "createCodePupil": "Create a pupil with a code",
+      "inviteStaff": "Invite a co-teacher or observer",
       "manageTitle": "Member list",
       "memberDetails": "Technical details",
       "roomDetails": "Room details"

@@ -4,7 +4,7 @@ import { getSpaceOwnerUid } from "@/lib/security/spaceOwnership";
 import { isActiveSpaceCoTeacher, isActiveSpaceMember } from "@/lib/security/spaceAccess";
 
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Printer } from "lucide-react";
+import { ArrowLeft, ChevronDown, KeyRound, Printer, UserRoundPlus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
@@ -212,8 +212,7 @@ function Inner() {
   const [accessRequests, setAccessRequests] = useState<SpaceAccessRequest[]>([]);
   const [search, setSearch] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [requestedRole, setSingleRole] = useState<"student" | "co_teacher" | "observer">("student");
-  const singleRole = !pupilCodesAllowed && requestedRole === "student" ? "co_teacher" : requestedRole;
+  const [inviteRole, setInviteRole] = useState<"co_teacher" | "observer">("co_teacher");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [studentBusy, setStudentBusy] = useState(false);
@@ -408,7 +407,7 @@ function Inner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ email, role: singleRole === "observer" ? "observer" : "co_teacher" }),
+        body: JSON.stringify({ email, role: inviteRole }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -684,84 +683,84 @@ function Inner() {
       {canManageStaff ? (
         <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
-          {user && canInviteAccount ? (
-              <SchoolRoomAccountInvitations key={`${user.uid}:${spaceId}`} spaceId={spaceId} user={user} roomCode={spaceCode} />
-            ) : null}
-          {pupilCodesAllowed || (schoolRoom && canInviteAccount) ? (
-            <div className="mt-3">
+          <div className="mt-3 grid gap-2">
+            {pupilCodesAllowed || (schoolRoom && canInviteAccount) ? (
               <TeacherPupilPicker key={`${user?.uid}:${spaceId}:${pupilCodesAllowed}`}
                 spaceId={spaceId} schoolRoom={schoolRoom} accountRestoreOnly={!pupilCodesAllowed} />
-            </div>
-          ) : null}
-          {!pupilCodesAllowed ? <p className="mb-0 mt-3 text-sm text-slate-600">{t("schoolPupil.errors.school_pupil_code_disabled")}</p> : null}
-
-          <div className="mt-4 border-0 border-t border-solid border-slate-200 pt-4">
-            <h3 className="m-0 text-base font-semibold text-slate-950">{t("sections.newMemberTitle")}</h3>
-            {singleRole === "student" ? (
-              <p id="new-student-hint" className="mb-0 mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">{t("createStudent.checkExisting")}</p>
             ) : null}
-            <div className="mt-3 grid items-end gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
-              <div className="min-w-0">
-                <label htmlFor="new-member-role" className="mb-1 block text-sm font-medium">{t("table.role")}</label>
-                <div className="relative">
-                  <select
-                    id="new-member-role"
-                    value={singleRole}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setSingleRole(value === "observer" ? "observer" : value === "co_teacher" ? "co_teacher" : "student");
-                    }}
-                    className={`${fieldClass} appearance-none pr-8`}
-                  >
-                    {pupilCodesAllowed ? <option value="student">{t("roles.student")}</option> : null}
-                    <option value="co_teacher">{t("roles.co_teacher")}</option>
-                    <option value="observer">{t("roles.observer")}</option>
-                  </select>
-                  <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+            {user && canInviteAccount ? (
+              <SchoolRoomAccountInvitations key={`${user.uid}:${spaceId}`} spaceId={spaceId} user={user} roomCode={spaceCode} />
+            ) : null}
+            {pupilCodesAllowed ? (
+              <details id="create-code-pupil" className="group rounded-xl border border-solid border-slate-200 bg-slate-50">
+                <summary className={`${disclosureClass} min-h-14 gap-3`}>
+                  <KeyRound aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-600" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block">{t("sections.createCodePupil")}</span>
+                    <span className="block text-xs font-normal text-slate-600">{t("createStudent.summary")}</span>
+                  </span>
+                  <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
+                </summary>
+                <form className="grid gap-3 border-0 border-t border-solid border-slate-200 p-3"
+                  onSubmit={(event) => { event.preventDefault(); if (!studentBusy) void createStudent(); }}>
+                  <p id="new-student-hint" className="m-0 text-sm text-slate-600">{t("createStudent.checkExisting")}</p>
+                  <div className="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    {schoolRoom ? (
+                      <SchoolPupilNameFields names={pupilNames} onChange={setPupilNames} disabled={studentBusy} />
+                    ) : (
+                      <input
+                        aria-label={t("createStudent.placeholder")}
+                        value={studentName}
+                        onChange={(event) => setStudentName(event.target.value)}
+                        placeholder={t("createStudent.placeholder")}
+                        className={fieldClass}
+                      />
+                    )}
+                    <button type="submit" aria-describedby="new-student-hint"
+                      disabled={studentBusy || !(schoolRoom ? pupilNames.fullName.trim() : studentName.trim())}
+                      className={primaryButton}>
+                      {t(studentBusy ? "createStudent.actions.working" : "createStudent.actions.create")}
+                    </button>
+                  </div>
+                </form>
+              </details>
+            ) : <p className="mb-0 text-sm text-slate-600">{t("schoolPupil.errors.school_pupil_code_disabled")}</p>}
+          </div>
+
+          <div className="mt-4 border-0 border-t border-solid border-slate-200 pt-3">
+            <details id="invite-room-staff" className="group">
+              <summary className={`${disclosureClass} gap-3`}>
+                <UserRoundPlus aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-600" />
+                <span className="min-w-0 flex-1">{t("sections.inviteStaff")}</span>
+                <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
+              </summary>
+              <form className="grid gap-2 px-3 pb-1 pt-2"
+                onSubmit={(event) => { event.preventDefault(); if (!inviteBusy) void inviteStaff(); }}>
+                <div className="grid items-end gap-2 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
+                    <label htmlFor="new-member-role" className="mb-1 block text-sm font-medium">{t("table.role")}</label>
+                    <div className="relative">
+                      <select id="new-member-role" value={inviteRole}
+                        onChange={(event) => setInviteRole(event.target.value === "observer" ? "observer" : "co_teacher")}
+                        className={`${fieldClass} appearance-none pr-8`}>
+                        <option value="co_teacher">{t("roles.co_teacher")}</option>
+                        <option value="observer">{t("roles.observer")}</option>
+                      </select>
+                      <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <label htmlFor="staff-invite-email" className="mb-1 block text-sm font-medium">{t("staff.email")}</label>
+                    <input id="staff-invite-email" type="email" required aria-describedby="staff-account-hint"
+                      value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} className={fieldClass} />
+                  </div>
+                  <button type="submit" disabled={inviteBusy || !inviteEmail.trim()} className={primaryButton}>
+                    {t(inviteBusy ? "staff.inviting" : "staff.invite")}
+                  </button>
                 </div>
-              </div>
-
-              {singleRole === "student" && schoolRoom ? (
-                <SchoolPupilNameFields names={pupilNames} onChange={setPupilNames} disabled={studentBusy} />
-              ) : singleRole === "student" ? (
-                <input
-                  aria-label={t("createStudent.placeholder")}
-                  value={studentName}
-                  onChange={(event) => setStudentName(event.target.value)}
-                  placeholder={t("createStudent.placeholder")}
-                  className={fieldClass}
-                />
-              ) : (
-                <input
-                  aria-label={t("staff.email")}
-                  aria-describedby="staff-account-hint"
-                  value={inviteEmail}
-                  onChange={(event) => setInviteEmail(event.target.value)}
-                  placeholder={t("staff.email")}
-                  type="email"
-                  className={fieldClass}
-                />
-              )}
-
-              <button
-                type="button"
-                aria-describedby={singleRole === "student" ? "new-student-hint" : undefined}
-                onClick={singleRole === "student" ? () => void createStudent() : inviteStaff}
-                disabled={
-                  singleRole === "student"
-                    ? studentBusy || !(schoolRoom ? pupilNames.fullName.trim() : studentName.trim())
-                    : inviteBusy || !inviteEmail.trim()
-                }
-                className={primaryButton}
-              >
-                {singleRole === "student"
-                  ? t(studentBusy ? "createStudent.actions.working" : "createStudent.actions.create")
-                  : t(inviteBusy ? "staff.inviting" : "staff.invite")}
-              </button>
-            </div>
-            {singleRole !== "student" ? (
-              <p id="staff-account-hint" className="mb-0 mt-2 text-sm text-slate-600">{t("staff.accountHint")}</p>
-            ) : null}
+                <p id="staff-account-hint" className="m-0 text-sm text-slate-600">{t("staff.accountHint")}</p>
+              </form>
+            </details>
           </div>
         </section>
       ) : null}
@@ -798,7 +797,7 @@ function Inner() {
         ) : null}
         {inviteError ? <p role="alert" className="mb-0 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{inviteError}</p> : null}
 
-        <div className="mt-3 grid gap-2">
+        <div className="mt-4 grid gap-3">
           {filtered.length === 0 ? (
             <p className="m-0 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600">
               {t("empty")}
@@ -818,6 +817,8 @@ function Inner() {
               const schoolPupil = Boolean(r.data.schoolPupilId);
               const deviceCount = r.deviceCount ?? 1;
               const isOpen = expandedMemberId === r.id;
+              const isEditingName = editingNameId === r.id;
+              const headingId = `member-name-${r.id}`;
               const detailsId = `member-details-${r.id}`;
               const canRemoveStaff = Boolean(
                 canManageStaff &&
@@ -827,10 +828,10 @@ function Inner() {
               );
 
               return (
-                <article key={r.id} className="rounded-xl border border-slate-200 bg-white">
-                  <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                <article key={r.id} className={`rounded-xl border border-solid bg-white shadow-sm ${isOpen ? "border-sky-300" : "border-slate-300"}`}>
+                  <div className={`relative flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${isOpen ? "rounded-t-xl bg-sky-50" : "rounded-xl hover:bg-slate-50"}`}>
                     <div className="min-w-0 flex-1 basis-32">
-                      {editingNameId === r.id ? (
+                      {isEditingName ? (
                         <div className="flex flex-wrap items-center gap-2">
                           <input
                             aria-label={t("createStudent.placeholder")}
@@ -853,8 +854,8 @@ function Inner() {
                         </div>
                       ) : (
                         <div>
-                          <h3 className="m-0 break-words text-base font-semibold text-slate-950">{name}</h3>
-                          <p className="mb-0 mt-1 text-xs text-slate-600">{roleLabel}</p>
+                          <h3 id={headingId} className="m-0 break-words text-base font-semibold text-slate-950">{name}</h3>
+                          <p className="mb-0 mt-1 text-sm text-slate-600">{roleLabel}</p>
                         </div>
                       )}
                     </div>
@@ -862,7 +863,8 @@ function Inner() {
                     <button
                       type="button"
                       onClick={() => setExpandedMemberId(isOpen ? null : r.id)}
-                      className={secondaryButton}
+                      className={`${secondaryButton} shrink-0 ${isEditingName ? "" : "after:absolute after:inset-0 after:content-['']"}`}
+                      aria-describedby={isEditingName ? undefined : headingId}
                       aria-expanded={isOpen}
                       aria-controls={isOpen ? detailsId : undefined}
                     >
@@ -872,7 +874,7 @@ function Inner() {
                   </div>
 
                   {isOpen ? (
-                    <div id={detailsId} className="grid gap-3 border-t border-slate-200 p-3">
+                    <div id={detailsId} className="grid gap-4 border-0 border-t border-solid border-sky-200 px-4 py-4">
                       {pupilCodesAllowed && isStudent && !schoolPupil ? (
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
                           <dl className="m-0">

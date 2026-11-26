@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type FormEvent } from "react";
 import type { User } from "firebase/auth";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Mail } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 type Invitation = { id: string; email: string; sourceMemberId?: string };
@@ -120,10 +120,14 @@ export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemb
 
   return (
     <details onToggle={event => setOpen(event.currentTarget.open)} data-account-invitation-kind={sourceMemberId ? "transfer" : "general"}
-      className="group mt-3 rounded-xl border border-solid border-slate-200 bg-slate-50">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
-        {t(sourceMemberId ? "transferTitle" : "title")}
-        <ChevronDown aria-hidden="true" className="h-4 w-4 group-open:rotate-180" />
+      className={`group rounded-xl border border-solid border-slate-200 bg-slate-50 ${sourceMemberId ? "mt-3" : ""}`}>
+      <summary className={`flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 [&::-webkit-details-marker]:hidden ${sourceMemberId ? "min-h-11" : "min-h-14"}`}>
+        {!sourceMemberId ? <Mail aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-600" /> : null}
+        <span className="min-w-0 flex-1">
+          <span className="block">{t(sourceMemberId ? "transferTitle" : "title")}</span>
+          {!sourceMemberId ? <span className="block text-xs font-normal text-slate-600">{t("summary")}</span> : null}
+        </span>
+        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 group-open:rotate-180" />
       </summary>
       <div className="space-y-3 px-3 pb-3">
         <p className="m-0 text-sm text-slate-600">{t(sourceMemberId ? "transferHelp" : "help")}</p>
