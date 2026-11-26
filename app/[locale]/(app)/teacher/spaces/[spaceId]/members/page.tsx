@@ -685,7 +685,7 @@ function Inner() {
         <section id="add-students" aria-labelledby="add-students-heading" className="mt-4 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <h2 id="add-students-heading" className="m-0 text-lg font-semibold text-slate-950">{t("sections.addTitle")}</h2>
           {user && canInviteAccount ? (
-              <SchoolRoomAccountInvitations key={`${user.uid}:${spaceId}`} spaceId={spaceId} user={user} />
+              <SchoolRoomAccountInvitations key={`${user.uid}:${spaceId}`} spaceId={spaceId} user={user} roomCode={spaceCode} />
             ) : null}
           {pupilCodesAllowed || (schoolRoom && canInviteAccount) ? (
             <div className="mt-3">

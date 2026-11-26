@@ -5,9 +5,9 @@
     "account": {
       "providers": { "email": "e-post", "feide": "Feide", "google": "Google" },
       "title": "Bli med med konto",
-      "help": "Bruk romkoden fra læreren. Logg inn med e-postadressen læreren har invitert.",
-      "useCode": "Bruk personlig elevkode",
-      "login": "Logg inn for å bli med",
+      "help": "Skriv inn romkoden du fikk fra læreren.",
+      "useCode": "Jeg har elevkode",
+      "login": "Logg inn med konto",
       "signedIn": "Du er logget inn som {email}.",
       "switchAccount": "Bytt konto",
       "completeProfile": "Fullfør elevprofil"

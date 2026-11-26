@@ -14,7 +14,7 @@ const invitationErrors = {
   account_transfer_pending: "transferPending",
   account_transfer_conflict: "transferConflict",
 } as const;
-type InvitationError = typeof invitationErrors[keyof typeof invitationErrors] | "copyFailed" | "failed";
+type InvitationError = typeof invitationErrors[keyof typeof invitationErrors] | "failed";
 
 export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemberId, roomCode }: {
   spaceId: string;
@@ -34,12 +34,13 @@ export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemb
   const [busy, setBusy] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [status, setStatus] = useState<"saved" | "withdrawn" | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkFeedback, setLinkFeedback] = useState<"linkCopied" | "copyFailed" | null>(null);
   const [error, setError] = useState<InvitationError | null>(null);
   const matchingInvitations = sourceMemberId
     ? invitations?.filter(invitation => invitation.sourceMemberId === sourceMemberId)
     : invitations;
   const showForm = !sourceMemberId || (matchingInvitations?.length === 0 && !loadFailed && status !== "saved");
+  const roomLinkCode = status === "saved" || matchingInvitations?.length ? roomCode : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -68,7 +69,7 @@ export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemb
     const inviting = "email" in body;
     setBusy(true);
     setStatus(null);
-    setLinkCopied(false);
+    setLinkFeedback(null);
     setError(null);
     try {
       const response = await fetch(endpoint, {
@@ -111,10 +112,9 @@ export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemb
     url.searchParams.set("code", roomCode);
     try {
       await navigator.clipboard.writeText(url.href);
-      setError(null);
-      setLinkCopied(true);
+      setLinkFeedback("linkCopied");
     } catch {
-      setError("copyFailed");
+      setLinkFeedback("copyFailed");
     }
   }
 
@@ -142,17 +142,25 @@ export default function SchoolRoomAccountInvitations({ spaceId, user, sourceMemb
         {matchingInvitations === undefined && sourceMemberId && !loadFailed ? (
           <p role="status" className="m-0 text-sm text-slate-600">{t("loading")}</p>
         ) : null}
-        {linkCopied || status ? (
-          <p role="status" className="m-0 text-sm text-emerald-900">
-            {t(linkCopied ? "linkCopied" : status === "saved" ? (sourceMemberId ? "transferSaved" : "saved") : "withdrawn")}
-          </p>
-        ) : null}
-        {sourceMemberId && roomCode && (status === "saved" || matchingInvitations?.length) ? (
-          <div className="flex flex-wrap items-center gap-x-3 text-sm">
-            <span>{t("roomCode", { code: roomCode })}</span>
-            <button type="button" onClick={() => void copyRoomLink()} className="min-h-10 font-semibold text-slate-700 underline">
-              {t("copyRoomLink")}
-            </button>
+        {status || roomLinkCode ? (
+          <div className="space-y-2 rounded-lg bg-emerald-50 px-3 py-2">
+            {status ? (
+              <p role="status" className="m-0 text-sm text-emerald-900">
+                {t(status === "saved" ? (sourceMemberId ? "transferSaved" : "saved") : "withdrawn")}
+              </p>
+            ) : null}
+            {roomLinkCode ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <button type="button" onClick={() => void copyRoomLink()}
+                  className="min-h-11 rounded-lg border border-solid border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-900">
+                  {t("copyRoomLink")}
+                </button>
+                <span className="text-slate-600">{t("roomCode", { code: roomLinkCode })}</span>
+                <span role="status" className={linkFeedback === "copyFailed" ? "text-red-700" : "text-emerald-900"}>
+                  {linkFeedback ? t(linkFeedback) : null}
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {error ? <p role="alert" className="m-0 text-sm text-red-700">{t(error)}</p> : null}

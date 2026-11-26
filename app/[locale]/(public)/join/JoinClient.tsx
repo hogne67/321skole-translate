@@ -15,8 +15,7 @@ type JoinAction = { confirm?: boolean; switchPupil?: boolean; renew?: boolean; c
 type Preview = { spaceId: string; title: string; displayName?: string; switchRequired?: boolean; currentDisplayName?: string | null; signedInAccount?: boolean; preview: boolean; approvalRequired?: boolean; approvalCode?: string; expired?: boolean; renewRequired?: boolean; requestState?: "rejected" | "cancelled" | "replace" };
 
 function roomEntryHref(locale: string, code: string, accountJoin: boolean, openContent: boolean, page: "login" | "onboarding" = "login") {
-  const params = new URLSearchParams({ code: code.trim() });
-  if (accountJoin) params.set("method", "account");
+  const params = new URLSearchParams({ code: code.trim(), method: accountJoin ? "account" : "code" });
   if (openContent) params.set("next", "content");
   const next = `/${locale}/join?${params}`;
   return `/${locale}/${page}?next=${encodeURIComponent(next)}`;
@@ -26,9 +25,12 @@ export default function JoinClient() {
   const params = useSearchParams();
   const initialCode = params.get("code") ?? "";
   const initialStudentCode = params.get("studentCode") ?? "";
+  const method = params.get("method");
   const signedOut = params.get("signedOut") === "1";
   const openContent = params.get("next") === "content";
-  const accountJoin = !initialStudentCode && params.get("method") === "account";
+  // Keep the printed pupil links, dedicated code entry and shared-PC sign-out flow.
+  const codeEntry = method === "code" || (method !== "account" && (openContent || signedOut));
+  const accountJoin = !initialStudentCode && !codeEntry;
   return (
     <JoinForm
       key={JSON.stringify([initialCode, initialStudentCode, signedOut, openContent, accountJoin])}
@@ -173,20 +175,19 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
     </div>;
   }
   const useAccount = accountUser && !accountUser.isAnonymous;
-  const alternateParams = new URLSearchParams();
-  if (!accountJoin) alternateParams.set("method", "account");
+  const alternateParams = new URLSearchParams({ method: accountJoin ? "code" : "account" });
   if (code.trim()) alternateParams.set("code", code.trim());
-  const alternateQuery = alternateParams.toString();
-  const alternateEntry = recovery === "code" || (!initialStudentCode && !openContent && !signedOut) ? (
-    <Link href={`/${locale}/join${alternateQuery ? "?" + alternateQuery : ""}`}
+  if (openContent) alternateParams.set("next", "content");
+  if (signedOut) alternateParams.set("signedOut", "1");
+  const alternateEntry = !busy && !preview && (recovery === "code" || !initialStudentCode) ? (
+    <Link href={`/${locale}/join?${alternateParams}`}
       className="inline-flex min-h-10 items-center text-sm font-semibold text-emerald-800 underline">
       {t(accountJoin ? "account.useCode" : "account.title")}
     </Link>
   ) : null;
   return <div className="mx-auto max-w-md p-4">
-    <h1 className="text-2xl font-semibold">{accountJoin ? t("account.title") : openContent ? tLanding("ctaStudentCode") : t("title")}</h1>
+    <h1 className="text-2xl font-semibold">{!accountJoin && openContent ? tLanding("ctaStudentCode") : t("title")}</h1>
     <p className="mt-2 text-sm text-slate-600">{t(accountJoin ? "account.help" : "subtitle")}</p>
-    {!accountJoin ? alternateEntry : null}
     {signedOut ? <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-800">{t("session.signedOut")}</p> : null}
     <form autoComplete="off" onSubmit={e => { e.preventDefault(); if (!preview) void request({ submit: true }); }} className="mt-4 grid gap-4 rounded-2xl border bg-white p-4 shadow-sm">
       {codeInput("space-code", "spaceCode", code, setCode)}
@@ -243,6 +244,6 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
         </button>
       ) : null}
     </form>
-    {accountJoin ? alternateEntry : null}
+    {alternateEntry}
   </div>;
 }

@@ -5,9 +5,9 @@
     "account": {
       "providers": { "email": "email", "feide": "Feide", "google": "Google" },
       "title": "Join with an account",
-      "help": "Use the room code from your teacher. Sign in with the email address your teacher invited.",
-      "useCode": "Use a personal student code",
-      "login": "Sign in to join",
+      "help": "Enter the room code your teacher gave you.",
+      "useCode": "I have a student code",
+      "login": "Sign in with an account",
       "signedIn": "You are signed in as {email}.",
       "switchAccount": "Switch account",
       "completeProfile": "Complete student profile"

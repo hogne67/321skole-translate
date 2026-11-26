@@ -5,9 +5,9 @@
     "account": {
       "providers": { "email": "e-mail", "feide": "Feide", "google": "Google" },
       "title": "Entrar com uma conta",
-      "help": "Use o código da sala dado pelo professor. Inicie sessão com o endereço de e-mail convidado pelo professor.",
-      "useCode": "Usar o código pessoal de aluno",
-      "login": "Iniciar sessão para entrar",
+      "help": "Introduza o código da sala dado pelo professor.",
+      "useCode": "Tenho um código de aluno",
+      "login": "Iniciar sessão com uma conta",
       "signedIn": "A sessão foi iniciada com {email}.",
       "switchAccount": "Mudar de conta",
       "completeProfile": "Completar perfil de aluno"
