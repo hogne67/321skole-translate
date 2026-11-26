@@ -226,13 +226,20 @@ function AssignmentActionButton({
     );
 }
 
-function GoalReward({ reward }: { reward: string }) {
+function GoalReward({ reward, given = false }: { reward: string; given?: boolean }) {
     const t = useTranslations("childSpace.goal");
     return (
-        <dl className="mb-0 mt-4 rounded-2xl bg-white p-4">
-            <dt className="font-bold text-slate-900">{t("reward")}</dt>
-            <dd className="m-0 mt-1 break-words text-base leading-7 text-slate-700">{reward}</dd>
-        </dl>
+        <div className="mt-4 rounded-2xl bg-white p-4">
+            <dl className="m-0">
+                <dt className="font-bold text-slate-900">{t("reward")}</dt>
+                <dd className="m-0 mt-1 break-words text-base leading-7 text-slate-700">{reward}</dd>
+            </dl>
+            {given ? (
+                <p className="mb-0 mt-2 font-bold text-emerald-800">
+                    <span aria-hidden="true">✓ </span>{t("rewardGiven")}
+                </p>
+            ) : null}
+        </div>
     );
 }
 
@@ -294,7 +301,7 @@ function CompletedGoals({ goals, activeGoalId }: { goals: FamilyGoalProgress[]; 
                             <span className="min-w-0 break-words">{data.title}</span>
                         </h3>
                         {data.description ? <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{data.description}</p> : null}
-                        {data.reward ? <GoalReward reward={data.reward} /> : null}
+                        {data.reward ? <GoalReward reward={data.reward} given={!!data.rewardGivenAt} /> : null}
                     </li>
                 ))}
             </ul>

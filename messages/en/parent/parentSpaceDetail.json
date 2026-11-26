@@ -94,6 +94,12 @@
       "rewardLabel": "Reward (optional)",
       "rewardPlaceholder": "For example, choose a book to read together",
       "agreedReward": "Agreed reward",
+      "loading": "Loading goals …",
+      "completedRewards": "Rewards for completed goals",
+      "markRewardGiven": "Mark as given",
+      "markRewardFor": "Mark the reward for {goal} as given",
+      "markRewardFailed": "Could not mark the reward as given. Try again.",
+      "rewardGiven": "Reward given",
       "countsNewDeliveries": "Assignments handed in after you set the goal count toward it.",
       "save": "Save goal",
       "saving": "Saving..."

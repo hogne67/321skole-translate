@@ -17,6 +17,7 @@ export type ParentSpaceGoalDoc = {
   countFrom?: unknown;
   updatedAt: unknown;
   completedAt?: unknown;
+  rewardGivenAt?: unknown;
 };
 
 export type FamilyGoal = Pick<ParentSpaceGoalDoc, "title" | "description" | "reward" | "status" | "kind" | "targetCount" | "assignmentIds"> & {
@@ -25,6 +26,7 @@ export type FamilyGoal = Pick<ParentSpaceGoalDoc, "title" | "description" | "rew
   updatedAt?: number;
   endedAt?: number;
   completedAt?: number;
+  rewardGivenAt?: number;
 };
 
 export type FamilyGoalItem = { id: string; data: FamilyGoal };
@@ -52,6 +54,7 @@ export function readFamilyGoal(
     return time > 0 ? time : undefined;
   };
   const completedAt = timestamp(value.completedAt);
+  const rewardGivenAt = timestamp(value.rewardGivenAt);
   const updatedAt = timestamp(value.updatedAt);
   return {
     id,
@@ -59,7 +62,7 @@ export function readFamilyGoal(
       title,
       description: safeString(value.description) ?? undefined,
       reward: safeString(value.reward) ?? undefined,
-      status: completedAt ? "completed" : status,
+      status: completedAt || rewardGivenAt ? "completed" : status,
       kind: value.kind === "complete_assignments" ? value.kind : "custom",
       targetCount: typeof targetCount === "number" && Number.isFinite(targetCount) && targetCount > 0 ? targetCount : undefined,
       assignmentIds: Array.isArray(value.assignmentIds) ? value.assignmentIds.filter((id) => typeof id === "string") : undefined,
@@ -67,6 +70,7 @@ export function readFamilyGoal(
       countFrom: timestamp(value.countFrom),
       updatedAt,
       completedAt,
+      rewardGivenAt,
       // Older archives have no saved outcome. Their last update is when the goal was replaced.
       endedAt: status === "archived" && !("completedAt" in value) ? updatedAt : undefined,
     },

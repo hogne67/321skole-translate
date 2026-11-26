@@ -283,6 +283,7 @@ service cloud.firestore {
           "title",
           "description",
           "reward",
+          "rewardGivenAt",
           "status",
           "kind",
           "targetCount",
@@ -306,6 +307,7 @@ service cloud.firestore {
         && data.title.size() <= 120
         && (!("description" in data) || (data.description is string && data.description.size() <= 500))
         && (!("reward" in data) || (data.reward is string && data.reward.size() <= 160))
+        && (!("rewardGivenAt" in data) || data.rewardGivenAt is timestamp)
         && (data.status in ["active", "completed", "archived"])
         && (data.kind in ["complete_assignments", "custom"])
         && (data.createdByUid is string)
@@ -316,13 +318,15 @@ service cloud.firestore {
     }
 
     function validParentGoalCreate() {
-      return validParentGoalBase(request.resource.data);
+      return validParentGoalBase(request.resource.data) && !("rewardGivenAt" in request.resource.data);
     }
 
     function validParentGoalUpdate() {
       return validParentGoalBase(request.resource.data)
         && request.resource.data.createdByUid == resource.data.createdByUid
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["rewardGivenAt"])
+        && (!("rewardGivenAt" in resource.data) || !request.resource.data.diff(resource.data).affectedKeys().hasAny(["reward"]));
     }
 
     /* =========================

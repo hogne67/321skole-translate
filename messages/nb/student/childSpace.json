@@ -45,6 +45,7 @@
       "completed": "Du klarte målet. Bra jobbet!",
       "progress": "Du har levert {done} av {target, plural, one {# oppgave} other {# oppgaver}}.",
       "reward": "Avtalt belønning",
+      "rewardGiven": "Belønning gitt",
       "empty": "Når en voksen lager et mål til deg, finner du det her."
     },
     "assignments": {

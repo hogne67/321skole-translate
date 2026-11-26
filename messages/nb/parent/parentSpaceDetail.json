@@ -94,6 +94,12 @@
       "rewardLabel": "Belønning (valgfritt)",
       "rewardPlaceholder": "For eksempel velge en bok vi leser sammen",
       "agreedReward": "Avtalt belønning",
+      "loading": "Laster mål …",
+      "completedRewards": "Belønninger for fullførte mål",
+      "markRewardGiven": "Marker som gitt",
+      "markRewardFor": "Marker belønningen for {goal} som gitt",
+      "markRewardFailed": "Kunne ikke markere belønningen som gitt. Prøv igjen.",
+      "rewardGiven": "Belønning gitt",
       "countsNewDeliveries": "Oppgaver barnet leverer etter at målet er satt, teller mot målet.",
       "save": "Lagre mål",
       "saving": "Lagrer..."

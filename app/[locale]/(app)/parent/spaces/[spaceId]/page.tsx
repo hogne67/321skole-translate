@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import FamilyDeviceAccessPanel from "@/components/child/FamilyDeviceAccessPanel";
 import { childRoomHref } from "@/lib/familyDevice";
+import { isDelivered } from "@/lib/familyAssignments";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -22,7 +23,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
+import type { FamilyGoalProgress } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { canShareContentToParentSpace } from "@/lib/spaceSharing";
 import { hasParentFeedback, needsParentReply } from "@/lib/parentFeedback";
@@ -105,11 +106,6 @@ type AssignmentStatusMeta = {
 function needsFeedback(meta?: AssignmentStatusMeta | null): boolean {
   return !!meta?.reviewLoaded && needsParentReply(meta.submissionStatus, meta.isChildWork, meta.hasParentReview);
 }
-
-type GoalItem = {
-  id: string;
-  data: ParentSpaceGoalDoc;
-};
 
 function assignmentSnippet(d: AssignmentDoc) {
   const asRec: Record<string, unknown> = d;
@@ -236,12 +232,17 @@ export default function ParentSpaceDetailPage() {
   const [archiveBusyId, setArchiveBusyId] = useState<string | null>(null);
 
   const [statusMap, setStatusMap] = useState<Record<string, AssignmentStatusMeta>>({});
-  const [goals, setGoals] = useState<GoalItem[]>([]);
+  const [goalSummary, setGoalSummary] = useState<{ spaceId: string; uid: string; goals: FamilyGoalProgress[] } | null>(null);
+  const [goalRevision, setGoalRevision] = useState(0);
+  const [goalLoadFailed, setGoalLoadFailed] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalTargetCount, setGoalTargetCount] = useState("3");
   const [goalReward, setGoalReward] = useState("");
   const [goalBusy, setGoalBusy] = useState(false);
   const [goalMsg, setGoalMsg] = useState<string | null>(null);
+  const [rewardBusyId, setRewardBusyId] = useState<string | null>(null);
+  const [rewardErrorId, setRewardErrorId] = useState<string | null>(null);
+  const goalsApi = "/api/parent/spaces/" + encodeURIComponent(spaceId) + "/goals";
 
   const collatorLocale = useMemo(() => (locale === "no" ? "nb" : "en"), [locale]);
 
@@ -292,7 +293,7 @@ export default function ParentSpaceDetailPage() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch("/api/parent/spaces/" + encodeURIComponent(spaceId) + "/goals", {
+      const response = await fetch(goalsApi, {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ title, targetCount, reward }),
@@ -304,10 +305,39 @@ export default function ParentSpaceDetailPage() {
       setGoalTargetCount("3");
       setGoalReward("");
       setGoalMsg(t("goals.saved"));
+      setGoalRevision((revision) => revision + 1);
     } catch (e: unknown) {
       setGoalMsg(errMessage(e, t("goals.saveFailed")));
     } finally {
       setGoalBusy(false);
+    }
+  }
+
+  async function markRewardGiven(goalId: string) {
+    if (!user || rewardBusyId) return;
+    setRewardBusyId(goalId);
+    setRewardErrorId(null);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(goalsApi, {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ goalId }),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(t("goals.markRewardFailed"));
+      const { rewardGivenAt }: { rewardGivenAt: number } = await response.json();
+      setGoalSummary((current) => current?.spaceId === spaceId && current.uid === user.uid ? {
+        ...current,
+        goals: current.goals.map((goal) => goal.id === goalId
+          ? { ...goal, data: { ...goal.data, rewardGivenAt } }
+          : goal),
+      } : current);
+      setGoalRevision((revision) => revision + 1);
+    } catch {
+      setRewardErrorId(goalId);
+    } finally {
+      setRewardBusyId(null);
     }
   }
 
@@ -385,31 +415,15 @@ export default function ParentSpaceDetailPage() {
   }, [spaceId, collatorLocale, t, tx]);
 
   useEffect(() => {
-    let unsub: (() => void) | null = null;
-
-    try {
-      const dbx = requireDb(db);
-      const qy = query(collection(dbx, "spaces", spaceId, "goals"), orderBy("updatedAt", "desc"));
-
-      unsub = onSnapshot(
-        qy,
-        (snap) => {
-          const out: GoalItem[] = [];
-
-          snap.forEach((d: QueryDocumentSnapshot<DocumentData>) => {
-            out.push({ id: d.id, data: d.data() as ParentSpaceGoalDoc });
-          });
-
-          setGoals(out);
-        },
-        (e: unknown) => setGoalMsg(errMessage(e, t("goals.readFailed")))
-      );
-    } catch (e: unknown) {
-      setGoalMsg(errMessage(e, t("goals.listenFailed")));
-    }
-
-    return () => unsub?.();
-  }, [spaceId, t]);
+    if (!user) return;
+    const refresh = () => setGoalRevision((revision) => revision + 1);
+    const unsubscribe = db ? onSnapshot(collection(db, "spaces", spaceId, "goals"), refresh, () => {}) : undefined;
+    window.addEventListener("focus", refresh);
+    return () => {
+      unsubscribe?.();
+      window.removeEventListener("focus", refresh);
+    };
+  }, [spaceId, user]);
 
   useEffect(() => {
     if (!user?.uid || assignments.length === 0) {
@@ -500,6 +514,37 @@ export default function ParentSpaceDetailPage() {
     };
   }, [assignments, spaceId, user?.uid]);
 
+  const deliveryKey = useMemo(() => assignments
+    .filter(({ id }) => isDelivered(statusMap[id]?.submissionStatus))
+    .map(({ id, data }) => id + ":" + isArchived(data))
+    .join("|"), [assignments, statusMap]);
+  useEffect(() => {
+    if (!user) return;
+    const controller = new AbortController();
+    const debounce = window.setTimeout(async () => {
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch(goalsApi, {
+          headers: { Authorization: "Bearer " + token },
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Goals unavailable");
+        const { goals }: { goals: FamilyGoalProgress[] } = await response.json();
+        if (!controller.signal.aborted) {
+          setGoalSummary({ spaceId, uid: user.uid, goals });
+          setGoalLoadFailed(false);
+        }
+      } catch {
+        if (!controller.signal.aborted) setGoalLoadFailed(true);
+      }
+    }, 150);
+    return () => {
+      window.clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [user, goalsApi, spaceId, goalRevision, deliveryKey]);
+
   const activeAssignments = useMemo(
     () => assignments.filter((x) => !isArchived(x.data)).sort((a, b) =>
       Number(needsFeedback(statusMap[b.id])) - Number(needsFeedback(statusMap[a.id]))),
@@ -518,10 +563,14 @@ export default function ParentSpaceDetailPage() {
   const canAssign = !!user && canShareContentToParentSpace(spaceRec, user.uid);
   const addAssignmentHref = "/content?familyRoom=" + encodeURIComponent(spaceId);
   const activeGoalId = safeString(spaceRec.activeGoalId);
+  const roomGoalSummary = goalSummary?.spaceId === spaceId && goalSummary.uid === user?.uid ? goalSummary : null;
+  const goals = roomGoalSummary?.goals ?? [];
   const activeGoal =
     (activeGoalId ? goals.find((goal) => goal.id === activeGoalId && goal.data.status === "active") : null) ??
     goals.find((goal) => goal.data.status === "active") ??
     null;
+  const completedRewards = goals.filter(({ data }) => data.status === "completed" && data.reward)
+    .sort((a, b) => (b.data.completedAt ?? b.data.updatedAt ?? 0) - (a.data.completedAt ?? a.data.updatedAt ?? 0));
 
   function renderAssignmentCard(it: { id: string; data: AssignmentDoc }, archivedSection = false) {
     const title = titleOfAssignment(it.data, it.id);
@@ -707,6 +756,7 @@ export default function ParentSpaceDetailPage() {
 
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5" aria-labelledby="family-goals">
         <h2 id="family-goals" className="m-0 text-lg font-bold text-sky-950">{t("goals.sectionTitle")}</h2>
+        {goalLoadFailed ? <p role="alert" className="mb-0 mt-2 text-sm font-semibold text-red-800">{t("goals.readFailed")}</p> : null}
 
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           {activeGoal ? (
@@ -739,7 +789,7 @@ export default function ParentSpaceDetailPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-sky-200 bg-white p-3 text-sm leading-6 text-sky-900 sm:p-4">
-              {t("goals.empty")}
+              {roomGoalSummary ? t("goals.empty") : goalLoadFailed ? null : t("goals.loading")}
             </div>
           )}
 
@@ -801,6 +851,38 @@ export default function ParentSpaceDetailPage() {
             {goalMsg ? <p role="status" className="mb-0 mt-3 text-sm font-semibold text-slate-600">{goalMsg}</p> : null}
           </form>
         </div>
+
+        {completedRewards.length > 0 ? (
+          <div className="mt-5">
+            <h3 className="m-0 text-base font-bold text-sky-950">{t("goals.completedRewards")}</h3>
+            <ul className="m-0 mt-2 grid list-none gap-2 p-0">
+              {completedRewards.map(({ id, data }) => (
+                <li key={id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-sky-200 bg-white p-3 sm:p-4">
+                  <div className="min-w-0">
+                    <p className="m-0 break-words font-bold text-slate-900">{data.title}</p>
+                    <p className="mb-0 mt-1 break-words text-sm leading-6 text-slate-700">{data.reward}</p>
+                    {rewardErrorId === id && !data.rewardGivenAt ? (
+                      <p role="alert" className="mb-0 mt-1 text-sm text-red-800">{t("goals.markRewardFailed")}</p>
+                    ) : null}
+                  </div>
+                  {data.rewardGivenAt ? (
+                    <span role="status"><Badge text={t("goals.rewardGiven")} tone="good" /></span>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={t("goals.markRewardFor", { goal: data.title })}
+                      disabled={!!rewardBusyId}
+                      onClick={() => void markRewardGiven(id)}
+                      className="inline-flex min-h-11 items-center rounded-xl border border-emerald-700 bg-white px-3 py-2 text-sm font-bold text-emerald-900 hover:bg-emerald-50 disabled:opacity-60"
+                    >
+                      {rewardBusyId === id ? t("goals.saving") : t("goals.markRewardGiven")}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {archivedAssignments.length > 0 ? (

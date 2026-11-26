@@ -45,6 +45,7 @@
       "completed": "Você alcançou a meta. Muito bem!",
       "progress": "Você entregou {done} de {target, plural, one {# atividade} other {# atividades}}.",
       "reward": "Recompensa combinada",
+      "rewardGiven": "Recompensa entregue",
       "empty": "Quando um adulto definir uma meta para você, ela vai aparecer aqui."
     },
     "assignments": {

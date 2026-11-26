@@ -1,6 +1,7 @@
 import "server-only";
 
 import { FieldValue, Timestamp, type DocumentSnapshot, type Firestore, type QueryDocumentSnapshot, type Transaction } from "firebase-admin/firestore";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import type { NextRequest } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { FamilyAccessError, assertFamilyId, familyRequestBody, requireFamilyDevice, verifyFamilyParentSignIn } from "@/lib/familyDevice.server";
@@ -11,7 +12,7 @@ import {
 } from "@/lib/familyAssignments";
 import type { FamilyAssignmentData, FamilyRoomData, FamilyRoomSummary } from "@/lib/familyDevice";
 import { hasParentFeedback, needsParentReply, type ParentFollowUpData } from "@/lib/parentFeedback";
-import { canCountArchivedLesson, familyGoalProgress, readFamilyGoal, type FamilyGoalItem, type ParentSpaceGoalDoc } from "@/lib/parentGoals";
+import { canCountArchivedLesson, familyGoalProgress, readFamilyGoal, type FamilyGoalItem, type FamilyGoalProgress, type ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import { assertActiveProfile } from "@/lib/security/accountAccess.server";
 import { listOwnedSpaces } from "@/lib/security/ownedSpaces.server";
 import { getSpaceAccess, submissionBelongsToPath } from "@/lib/security/spaceAccess.server";
@@ -195,6 +196,46 @@ function familyDeliveries(lessons: ReturnType<typeof attachFamilyWork>) {
     }));
 }
 
+function familyGoalItems(docs: QueryDocumentSnapshot[]) {
+    return docs
+        .sort((a, b) => millis(b.get("updatedAt")) - millis(a.get("updatedAt")))
+        .flatMap((goal) => readFamilyGoal(goal.id, goal.data(), millis) ?? []);
+}
+
+async function requireParentGoalOwner(db: Firestore, spaceId: string, decoded: DecodedIdToken, tx?: Transaction) {
+    const { owner, space, profile, participantId } = await getSpaceAccess(db, spaceId, decoded.uid, tx);
+    if (!owner || !space || space.deletedAt || !isParentSpaceKind(space.kind) ||
+        (profile?.role !== "parent" && profile?.roles?.parent !== true)) {
+        throw new FamilyAccessError(403, "parent_required");
+    }
+    assertActiveProfile(profile, decoded);
+    return { space, ownerUid: decoded.uid, participantId: participantId.trim() || decoded.uid };
+}
+
+async function readFamilyGoalProgress(
+    db: Firestore,
+    spaceId: string,
+    learner: FamilyLearner,
+    goals: FamilyGoalItem[],
+    tx?: Transaction,
+): Promise<FamilyGoalProgress[]> {
+    const unresolved = goals.filter(({ data }) => data.status === "active" || (data.status === "archived" && data.endedAt));
+    if (unresolved.length === 0) return goals.flatMap((goal) => familyGoalProgress(goal, []) ?? []);
+    const relevantIds = unresolved.every(({ data }) => data.assignmentIds?.length)
+        ? new Set(unresolved.flatMap(({ data }) => data.assignmentIds ?? []))
+        : null;
+    const query = familyLessonQuery(db, spaceId, ["archivedAt"]);
+    const assignmentDocs = tx ? await tx.get(query) : await query.get();
+    const lessons = familyLessonRows(db, spaceId, assignmentDocs.docs.filter((doc) => !relevantIds || relevantIds.has(doc.id)), learner, unresolved);
+    const sources = lessons.flatMap(({ refs }) => submissionRefs(refs));
+    const snapshots = sources.length ? await (tx ?? db).getAll(...sources, {
+        fieldMask: ["uid", "userId", "studentUid", "spaceId", "assignmentId", "status", "submittedAt"],
+    }) : [];
+    const work = attachFamilyWork(lessons, new Map(snapshots.map((doc) => [doc.ref.path, doc])), spaceId, learner.ownerUid);
+    const deliveries = familyDeliveries(work);
+    return goals.flatMap((goal) => familyGoalProgress(goal, deliveries) ?? []);
+}
+
 export async function readParentFollowUp(req: Request): Promise<ParentFollowUpData> {
     const { db, decoded } = await verifyFamilyParentSignIn(req);
     const uid = decoded.uid;
@@ -239,9 +280,7 @@ export async function readFamilyRoom(req: NextRequest, spaceId: string): Promise
         familyLessonQuery(db, spaceId, [...assignmentTextFields, "createdAt", "updatedAt", "archivedAt"]).get(),
         ref.collection("goals").get(),
     ]);
-    const goals = goalDocs.docs
-        .sort((a, b) => millis(b.get("updatedAt")) - millis(a.get("updatedAt")))
-        .flatMap((goal) => readFamilyGoal(goal.id, goal.data(), millis) ?? []);
+    const goals = familyGoalItems(goalDocs.docs);
     const lessons = familyLessonRows(db, spaceId, lessonDocs.docs, access, goals);
     const rows = lessons.length > 0
         ? await db.getAll(...lessons.flatMap(({ refs, archived }) => [
@@ -286,6 +325,14 @@ export async function readFamilyRoom(req: NextRequest, spaceId: string): Promise
     };
 }
 
+export async function readParentFamilyGoals(req: NextRequest, spaceId: string) {
+    assertFamilyId(spaceId);
+    const { db, decoded } = await verifyFamilyParentSignIn(req);
+    const owner = await requireParentGoalOwner(db, spaceId, decoded);
+    const snapshot = await db.collection(`spaces/${spaceId}/goals`).get();
+    return { goals: await readFamilyGoalProgress(db, spaceId, owner, familyGoalItems(snapshot.docs)) };
+}
+
 export async function createFamilyGoal(req: NextRequest, spaceId: string) {
     assertFamilyId(spaceId);
     const { db, decoded } = await verifyFamilyParentSignIn(req);
@@ -303,33 +350,16 @@ export async function createFamilyGoal(req: NextRequest, spaceId: string) {
     const goals = spaceRef.collection("goals");
     const next = goals.doc();
     await db.runTransaction(async (tx) => {
-        const access = await getSpaceAccess(db, spaceId, decoded.uid, tx);
-        const { space, profile } = access;
-        if (!access.owner || !space || space.deletedAt || !isParentSpaceKind(space.kind) ||
-            (profile?.role !== "parent" && profile?.roles?.parent !== true)) {
-            throw new FamilyAccessError(403, "parent_required");
-        }
-        assertActiveProfile(profile, decoded);
+        const owner = await requireParentGoalOwner(db, spaceId, decoded, tx);
 
-        const activeGoalId = safeString(space.activeGoalId);
+        const activeGoalId = safeString(owner.space.activeGoalId);
         const pointed = activeGoalId && !activeGoalId.includes("/") ? await tx.get(goals.doc(activeGoalId)) : null;
         const previous = pointed?.get("status") === "active" ? pointed :
             (await tx.get(goals.where("status", "==", "active"))).docs.sort((a, b) => millis(b.get("updatedAt")) - millis(a.get("updatedAt")))[0];
         const previousGoal = previous ? readFamilyGoal(previous.id, previous.data(), millis) : null;
         const now = FieldValue.serverTimestamp();
         if (previous && previousGoal) {
-            const learner = { ownerUid: decoded.uid, participantId: access.participantId.trim() || decoded.uid };
-            const relevantIds = previousGoal.data.assignmentIds?.length ? new Set(previousGoal.data.assignmentIds) : null;
-            const lessonDocs = previousGoal.data.status === "completed"
-                ? []
-                : (await tx.get(familyLessonQuery(db, spaceId, ["archivedAt"]))).docs.filter((doc) => !relevantIds || relevantIds.has(doc.id));
-            const lessons = familyLessonRows(db, spaceId, lessonDocs, learner, [previousGoal]);
-            const sources = lessons.flatMap(({ refs }) => submissionRefs(refs));
-            const snapshots = sources.length ? await tx.getAll(...sources, {
-                fieldMask: ["uid", "userId", "studentUid", "spaceId", "assignmentId", "status", "submittedAt"],
-            }) : [];
-            const work = attachFamilyWork(lessons, new Map(snapshots.map((doc) => [doc.ref.path, doc])), spaceId, decoded.uid);
-            const progress = familyGoalProgress(previousGoal, familyDeliveries(work));
+            const [progress] = await readFamilyGoalProgress(db, spaceId, owner, [previousGoal], tx);
             const completed = progress?.data.status === "completed";
             const reachedAt = progress?.data.completedAt;
             tx.update(previous.ref, {
@@ -354,6 +384,39 @@ export async function createFamilyGoal(req: NextRequest, spaceId: string) {
         tx.update(spaceRef, { activeGoalId: next.id, activeGoalTitle: title, updatedAt: now });
     });
     return { id: next.id };
+}
+
+export async function markFamilyRewardGiven(req: NextRequest, spaceId: string) {
+    assertFamilyId(spaceId);
+    const { db, decoded } = await verifyFamilyParentSignIn(req);
+    const body = await familyRequestBody(req, 512);
+    const goalId = safeString(body.goalId);
+    if (!goalId) throw new FamilyAccessError(400, "invalid_request");
+    assertFamilyId(goalId);
+    const ref = db.doc(`spaces/${spaceId}/goals/${goalId}`);
+
+    return db.runTransaction(async (tx) => {
+        const owner = await requireParentGoalOwner(db, spaceId, decoded, tx);
+        const snapshot = await tx.get(ref);
+        const goal = readFamilyGoal(goalId, snapshot.data(), millis);
+        if (!goal) throw new FamilyAccessError(404, "goal_unavailable");
+        if (!goal.data.reward) throw new FamilyAccessError(409, "reward_not_set");
+
+        const [progress] = await readFamilyGoalProgress(db, spaceId, owner, [goal], tx);
+        if (progress?.data.status !== "completed") throw new FamilyAccessError(409, "goal_not_completed");
+        if (progress.data.rewardGivenAt) return { rewardGivenAt: progress.data.rewardGivenAt };
+
+        const now = Timestamp.now();
+        const reachedAt = progress.data.completedAt;
+        tx.update(ref, {
+            rewardGivenAt: now,
+            ...(snapshot.get("status") !== "completed" ? {
+                status: "completed",
+                completedAt: reachedAt ? Timestamp.fromMillis(Math.min(reachedAt, now.toMillis())) : now,
+            } : {}),
+        });
+        return { rewardGivenAt: now.toMillis() };
+    });
 }
 
 export async function readFamilyAssignment(req: NextRequest, spaceId: string, assignmentId: string) {

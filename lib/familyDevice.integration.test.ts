@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { after, before, mock, test } from "node:test";
+import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { deleteField, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { NextRequest } from "next/server";
 import * as access from "../app/api/parent/spaces/[spaceId]/child-access/route";
 import * as goals from "../app/api/parent/spaces/[spaceId]/goals/route";
@@ -38,9 +41,9 @@ after(async () => {
     await deleteApp(app);
 });
 
-function request({ body, bearer, cookie, origin, host }: { body?: object; bearer?: string; cookie?: string; origin?: string; host?: string } = {}) {
+function request({ body, bearer, cookie, origin, host, method }: { body?: object; bearer?: string; cookie?: string; origin?: string; host?: string; method?: string } = {}) {
     return new NextRequest("http://localhost:3321/api/family-device-test", {
-        method: body ? "POST" : "GET",
+        method: method ?? (body ? "POST" : "GET"),
         headers: {
             ...(body ? { "Content-Type": "application/json" } : {}),
             ...(bearer ? { Authorization: "Bearer " + bearer } : {}),
@@ -280,6 +283,94 @@ test("a completed goal keeps its reward when the parent starts another goal", as
     assert.equal(visible.length, 2);
 });
 
+test("the room parent can mark a reached reward as given once, and the child sees it in history", async () => {
+    const spaceId = "reward-status";
+    await provision(spaceId);
+    const space = db.doc(`spaces/${spaceId}`);
+    const reward = "Choose a book to read together";
+    const created = await goals.POST(request({
+        bearer: "owner", body: { title: "Finish a reading assignment", targetCount: 1, reward },
+    }), context(spaceId));
+    assert.equal(created.status, 201);
+    const { id } = await created.json();
+    const goalRef = space.collection("goals").doc(id);
+    const lesson = space.collection("lessons").doc("reading");
+    await lesson.set({ title: "Reading", tasks: [{ id: "open", type: "open", prompt: "What happened?" }] });
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const mark = (bearer?: string, goalId = id) => goals.PATCH(request({
+        bearer, cookie, method: "PATCH", body: { goalId },
+    }), context(spaceId));
+    assert.equal((await mark()).status, 401);
+    assert.equal((await mark("other")).status, 403);
+    assert.equal((await goals.GET(request({ bearer: "other" }), context(spaceId))).status, 403);
+    assert.equal((await mark("owner")).status, 409);
+
+    await space.collection("goals").doc("no-reward").set({
+        title: "Old custom goal", status: "completed", kind: "custom",
+    });
+    assert.equal((await mark("owner", "no-reward")).status, 409);
+
+    const delivered = await assignment.POST(request({
+        cookie, body: { status: "submitted", revision: null, answers: { open: "My answer" }, childSelfReport: {} },
+    }), context(spaceId));
+    assert.equal(delivered.status, 200);
+    const listed = await goals.GET(request({ bearer: "owner" }), context(spaceId));
+    assert.equal(listed.status, 200);
+    const { goals: available } = await listed.json();
+    assert.equal(available.find((goal: { id: string }) => goal.id === id).data.status, "completed");
+    assert.equal((await goalRef.get()).get("status"), "active");
+
+    const marks = await Promise.all([mark("owner"), mark("owner")]);
+    assert.deepEqual(marks.map((res) => res.status), [200, 200]);
+    const [{ rewardGivenAt }, retry] = await Promise.all(marks.map((res) => res.json()));
+    assert.equal(typeof rewardGivenAt, "number");
+    assert.ok(rewardGivenAt > 0);
+    assert.equal(retry.rewardGivenAt, rewardGivenAt);
+    const stored = await goalRef.get();
+    assert.equal(stored.get("rewardGivenAt").toMillis(), rewardGivenAt);
+    assert.equal(stored.get("status"), "completed");
+
+    const next = await goals.POST(request({
+        bearer: "owner", body: { title: "Start a new goal", targetCount: 2, reward: "Choose a game" },
+    }), context(spaceId));
+    assert.equal(next.status, 201);
+    await lesson.delete();
+    const response = await room.GET(request({ cookie }), context(spaceId));
+    assert.equal(response.status, 200);
+    const home = await response.json();
+    const marked = home.goals.find((goal: { id: string }) => goal.id === id);
+    assert.equal(marked.data.reward, reward);
+    assert.equal(marked.data.rewardGivenAt, rewardGivenAt);
+    assert.equal(home.goals.find((goal: { data: { status: string } }) => goal.data.status === "active").data.rewardGivenAt, undefined);
+});
+
+test("client rules preserve a given reward and reject writing the server's marker", async (t) => {
+    const spaceId = "reward-rules";
+    await provision(spaceId);
+    const projectId = app.options.projectId;
+    assert.ok(projectId);
+    const env = await initializeTestEnvironment({
+        projectId,
+        firestore: { host: "127.0.0.1", port: 18198, rules: await readFile("firestore.rules", "utf8") },
+    });
+    t.after(() => env.cleanup());
+    const firestore = env.authenticatedContext("owner").firestore();
+    const goal = doc(firestore, "spaces", spaceId, "goals", "sample");
+    const now = new Date();
+    const data = { title: "Reading", reward: "Choose a book", status: "active", kind: "complete_assignments",
+        targetCount: 1, createdByUid: "owner", createdAt: now, updatedAt: now };
+    await assertFails(setDoc(goal, { ...data, rewardGivenAt: now }));
+    await assertSucceeds(setDoc(goal, data));
+    await assertFails(updateDoc(goal, { rewardGivenAt: now }));
+
+    await db.doc(goal.path).update({ rewardGivenAt: now });
+    await assertSucceeds(updateDoc(goal, { description: "A short story" }));
+    await assertFails(updateDoc(goal, { reward: "A different reward" }));
+    await assertFails(updateDoc(goal, { rewardGivenAt: deleteField() }));
+    const read = await assertSucceeds(getDoc(goal));
+    assert.equal(read.get("rewardGivenAt").toMillis(), now.getTime());
+});
+
 test("a legacy goal history counts only work delivered before the goal was replaced", async () => {
     const spaceId = "legacy-goal-history";
     await provision(spaceId);
@@ -316,6 +407,11 @@ test("a legacy goal history counts only work delivered before the goal was repla
     assert.deepEqual(home.goals.map(({ id }: { id: string }) => id).sort(), ["earlier", "recorded"]);
     assert.equal(home.goals[0].data.status, "completed");
     assert.equal(home.goals[0].data.reward, "Choose a game to play together");
+    const marked = await goals.PATCH(request({
+        bearer: "owner", method: "PATCH", body: { goalId: "earlier" },
+    }), context(spaceId));
+    assert.equal(marked.status, 200);
+    assert.equal((await space.collection("goals").doc("earlier").get()).get("status"), "completed");
 });
 
 test("follow-up spans owned rooms and the child can acknowledge the exact greeting on a linked device", async () => {

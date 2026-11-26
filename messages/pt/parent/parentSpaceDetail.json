@@ -94,6 +94,12 @@
       "rewardLabel": "Recompensa (opcional)",
       "rewardPlaceholder": "Por exemplo, escolher um livro para ler juntos",
       "agreedReward": "Recompensa combinada",
+      "loading": "Carregando metas …",
+      "completedRewards": "Recompensas de metas concluídas",
+      "markRewardGiven": "Marcar como entregue",
+      "markRewardFor": "Marcar a recompensa de {goal} como entregue",
+      "markRewardFailed": "Não foi possível marcar a recompensa como entregue. Tente novamente.",
+      "rewardGiven": "Recompensa entregue",
       "countsNewDeliveries": "As atividades entregues depois que você definir a meta contam para alcançá-la.",
       "save": "Salvar meta",
       "saving": "Salvando..."
