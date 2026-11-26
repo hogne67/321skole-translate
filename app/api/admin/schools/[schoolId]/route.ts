@@ -8,6 +8,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { isValidSchoolPlanKey } from "@/lib/schools/constants";
 import { canManageSchoolAdministrators } from "@/lib/schools/administrator";
 import type { BillingType, SchoolPlanKey, SchoolStatus } from "@/lib/schools/types";
+import { parsePupilAccountProviders, pupilAccountProviders } from "@/lib/security/schoolPupilProviders";
 
 export const runtime = "nodejs";
 
@@ -146,6 +147,11 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const schoolData = schoolSnap.data() ?? {};
+    const codeSetting = schoolData.allowPupilCodeAccess;
+    const providerSetting = schoolData.pupilAccountProviders;
+    const selectedProviders = providerSetting === undefined
+      ? pupilAccountProviders
+      : parsePupilAccountProviders(providerSetting);
     const membersSnap = await db
       .collection("schools")
       .doc(schoolId)
@@ -191,6 +197,17 @@ export async function GET(req: Request, context: RouteContext) {
         status: schoolData.status ?? null,
         teacherSeatLimit: schoolData.teacherSeatLimit ?? null,
         activeTeacherCount,
+        pupilAccess: {
+          code: {
+            allowed: codeSetting !== false,
+            source: typeof codeSetting === "boolean" ? "school" : "default",
+          },
+          account: {
+            providers: selectedProviders ?? [],
+            source: providerSetting === undefined ? "default" : "school",
+            invalid: selectedProviders === null,
+          },
+        },
         createdByUid: schoolData.createdByUid ?? null,
         stripeCustomerId: schoolData.stripeCustomerId ?? null,
         stripeSubscriptionId: schoolData.stripeSubscriptionId ?? null,

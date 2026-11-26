@@ -1,6 +1,18 @@
 {
   "schoolAdmin": {
     "pupilAccess": {
+      "overview": {
+        "scope": "Applies to pupils in the school’s rooms. Sign-in methods also need to be available to the school.",
+        "code": "Personal student code",
+        "allowed": "Allowed",
+        "disabled": "Off",
+        "invalidMethods": "No methods allowed. Check the school’s settings.",
+        "unavailable": "Could not load student access settings.",
+        "source": {
+          "default": "School default",
+          "school": "Set in school administration"
+        }
+      },
       "title": "Student access",
       "description": "Choose whether students can use a personal student code in your school’s rooms. “Student accounts only” also blocks access from active code sessions. Saved drafts and submissions stay in the room.",
       "accountOnly": "Student accounts only",

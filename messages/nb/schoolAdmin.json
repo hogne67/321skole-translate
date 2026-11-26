@@ -1,6 +1,18 @@
 {
   "schoolAdmin": {
     "pupilAccess": {
+      "overview": {
+        "scope": "Gjelder elever i skolens rom. Innloggingsmetodene må også være tilgjengelige for skolen.",
+        "code": "Personlig elevkode",
+        "allowed": "Tillatt",
+        "disabled": "Av",
+        "invalidMethods": "Ingen metoder tillatt. Sjekk skolens innstilling.",
+        "unavailable": "Kunne ikke hente elevtilgangen.",
+        "source": {
+          "default": "Standard for skoler",
+          "school": "Satt i skoleadministrasjonen"
+        }
+      },
       "title": "Elevtilgang",
       "description": "Velg om elever kan bruke personlig elevkode i skolens rom. «Bare elevkonto» stanser også aktive kodeøkter. Lagrede kladder og innleveringer blir liggende i rommet.",
       "accountOnly": "Bare elevkonto",

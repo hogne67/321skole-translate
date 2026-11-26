@@ -2,13 +2,14 @@
 
 import { getAuth, getIdToken } from "firebase/auth";
 import { useParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import AdminCard from "@/components/admin/AdminCard";
 import AdminSection from "@/components/admin/AdminSection";
 import AdminStatCard from "@/components/admin/AdminStatCard";
 import { schoolAdministratorCopy } from "@/lib/schools/administratorUi";
+import type { PupilAccountProvider } from "@/lib/security/schoolPupilProviders";
 
 type SchoolDetail = {
   id?: string;
@@ -20,6 +21,10 @@ type SchoolDetail = {
   status?: string | null;
   teacherSeatLimit?: number | null;
   activeTeacherCount?: number | null;
+  pupilAccess?: {
+    code: { allowed: boolean; source: "default" | "school" };
+    account: { providers: PupilAccountProvider[]; source: "default" | "school"; invalid: boolean };
+  };
   createdByUid?: string | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
@@ -58,6 +63,7 @@ type AdministratorCandidate = {
 
 export default function AdminSchoolDetailPage() {
   const locale = useLocale();
+  const pupilAccessText = useTranslations("schoolAdmin.pupilAccess");
   const adminCopy = schoolAdministratorCopy(locale);
   const params = useParams<{ schoolId?: string }>();
   const schoolId = useMemo(() => {
@@ -269,6 +275,7 @@ export default function AdminSchoolDetailPage() {
   }
 
   const activeTeacherCount = school?.activeTeacherCount ?? 0;
+  const pupilAccess = school?.pupilAccess;
   const teacherSeatLimit = school?.teacherSeatLimit ?? 0;
   const schoolAdmins = members.filter((member) => member.role === "school_admin");
   const activeTeachers = members.filter(
@@ -373,6 +380,27 @@ export default function AdminSchoolDetailPage() {
               <p className="seatHelp">This license has available teacher capacity.</p>
             )}
           </AdminCard>
+
+          <section id="school-pupil-access" aria-label={pupilAccessText("title")}>
+            <AdminSection title={pupilAccessText("title")} description={pupilAccessText("overview.scope")}>
+              {pupilAccess ? (
+                <div className="infoGrid">
+                  <InfoItem
+                    label={pupilAccessText("overview.code")}
+                    value={pupilAccessText(pupilAccess.code.allowed ? "overview.allowed" : "overview.disabled")}
+                    detail={pupilAccessText("overview.source." + pupilAccess.code.source)}
+                  />
+                  <InfoItem
+                    label={pupilAccessText("providersTitle")}
+                    value={pupilAccess.account.invalid
+                      ? pupilAccessText("overview.invalidMethods")
+                      : pupilAccess.account.providers.map(provider => pupilAccessText("providers." + provider)).join(", ")}
+                    detail={pupilAccessText("overview.source." + pupilAccess.account.source)}
+                  />
+                </div>
+              ) : <p className="muted">{pupilAccessText("overview.unavailable")}</p>}
+            </AdminSection>
+          </section>
 
           <AdminSection title="License details">
             <div className="infoGrid">
@@ -892,11 +920,12 @@ export default function AdminSchoolDetailPage() {
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
+function InfoItem({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="infoItem">
       <div className="label">{label}</div>
       <div className="value">{value}</div>
+      {detail ? <div className="subText">{detail}</div> : null}
     </div>
   );
 }

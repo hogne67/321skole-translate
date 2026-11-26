@@ -1,6 +1,18 @@
 {
   "schoolAdmin": {
     "pupilAccess": {
+      "overview": {
+        "scope": "Aplica-se aos alunos nas salas da escola. Os métodos de início de sessão também precisam estar disponíveis para a escola.",
+        "code": "Código pessoal do aluno",
+        "allowed": "Permitido",
+        "disabled": "Desativado",
+        "invalidMethods": "Nenhum método permitido. Verifique as definições da escola.",
+        "unavailable": "Não foi possível carregar as definições de acesso dos alunos.",
+        "source": {
+          "default": "Padrão para escolas",
+          "school": "Definido na administração da escola"
+        }
+      },
       "title": "Acesso dos alunos",
       "description": "Escolha se os alunos podem usar um código pessoal de aluno nas salas da escola. A opção de conta obrigatória também bloqueia o acesso das sessões iniciadas com código. Os rascunhos guardados e os trabalhos entregues ficam na sala.",
       "accountOnly": "Apenas contas de aluno",
