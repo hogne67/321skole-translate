@@ -13,7 +13,7 @@ import {
 } from "@/lib/familyDevice";
 
 type SecretDevice = FamilyDevice & { digest: string };
-type Invite = { digest: string; createdAt: number; expiresAt: number };
+type Invite = { digest: string; createdAt: number; expiresAt: number; name?: string };
 type RoomAccess = { ownerUid: string; invite: Invite | null; devices: SecretDevice[] };
 const SECURE_COOKIE = process.env.NODE_ENV === "production";
 const CHILD_COOKIE = SECURE_COOKIE ? "__Secure-family_room_device" : "family_room_device";
@@ -92,8 +92,10 @@ function deviceName(value: unknown): string | null {
 }
 
 function publicStatus(access: RoomAccess | null): FamilyDeviceStatus {
+    const inviteName = deviceName(access?.invite?.name);
     return {
         inviteExpiresAt: access?.invite?.expiresAt ?? null,
+        ...(inviteName ? { inviteName } : {}),
         devices: access?.devices.map(({ id, createdAt, expiresAt, name }) => {
             const label = deviceName(name);
             return { id, createdAt, expiresAt, ...(label ? { name: label } : {}) };
@@ -131,10 +133,10 @@ export async function manageFamilyDevice(req: NextRequest, spaceId: string) {
 
     const { action, deviceId, name: requestedName } = await familyRequestBody(req, 1024);
     const needsDevice = action === "revoke" || action === "rename";
-    const name = deviceName(requestedName);
+    const name = deviceName(action === "invite" && requestedName === undefined ? "" : requestedName);
     if ((!needsDevice && action !== "invite" && action !== "cancel") ||
         (needsDevice && (typeof deviceId !== "string" || !/^[0-9a-f]{24}$/.test(deviceId))) ||
-        (action === "rename" && name === null)) {
+        ((action === "rename" || action === "invite") && name === null)) {
         throw new FamilyAccessError(400, "invalid_request");
     }
     const secret = action === "invite" ? newSecret() : null;
@@ -149,7 +151,12 @@ export async function manageFamilyDevice(req: NextRequest, spaceId: string) {
         const access = stored?.ownerUid === decoded.uid ? stored : { ownerUid: decoded.uid, invite: null, devices: [] };
         if (secret) {
             if (access.devices.length >= FAMILY_DEVICE_LIMIT) throw new FamilyAccessError(409, "device_limit");
-            access.invite = { digest: digest(secret), createdAt: now, expiresAt: now + FAMILY_INVITE_MINUTES * 60_000 };
+            access.invite = {
+                digest: digest(secret),
+                createdAt: now,
+                expiresAt: now + FAMILY_INVITE_MINUTES * 60_000,
+                ...(name ? { name } : {}),
+            };
         } else if (action === "cancel") {
             access.invite = null;
         } else if (action === "rename") {
@@ -188,7 +195,14 @@ export async function connectFamilyDevice(req: NextRequest, spaceId: string) {
             throw new FamilyAccessError(401, "invalid_invite");
         }
         if (access.devices.length >= FAMILY_DEVICE_LIMIT) throw new FamilyAccessError(409, "device_limit");
-        access.devices.push({ id, digest: digest(deviceSecret), createdAt: now, expiresAt: now + SESSION_AGE * 1000 });
+        const name = deviceName(access.invite.name);
+        access.devices.push({
+            id,
+            digest: digest(deviceSecret),
+            createdAt: now,
+            expiresAt: now + SESSION_AGE * 1000,
+            ...(name ? { name } : {}),
+        });
         access.invite = null;
         tx.set(ref, access);
     });

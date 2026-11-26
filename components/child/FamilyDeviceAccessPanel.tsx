@@ -16,6 +16,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
     const format = useFormatter();
     const [status, setStatus] = useState<FamilyDeviceStatus | null>(null);
     const [invitation, setInvitation] = useState<Invitation | null>(null);
+    const [inviteNameDraft, setInviteNameDraft] = useState<string | null>(null);
     const [busy, setBusy] = useState<Action | null>(null);
     const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
     const [notice, setNotice] = useState<"copied" | "copyManually" | "failed" | "limit" | "revoked" | "cancelled" | "renamed" | "renameFailed" | "deviceUnavailable" | null>(null);
@@ -93,6 +94,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
             const next: FamilyDeviceStatus & { secret?: string } = await response.json();
             setStatus(next);
             if (next.secret && next.inviteExpiresAt) {
+                setInviteNameDraft(null);
                 const url = new URL(`/${locale}/child/connect/${encodeURIComponent(spaceId)}#${next.secret}`, window.location.origin).href;
                 const newInvitation = { url, qr: null, expiresAt: next.inviteExpiresAt };
                 setInvitation(newInvitation);
@@ -130,6 +132,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
 
     const date = (value: number) => format.dateTime(new Date(value), { dateStyle: "medium", timeStyle: "short" });
     const button = "inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-65";
+    const nameInputClass = "mt-2 min-h-11 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900";
 
     return (
         <section className="min-w-0 rounded-2xl border border-emerald-200 bg-white p-4 sm:p-5" aria-labelledby="child-device-title">
@@ -141,19 +144,72 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                 <button
                     type="button"
                     disabled={!!busy || (status?.devices.length ?? 0) >= FAMILY_DEVICE_LIMIT}
-                    onClick={() => void change("invite")}
+                    aria-expanded={inviteNameDraft !== null}
+                    aria-controls={inviteNameDraft !== null ? "child-device-setup" : undefined}
+                    onClick={() => {
+                        setInviteNameDraft((current) => current === null ? status?.inviteName ?? "" : null);
+                        setNotice(null);
+                    }}
                     className={button + " bg-emerald-800 text-white hover:bg-emerald-900"}
                 >
-                    {t(busy === "invite" ? "creating" : pending ? "replace" : "create")}
+                    {t(pending ? "replace" : "create")}
                 </button>
             </div>
 
-            {pending ? (
+            {inviteNameDraft !== null ? (
+                <form
+                    id="child-device-setup"
+                    className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        void change("invite", undefined, inviteNameDraft);
+                    }}
+                >
+                    <div className="max-w-md">
+                        <label htmlFor="child-device-setup-name" className="block text-sm font-bold text-emerald-950">
+                            {t("optionalDeviceName")}
+                        </label>
+                        <input
+                            id="child-device-setup-name"
+                            aria-describedby="child-device-setup-hint"
+                            value={inviteNameDraft}
+                            onChange={(event) => setInviteNameDraft(event.target.value)}
+                            placeholder={t("deviceNameExample")}
+                            maxLength={FAMILY_DEVICE_NAME_MAX_LENGTH}
+                            disabled={!!busy}
+                            autoFocus
+                            className={nameInputClass}
+                        />
+                        <p id="child-device-setup-hint" className="mb-0 mt-1 text-xs leading-5 text-slate-700">{t("deviceNameHint")}</p>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="submit" disabled={!!busy} className={button + " bg-emerald-800 text-white hover:bg-emerald-900"}>
+                            {t(busy === "invite" ? "creating" : "createLink")}
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!!busy}
+                            onClick={() => {
+                                setInviteNameDraft(null);
+                                setNotice(null);
+                            }}
+                            className={button + " border border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"}
+                        >
+                            {t("cancelEdit")}
+                        </button>
+                    </div>
+                </form>
+            ) : pending ? (
                 <div className="mt-4 flex flex-col gap-4 rounded-2xl bg-emerald-50 p-4 sm:flex-row sm:items-center">
                     {invitation?.qr ? (
                         <Image unoptimized src={invitation.qr} alt={t("qrAlt")} width={156} height={156} className="shrink-0 rounded-xl" />
                     ) : null}
                     <div className="min-w-0 flex-1">
+                        {status?.inviteName ? (
+                            <p className="m-0 mb-1 break-words text-base font-bold text-emerald-950">
+                                {t("linkForDevice", { name: status.inviteName })}
+                            </p>
+                        ) : null}
                         <p className="m-0 text-sm font-semibold leading-6 text-emerald-950">
                             {invitation ? t("share", { minutes: FAMILY_INVITE_MINUTES }) : t("pending")}
                         </p>
@@ -231,7 +287,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                                                 maxLength={FAMILY_DEVICE_NAME_MAX_LENGTH}
                                                 autoFocus
                                                 disabled={!!busy}
-                                                className="mt-2 min-h-11 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                                                className={nameInputClass}
                                             />
                                             <p id={"device-name-hint-" + device.id} className="mb-0 mt-1 text-xs leading-5 text-slate-700">{t("deviceNameHint")}</p>
                                             <div className="mt-3 flex flex-wrap gap-2">
@@ -247,7 +303,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                                                     }}
                                                     className={button + " border border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"}
                                                 >
-                                                    {t("cancelRename")}
+                                                    {t("cancelEdit")}
                                                 </button>
                                             </div>
                                         </form>

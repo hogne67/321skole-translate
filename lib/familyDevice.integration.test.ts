@@ -73,6 +73,12 @@ async function redeem(spaceId: string, secret: string) {
     return connect.POST(request({ body: { secret } }), context(spaceId));
 }
 
+async function deviceStatus(spaceId: string) {
+    const response = await access.GET(request({ bearer: "owner" }), context(spaceId));
+    assert.equal(response.status, 200);
+    return await response.json() as FamilyDeviceStatus;
+}
+
 function sessionCookie(response: Response, spaceId: string) {
     const cookie = response.headers.get("set-cookie") ?? "";
     assert.match(cookie, /HttpOnly/i);
@@ -185,16 +191,54 @@ test("a one-time link grants an independent device session scoped to its room an
     assert.equal((await assignment.GET(request({ cookie: secondCookie }), context(spaceId))).status, 200);
 });
 
+test("an invitation transfers the parent's optional name to the device when redeemed", async () => {
+    const spaceId = "name-before-connection";
+    await provision(spaceId);
+    const previousSecret = await invite(spaceId);
+    const inviteWithName = (name: unknown, bearer = "owner") => access.POST(request({
+        bearer, body: { action: "invite", name },
+    }), context(spaceId));
+
+    const issued = await inviteWithName("  Nettbrettet   hjemme  ");
+    assert.equal(issued.status, 200);
+    const { secret, ...pending } = await issued.json();
+    assert.match(secret, /^[\w-]{43}$/);
+    assert.ok(pending.inviteExpiresAt > Date.now());
+    assert.deepEqual(pending, {
+        inviteExpiresAt: pending.inviteExpiresAt, inviteName: "Nettbrettet hjemme", devices: [],
+    });
+    assert.equal((await inviteWithName("Another device", "other")).status, 403);
+    assert.equal((await inviteWithName(null)).status, 400);
+    assert.equal((await inviteWithName("a".repeat(FAMILY_DEVICE_NAME_MAX_LENGTH + 1))).status, 400);
+    assert.deepEqual(await deviceStatus(spaceId), pending);
+    assert.equal((await redeem(spaceId, previousSecret)).status, 401);
+
+    const connected = await redeem(spaceId, secret);
+    assert.equal(connected.status, 200);
+    assert.deepEqual(await connected.json(), { ok: true });
+    assert.equal((await redeem(spaceId, secret)).status, 401);
+    const status = await deviceStatus(spaceId);
+    assert.equal(status.inviteExpiresAt, null);
+    assert.equal(status.inviteName, undefined);
+    assert.deepEqual(status.devices.map((device) => device.name), ["Nettbrettet hjemme"]);
+    const childRoom = await room.GET(request({ cookie: sessionCookie(connected, spaceId) }), context(spaceId));
+    assert.equal(childRoom.status, 200);
+    assert.ok(!(await childRoom.text()).includes("Nettbrettet hjemme"));
+
+    const blank = await inviteWithName("  ");
+    assert.equal(blank.status, 200);
+    const unnamed = await blank.json();
+    assert.equal(unnamed.inviteName, undefined);
+    assert.equal((await redeem(spaceId, unnamed.secret)).status, 200);
+    assert.deepEqual((await deviceStatus(spaceId)).devices.map((device) => device.name), ["Nettbrettet hjemme", undefined]);
+});
+
 test("a parent can name, rename and clear a linked device without changing its access", async () => {
     const spaceId = "named-device";
     await provision(spaceId);
     const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
     const pendingSecret = await invite(spaceId);
-    const status = async () => {
-        const response = await access.GET(request({ bearer: "owner" }), context(spaceId));
-        assert.equal(response.status, 200);
-        return await response.json() as FamilyDeviceStatus;
-    };
+    const status = () => deviceStatus(spaceId);
     const before = await status();
     const device = before.devices[0];
     assert.ok(device);

@@ -9,7 +9,7 @@ export const FAMILY_LINK_TOKEN = /^[A-Za-z0-9_-]{43}$/;
 export const CHILD_START_URL_KEY = "321skole.childStartUrl";
 
 export type FamilyDevice = { id: string; createdAt: number; expiresAt: number; name?: string };
-export type FamilyDeviceStatus = { inviteExpiresAt: number | null; devices: FamilyDevice[] };
+export type FamilyDeviceStatus = { inviteExpiresAt: number | null; inviteName?: string; devices: FamilyDevice[] };
 export type FamilyRoomSummary = { title?: string; activeLessonId?: string; activeGoalId?: string };
 export type FamilyRoomData = {
     room: FamilyRoomSummary;
