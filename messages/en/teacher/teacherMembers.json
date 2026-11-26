@@ -147,7 +147,7 @@
       "parent": "Guardian"
     },
     "createStudent": {
-      "summary": "The pupil receives a personal pupil code.",
+      "summary": "The student gets a personal pupil code without having to create an account.",
       "checkExisting": "Check under “Add existing pupils” before creating a new student.",
       "description": "Create a student in this space and get a student code/link before the student signs in.",
       "placeholder": "Student name",
@@ -215,7 +215,7 @@
     },
     "sections": {
       "addTitle": "Add members",
-      "createCodePupil": "Create a pupil with a code",
+      "createCodePupil": "Invite a student without an account",
       "inviteStaff": "Invite a co-teacher or observer",
       "manageTitle": "Member list",
       "memberDetails": "Technical details",

@@ -147,7 +147,7 @@
       "parent": "Foresatt"
     },
     "createStudent": {
-      "summary": "Eleven får en personlig elevkode.",
+      "summary": "Eleven får en personlig elevkode uten å måtte lage konto.",
       "checkExisting": "Sjekk om eleven allerede finnes under «Hent eksisterende elever».",
       "description": "Opprett en elev i dette spacet og få elevkode/lenke før eleven logger inn.",
       "placeholder": "Elevnavn",
@@ -215,7 +215,7 @@
     },
     "sections": {
       "addTitle": "Legg til medlemmer",
-      "createCodePupil": "Opprett elev med kode",
+      "createCodePupil": "Inviter elev uten konto",
       "inviteStaff": "Inviter medlærer eller observatør",
       "manageTitle": "Medlemsliste",
       "memberDetails": "Tekniske detaljer",

@@ -147,7 +147,7 @@
       "parent": "Responsável"
     },
     "createStudent": {
-      "summary": "O aluno recebe um código pessoal.",
+      "summary": "O aluno recebe um código pessoal sem precisar criar uma conta.",
       "checkExisting": "Confira se o aluno já está cadastrado em “Adicionar alunos existentes”.",
       "description": "Crie um aluno neste space e gere código/link antes de o aluno entrar.",
       "placeholder": "Nome do aluno",
@@ -215,7 +215,7 @@
     },
     "sections": {
       "addTitle": "Adicionar membros",
-      "createCodePupil": "Criar aluno com código",
+      "createCodePupil": "Convidar aluno sem conta",
       "inviteStaff": "Convidar professor auxiliar ou observador",
       "manageTitle": "Lista de membros",
       "memberDetails": "Detalhes técnicos",
