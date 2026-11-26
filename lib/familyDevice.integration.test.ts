@@ -6,6 +6,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { NextRequest } from "next/server";
 import * as access from "../app/api/parent/spaces/[spaceId]/child-access/route";
+import * as goals from "../app/api/parent/spaces/[spaceId]/goals/route";
 import * as connect from "../app/api/child/rooms/[spaceId]/connect/route";
 import * as room from "../app/api/child/rooms/[spaceId]/route";
 import * as assignment from "../app/api/child/rooms/[spaceId]/assignments/[assignmentId]/route";
@@ -224,6 +225,97 @@ test("a new goal shows its reward and counts recent deliveries even after an ass
     assert.equal(home.goals[0].data.reward, "Choose a book to read together");
     assert.equal(home.goals[0].done, 2);
     assert.ok(!home.assignments.some(({ id }: { id: string }) => id === "archived"));
+});
+
+test("a completed goal keeps its reward when the parent starts another goal", async () => {
+    const spaceId = "goal-history";
+    await provision(spaceId);
+    const space = db.doc(`spaces/${spaceId}`);
+    const history = space.collection("goals");
+    const lesson = space.collection("lessons").doc("reading");
+    const reward = "Choose a book to read together";
+    const firstGoal = { title: "Finish the reading assignment", targetCount: 1, reward };
+    const createGoal = (body: object, bearer = "owner") => goals.POST(request({ bearer, body }), context(spaceId));
+    assert.equal((await goals.POST(request({ body: firstGoal }), context(spaceId))).status, 401);
+    assert.equal((await createGoal(firstGoal, "other")).status, 403);
+    assert.equal((await createGoal({ ...firstGoal, targetCount: 0 })).status, 400);
+
+    const created = await createGoal(firstGoal);
+    assert.equal(created.status, 201);
+    const { id: firstId } = await created.json();
+    await lesson.set({ title: "Reading", tasks: [{ id: "open", type: "open", prompt: "What happened?" }] });
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const readGoals = async () => {
+        const res = await room.GET(request({ cookie }), context(spaceId));
+        assert.equal(res.status, 200);
+        return (await res.json()).goals;
+    };
+    const delivered = await assignment.POST(request({
+        cookie, body: { status: "submitted", revision: null, answers: { open: "My answer" }, childSelfReport: {} },
+    }), context(spaceId));
+    assert.equal(delivered.status, 200);
+    assert.equal((await readGoals())[0].data.status, "completed");
+
+    const replacements = await Promise.all([
+        createGoal({ title: "Start a second goal", targetCount: 2, reward: "Go to the library" }),
+        createGoal({ title: "Start a third goal", targetCount: 2 }),
+    ]);
+    assert.deepEqual(replacements.map((res) => res.status), [201, 201]);
+    const stored = (await history.doc(firstId).get()).data();
+    assert.ok(stored);
+    assert.equal(stored.status, "completed");
+    assert.equal(stored.reward, reward);
+    assert.ok(stored.completedAt.toMillis() >= stored.createdAt.toMillis());
+    assert.equal((await history.where("status", "==", "active").get()).size, 1);
+    const abandoned = await history.where("status", "==", "archived").get();
+    assert.equal(abandoned.size, 1);
+    assert.equal(abandoned.docs[0].get("completedAt"), null);
+
+    await lesson.delete();
+    const visible = await readGoals();
+    const completed = visible.find(({ id }: { id: string }) => id === firstId);
+    assert.equal(completed.data.status, "completed");
+    assert.equal(completed.data.reward, reward);
+    assert.equal(visible.find(({ data }: { data: { status: string } }) => data.status === "active").done, 0);
+    assert.equal(visible.length, 2);
+});
+
+test("a legacy goal history counts only work delivered before the goal was replaced", async () => {
+    const spaceId = "legacy-goal-history";
+    await provision(spaceId);
+    const space = db.doc(`spaces/${spaceId}`);
+    const endedAt = Date.now() - 60_000;
+    const countFrom = endedAt - 180_000;
+    const stored = { status: "archived", kind: "complete_assignments", targetCount: 1, updatedAt: new Date(endedAt) };
+    const snapshot = (id: string, submittedAt: number) => ({ uid: "owner", spaceId, assignmentId: id, status: "submitted", submittedAt });
+    const early = space.collection("lessons").doc("before");
+    const late = space.collection("lessons").doc("after");
+    await Promise.all([
+        space.collection("goals").doc("earlier").set({
+            ...stored, countFrom: new Date(countFrom), title: "Finished earlier",
+            assignmentIds: ["before"], reward: "Choose a game to play together",
+        }),
+        space.collection("goals").doc("too-late").set({
+            ...stored, title: "Replaced before delivery", assignmentIds: ["after"],
+        }),
+        space.collection("goals").doc("explicitly-closed").set({
+            ...stored, title: "Closed unfinished", assignmentIds: ["before"], completedAt: null,
+        }),
+        space.collection("goals").doc("recorded").set({
+            title: "Completed custom goal", status: "completed", kind: "custom", reward: "Go for a walk",
+        }),
+        early.set({ archived: true, archivedAt: new Date(endedAt + 1) }),
+        late.set({ title: "Later assignment" }),
+        early.collection("submissions").doc(`${spaceId}_before_owner`).set(snapshot("before", endedAt - 1)),
+        late.collection("submissions").doc(`${spaceId}_after_owner`).set(snapshot("after", endedAt + 1)),
+    ]);
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const response = await room.GET(request({ cookie }), context(spaceId));
+    assert.equal(response.status, 200);
+    const home = await response.json();
+    assert.deepEqual(home.goals.map(({ id }: { id: string }) => id).sort(), ["earlier", "recorded"]);
+    assert.equal(home.goals[0].data.status, "completed");
+    assert.equal(home.goals[0].data.reward, "Choose a game to play together");
 });
 
 test("follow-up spans owned rooms and the child can acknowledge the exact greeting on a linked device", async () => {

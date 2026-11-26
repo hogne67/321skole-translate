@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { useChildRoomAccess } from "@/components/child/ChildRoomAccess";
 import FamilyRoomShortcut from "@/components/child/FamilyRoomShortcut";
 import { isDelivered } from "@/lib/familyAssignments";
-import { CHILD_PREVIEW_PARAM, childRoomHref, FAMILY_GREETING_ID, rememberChildRoom, type FamilyGoal } from "@/lib/familyDevice";
+import { CHILD_PREVIEW_PARAM, childRoomHref, FAMILY_GREETING_ID, rememberChildRoom } from "@/lib/familyDevice";
 
 import {
     collection,
@@ -22,7 +22,7 @@ import {
     type Timestamp,
 } from "firebase/firestore";
 
-import { countParentGoalDeliveries, type ParentSpaceGoalDoc } from "@/lib/parentGoals";
+import { canCountArchivedLesson, familyGoalProgress, readFamilyGoal, type FamilyGoal, type FamilyGoalItem, type FamilyGoalProgress } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { hasParentFeedback } from "@/lib/parentFeedback";
 import { isParentSpaceKind } from "@/lib/spaceSharing";
@@ -107,12 +107,6 @@ type AssignmentProgress = {
 };
 
 type StatusTone = "ready" | "working" | "delivered" | "done";
-
-type GoalItem = {
-    id: string;
-    data: FamilyGoal;
-    done?: number;
-};
 
 function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
     return `${spaceId}_${assignmentId}_${uid}`;
@@ -232,12 +226,21 @@ function AssignmentActionButton({
     );
 }
 
+function GoalReward({ reward }: { reward: string }) {
+    const t = useTranslations("childSpace.goal");
+    return (
+        <dl className="mb-0 mt-4 rounded-2xl bg-white p-4">
+            <dt className="font-bold text-slate-900">{t("reward")}</dt>
+            <dd className="m-0 mt-1 break-words text-base leading-7 text-slate-700">{reward}</dd>
+        </dl>
+    );
+}
+
 function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
     const t = useTranslations("childSpace");
     const target = typeof goal.targetCount === "number" && goal.targetCount > 0 ? goal.targetCount : null;
-    const cappedDone = target ? (goal.status === "completed" ? target : Math.min(done, target)) : done;
+    const cappedDone = target ? Math.min(done, target) : done;
     const percent = target ? Math.round((cappedDone / target) * 100) : 0;
-    const finished = goal.status === "completed" || (target !== null && cappedDone >= target);
 
     return (
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm sm:p-6">
@@ -252,9 +255,7 @@ function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
             {target ? (
                 <div className="mt-5">
                     <div className="mb-2 text-sm font-black text-sky-950">
-                        {finished
-                            ? t("goal.completed")
-                            : t("goal.progress", { done: cappedDone, target })}
+                        {t("goal.progress", { done: cappedDone, target })}
                     </div>
 
                     <div
@@ -272,13 +273,31 @@ function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
                     </div>
                 </div>
             ) : null}
-            {!target && finished ? <p className="mt-4 text-sm font-bold text-sky-950">{t("goal.completed")}</p> : null}
-            {safeString(goal.reward) ? (
-                <div className="mt-5 rounded-2xl border border-sky-200 bg-white p-4">
-                    <h3 className="m-0 text-base font-bold text-sky-950">{t("goal.reward")}</h3>
-                    <p className="mb-0 mt-1 break-words text-base leading-7 text-slate-700">{goal.reward}</p>
-                </div>
+            {goal.reward ? <GoalReward reward={goal.reward} /> : null}
+        </section>
+    );
+}
+
+function CompletedGoals({ goals, activeGoalId }: { goals: FamilyGoalProgress[]; activeGoalId: string | null }) {
+    const t = useTranslations("childSpace.goal");
+    return (
+        <section aria-labelledby="completed-goals" className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 id="completed-goals" className="m-0 text-xl font-extrabold text-emerald-950">{t("historyTitle")}</h2>
+            {goals.some(({ id }) => id === activeGoalId) ? (
+                <p className="mb-0 mt-2 font-bold text-emerald-900">{t("completed")}</p>
             ) : null}
+            <ul className="m-0 mt-4 grid list-none gap-3 p-0 sm:grid-cols-2">
+                {goals.map(({ id, data }) => (
+                    <li key={id} className="min-w-0 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                        <h3 className="m-0 flex items-start gap-2 text-base font-extrabold text-emerald-950">
+                            <span aria-hidden="true" className="text-emerald-700">✓</span>
+                            <span className="min-w-0 break-words">{data.title}</span>
+                        </h3>
+                        {data.description ? <p className="mb-0 mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{data.description}</p> : null}
+                        {data.reward ? <GoalReward reward={data.reward} /> : null}
+                    </li>
+                ))}
+            </ul>
         </section>
     );
 }
@@ -340,26 +359,34 @@ export default function ChildSpacePage() {
     const room = access.mode === "device" ? access.room : null;
     const [previewSpace, setSpace] = useState<SpaceDoc | null>(null);
     const [previewAssignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
-    const [previewGoals, setGoals] = useState<GoalItem[]>([]);
+    const [previewGoals, setGoals] = useState<FamilyGoalItem[]>([]);
     const [previewProgressMap, setProgressMap] = useState<Record<string, AssignmentProgress & { submittedAtMillis: number }>>({});
     const [previewFeedback, setParentFeedbackByAssignment] = useState<Record<string, boolean>>({});
     const [err, setErr] = useState<string | null>(null);
     const space = room?.room ?? previewSpace;
-    const goals = room?.goals ?? previewGoals;
     const activeGoalId = safeString(space?.activeGoalId);
-    const activeGoal =
-        (activeGoalId ? goals.find(({ id, data }) => id === activeGoalId && data.status !== "archived") : null) ??
-        goals.find(({ data }) => data.status === "active") ??
-        null;
     const visiblePreviewAssignments = useMemo(() => previewAssignments.filter(({ data }) => !isArchived(data)), [previewAssignments]);
-    const previewCountFrom = activeGoal?.data.countFrom;
-    const previewWorkAssignments = useMemo(() => {
-        if (!previewCountFrom) return visiblePreviewAssignments;
-        return previewAssignments.filter(({ data }) => {
-            const archivedAt = safeMillis(data.archivedAt);
-            return !isArchived(data) || !archivedAt || archivedAt >= previewCountFrom;
-        });
-    }, [previewAssignments, visiblePreviewAssignments, previewCountFrom]);
+    const previewWorkAssignments = useMemo(() => previewAssignments.filter(({ data }) => {
+        if (!isArchived(data)) return true;
+        const archivedAt = safeMillis(data.archivedAt);
+        return previewGoals.some(({ data: goal }) => canCountArchivedLesson(goal, archivedAt));
+    }), [previewAssignments, previewGoals]);
+    const previewGoalProgress = useMemo(() => {
+        if (previewGoals.length === 0) return [];
+        const deliveries = previewWorkAssignments.map(({ id, data }) => ({
+            id,
+            status: previewProgressMap[id]?.status,
+            submittedAtMillis: previewProgressMap[id]?.submittedAtMillis ?? 0,
+            archived: isArchived(data),
+            archivedAt: safeMillis(data.archivedAt),
+        }));
+        return previewGoals.flatMap((goal) => familyGoalProgress(goal, deliveries) ?? []);
+    }, [previewGoals, previewWorkAssignments, previewProgressMap]);
+    const goals = room?.goals ?? previewGoalProgress;
+    const activeGoals = goals.filter(({ data }) => data.status === "active");
+    const activeGoal = activeGoals.find(({ id }) => id === activeGoalId) ?? activeGoals[0];
+    const completedGoals = goals.filter(({ data }) => data.status === "completed")
+        .sort((a, b) => (b.data.completedAt ?? b.data.updatedAt ?? 0) - (a.data.completedAt ?? a.data.updatedAt ?? 0));
     const assignments = room?.assignments ?? visiblePreviewAssignments;
     const progressMap = useMemo(() => room
         ? Object.fromEntries(room.assignments.map(({ id, progress }) => [id, progress]))
@@ -436,22 +463,12 @@ export default function ChildSpacePage() {
 
         try {
             const dbx = requireDb(db);
-            const qy = query(collection(dbx, "spaces", spaceId, "goals"), orderBy("updatedAt", "desc"));
-
             unsub = onSnapshot(
-                qy,
+                collection(dbx, "spaces", spaceId, "goals"),
                 (snap) => {
-                    const out: GoalItem[] = [];
-
-                    snap.forEach((d: QueryDocumentSnapshot<DocumentData>) => {
-                        const { countFrom, ...goal } = d.data() as ParentSpaceGoalDoc;
-                        out.push({
-                            id: d.id,
-                            data: { ...goal, countFrom: safeMillis(countFrom) || undefined },
-                        });
-                    });
-
-                    setGoals(out);
+                    setGoals(snap.docs
+                        .flatMap((goal) => readFamilyGoal(goal.id, goal.data(), safeMillis) ?? [])
+                        .sort((a, b) => (b.data.updatedAt ?? 0) - (a.data.updatedAt ?? 0)));
                 },
                 (e) => setErr(e.message)
             );
@@ -575,16 +592,6 @@ export default function ChildSpacePage() {
 
     const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
 
-    const goalCompletedCount = activeGoal ? activeGoal.done ?? countParentGoalDeliveries(
-        activeGoal.data,
-        (room ? assignments : previewWorkAssignments).map(({ id, data }) => ({
-            id,
-            status: progressMap[id]?.status,
-            submittedAtMillis: previewProgressMap[id]?.submittedAtMillis ?? 0,
-            archived: isArchived(data),
-        }))
-    ) : 0;
-
     if (err) {
         return (
             <main className="mx-auto max-w-4xl p-4">
@@ -638,12 +645,15 @@ export default function ChildSpacePage() {
             </nav>
 
             {showGoals ? (
-                activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : (
-                    <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 sm:p-6">
-                        <h2 className="m-0 text-xl font-extrabold text-sky-950">{t("views.goals")}</h2>
-                        <p className="mb-0 mt-2 leading-7 text-slate-700">{t("goal.empty")}</p>
-                    </section>
-                )
+                <>
+                    {activeGoal ? <GoalProgressCard goal={activeGoal.data} done={activeGoal.done} /> : completedGoals.length === 0 ? (
+                        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 sm:p-6">
+                            <h2 className="m-0 text-xl font-extrabold text-sky-950">{t("views.goals")}</h2>
+                            <p className="mb-0 mt-2 leading-7 text-slate-700">{t("goal.empty")}</p>
+                        </section>
+                    ) : null}
+                    {completedGoals.length > 0 ? <CompletedGoals goals={completedGoals} activeGoalId={activeGoalId} /> : null}
+                </>
             ) : null}
 
             {!showGoals && unreadGreetings.length > 0 ? (

@@ -41,6 +41,7 @@
       "copyManually": "O link está selecionado. Você pode copiá-lo daqui."
     },
     "goal": {
+      "historyTitle": "Metas concluídas",
       "completed": "Você alcançou a meta. Muito bem!",
       "progress": "Você entregou {done} de {target, plural, one {# atividade} other {# atividades}}.",
       "reward": "Recompensa combinada",

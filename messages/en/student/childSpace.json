@@ -41,6 +41,7 @@
       "copyManually": "The link is selected. You can copy it from here."
     },
     "goal": {
+      "historyTitle": "Completed goals",
       "completed": "You reached the goal. Well done!",
       "progress": "You have handed in {done} of {target, plural, one {# assignment} other {# assignments}}.",
       "reward": "Agreed reward",

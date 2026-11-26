@@ -1,5 +1,5 @@
 import type { AssignmentDoc, ParentReviewDoc, SubmissionDoc } from "./familyAssignments";
-import type { ParentSpaceGoalDoc } from "./parentGoals";
+import type { FamilyGoalProgress } from "./parentGoals";
 
 export const FAMILY_INVITE_MINUTES = 30;
 export const FAMILY_DEVICE_DAYS = 90;
@@ -10,10 +10,9 @@ export const CHILD_START_URL_KEY = "321skole.childStartUrl";
 export type FamilyDevice = { id: string; createdAt: number; expiresAt: number };
 export type FamilyDeviceStatus = { inviteExpiresAt: number | null; devices: FamilyDevice[] };
 export type FamilyRoomSummary = { title?: string; activeLessonId?: string; activeGoalId?: string };
-export type FamilyGoal = Pick<ParentSpaceGoalDoc, "title" | "description" | "reward" | "status" | "kind" | "targetCount" | "assignmentIds"> & { countFrom?: number };
 export type FamilyRoomData = {
     room: FamilyRoomSummary;
-    goals: Array<{ id: string; data: FamilyGoal; done: number }>;
+    goals: FamilyGoalProgress[];
     assignments: Array<{
         id: string;
         data: AssignmentDoc & { updatedAt: number; createdAt: number };

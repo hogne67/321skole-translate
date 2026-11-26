@@ -17,7 +17,6 @@ import {
   query,
   serverTimestamp,
   updateDoc,
-  writeBatch,
   type Firestore,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -292,40 +291,14 @@ export default function ParentSpaceDetailPage() {
     setGoalMsg(null);
 
     try {
-      const dbx = requireDb(db);
-      const goalRef = doc(collection(dbx, "spaces", spaceId, "goals"));
-      const spaceRef = doc(dbx, "spaces", spaceId);
-      const batch = writeBatch(dbx);
-
-      const now = serverTimestamp();
-
-      batch.set(goalRef, {
-        title,
-        status: "active",
-        kind: "complete_assignments",
-        targetCount,
-        assignmentIds: [],
-        ...(reward ? { reward } : {}),
-        createdByUid: user.uid,
-        createdAt: now,
-        countFrom: now,
-        updatedAt: now,
-      } satisfies ParentSpaceGoalDoc);
-
-      if (activeGoal?.id) {
-        batch.update(doc(dbx, "spaces", spaceId, "goals", activeGoal.id), {
-          status: "archived",
-          updatedAt: now,
-        });
-      }
-
-      batch.update(spaceRef, {
-        activeGoalId: goalRef.id,
-        activeGoalTitle: title,
-        updatedAt: now,
+      const token = await user.getIdToken();
+      const response = await fetch("/api/parent/spaces/" + encodeURIComponent(spaceId) + "/goals", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ title, targetCount, reward }),
+        cache: "no-store",
       });
-
-      await batch.commit();
+      if (!response.ok) throw new Error(t("goals.saveFailed"));
 
       setGoalTitle("");
       setGoalTargetCount("3");
@@ -546,7 +519,7 @@ export default function ParentSpaceDetailPage() {
   const addAssignmentHref = "/content?familyRoom=" + encodeURIComponent(spaceId);
   const activeGoalId = safeString(spaceRec.activeGoalId);
   const activeGoal =
-    (activeGoalId ? goals.find((goal) => goal.id === activeGoalId) : null) ??
+    (activeGoalId ? goals.find((goal) => goal.id === activeGoalId && goal.data.status === "active") : null) ??
     goals.find((goal) => goal.data.status === "active") ??
     null;
 

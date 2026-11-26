@@ -41,6 +41,7 @@
       "copyManually": "Lenken er markert. Du kan kopiere den herfra."
     },
     "goal": {
+      "historyTitle": "Fullførte mål",
       "completed": "Du klarte målet. Bra jobbet!",
       "progress": "Du har levert {done} av {target, plural, one {# oppgave} other {# oppgaver}}.",
       "reward": "Avtalt belønning",
