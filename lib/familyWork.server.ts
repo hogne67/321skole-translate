@@ -386,12 +386,16 @@ export async function createFamilyGoal(req: NextRequest, spaceId: string) {
     return { id: next.id };
 }
 
-export async function markFamilyRewardGiven(req: NextRequest, spaceId: string) {
+export async function setFamilyRewardGiven(req: NextRequest, spaceId: string) {
     assertFamilyId(spaceId);
     const { db, decoded } = await verifyFamilyParentSignIn(req);
     const body = await familyRequestBody(req, 512);
     const goalId = safeString(body.goalId);
-    if (!goalId) throw new FamilyAccessError(400, "invalid_request");
+    const { given = true, expectedRewardGivenAt } = body;
+    if (!goalId || typeof given !== "boolean" ||
+        (!given && (typeof expectedRewardGivenAt !== "number" || !Number.isFinite(expectedRewardGivenAt) || expectedRewardGivenAt <= 0))) {
+        throw new FamilyAccessError(400, "invalid_request");
+    }
     assertFamilyId(goalId);
     const ref = db.doc(`spaces/${spaceId}/goals/${goalId}`);
 
@@ -400,6 +404,15 @@ export async function markFamilyRewardGiven(req: NextRequest, spaceId: string) {
         const snapshot = await tx.get(ref);
         const goal = readFamilyGoal(goalId, snapshot.data(), millis);
         if (!goal) throw new FamilyAccessError(404, "goal_unavailable");
+
+        if (!given) {
+            const current = goal.data.rewardGivenAt;
+            if (!current) return { rewardGivenAt: null };
+            if (current !== expectedRewardGivenAt) throw new FamilyAccessError(409, "reward_status_changed");
+            tx.update(ref, { rewardGivenAt: FieldValue.delete(), status: "completed" });
+            return { rewardGivenAt: null };
+        }
+
         if (!goal.data.reward) throw new FamilyAccessError(409, "reward_not_set");
 
         const [progress] = await readFamilyGoalProgress(db, spaceId, owner, [goal], tx);

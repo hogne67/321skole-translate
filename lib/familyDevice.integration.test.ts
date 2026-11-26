@@ -344,6 +344,53 @@ test("the room parent can mark a reached reward as given once, and the child see
     assert.equal(home.goals.find((goal: { data: { status: string } }) => goal.data.status === "active").data.rewardGivenAt, undefined);
 });
 
+test("a parent can undo the same reward marker twice without clearing a newer one", async () => {
+    const spaceId = "reward-undo";
+    const goalId = "completed-goal";
+    const reward = "Choose a book";
+    await provision(spaceId);
+    const goal = db.doc(`spaces/${spaceId}/goals/${goalId}`);
+    await goal.set({ title: "Read a book", status: "completed", kind: "custom", reward });
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const change = (body: object, bearer?: string) => goals.PATCH(request({
+        bearer, cookie, method: "PATCH", body: { goalId, ...body },
+    }), context(spaceId));
+    const first = await change({}, "owner");
+    assert.equal(first.status, 200);
+    const { rewardGivenAt } = await first.json();
+    assert.ok(rewardGivenAt > 0);
+
+    // An older client could archive an already completed goal that has no completion date.
+    await goal.update({ status: "archived" });
+    const undo = { given: false, expectedRewardGivenAt: rewardGivenAt };
+    assert.equal((await change(undo)).status, 401);
+    assert.equal((await change(undo, "other")).status, 403);
+    assert.equal((await change({ given: false }, "owner")).status, 400);
+    assert.equal((await goal.get()).get("rewardGivenAt").toMillis(), rewardGivenAt);
+
+    const responses = await Promise.all([change(undo, "owner"), change(undo, "owner")]);
+    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+    assert.deepEqual(await Promise.all(responses.map((response) => response.json())), [{ rewardGivenAt: null }, { rewardGivenAt: null }]);
+    const stored = await goal.get();
+    assert.equal(stored.get("rewardGivenAt"), undefined);
+    assert.equal(stored.get("status"), "completed");
+    const response = await room.GET(request({ cookie }), context(spaceId));
+    assert.equal(response.status, 200);
+    const home = await response.json();
+    assert.equal(home.goals[0].data.status, "completed");
+    assert.equal(home.goals[0].data.reward, reward);
+    assert.equal(home.goals[0].data.rewardGivenAt, undefined);
+
+    const givenAgain = await change({ given: true }, "owner");
+    assert.equal(givenAgain.status, 200);
+    const { rewardGivenAt: later } = await givenAgain.json();
+    assert.notEqual(later, rewardGivenAt);
+    const staleUndo = await change(undo, "owner");
+    assert.equal(staleUndo.status, 409);
+    assert.equal((await staleUndo.json()).error, "reward_status_changed");
+    assert.equal((await goal.get()).get("rewardGivenAt").toMillis(), later);
+});
+
 test("client rules preserve a given reward and reject writing the server's marker", async (t) => {
     const spaceId = "reward-rules";
     await provision(spaceId);

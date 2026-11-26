@@ -241,7 +241,7 @@ export default function ParentSpaceDetailPage() {
   const [goalBusy, setGoalBusy] = useState(false);
   const [goalMsg, setGoalMsg] = useState<string | null>(null);
   const [rewardBusyId, setRewardBusyId] = useState<string | null>(null);
-  const [rewardErrorId, setRewardErrorId] = useState<string | null>(null);
+  const [rewardError, setRewardError] = useState<{ goalId: string; rewardGivenAt?: number } | null>(null);
   const goalsApi = "/api/parent/spaces/" + encodeURIComponent(spaceId) + "/goals";
 
   const collatorLocale = useMemo(() => (locale === "no" ? "nb" : "en"), [locale]);
@@ -313,30 +313,30 @@ export default function ParentSpaceDetailPage() {
     }
   }
 
-  async function markRewardGiven(goalId: string) {
+  async function updateRewardStatus(goalId: string, currentRewardGivenAt?: number) {
     if (!user || rewardBusyId) return;
     setRewardBusyId(goalId);
-    setRewardErrorId(null);
+    setRewardError(null);
     try {
       const token = await user.getIdToken();
       const response = await fetch(goalsApi, {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ goalId }),
+        body: JSON.stringify({ goalId, given: currentRewardGivenAt === undefined, expectedRewardGivenAt: currentRewardGivenAt }),
         cache: "no-store",
       });
-      if (!response.ok) throw new Error(t("goals.markRewardFailed"));
-      const { rewardGivenAt }: { rewardGivenAt: number } = await response.json();
+      if (!response.ok) throw new Error(t("goals.rewardStatusFailed"));
+      const { rewardGivenAt }: { rewardGivenAt: number | null } = await response.json();
       setGoalSummary((current) => current?.spaceId === spaceId && current.uid === user.uid ? {
         ...current,
         goals: current.goals.map((goal) => goal.id === goalId
-          ? { ...goal, data: { ...goal.data, rewardGivenAt } }
+          ? { ...goal, data: { ...goal.data, rewardGivenAt: rewardGivenAt ?? undefined } }
           : goal),
       } : current);
-      setGoalRevision((revision) => revision + 1);
     } catch {
-      setRewardErrorId(goalId);
+      setRewardError({ goalId, rewardGivenAt: currentRewardGivenAt });
     } finally {
+      setGoalRevision((revision) => revision + 1);
       setRewardBusyId(null);
     }
   }
@@ -861,23 +861,22 @@ export default function ParentSpaceDetailPage() {
                   <div className="min-w-0">
                     <p className="m-0 break-words font-bold text-slate-900">{data.title}</p>
                     <p className="mb-0 mt-1 break-words text-sm leading-6 text-slate-700">{data.reward}</p>
-                    {rewardErrorId === id && !data.rewardGivenAt ? (
-                      <p role="alert" className="mb-0 mt-1 text-sm text-red-800">{t("goals.markRewardFailed")}</p>
+                    {rewardError?.goalId === id && rewardError.rewardGivenAt === data.rewardGivenAt ? (
+                      <p role="alert" className="mb-0 mt-1 text-sm text-red-800">{t("goals.rewardStatusFailed")}</p>
                     ) : null}
                   </div>
-                  {data.rewardGivenAt ? (
-                    <span role="status"><Badge text={t("goals.rewardGiven")} tone="good" /></span>
-                  ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {data.rewardGivenAt ? <span role="status"><Badge text={t("goals.rewardGiven")} tone="good" /></span> : null}
                     <button
                       type="button"
-                      aria-label={t("goals.markRewardFor", { goal: data.title })}
+                      aria-label={t(data.rewardGivenAt ? "goals.undoRewardFor" : "goals.markRewardFor", { goal: data.title })}
                       disabled={!!rewardBusyId}
-                      onClick={() => void markRewardGiven(id)}
+                      onClick={() => void updateRewardStatus(id, data.rewardGivenAt)}
                       className="inline-flex min-h-11 items-center rounded-xl border border-emerald-700 bg-white px-3 py-2 text-sm font-bold text-emerald-900 hover:bg-emerald-50 disabled:opacity-60"
                     >
-                      {rewardBusyId === id ? t("goals.saving") : t("goals.markRewardGiven")}
+                      {rewardBusyId === id ? t("goals.saving") : t(data.rewardGivenAt ? "goals.undoReward" : "goals.markRewardGiven")}
                     </button>
-                  )}
+                  </div>
                 </li>
               ))}
             </ul>
