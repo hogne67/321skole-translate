@@ -111,6 +111,7 @@ test("a one-time link grants an independent device session scoped to its room an
     const home = await (await room.GET(request({ cookie }), context(spaceId))).json();
     assert.equal(home.room.title, "Reading room");
     assert.equal(home.goals[0].data.title, "Complete a task");
+    assert.equal(home.goals[0].done, 0);
     assert.deepEqual(home.assignments.map(({ id }: { id: string }) => id), ["reading"]);
     assert.equal(home.assignments[0].hasParentFeedback, true);
     assert.equal(home.assignments[0].progress.status, "draft");
@@ -148,6 +149,8 @@ test("a one-time link grants an independent device session scoped to its room an
     assert.equal((await work.get()).get("uid"), "owner");
     assert.equal((await index.get()).get("status"), "submitted");
     assert.equal((await index.get()).get("createdAt").toMillis(), 1);
+    const refreshed = await (await room.GET(request({ cookie }), context(spaceId))).json();
+    assert.equal(refreshed.goals[0].done, 1);
     assert.equal((await assignment.POST(request({ cookie, body }), context(spaceId))).status, 409);
     assert.equal((await speech.POST(request({ cookie, body: { mode: "task", taskIndex: 999, text: "arbitrary text" } }), context(spaceId))).status, 400);
 
@@ -175,6 +178,52 @@ test("a one-time link grants an independent device session scoped to its room an
     assert.equal(revoked.status, 200);
     assert.equal((await room.GET(request({ cookie }), context(spaceId))).status, 401);
     assert.equal((await assignment.GET(request({ cookie: secondCookie }), context(spaceId))).status, 200);
+});
+
+test("a new goal shows its reward and counts recent deliveries even after an assignment is archived", async () => {
+    const spaceId = "room-with-goal";
+    await provision(spaceId);
+    const now = Date.now();
+    const countFrom = now - 300_000;
+    const space = db.doc(`spaces/${spaceId}`);
+    const goalId = "reading-goal";
+    const submissions = [
+        { id: "old", status: "submitted", submittedAt: countFrom - 1 },
+        { id: "new", status: "submitted", submittedAt: now },
+        { id: "archived", status: "reviewed", submittedAt: now },
+        { id: "draft", status: "draft", submittedAt: 0 },
+        { id: "extra", status: "submitted", submittedAt: now },
+    ];
+    await Promise.all([
+        space.update({ activeGoalId: goalId }),
+        space.collection("goals").doc(goalId).set({
+            title: "Finish two assignments",
+            kind: "complete_assignments",
+            status: "active",
+            reward: "Choose a book to read together",
+            createdAt: new Date(countFrom),
+            countFrom: new Date(countFrom),
+            targetCount: 2,
+            assignmentIds: ["old", "new", "archived", "draft"],
+        }),
+        ...submissions.flatMap(({ id, status, submittedAt }) => {
+            const lesson = space.collection("lessons").doc(id);
+            return [
+                lesson.set({ title: id, ...(id === "archived" ? { archived: true, archivedAt: new Date(now) } : {}) }),
+                lesson.collection("submissions").doc(`${spaceId}_${id}_owner`).set({
+                    uid: "owner", assignmentId: id, spaceId, status, submittedAt, updatedAt: now,
+                }),
+            ];
+        }),
+    ]);
+
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const response = await room.GET(request({ cookie }), context(spaceId));
+    assert.equal(response.status, 200);
+    const home = await response.json();
+    assert.equal(home.goals[0].data.reward, "Choose a book to read together");
+    assert.equal(home.goals[0].done, 2);
+    assert.ok(!home.assignments.some(({ id }: { id: string }) => id === "archived"));
 });
 
 test("follow-up spans owned rooms and the child can acknowledge the exact greeting on a linked device", async () => {

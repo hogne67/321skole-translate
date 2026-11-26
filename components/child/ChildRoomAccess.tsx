@@ -22,7 +22,9 @@ export default function ChildRoomAccess({ children, spaceId }: { children: React
     const locale = useLocale();
     const t = useTranslations("childSpace");
     const pathname = usePathname();
-    const preview = useSearchParams().get(CHILD_PREVIEW_PARAM) === "parent";
+    const searchParams = useSearchParams();
+    const preview = searchParams.get(CHILD_PREVIEW_PARAM) === "parent";
+    const view = searchParams.get("view");
     const [device, setDevice] = useState<FamilyRoomData | "missing" | "error" | null>(null);
     const [retry, setRetry] = useState(0);
     const refreshRoom = useCallback(() => setRetry((value) => value + 1), []);
@@ -52,7 +54,7 @@ export default function ChildRoomAccess({ children, spaceId }: { children: React
             controller?.abort();
             window.removeEventListener("focus", checkDevice);
         };
-    }, [spaceId, pathname, preview, retry]);
+    }, [spaceId, pathname, preview, view, retry]);
 
     if (!preview && device && typeof device === "object") {
         return <ChildAccessContext.Provider value={{ mode: "device", room: device, refreshRoom }}>{children}</ChildAccessContext.Provider>;

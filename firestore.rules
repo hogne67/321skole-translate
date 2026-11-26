@@ -282,12 +282,14 @@ service cloud.firestore {
       return data.keys().hasOnly([
           "title",
           "description",
+          "reward",
           "status",
           "kind",
           "targetCount",
           "assignmentIds",
           "createdByUid",
           "createdAt",
+          "countFrom",
           "updatedAt",
           "completedAt"
         ])
@@ -303,10 +305,12 @@ service cloud.firestore {
         && data.title.size() > 0
         && data.title.size() <= 120
         && (!("description" in data) || (data.description is string && data.description.size() <= 500))
+        && (!("reward" in data) || (data.reward is string && data.reward.size() <= 160))
         && (data.status in ["active", "completed", "archived"])
         && (data.kind in ["complete_assignments", "custom"])
         && (data.createdByUid is string)
         && data.createdByUid == myUid()
+        && (!("countFrom" in data) || (data.countFrom is timestamp && data.countFrom == data.createdAt))
         && (!("targetCount" in data) || (data.targetCount is int && data.targetCount >= 1 && data.targetCount <= 100))
         && (!("assignmentIds" in data) || data.assignmentIds is list);
     }

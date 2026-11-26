@@ -240,6 +240,7 @@ export default function ParentSpaceDetailPage() {
   const [goals, setGoals] = useState<GoalItem[]>([]);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalTargetCount, setGoalTargetCount] = useState("3");
+  const [goalReward, setGoalReward] = useState("");
   const [goalBusy, setGoalBusy] = useState(false);
   const [goalMsg, setGoalMsg] = useState<string | null>(null);
 
@@ -275,6 +276,7 @@ export default function ParentSpaceDetailPage() {
 
     const title = goalTitle.trim();
     const targetCount = Number(goalTargetCount);
+    const reward = goalReward.trim();
 
     if (!title) {
       setGoalMsg(t("goals.titleRequired"));
@@ -303,8 +305,10 @@ export default function ParentSpaceDetailPage() {
         kind: "complete_assignments",
         targetCount,
         assignmentIds: [],
+        ...(reward ? { reward } : {}),
         createdByUid: user.uid,
         createdAt: now,
+        countFrom: now,
         updatedAt: now,
       } satisfies ParentSpaceGoalDoc);
 
@@ -325,6 +329,7 @@ export default function ParentSpaceDetailPage() {
 
       setGoalTitle("");
       setGoalTargetCount("3");
+      setGoalReward("");
       setGoalMsg(t("goals.saved"));
     } catch (e: unknown) {
       setGoalMsg(errMessage(e, t("goals.saveFailed")));
@@ -727,8 +732,8 @@ export default function ParentSpaceDetailPage() {
         )}
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5">
-        <div className="text-base font-semibold text-sky-950">{t("goals.sectionTitle")}</div>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5" aria-labelledby="family-goals">
+        <h2 id="family-goals" className="m-0 text-lg font-bold text-sky-950">{t("goals.sectionTitle")}</h2>
 
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           {activeGoal ? (
@@ -752,6 +757,12 @@ export default function ParentSpaceDetailPage() {
                   {safeString(activeGoal.data.description)}
                 </div>
               ) : null}
+              {safeString(activeGoal.data.reward) ? (
+                <div className="mt-3 break-words text-sm leading-6 text-sky-950">
+                  <span className="font-bold">{t("goals.agreedReward")}</span>
+                  <p className="m-0">{activeGoal.data.reward}</p>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-xl border border-sky-200 bg-white p-3 text-sm leading-6 text-sky-900 sm:p-4">
@@ -766,11 +777,12 @@ export default function ParentSpaceDetailPage() {
               createGoal();
             }}
           >
-            <label className="block text-xs font-black uppercase tracking-wide text-slate-500">
+            <label htmlFor="family-goal-title" className="block text-sm font-bold text-slate-700">
               {t("goals.newGoal")}
             </label>
 
             <input
+              id="family-goal-title"
               value={goalTitle}
               onChange={(e) => setGoalTitle(e.target.value)}
               placeholder={t("goals.placeholder")}
@@ -778,11 +790,12 @@ export default function ParentSpaceDetailPage() {
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
             />
 
-            <label className="mt-3 block text-xs font-black uppercase tracking-wide text-slate-500">
+            <label htmlFor="family-goal-target" className="mt-3 block text-sm font-bold text-slate-700">
               {t("goals.targetLabel")}
             </label>
 
             <input
+              id="family-goal-target"
               type="number"
               min={1}
               max={100}
@@ -790,6 +803,19 @@ export default function ParentSpaceDetailPage() {
               onChange={(e) => setGoalTargetCount(e.target.value)}
               className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
             />
+
+            <label htmlFor="family-goal-reward" className="mt-3 block text-sm font-bold text-slate-700">
+              {t("goals.rewardLabel")}
+            </label>
+            <input
+              id="family-goal-reward"
+              value={goalReward}
+              onChange={(e) => setGoalReward(e.target.value)}
+              placeholder={t("goals.rewardPlaceholder")}
+              maxLength={160}
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
+            />
+            <p className="mb-0 mt-2 text-sm leading-5 text-slate-600">{t("goals.countsNewDeliveries")}</p>
 
             <button
               type="submit"
@@ -799,7 +825,7 @@ export default function ParentSpaceDetailPage() {
               {goalBusy ? t("goals.saving") : t("goals.save")}
             </button>
 
-            {goalMsg ? <div className="mt-3 text-sm font-semibold text-slate-600">{goalMsg}</div> : null}
+            {goalMsg ? <p role="status" className="mb-0 mt-3 text-sm font-semibold text-slate-600">{goalMsg}</p> : null}
           </form>
         </div>
       </section>

@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
 import { useChildRoomAccess } from "@/components/child/ChildRoomAccess";
-import { childRoomHref, FAMILY_GREETING_ID, rememberChildRoom, type FamilyGoal } from "@/lib/familyDevice";
+import FamilyRoomShortcut from "@/components/child/FamilyRoomShortcut";
+import { isDelivered } from "@/lib/familyAssignments";
+import { CHILD_PREVIEW_PARAM, childRoomHref, FAMILY_GREETING_ID, rememberChildRoom, type FamilyGoal } from "@/lib/familyDevice";
 
 import {
     collection,
@@ -20,7 +22,7 @@ import {
     type Timestamp,
 } from "firebase/firestore";
 
-import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
+import { countParentGoalDeliveries, type ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { hasParentFeedback } from "@/lib/parentFeedback";
 import { isParentSpaceKind } from "@/lib/spaceSharing";
@@ -75,6 +77,8 @@ type AssignmentDoc = {
     coverImageUrl?: string;
     imageUrl?: string;
     archived?: boolean;
+    archivedAt?: Timestamp | number;
+    deletedAt?: Timestamp | number;
     status?: string;
     updatedAt?: Timestamp | number;
     createdAt?: Timestamp | number;
@@ -85,7 +89,7 @@ type SubmissionDoc = {
     status?: string;
     aiFeedback?: string | null;
     updatedAt?: Timestamp;
-    submittedAt?: Timestamp;
+    submittedAt?: Timestamp | number;
     createdAt?: Timestamp;
     auto?: {
         score?: number;
@@ -107,6 +111,7 @@ type StatusTone = "ready" | "working" | "delivered" | "done";
 type GoalItem = {
     id: string;
     data: FamilyGoal;
+    done?: number;
 };
 
 function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
@@ -148,11 +153,6 @@ function renderAutoSummary(auto: SubmissionDoc["auto"]): string | null {
 
 function normalizeStatus(status: string | null) {
     return String(status ?? "").trim().toLowerCase();
-}
-
-function isDelivered(status: string | null) {
-    const s = normalizeStatus(status);
-    return s === "submitted" || s === "reviewed" || s === "approved";
 }
 
 function progressTone(status: string | null): StatusTone {
@@ -235,20 +235,13 @@ function AssignmentActionButton({
 function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
     const t = useTranslations("childSpace");
     const target = typeof goal.targetCount === "number" && goal.targetCount > 0 ? goal.targetCount : null;
-    const cappedDone = target ? Math.min(done, target) : done;
+    const cappedDone = target ? (goal.status === "completed" ? target : Math.min(done, target)) : done;
     const percent = target ? Math.round((cappedDone / target) * 100) : 0;
-    const finished = target ? cappedDone >= target : false;
+    const finished = goal.status === "completed" || (target !== null && cappedDone >= target);
 
     return (
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm font-black uppercase tracking-wide text-sky-800">
-                    {t("goal.title")}
-                </div>
-                {target ? <Badge tone="neutral">{cappedDone} / {target}</Badge> : null}
-            </div>
-
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{goal.title}</h2>
+            <h2 className="m-0 break-words text-2xl font-black tracking-tight text-slate-900">{goal.title}</h2>
 
             {safeString(goal.description) ? (
                 <div className="mt-3 whitespace-pre-wrap text-base leading-8 text-slate-700">
@@ -264,12 +257,26 @@ function GoalProgressCard({ goal, done }: { goal: FamilyGoal; done: number }) {
                             : t("goal.progress", { done: cappedDone, target })}
                     </div>
 
-                    <div className="h-4 overflow-hidden rounded-full bg-white">
+                    <div
+                        role="progressbar"
+                        aria-label={goal.title}
+                        aria-valuemin={0}
+                        aria-valuemax={target}
+                        aria-valuenow={cappedDone}
+                        className="h-4 overflow-hidden rounded-full bg-white"
+                    >
                         <div
                             className="h-full rounded-full bg-sky-500 transition-all"
                             style={{ width: `${percent}%` }}
                         />
                     </div>
+                </div>
+            ) : null}
+            {!target && finished ? <p className="mt-4 text-sm font-bold text-sky-950">{t("goal.completed")}</p> : null}
+            {safeString(goal.reward) ? (
+                <div className="mt-5 rounded-2xl border border-sky-200 bg-white p-4">
+                    <h3 className="m-0 text-base font-bold text-sky-950">{t("goal.reward")}</h3>
+                    <p className="mb-0 mt-1 break-words text-base leading-7 text-slate-700">{goal.reward}</p>
                 </div>
             ) : null}
         </section>
@@ -327,18 +334,33 @@ export default function ChildSpacePage() {
     const { spaceId } = useParams<{ spaceId: string }>();
     const t = useTranslations("childSpace");
     const access = useChildRoomAccess();
+    const showGoals = useSearchParams().get("view") === "goals";
 
     const user = access.mode === "parent" ? access.user : null;
     const room = access.mode === "device" ? access.room : null;
     const [previewSpace, setSpace] = useState<SpaceDoc | null>(null);
     const [previewAssignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
     const [previewGoals, setGoals] = useState<GoalItem[]>([]);
-    const [previewProgressMap, setProgressMap] = useState<Record<string, AssignmentProgress>>({});
+    const [previewProgressMap, setProgressMap] = useState<Record<string, AssignmentProgress & { submittedAtMillis: number }>>({});
     const [previewFeedback, setParentFeedbackByAssignment] = useState<Record<string, boolean>>({});
     const [err, setErr] = useState<string | null>(null);
     const space = room?.room ?? previewSpace;
-    const assignments = room?.assignments ?? previewAssignments;
     const goals = room?.goals ?? previewGoals;
+    const activeGoalId = safeString(space?.activeGoalId);
+    const activeGoal =
+        (activeGoalId ? goals.find(({ id, data }) => id === activeGoalId && data.status !== "archived") : null) ??
+        goals.find(({ data }) => data.status === "active") ??
+        null;
+    const visiblePreviewAssignments = useMemo(() => previewAssignments.filter(({ data }) => !isArchived(data)), [previewAssignments]);
+    const previewCountFrom = activeGoal?.data.countFrom;
+    const previewWorkAssignments = useMemo(() => {
+        if (!previewCountFrom) return visiblePreviewAssignments;
+        return previewAssignments.filter(({ data }) => {
+            const archivedAt = safeMillis(data.archivedAt);
+            return !isArchived(data) || !archivedAt || archivedAt >= previewCountFrom;
+        });
+    }, [previewAssignments, visiblePreviewAssignments, previewCountFrom]);
+    const assignments = room?.assignments ?? visiblePreviewAssignments;
     const progressMap = useMemo(() => room
         ? Object.fromEntries(room.assignments.map(({ id, progress }) => [id, progress]))
         : previewProgressMap, [room, previewProgressMap]);
@@ -397,7 +419,7 @@ export default function ChildSpacePage() {
                         });
                     });
 
-                    setAssignments(out.filter((x) => !isArchived(x.data)));
+                    setAssignments(out.filter(({ data }) => !data.deletedAt));
                 },
                 (e) => setErr(e.message)
             );
@@ -422,9 +444,10 @@ export default function ChildSpacePage() {
                     const out: GoalItem[] = [];
 
                     snap.forEach((d: QueryDocumentSnapshot<DocumentData>) => {
+                        const { countFrom, ...goal } = d.data() as ParentSpaceGoalDoc;
                         out.push({
                             id: d.id,
-                            data: d.data() as ParentSpaceGoalDoc,
+                            data: { ...goal, countFrom: safeMillis(countFrom) || undefined },
                         });
                     });
 
@@ -440,7 +463,7 @@ export default function ChildSpacePage() {
     }, [spaceId, user, t]);
 
     useEffect(() => {
-        if (!user?.uid || previewAssignments.length === 0) {
+        if (!user?.uid || previewWorkAssignments.length === 0) {
             setProgressMap({});
             return;
         }
@@ -448,7 +471,7 @@ export default function ChildSpacePage() {
         const dbx = requireDb(db);
         const unsubs: Array<() => void> = [];
 
-        for (const item of previewAssignments) {
+        for (const item of previewWorkAssignments) {
             const submissionId = buildParentSubmissionId(spaceId, item.id, user.uid);
 
             const unsub = onSnapshot(
@@ -461,6 +484,7 @@ export default function ChildSpacePage() {
                                 status: null,
                                 hasAiFeedback: false,
                                 autoSummary: null,
+                                submittedAtMillis: 0,
                                 updatedAtMillis: 0,
                             },
                         }));
@@ -475,6 +499,7 @@ export default function ChildSpacePage() {
                             status: safeString(data.status),
                             hasAiFeedback: !!safeString(data.aiFeedback),
                             autoSummary: renderAutoSummary(data.auto),
+                            submittedAtMillis: safeMillis(data.submittedAt),
                             updatedAtMillis:
                                 safeMillis(data.submittedAt) ||
                                 safeMillis(data.updatedAt) ||
@@ -484,7 +509,9 @@ export default function ChildSpacePage() {
                 },
                 () => { }
             );
+            unsubs.push(unsub);
 
+            if (isArchived(item.data)) continue;
             const unsubscribeReview = onSnapshot(
                 doc(dbx, "spaces", spaceId, "lessons", item.id, "parentReviews", user.uid),
                 (snap) => {
@@ -494,31 +521,18 @@ export default function ChildSpacePage() {
                 },
                 () => { }
             );
-            unsubs.push(unsub, unsubscribeReview);
+            unsubs.push(unsubscribeReview);
         }
 
         return () => {
             for (const unsub of unsubs) unsub();
         };
-    }, [previewAssignments, spaceId, user?.uid]);
+    }, [previewWorkAssignments, spaceId, user?.uid]);
 
     const activeAssignmentId = useMemo(() => {
         const rec = typeof space === "object" && space ? (space as Record<string, unknown>) : null;
         return safeString(rec?.activeLessonId);
     }, [space]);
-
-    const activeGoalId = useMemo(() => {
-        const rec = typeof space === "object" && space ? (space as Record<string, unknown>) : null;
-        return safeString(rec?.activeGoalId);
-    }, [space]);
-
-    const activeGoal = useMemo(() => {
-        return (
-            (activeGoalId ? goals.find((goal) => goal.id === activeGoalId) : null) ??
-            goals.find((goal) => goal.data.status === "active") ??
-            null
-        );
-    }, [activeGoalId, goals]);
 
     const sortedAssignments = useMemo(() => {
         return [...assignments].sort((a, b) => {
@@ -561,20 +575,15 @@ export default function ChildSpacePage() {
 
     const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
 
-    const completedCount = useMemo(() => {
-        return assignments.filter((item) => isDelivered(progressMap[item.id]?.status ?? null)).length;
-    }, [assignments, progressMap]);
-
-    const goalCompletedCount = useMemo(() => {
-        const goal = activeGoal?.data;
-        const ids = goal?.assignmentIds;
-
-        if (Array.isArray(ids) && ids.length > 0) {
-            return ids.filter((id) => isDelivered(progressMap[id]?.status ?? null)).length;
-        }
-
-        return completedCount;
-    }, [activeGoal?.data, completedCount, progressMap]);
+    const goalCompletedCount = activeGoal ? activeGoal.done ?? countParentGoalDeliveries(
+        activeGoal.data,
+        (room ? assignments : previewWorkAssignments).map(({ id, data }) => ({
+            id,
+            status: progressMap[id]?.status,
+            submittedAtMillis: previewProgressMap[id]?.submittedAtMillis ?? 0,
+            archived: isArchived(data),
+        }))
+    ) : 0;
 
     if (err) {
         return (
@@ -589,20 +598,55 @@ export default function ChildSpacePage() {
 
     if (!space) return <p role="status" className="text-sm text-slate-600">{t("startPage.opening")}</p>;
 
+    const roomPath = childRoomHref(spaceId);
+    const previewQuery = access.mode === "parent" ? { [CHILD_PREVIEW_PARAM]: "parent" } : {};
+    const viewLink = "inline-flex min-h-12 items-center justify-center rounded-xl border px-4 py-2 text-sm font-extrabold no-underline";
+    const currentView = " border-emerald-800 bg-emerald-800 text-white";
+    const inactiveView = " border-emerald-200 bg-white text-emerald-950 hover:bg-emerald-50";
+
     return (
         <main className="mx-auto flex w-full max-w-5xl flex-col gap-5">
             <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
+                    <div className="min-w-0">
                         <p className="m-0 text-sm font-bold text-emerald-800">{t("fallbacks.spaceTitle")}</p>
                         <h1 className="mb-0 mt-2 break-words text-3xl font-extrabold tracking-tight text-emerald-950 sm:text-4xl">{spaceTitle}</h1>
                     </div>
 
-                    <AddToHomeScreenButton />
+                    <div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">
+                        <AddToHomeScreenButton />
+                        {access.mode === "device" ? <FamilyRoomShortcut spaceId={spaceId} /> : null}
+                    </div>
                 </div>
             </section>
 
-            {unreadGreetings.length > 0 ? (
+            <nav aria-label={t("views.label")} className="flex flex-wrap gap-2">
+                <Link
+                    href={{ pathname: roomPath, query: previewQuery }}
+                    aria-current={showGoals ? undefined : "page"}
+                    className={viewLink + (showGoals ? inactiveView : currentView)}
+                >
+                    {t("assignments.title")}
+                </Link>
+                <Link
+                    href={{ pathname: roomPath, query: { ...previewQuery, view: "goals" } }}
+                    aria-current={showGoals ? "page" : undefined}
+                    className={viewLink + (showGoals ? currentView : inactiveView)}
+                >
+                    {t("views.goals")}
+                </Link>
+            </nav>
+
+            {showGoals ? (
+                activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : (
+                    <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 sm:p-6">
+                        <h2 className="m-0 text-xl font-extrabold text-sky-950">{t("views.goals")}</h2>
+                        <p className="mb-0 mt-2 leading-7 text-slate-700">{t("goal.empty")}</p>
+                    </section>
+                )
+            ) : null}
+
+            {!showGoals && unreadGreetings.length > 0 ? (
                 <section aria-labelledby="new-greetings" className="rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:p-6">
                     <h2 id="new-greetings" className="m-0 text-xl font-extrabold text-amber-950">
                         {t("greetings.title", { count: unreadGreetings.length })}
@@ -627,7 +671,7 @@ export default function ChildSpacePage() {
                 </section>
             ) : null}
 
-            <div className={`grid gap-4 lg:items-start ${activeGoal ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
+            {!showGoals ? (
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                     <div className="flex items-center justify-between gap-3">
                         <h2 className="text-2xl font-black text-slate-900">{t("assignments.title")}</h2>
@@ -694,10 +738,9 @@ export default function ChildSpacePage() {
                     )}
                 </section>
 
-                {activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : null}
-            </div>
+            ) : null}
 
-            {otherAssignments.length > 0 ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            {!showGoals && otherAssignments.length > 0 ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <h2 className="text-2xl font-black text-slate-900">{t("assignments.moreTitle")}</h2>
 
                     <div className="mt-5 grid gap-4 sm:grid-cols-2">

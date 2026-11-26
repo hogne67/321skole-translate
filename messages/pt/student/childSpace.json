@@ -26,10 +26,25 @@
       "viewCompleted": "Ver atividade concluída",
       "viewParentFeedback": "Ler o recado"
     },
+    "views": {
+      "label": "Na sala da família",
+      "goals": "Minhas metas"
+    },
+    "shortcut": {
+      "show": "Mostrar link da sala",
+      "hide": "Ocultar link da sala",
+      "description": "Use este link para abrir a sala em um navegador já conectado. Em um dispositivo novo ou outro navegador, peça a um adulto um link de uso único.",
+      "qrAlt": "Código QR da sala da família",
+      "link": "Link da sala",
+      "copy": "Copiar link",
+      "copied": "O link foi copiado.",
+      "copyManually": "O link está selecionado. Você pode copiá-lo daqui."
+    },
     "goal": {
-      "title": "Meta",
       "completed": "Você alcançou a meta. Muito bem!",
-      "progress": "Você entregou {done} de {target} atividades."
+      "progress": "Você entregou {done} de {target, plural, one {# atividade} other {# atividades}}.",
+      "reward": "Recompensa combinada",
+      "empty": "Quando um adulto definir uma meta para você, ela vai aparecer aqui."
     },
     "assignments": {
       "title": "Atividades",

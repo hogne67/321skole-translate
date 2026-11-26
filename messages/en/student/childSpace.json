@@ -26,10 +26,25 @@
       "viewCompleted": "See completed assignment",
       "viewParentFeedback": "Read your note"
     },
+    "views": {
+      "label": "In the family room",
+      "goals": "My goals"
+    },
+    "shortcut": {
+      "show": "Show room link",
+      "hide": "Hide room link",
+      "description": "Use this link to reopen the room in a connected browser. On a new device or in another browser, you’ll need a one-time link from a grown-up.",
+      "qrAlt": "Family room QR code",
+      "link": "Room link",
+      "copy": "Copy link",
+      "copied": "The link was copied.",
+      "copyManually": "The link is selected. You can copy it from here."
+    },
     "goal": {
-      "title": "Goal",
       "completed": "You reached the goal. Well done!",
-      "progress": "You have handed in {done} of {target} assignments."
+      "progress": "You have handed in {done} of {target, plural, one {# assignment} other {# assignments}}.",
+      "reward": "Agreed reward",
+      "empty": "When a grown-up sets a goal for you, you’ll find it here."
     },
     "assignments": {
       "title": "Assignments",

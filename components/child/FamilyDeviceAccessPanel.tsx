@@ -5,6 +5,7 @@ import type { User } from "firebase/auth";
 import Image from "next/image";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { FAMILY_DEVICE_DAYS, FAMILY_DEVICE_LIMIT, FAMILY_INVITE_MINUTES, type FamilyDeviceStatus } from "@/lib/familyDevice";
+import FamilyRoomShortcut from "./FamilyRoomShortcut";
 
 type Action = "invite" | "cancel" | "revoke";
 type Invitation = { url: string; qr: string | null; expiresAt: number };
@@ -184,6 +185,9 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                             </li>
                         ))}
                     </ul>
+                    <div className="mt-2">
+                        <FamilyRoomShortcut spaceId={spaceId} />
+                    </div>
                 </div>
             ) : null}
             <p className="mb-0 mt-3 text-xs leading-5 text-slate-600">{t("duration", { days: FAMILY_DEVICE_DAYS })}</p>

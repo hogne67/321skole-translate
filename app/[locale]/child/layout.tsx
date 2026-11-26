@@ -16,7 +16,7 @@ export default function ChildLayout({
                         alt=""
                         width={1152}
                         height={312}
-                        className="h-30 w-full object-cover rounded-2xl sm:h-39"
+                        className="h-28 w-full rounded-2xl object-cover sm:h-40 lg:h-[280px]"
                         priority
                     />
                 </div>

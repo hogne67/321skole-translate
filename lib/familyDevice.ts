@@ -10,10 +10,10 @@ export const CHILD_START_URL_KEY = "321skole.childStartUrl";
 export type FamilyDevice = { id: string; createdAt: number; expiresAt: number };
 export type FamilyDeviceStatus = { inviteExpiresAt: number | null; devices: FamilyDevice[] };
 export type FamilyRoomSummary = { title?: string; activeLessonId?: string; activeGoalId?: string };
-export type FamilyGoal = Pick<ParentSpaceGoalDoc, "title" | "description" | "status" | "kind" | "targetCount" | "assignmentIds">;
+export type FamilyGoal = Pick<ParentSpaceGoalDoc, "title" | "description" | "reward" | "status" | "kind" | "targetCount" | "assignmentIds"> & { countFrom?: number };
 export type FamilyRoomData = {
     room: FamilyRoomSummary;
-    goals: Array<{ id: string; data: FamilyGoal }>;
+    goals: Array<{ id: string; data: FamilyGoal; done: number }>;
     assignments: Array<{
         id: string;
         data: AssignmentDoc & { updatedAt: number; createdAt: number };

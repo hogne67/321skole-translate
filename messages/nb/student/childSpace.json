@@ -26,10 +26,25 @@
       "viewCompleted": "Se ferdig oppgave",
       "viewParentFeedback": "Les hilsenen"
     },
+    "views": {
+      "label": "I familierommet",
+      "goals": "Mine mål"
+    },
+    "shortcut": {
+      "show": "Vis romlenke",
+      "hide": "Skjul romlenken",
+      "description": "Bruk lenken for å åpne rommet igjen i en nettleser som er koblet til. På en ny enhet eller i en annen nettleser trenger du en engangslenke fra en voksen.",
+      "qrAlt": "QR-kode til familierommet",
+      "link": "Romlenke",
+      "copy": "Kopier lenken",
+      "copied": "Lenken er kopiert.",
+      "copyManually": "Lenken er markert. Du kan kopiere den herfra."
+    },
     "goal": {
-      "title": "Mål",
       "completed": "Du klarte målet. Bra jobbet!",
-      "progress": "Du har levert {done} av {target} oppgaver."
+      "progress": "Du har levert {done} av {target, plural, one {# oppgave} other {# oppgaver}}.",
+      "reward": "Avtalt belønning",
+      "empty": "Når en voksen lager et mål til deg, finner du det her."
     },
     "assignments": {
       "title": "Oppgaver",
