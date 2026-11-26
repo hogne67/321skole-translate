@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { auth, db } from "@/lib/firebase";
@@ -79,6 +81,8 @@ function errMessage(e: unknown, fallback: string) {
 
 type AssignmentDoc = {
   title?: string;
+  coverImageUrl?: string;
+  imageUrl?: string;
   status?: string;
   archived?: boolean;
   updatedAt?: unknown;
@@ -111,6 +115,7 @@ type SpaceCardMeta = {
   lessonCount: number;
   activeLessonId: string | null;
   activeLessonTitle: string | null;
+  activeLessonCover: string | null;
   activeSubmissionStatus: string | null;
   activeIsChildWork: boolean;
   activeHasAiFeedback: boolean;
@@ -186,6 +191,24 @@ function Badge({
   );
 }
 
+function RoomCover({ source, wide }: { source?: string | null; wide: boolean }) {
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const cover = source && source !== failedSource ? source : null;
+  return (
+    <div className={"relative h-44 overflow-hidden bg-emerald-50 sm:h-52" + (wide ? " md:order-last md:h-auto" : "")}>
+      <Image
+        src={cover ?? "/images/child-room-top1.png"}
+        alt=""
+        fill
+        sizes={wide ? "(min-width: 768px) 420px, 100vw" : "(min-width: 1024px) 480px, 100vw"}
+        unoptimized={!!cover}
+        onError={cover ? () => setFailedSource(cover) : undefined}
+        className={"object-cover" + (cover ? "" : " object-[center_36%]")}
+      />
+    </div>
+  );
+}
+
 export default function ParentSpacesPage() {
   const t = useTranslations("parentSpaces");
   const locale = useLocale();
@@ -206,15 +229,6 @@ export default function ParentSpacesPage() {
     },
     [t]
   );
-
-  function subtitleOfSpace(s: SpaceDoc): string {
-    const kind = kindOfSpace(s);
-
-    if (kind === "family") return t("kinds.family");
-    if (kind === "parent_group") return t("kinds.parentGroup");
-
-    return t("kinds.other");
-  }
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
@@ -289,6 +303,7 @@ export default function ParentSpacesPage() {
           lessonCount: 0,
           activeLessonId: null,
           activeLessonTitle: null,
+          activeLessonCover: null,
           activeSubmissionStatus: null,
           activeIsChildWork: false,
           activeHasAiFeedback: false,
@@ -325,7 +340,7 @@ export default function ParentSpacesPage() {
           const lessons: Array<{ id: string; data: AssignmentDoc }> = [];
           snap.forEach((d: QueryDocumentSnapshot<DocumentData>) => {
             const data = d.data() as AssignmentDoc;
-            if (data.archived !== true && data.status !== "archived") lessons.push({ id: d.id, data });
+            if (!data.deletedAt && data.archived !== true && safeString(data.status)?.toLowerCase() !== "archived") lessons.push({ id: d.id, data });
           });
 
           const spaceData = space.data as Record<string, unknown>;
@@ -336,6 +351,7 @@ export default function ParentSpacesPage() {
             lessonCount: lessons.length,
             activeLessonId,
             activeLessonTitle: safeString(activeLesson?.data.title),
+            activeLessonCover: safeString(activeLesson?.data.coverImageUrl) ?? safeString(activeLesson?.data.imageUrl),
             activeSubmissionStatus: null,
             activeIsChildWork: false,
             activeHasAiFeedback: false,
@@ -485,7 +501,7 @@ export default function ParentSpacesPage() {
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5" aria-label={t("title")}>
+      <section aria-label={t("title")}>
           {spaces.length === 0 ? (
             <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:p-6">
               {t.rich("empty", {
@@ -493,69 +509,78 @@ export default function ParentSpacesPage() {
               })}
             </div>
           ) : (
-            <div className="grid min-w-0 gap-3">
+            <div className={"grid min-w-0 gap-4 sm:gap-5" + (spaces.length > 1 ? " lg:grid-cols-2" : "")}>
               {spaces.map((s) => {
                 const title = titleOfSpace(s.data);
                 const code = codeOfSpace(s.data);
-                const subtitle = subtitleOfSpace(s.data);
+                const parentGroup = kindOfSpace(s.data) === "parent_group";
+                const wide = spaces.length === 1;
 
                 const openHref = `/parent/spaces/${s.id}`;
                 const meta = spaceMeta[s.id] ?? null;
+                const lessonCount = meta?.lessonCount ?? 0;
                 const readyForFeedback = !!meta?.reviewLoaded && needsParentReply(meta.activeSubmissionStatus, meta.activeIsChildWork, meta.activeHasParentReview);
 
                 return (
                   <article
                     key={s.id}
-                    className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+                    className={[
+                      "grid min-w-0 overflow-hidden rounded-3xl border bg-white shadow-sm",
+                      wide ? "md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" : "grid-rows-[auto_1fr]",
+                      readyForFeedback ? "border-amber-200" : "border-emerald-200",
+                    ].join(" ")}
                   >
-                    <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <h2 className="m-0 break-words text-lg font-bold text-slate-900">
+                    <RoomCover source={meta?.activeLessonCover} wide={wide} />
+                    <div className="flex min-w-0 flex-col gap-4 p-5 sm:p-6">
+                      <header className="min-w-0">
+                        <h2 className="m-0 break-words text-2xl font-extrabold tracking-tight text-emerald-950 sm:text-3xl">
                           <Link href={openHref} className="text-inherit no-underline hover:underline">{title}</Link>
                         </h2>
-
-                        <div className="mt-2 text-sm text-slate-600">{subtitle}</div>
-
-                        {code ? (
-                          <div className="mt-2 break-words text-sm text-slate-600">
-                            {t("meta.code")}: <b className="text-slate-900">{code}</b>
+                        {parentGroup || code || lessonCount > 0 ? (
+                          <div className="mt-2 flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-slate-600">
+                            {parentGroup ? <span>{t("kinds.parentGroup")}</span> : null}
+                            {code ? <span className="min-w-0 break-words">{t("meta.code")} <b className="text-slate-900">{code}</b></span> : null}
+                            {lessonCount > 0 ? <span>{t("badges.tasks", { count: lessonCount })}</span> : null}
                           </div>
                         ) : null}
+                      </header>
 
-                        {meta ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Badge text={t("badges.tasks", { count: meta.lessonCount })} tone="neutral" />
-                            {meta.activeLessonTitle ? (
-                              <Badge text={t("badges.active", { title: meta.activeLessonTitle })} tone="neutral" />
-                            ) : null}
-                            {meta.activeLessonId ? <Badge
+                      {meta?.activeLessonId ? (
+                        <div className={"min-w-0 rounded-2xl border p-3 sm:p-4 " + (readyForFeedback ? "border-amber-100 bg-amber-50" : "border-slate-100 bg-slate-50")}>
+                          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                            <p className="m-0 flex items-center gap-2 text-sm font-bold text-slate-700">
+                              <BookOpen size={16} aria-hidden="true" />
+                              {t("activity.title")}
+                            </p>
+                            <Badge
                               text={readyForFeedback ? t("status.readyForFeedback") : statusLabel(meta.activeSubmissionStatus, t)}
                               tone={readyForFeedback ? "warn" : statusTone(meta.activeSubmissionStatus)}
-                            /> : null}
-                            {meta.activeHasAiFeedback ? (
-                              <Badge text={t("badges.aiFeedback")} tone="good" />
-                            ) : null}
-                            {meta.activeHasParentReview ? (
-                              <Badge
-                                text={
-                                  meta.activeReviewStars
-                                    ? t("badges.parentReviewWithStars", { stars: meta.activeReviewStars })
-                                    : t("badges.parentReview")
-                                }
-                                tone="good"
-                              />
-                            ) : null}
+                            />
                           </div>
-                        ) : null}
+                          <p className="mb-0 mt-2 break-words text-base font-bold text-slate-900 sm:text-lg">{meta.activeLessonTitle ?? t("activity.untitled")}</p>
+                          {meta.activeHasAiFeedback || meta.activeHasParentReview ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {meta.activeHasAiFeedback ? <Badge text={t("badges.aiFeedback")} tone="good" /> : null}
+                              {meta.activeHasParentReview ? (
+                                <Badge
+                                  text={meta.activeReviewStars
+                                    ? t("badges.parentReviewWithStars", { stars: meta.activeReviewStars })
+                                    : t("badges.parentReview")}
+                                  tone="good"
+                                />
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : meta ? <p className="m-0 text-sm text-slate-600">{t("activity.empty")}</p> : null}
 
-                      </div>
-
-                      <div className="w-full min-w-0 sm:w-auto">
+                      <div className="mt-auto">
                         <Link
                           href={readyForFeedback ? openHref + "/assignments/" + meta.activeLessonId + "#parent-review" : openHref}
-                          className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-emerald-900 sm:w-auto"
                         >
                           {t(readyForFeedback ? "actions.respond" : "actions.openSpace")}
+                          <ArrowRight size={16} aria-hidden="true" />
                         </Link>
                       </div>
                     </div>

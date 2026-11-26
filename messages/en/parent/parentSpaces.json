@@ -54,9 +54,13 @@
       "reviewed": "Reviewed",
       "readyForFeedback": "Ready for feedback"
     },
+    "activity": {
+      "title": "Current assignment",
+      "untitled": "Assignment",
+      "empty": "No assignments yet."
+    },
     "badges": {
-      "tasks": "{count} tasks",
-      "active": "Active: {title}",
+      "tasks": "{count, plural, one {# assignment} other {# assignments}}",
       "aiFeedback": "AI feedback",
       "parentReview": "Parent review",
       "parentReviewWithStars": "Parent review • {stars}★"

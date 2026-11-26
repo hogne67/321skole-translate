@@ -16,6 +16,7 @@ import * as assignment from "../app/api/child/rooms/[spaceId]/assignments/[assig
 import * as feedbackRead from "../app/api/child/rooms/[spaceId]/assignments/[assignmentId]/feedback-read/route";
 import * as speech from "../app/api/child/rooms/[spaceId]/assignments/[assignmentId]/speech/route";
 import * as followUp from "../app/api/parent/follow-up/route";
+import { FAMILY_DEVICE_NAME_MAX_LENGTH, type FamilyDeviceStatus } from "./familyDevice";
 
 const app = initializeApp({ projectId: "demo-family-" + randomUUID().slice(0, 12) });
 const db = getFirestore(app);
@@ -182,6 +183,52 @@ test("a one-time link grants an independent device session scoped to its room an
     assert.equal(revoked.status, 200);
     assert.equal((await room.GET(request({ cookie }), context(spaceId))).status, 401);
     assert.equal((await assignment.GET(request({ cookie: secondCookie }), context(spaceId))).status, 200);
+});
+
+test("a parent can name, rename and clear a linked device without changing its access", async () => {
+    const spaceId = "named-device";
+    await provision(spaceId);
+    const cookie = sessionCookie(await redeem(spaceId, await invite(spaceId)), spaceId);
+    const pendingSecret = await invite(spaceId);
+    const status = async () => {
+        const response = await access.GET(request({ bearer: "owner" }), context(spaceId));
+        assert.equal(response.status, 200);
+        return await response.json() as FamilyDeviceStatus;
+    };
+    const before = await status();
+    const device = before.devices[0];
+    assert.ok(device);
+    assert.equal(device.name, undefined);
+    const rename = (name: unknown, bearer?: string) => access.POST(request({
+        bearer, cookie, body: { action: "rename", deviceId: device.id, name },
+    }), context(spaceId));
+    assert.equal((await rename("Private name")).status, 401);
+    assert.equal((await rename("Private name", "other")).status, 403);
+    assert.equal((await rename(null, "owner")).status, 400);
+    assert.equal((await rename("a".repeat(FAMILY_DEVICE_NAME_MAX_LENGTH + 1), "owner")).status, 400);
+
+    const renamed = await rename("  Nettbrettet   hjemme  ", "owner");
+    assert.equal(renamed.status, 200);
+    const after = await renamed.json();
+    assert.deepEqual(after, { ...before, devices: [{ ...device, name: "Nettbrettet hjemme" }] });
+    assert.deepEqual(await status(), after);
+    const childRoom = await room.GET(request({ cookie }), context(spaceId));
+    assert.equal(childRoom.status, 200);
+    assert.ok(!(await childRoom.text()).includes("Nettbrettet hjemme"));
+    assert.equal((await redeem(spaceId, pendingSecret)).status, 200);
+
+    assert.equal((await rename("Nettbrettet på kjøkkenet", "owner")).status, 200);
+    const updated = await status();
+    assert.equal(updated.devices[0].name, "Nettbrettet på kjøkkenet");
+    assert.ok(updated.devices[1]);
+    assert.equal(updated.devices[1].name, undefined);
+    assert.equal((await rename("", "owner")).status, 200);
+    assert.deepEqual((await status()).devices[0], device);
+
+    const revoked = await access.POST(request({ bearer: "owner", body: { action: "revoke", deviceId: device.id } }), context(spaceId));
+    assert.equal(revoked.status, 200);
+    assert.equal((await rename("Nettbrettet", "owner")).status, 404);
+    assert.equal((await room.GET(request({ cookie }), context(spaceId))).status, 401);
 });
 
 test("a new goal shows its reward and counts recent deliveries even after an assignment is archived", async () => {

@@ -54,9 +54,13 @@
       "reviewed": "Vurdert",
       "readyForFeedback": "Klar for tilbakemelding"
     },
+    "activity": {
+      "title": "Aktiv oppgave",
+      "untitled": "Oppgave",
+      "empty": "Ingen oppgaver ennå."
+    },
     "badges": {
-      "tasks": "{count} oppgaver",
-      "active": "Aktiv: {title}",
+      "tasks": "{count, plural, one {# oppgave} other {# oppgaver}}",
       "aiFeedback": "KI-tilbakemelding",
       "parentReview": "Foreldrevurdering",
       "parentReviewWithStars": "Foreldrevurdering • {stars}★"

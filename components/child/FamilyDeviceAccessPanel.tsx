@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import Image from "next/image";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
-import { FAMILY_DEVICE_DAYS, FAMILY_DEVICE_LIMIT, FAMILY_INVITE_MINUTES, type FamilyDeviceStatus } from "@/lib/familyDevice";
+import { FAMILY_DEVICE_DAYS, FAMILY_DEVICE_LIMIT, FAMILY_DEVICE_NAME_MAX_LENGTH, FAMILY_INVITE_MINUTES, type FamilyDeviceStatus } from "@/lib/familyDevice";
 import FamilyRoomShortcut from "./FamilyRoomShortcut";
 
-type Action = "invite" | "cancel" | "revoke";
+type Action = "invite" | "cancel" | "revoke" | "rename";
 type Invitation = { url: string; qr: string | null; expiresAt: number };
 
 export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: string; user: User }) {
@@ -17,7 +17,8 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
     const [status, setStatus] = useState<FamilyDeviceStatus | null>(null);
     const [invitation, setInvitation] = useState<Invitation | null>(null);
     const [busy, setBusy] = useState<Action | null>(null);
-    const [notice, setNotice] = useState<"copied" | "copyManually" | "failed" | "limit" | "revoked" | "cancelled" | null>(null);
+    const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+    const [notice, setNotice] = useState<"copied" | "copyManually" | "failed" | "limit" | "revoked" | "cancelled" | "renamed" | "renameFailed" | "deviceUnavailable" | null>(null);
     const busyRef = useRef(false);
     const request = useRef<AbortController | null>(null);
     const linkInput = useRef<HTMLInputElement>(null);
@@ -40,6 +41,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
             if (!controller.signal.aborted) {
                 setStatus(next);
                 setInvitation((current) => current?.expiresAt === next.inviteExpiresAt ? current : null);
+                setEditing((current) => current && next.devices.some((device) => device.id === current.id) ? current : null);
             }
         } catch {
             if (!controller.signal.aborted) setNotice("failed");
@@ -64,7 +66,7 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
         return () => window.clearInterval(interval);
     }, [pending, refresh]);
 
-    async function change(action: Action, deviceId?: string) {
+    async function change(action: Action, deviceId?: string, name?: string) {
         if (busyRef.current) return;
         request.current?.abort();
         busyRef.current = true;
@@ -75,11 +77,17 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
             const response = await fetch(path, {
                 method: "POST",
                 headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-                body: JSON.stringify({ action, deviceId }),
+                body: JSON.stringify({ action, deviceId, name }),
                 cache: "no-store",
             });
             if (!response.ok) {
-                setNotice(response.status === 409 ? "limit" : "failed");
+                if (action === "rename" && response.status === 404) {
+                    setEditing(null);
+                    setStatus((current) => current ? { ...current, devices: current.devices.filter((device) => device.id !== deviceId) } : current);
+                    setNotice("deviceUnavailable");
+                } else {
+                    setNotice(action === "rename" ? "renameFailed" : response.status === 409 ? "limit" : "failed");
+                }
                 return;
             }
             const next: FamilyDeviceStatus & { secret?: string } = await response.json();
@@ -97,10 +105,11 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                 }
             } else {
                 setInvitation((current) => current?.expiresAt === next.inviteExpiresAt ? current : null);
-                setNotice(action === "revoke" ? "revoked" : "cancelled");
+                setEditing((current) => current?.id === deviceId ? null : current);
+                setNotice(action === "rename" ? "renamed" : action === "revoke" ? "revoked" : "cancelled");
             }
         } catch {
-            setNotice("failed");
+            setNotice(action === "rename" ? "renameFailed" : "failed");
         } finally {
             busyRef.current = false;
             setBusy(null);
@@ -173,17 +182,79 @@ export default function FamilyDeviceAccessPanel({ spaceId, user }: { spaceId: st
                 <div className="mt-4 border-t border-slate-100 pt-4">
                     <h3 className="m-0 text-sm font-bold text-slate-900">{t("devices")}</h3>
                     <ul className="m-0 mt-2 list-none divide-y divide-slate-100 p-0">
-                        {status.devices.map((device, index) => (
-                            <li key={device.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                                <div className="text-sm text-slate-700">
-                                    <p className="m-0 font-semibold">{t("device", { number: index + 1 })}</p>
-                                    <p className="m-0 mt-0.5">{t("connected", { date: date(device.createdAt) })} · {t("expires", { date: date(device.expiresAt) })}</p>
-                                </div>
-                                <button type="button" aria-label={t("revokeDevice", { number: index + 1 })} disabled={!!busy} onClick={() => void change("revoke", device.id)} className={button + " border border-slate-200 text-slate-800 hover:bg-slate-50"}>
-                                    {t("revoke")}
-                                </button>
-                            </li>
-                        ))}
+                        {status.devices.map((device, index) => {
+                            const defaultName = t("device", { number: index + 1 });
+                            const name = device.name ?? defaultName;
+                            const draft = editing?.id === device.id ? editing : null;
+                            return (
+                                <li key={device.id} className="min-w-0 py-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="min-w-0 text-sm text-slate-700">
+                                            <p className="m-0 break-words font-bold text-slate-900">{name}</p>
+                                            <p className="m-0 mt-0.5">{t("connected", { date: date(device.createdAt) })} · {t("expires", { date: date(device.expiresAt) })}</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {draft ? null : (
+                                                <button
+                                                    type="button"
+                                                    aria-label={t("renameDevice", { name })}
+                                                    disabled={!!busy}
+                                                    onClick={() => {
+                                                        setEditing({ id: device.id, name: device.name ?? "" });
+                                                        setNotice(null);
+                                                    }}
+                                                    className={button + " border border-emerald-200 text-emerald-900 hover:bg-emerald-50"}
+                                                >
+                                                    {t("rename")}
+                                                </button>
+                                            )}
+                                            <button type="button" aria-label={t("revokeDevice", { name })} disabled={!!busy} onClick={() => void change("revoke", device.id)} className={button + " border border-slate-200 text-slate-800 hover:bg-slate-50"}>
+                                                {t("revoke")}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {draft ? (
+                                        <form
+                                            className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3 sm:p-4"
+                                            onSubmit={(event) => {
+                                                event.preventDefault();
+                                                void change("rename", device.id, draft.name);
+                                            }}
+                                        >
+                                            <label htmlFor={"device-name-" + device.id} className="block text-sm font-bold text-emerald-950">{t("deviceName")}</label>
+                                            <input
+                                                id={"device-name-" + device.id}
+                                                aria-describedby={"device-name-hint-" + device.id}
+                                                value={draft.name}
+                                                onChange={(event) => setEditing({ id: device.id, name: event.target.value })}
+                                                placeholder={defaultName}
+                                                maxLength={FAMILY_DEVICE_NAME_MAX_LENGTH}
+                                                autoFocus
+                                                disabled={!!busy}
+                                                className="mt-2 min-h-11 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                                            />
+                                            <p id={"device-name-hint-" + device.id} className="mb-0 mt-1 text-xs leading-5 text-slate-700">{t("deviceNameHint")}</p>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <button type="submit" disabled={!!busy} className={button + " bg-emerald-800 text-white hover:bg-emerald-900"}>
+                                                    {t(busy === "rename" ? "savingName" : "saveName")}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={!!busy}
+                                                    onClick={() => {
+                                                        setEditing(null);
+                                                        setNotice(null);
+                                                    }}
+                                                    className={button + " border border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"}
+                                                >
+                                                    {t("cancelRename")}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    ) : null}
+                                </li>
+                            );
+                        })}
                     </ul>
                     <div className="mt-2">
                         <FamilyRoomShortcut spaceId={spaceId} />

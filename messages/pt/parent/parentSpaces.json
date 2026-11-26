@@ -54,9 +54,13 @@
       "reviewed": "Revisado",
       "readyForFeedback": "Pronto para receber feedback"
     },
+    "activity": {
+      "title": "Atividade atual",
+      "untitled": "Atividade",
+      "empty": "Ainda não há atividades."
+    },
     "badges": {
-      "tasks": "{count} tarefas",
-      "active": "Ativo: {title}",
+      "tasks": "{count, plural, one {# atividade} other {# atividades}}",
       "aiFeedback": "Feedback com IA",
       "parentReview": "Avaliação dos pais",
       "parentReviewWithStars": "Avaliação dos pais • {stars}★"

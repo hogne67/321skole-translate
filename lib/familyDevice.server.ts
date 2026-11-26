@@ -8,7 +8,7 @@ import { accountErrorStatus, assertActiveProfile } from "@/lib/security/accountA
 import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { isParentSpaceAvailableForSharing } from "@/lib/spaceSharing";
 import {
-    FAMILY_DEVICE_DAYS, FAMILY_DEVICE_LIMIT, FAMILY_INVITE_MINUTES, FAMILY_LINK_TOKEN, familyDeviceApi,
+    FAMILY_DEVICE_DAYS, FAMILY_DEVICE_LIMIT, FAMILY_DEVICE_NAME_MAX_LENGTH, FAMILY_INVITE_MINUTES, FAMILY_LINK_TOKEN, familyDeviceApi,
     type FamilyDevice, type FamilyDeviceStatus,
 } from "@/lib/familyDevice";
 
@@ -85,10 +85,19 @@ function currentAccess(data: FirebaseFirestore.DocumentData | undefined, now: nu
     };
 }
 
+function deviceName(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    const name = value.trim().replace(/\s+/g, " ");
+    return name.length <= FAMILY_DEVICE_NAME_MAX_LENGTH ? name : null;
+}
+
 function publicStatus(access: RoomAccess | null): FamilyDeviceStatus {
     return {
         inviteExpiresAt: access?.invite?.expiresAt ?? null,
-        devices: access?.devices.map(({ id, createdAt, expiresAt }) => ({ id, createdAt, expiresAt })) ?? [],
+        devices: access?.devices.map(({ id, createdAt, expiresAt, name }) => {
+            const label = deviceName(name);
+            return { id, createdAt, expiresAt, ...(label ? { name: label } : {}) };
+        }) ?? [],
     };
 }
 
@@ -120,8 +129,12 @@ export async function manageFamilyDevice(req: NextRequest, spaceId: string) {
         return familyJson(publicStatus(stored?.ownerUid === decoded.uid ? stored : null));
     }
 
-    const { action, deviceId } = await familyRequestBody(req, 1024);
-    if (action !== "invite" && action !== "cancel" && (action !== "revoke" || typeof deviceId !== "string" || !/^[0-9a-f]{24}$/.test(deviceId))) {
+    const { action, deviceId, name: requestedName } = await familyRequestBody(req, 1024);
+    const needsDevice = action === "revoke" || action === "rename";
+    const name = deviceName(requestedName);
+    if ((!needsDevice && action !== "invite" && action !== "cancel") ||
+        (needsDevice && (typeof deviceId !== "string" || !/^[0-9a-f]{24}$/.test(deviceId))) ||
+        (action === "rename" && name === null)) {
         throw new FamilyAccessError(400, "invalid_request");
     }
     const secret = action === "invite" ? newSecret() : null;
@@ -139,6 +152,11 @@ export async function manageFamilyDevice(req: NextRequest, spaceId: string) {
             access.invite = { digest: digest(secret), createdAt: now, expiresAt: now + FAMILY_INVITE_MINUTES * 60_000 };
         } else if (action === "cancel") {
             access.invite = null;
+        } else if (action === "rename") {
+            const device = access.devices.find((device) => device.id === deviceId);
+            if (!device) throw new FamilyAccessError(404, "device_unavailable");
+            if (name) device.name = name;
+            else delete device.name;
         } else {
             access.devices = access.devices.filter((device) => device.id !== deviceId);
         }
