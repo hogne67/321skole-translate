@@ -10,7 +10,7 @@ import {
   GoogleAuthProvider, linkWithCredential, OAuthProvider, signInAnonymously, signInWithCredential,
   signInWithEmailAndPassword, signOut, type Auth, type AuthCredential,
 } from "firebase/auth";
-import { collection, connectFirestoreEmulator, doc, getDocFromServer, getDocsFromServer, getFirestore, query, updateDoc, where } from "firebase/firestore";
+import { collection, connectFirestoreEmulator, deleteField, doc, getDocFromServer, getDocsFromServer, getFirestore, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { NextRequest } from "next/server";
 import { getBucketLimit } from "./featureAccess";
 import { listStudentContentMemberships, loadStudentContentRoom, loadStudentContentRoomChoice } from "./studentContentTasks";
@@ -448,7 +448,12 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     const { submissionId } = await saved.json();
     const originalDraft = db.doc(originalPath + "/submissions/" + submissionId);
     const originalDraftData = (await originalDraft.get()).data();
-    const originalProfile = (await db.doc("users/" + pupil.uid).get()).data();
+    const profile = db.doc("users/" + pupil.uid);
+    const originalProfile = {
+      roles: { student: true }, studentAccessMode: "space_only", displayName: "Opprinnelig elev",
+      org: { country: "NO", municipality: "Oslo" },
+    };
+    await profile.set(originalProfile);
     const office = "/api/teacher/spaces/members/invite-account";
     const addEmail = async (as: Auth, spaceId: string, value: string) =>
       invite(await request(as, office, { email: value }), room(spaceId));
@@ -489,10 +494,9 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     assert.equal((await withdraw(await request(owner.auth, office, { invitationId: pending[0].id }, "DELETE"), room(invitedRoom))).status, 200);
     await enterAccount(pupil.auth, roomCode("AC"), "account_invitation_required");
     assert.equal((await addEmail(owner.auth, invitedRoom, email)).status, 200);
-    const profile = db.doc("users/" + pupil.uid);
     await profile.update({ schoolId: otherSchool, schoolStatus: "active" });
     await enterAccount(pupil.auth, roomCode("AC"), "account_invitation_required");
-    await profile.set(originalProfile!);
+    await profile.set(originalProfile);
 
     const issuingTeacher = db.doc(`schools/${schoolId}/members/${owner.uid}`);
     await issuingTeacher.update({ status: "inactive" });
@@ -818,16 +822,24 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     }
   });
 
-  await t.test("verified account keeps work when a room owner links the existing code pupil", async () => {
+  await t.test("an audited legacy teacher flag correction lets the same pupil accept the transfer and retain room work", async () => {
     const { POST: inviteAccount, GET: listInvites, DELETE: withdrawInvite } =
       await import("../app/api/teacher/spaces/[spaceId]/members/invite-account/route");
+    const { GET: previewFlagCorrection, POST: correctFlag } =
+      await import("../app/api/admin/users/[uid]/legacy-teacher-flag/route");
     const { GET: listSubmissions } = await import("../app/api/student/submissions/route");
     const { POST: archiveSubmission } = await import("../app/api/content/archive-submission/route");
-    const [oldDevice, account, conflictAccount, newGuest] = await Promise.all([
+    const [oldDevice, account, conflictAccount, newGuest, platformAdmin, superadmin] = await Promise.all([
       client("transfer-code-device"),
       client("transfer-account", { role: "student" }),
       client("transfer-conflicting-account", { role: "student" }),
       client("transfer-new-guest"),
+      client("repair-admin", { role: "student" }),
+      client("repair-superadmin", { role: "student" }),
+    ]);
+    await Promise.all([
+      db.doc("users/" + platformAdmin.uid).set({ role: "admin", roles: { admin: true }, adminLevel: "admin" }),
+      db.doc("users/" + superadmin.uid).set({ role: "admin", roles: { admin: true }, adminLevel: "superadmin" }),
     ]);
     for (const target of [account, conflictAccount]) {
       assert.ok(target.auth.currentUser?.email);
@@ -839,6 +851,7 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     const otherRoom = "pupil-transfer-other-room-" + suffix;
     const oldAccountRoom = "pupil-transfer-existing-account-room-" + suffix;
     const oldAccountMember = db.doc(`spaceMembers/${oldAccountRoom}_${account.uid}`);
+    const oldTask = db.doc(`spaces/${oldAccountRoom}/lessons/previous-account-work`);
     const existingAccountMembership = {
       spaceId: oldAccountRoom, uid: account.uid, participantId: account.uid,
       role: "student", status: "active", active: true, archived: false,
@@ -849,8 +862,15 @@ test("one school-code login opens all eligible rooms and follows drafts across b
       db.doc("spaces/" + otherRoom).set(roomDocument(colleague.uid, "Rom uten kobling", roomCode("TO"))),
       db.doc("spaces/" + oldAccountRoom).set({ ownerId: teacher.uid, title: "Tidligere rom på kontoen", isOpen: true }),
       oldAccountMember.set(existingAccountMembership),
+      oldTask.set({ title: "Tidligere arbeid på kontoen", status: "active" }),
       db.doc("schools/" + school).update({ teacherSeatLimit: 5 }),
     ]);
+    const oldWorkSaved = await saveDraft(await request(account.auth, "/api/draft", {
+      payload: { uid: account.uid, participantId: account.uid, status: "draft", answers: { open: "Tidligere kladd på kontoen" } },
+    }), { params: Promise.resolve({ spaceId: oldAccountRoom, assignmentId: oldTask.id }) });
+    assert.equal(oldWorkSaved.status, 200);
+    const oldWork = oldTask.collection("submissions").doc((await oldWorkSaved.json()).submissionId);
+    const originalWork = (await oldWork.get()).data();
     const pupil = (await write(teacher.auth, transferRoom, { fullName: "Syntetisk Kodeelev", displayName: "Syntetisk" })).member;
     const pupilId = (await db.doc("spaceMembers/" + pupil.id).get()).get("schoolPupilId");
     const secondRegistration = (await write(colleague.auth, otherRoom, { sourceMemberId: pupilId })).member;
@@ -948,20 +968,101 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     }, "DELETE"), room(transferRoom))).status, 200);
     assert.equal((await sendInvite(teacher.auth, pupil.id, account)).status, 200);
     const accountProfile = db.doc("users/" + account.uid);
-    const legacyProfile = {
-      roles: { student: true }, displayName: "Syntetisk elev med eldre konto", studentAccessMode: "space_only",
-      org: { country: "NO", municipality: "Oslo" },
-    };
-    await accountProfile.set({ role: "student", ...legacyProfile, roles: { student: true, teacher: true } });
-    const wrongRole = await accept(account.auth);
-    assert.equal(wrongRole.status, 403);
-    assert.equal((await wrongRole.json()).error, "account_role_ineligible");
-    await accountProfile.set({ ...legacyProfile, org: { country: "NO" } });
+    await accountProfile.set({ roles: { student: true }, org: { country: "NO" } });
     const incomplete = await accept(account.auth);
     assert.equal(incomplete.status, 403);
     assert.equal((await incomplete.json()).error, "account_profile_incomplete");
+
+    const mixedProfile = {
+      role: "student", onboardingComplete: true,
+      roles: { student: true, teacher: true, creator: true, parent: false, admin: false },
+      displayName: "Syntetisk elev med eldre konto", studentAccessMode: "space_only",
+      org: { country: "NO", municipality: "Oslo" },
+    };
+    await accountProfile.set(mixedProfile);
+    const invitedAccount = (await (await listInvites(await request(teacher.auth, "/api/invite"), room(transferRoom))).json()).invitations[0];
+    assert.equal(invitedAccount.sourceMemberId, pupil.id);
+    const invitationRef = db.doc(`spaces/${transferRoom}/accountInvitations/${invitedAccount.id}`);
+    const invitationBefore = (await invitationRef.get()).data();
+    const wrongRole = await accept(account.auth);
+    assert.equal(wrongRole.status, 403);
+    assert.equal((await wrongRole.json()).error, "account_role_ineligible");
+
+    const path = `/api/admin/users/${account.uid}/legacy-teacher-flag`;
+    const target = { params: Promise.resolve({ uid: account.uid }) };
+    const review = async (as: Auth) => previewFlagCorrection(await request(as, path), target);
+    const reason = "Confirmed obsolete flag during pupil account support";
+    const correct = async (as: Auth, body: object = { reason }) => correctFlag(await request(as, path, body), target);
+    assert.equal((await previewFlagCorrection(new Request("http://127.0.0.1" + path), target)).status, 401);
+    for (const actor of [platformAdmin, schoolAdmin, account, newGuest]) {
+      assert.equal((await review(actor.auth)).status, 403);
+      assert.equal((await correct(actor.auth)).status, 403);
+    }
+    assert.equal((await correctFlag(await request(superadmin.auth, path, { reason }), {
+      params: Promise.resolve({ uid: superadmin.uid }),
+    })).status, 403);
+    assert.equal((await correct(superadmin.auth, { reason: " " })).status, 400);
+    assert.equal((await correct(superadmin.auth, { reason, role: "teacher" })).status, 400);
+
+    for (const actor of [platformAdmin, superadmin, account]) {
+      await assert.rejects(updateDoc(doc(actor.firestore, accountProfile.path), { "roles.teacher": false }), /permission/i);
+    }
+    await assert.rejects(updateDoc(doc(superadmin.firestore, accountProfile.path), { roles: deleteField() }), /permission/i);
+    await assert.rejects(updateDoc(doc(platformAdmin.firestore, accountProfile.path), { role: "admin", adminLevel: "superadmin" }), /permission/i);
+    await assert.rejects(setDoc(doc(platformAdmin.firestore, "users/pending-" + suffix), { roles: { admin: true }, adminLevel: "superadmin" }), /permission/i);
+    await assert.rejects(setDoc(doc(superadmin.firestore, "adminAuditEvents/client-" + suffix), { type: "legacy_teacher_flag_disabled" }), /permission/i);
+    const existingAdminEdit = db.doc("users/superadmin-edit-" + suffix);
+    await existingAdminEdit.set({ role: "parent" });
+    await updateDoc(doc(superadmin.firestore, existingAdminEdit.path), { role: "student", adminLevel: null });
+    assert.equal((await existingAdminEdit.get()).get("role"), "student");
+
+    assert.equal((await (await review(superadmin.auth)).json()).state, "ready");
+    const staff = db.doc(`spaceMembers/${transferRoom}_${account.uid}`);
+    await staff.set({ uid: account.uid, spaceId: transferRoom, role: "co_teacher", status: "active", active: true });
+    const noLongerReady = await correct(superadmin.auth);
+    assert.equal(noLongerReady.status, 409);
+    assert.ok((await noLongerReady.json()).blockers.includes("room_staff"));
+    await staff.delete();
+
+    const activeSchoolMember = db.doc(`schools/${school}/members/${account.uid}`);
+    await accountProfile.update({ schoolId: school, schoolRole: "school_teacher", schoolStatus: "active" });
+    await activeSchoolMember.set({ uid: account.uid, schoolId: school, role: "school_teacher", status: "active" });
+    const schoolBlocked = await correct(superadmin.auth);
+    assert.equal(schoolBlocked.status, 409);
+    assert.ok((await schoolBlocked.json()).blockers.includes("school_staff"));
+    await activeSchoolMember.delete();
+    await accountProfile.set(mixedProfile);
+
+    const ownedRoom = db.doc("spaces/legacy-repair-owner-" + suffix);
+    await ownedRoom.set({ ownerUid: account.uid, title: "Room owned by the account", isOpen: true });
+    const ownerBlocked = await correct(superadmin.auth);
+    assert.equal(ownerBlocked.status, 409);
+    assert.ok((await ownerBlocked.json()).blockers.includes("owns_rooms"));
+    await ownedRoom.delete();
+    assert.deepEqual((await accountProfile.get()).data(), mixedProfile);
+    assert.deepEqual((await invitationRef.get()).data(), invitationBefore);
     assert.deepEqual((await legacyGuestMember.get()).data(), guestBefore);
-    await accountProfile.set(legacyProfile);
+
+    const audit = db.collection("adminAuditEvents").where("targetUid", "==", account.uid);
+    assert.equal((await audit.get()).size, 0);
+    const repairs = await Promise.all([correct(superadmin.auth), correct(superadmin.auth)]);
+    assert.deepEqual(repairs.map(response => response.status), [200, 200]);
+    const repairResults = await Promise.all(repairs.map(response => response.json()));
+    assert.deepEqual(repairResults.map(result => result.changed).sort(), [false, true]);
+    const correctedProfile = { ...mixedProfile, roles: { ...mixedProfile.roles, teacher: false } };
+    assert.deepEqual((await accountProfile.get()).data(), correctedProfile);
+    const auditRows = (await audit.get()).docs;
+    assert.equal(auditRows.length, 1);
+    const { createdAt, ...auditFields } = auditRows[0].data();
+    assert.ok(createdAt instanceof Timestamp);
+    assert.deepEqual(auditFields, {
+      type: "legacy_teacher_flag_disabled", actorUid: superadmin.uid, targetUid: account.uid,
+      field: "roles.teacher", before: true, after: false, reason,
+    });
+    assert.deepEqual((await invitationRef.get()).data(), invitationBefore);
+    assert.deepEqual((await oldAccountMember.get()).data(), existingAccountMembership);
+    assert.deepEqual((await oldWork.get()).data(), originalWork);
+
     assert.deepEqual((await visibleRooms(account)).map(value => value.spaceId), [oldAccountRoom]);
     const admitted = await accept(account.auth);
     assert.equal(admitted.status, 200, JSON.stringify(await admitted.clone().json()));
@@ -972,8 +1073,12 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     assert.equal(linked?.schoolPupilAccountUid, account.uid);
     assert.equal((await db.doc("spaceMembers/" + pupil.id).get()).get("schoolPupilAccountUid"), account.uid);
     assert.equal((await db.doc("spaceMembers/" + otherRoom + "_" + account.uid).get()).exists, false);
-    assert.deepEqual((await accountProfile.get()).data(), legacyProfile);
+    assert.deepEqual((await accountProfile.get()).data(), correctedProfile);
     assert.deepEqual((await oldAccountMember.get()).data(), existingAccountMembership);
+    const visibleOldDraft = await getDocFromServer(doc(account.firestore, oldWork.path));
+    assert.equal(visibleOldDraft.get("status"), "draft");
+    assert.deepEqual(visibleOldDraft.get("answers"), originalWork?.answers);
+    assert.deepEqual((await oldWork.get()).data(), originalWork);
     assert.deepEqual((await visibleRooms(account)).map(value => value.spaceId).sort(), [oldAccountRoom, transferRoom].sort());
 
     const work = await loadStudentContentRoom(account.firestore, { spaceId: transferRoom, participantId: pupil.participantId }, account.uid);

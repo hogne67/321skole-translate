@@ -500,13 +500,21 @@ service cloud.firestore {
   function safeCreatorApplication() {
     return !("creatorStatus" in request.resource.data) || request.resource.data.creatorStatus == "pending";
   }
+  function safeAdminRoleWrite(affectedKeys) {
+    let actor = myUser();
+    // Legacy flags are corrected only by the audited server operation.
+    return !affectedKeys.hasAny(["roles"])
+      && (!affectedKeys.hasAny(["role", "adminLevel"])
+        || (mapHasTrue(actor.get("roles", {}), "admin") && actor.get("adminLevel", "") == "superadmin"));
+  }
 
-  allow create: if accountEnabled() && ((isAdmin() && !isSelf()) || (isSelf()
+  allow create: if accountEnabled() && ((isAdmin() && !isSelf() && safeAdminRoleWrite(request.resource.data.keys())) || (isSelf()
     && request.resource.data.keys().hasOnly(profileKeys().concat(["disabled"]))
     && (!("disabled" in request.resource.data) || request.resource.data.disabled == false)
     && safeRole() && safeMode() && safeCreatorApplication() && safeProfileValues() && selfStudyAllowed() && safeOrgCreate()));
   allow read: if accountEnabled() && (isSelf() || isAdmin());
-  allow update: if accountEnabled() && ((isAdmin() && !isSelf()) || (isSelf()
+  allow update: if accountEnabled() && ((isAdmin() && !isSelf()
+    && safeAdminRoleWrite(request.resource.data.diff(resource.data).affectedKeys())) || (isSelf()
     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(profileKeys())
     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"]) || safeRole())
     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["mode"]) || safeMode())

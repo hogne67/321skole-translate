@@ -16,6 +16,7 @@ import { auth, db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { isSuperAdmin } from "@/lib/adminAccess";
 import { authedPost } from "@/lib/authedPost";
+import LegacyTeacherFlagRepair from "./LegacyTeacherFlagRepair";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 type AdminLevel = "moderator" | "admin" | "superadmin";
@@ -298,7 +299,7 @@ function Pill({
 export default function AdminUserDetailPage() {
   const params = useParams();
   const locale = useLocale();
-  const { profile: currentProfile } = useUserProfile();
+  const { user: currentUser, profile: currentProfile } = useUserProfile();
 
   const uid = useMemo(() => {
     const raw = params?.uid;
@@ -602,6 +603,7 @@ export default function AdminUserDetailPage() {
 
       {msg ? (
         <section
+          role="status"
           style={{
             padding: 14,
             borderRadius: 14,
@@ -686,6 +688,21 @@ export default function AdminUserDetailPage() {
               </div>
             </div>
           </section>
+
+          {canWrite && currentUser && !currentUser.isAnonymous && currentUser.uid !== uid &&
+            data.id === uid && data.role === "student" && data.roles?.teacher === true ? (
+            <Section title="Legacy teacher flag">
+              <LegacyTeacherFlagRepair
+                key={uid}
+                uid={uid}
+                account={data.email || data.displayName || uid}
+                onComplete={(changed) => {
+                  setMsg(changed ? "Legacy teacher flag turned off. The correction was logged." : "The old teacher flag is already off.");
+                  void load();
+                }}
+              />
+            </Section>
+          ) : null}
 
           <Section title="Edit user">
             <div
