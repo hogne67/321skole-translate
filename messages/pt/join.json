@@ -8,7 +8,9 @@
       "help": "Use o código da sala dado pelo professor. Inicie sessão com o endereço de e-mail convidado pelo professor.",
       "useCode": "Usar o código pessoal de aluno",
       "login": "Iniciar sessão para entrar",
-      "signedIn": "A sessão foi iniciada com {email}."
+      "signedIn": "A sessão foi iniciada com {email}.",
+      "switchAccount": "Mudar de conta",
+      "completeProfile": "Completar perfil de aluno"
     },
     "fields": {
       "spaceCode": {
@@ -44,8 +46,10 @@
       "switchSignInFailed": "Não foi possível mudar o método de autenticação. Tente novamente.",
       "schoolPupilCodeDisabled": "Esta escola exige uma conta de aluno. Selecione «Entrar com uma conta» e use o e-mail convidado e o código da sala.",
       "accountRequired": "Inicie sessão com uma conta de aluno para entrar.",
-      "accountEmailUnverified": "Confirme o endereço de e-mail da conta de aluno e tente novamente.",
-      "accountInvitationRequired": "Esta conta não tem um convite para a sala. Verifique a conta que está a usar ou fale com o professor.",
+      "accountRoleIneligible": "O tipo de conta bloqueia o acesso de aluno. Mude de conta ou peça ajuda se esta for a conta que deve usar.",
+      "accountProfileIncomplete": "Complete o perfil de aluno para entrar. O código da sala estará preenchido quando voltar a esta página.",
+      "accountEmailUnverified": "Abra o link de confirmação no seu e-mail. Volte a esta página e selecione «Entrar».",
+      "accountInvitationRequired": "Não há um convite válido para esta conta. Verifique o endereço de e-mail acima ou peça ao professor para confirmar o convite.",
       "studentCodeAttempts": "Muitas tentativas. Aguarde um pouco e tente novamente.",
       "spaceNotFound": "Não foi encontrada uma sala com esse código. Verifique o código fornecido pelo professor ou volte a abrir o link da sala.",
       "authTimeout": "Tempo esgotado ao aguardar autenticação.",

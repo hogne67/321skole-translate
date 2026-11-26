@@ -6,56 +6,10 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { ensureUserProfile, type UserProfile } from "@/lib/userProfile";
+import { compatibleUserProfileRole, hasCompletedProfileOnboarding } from "@/lib/userProfileCompatibility";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
-}
-
-type AppRole = "student" | "teacher" | "admin" | "parent" | "creator";
-
-type RolesMap = {
-  teacher?: boolean;
-  student?: boolean;
-  admin?: boolean;
-  creator?: boolean;
-  parent?: boolean;
-};
-
-function normalizeRole(raw: unknown): AppRole | null {
-  const r = String(raw ?? "").toLowerCase();
-
-  if (r === "student") return "student";
-  if (r === "teacher") return "teacher";
-  if (r === "admin") return "admin";
-  if (r === "parent") return "parent";
-  if (r === "creator") return "creator";
-
-  // gamle aliaser hvis de finnes i eldre docs
-  if (r === "content" || r === "review" || r === "reviewer") return "admin";
-
-  return null;
-}
-
-function roleFromRolesMap(p: Record<string, unknown>): AppRole | null {
-  const roles = isRecord(p.roles) ? (p.roles as RolesMap) : null;
-  if (!roles) return null;
-
-  if (roles.admin === true) return "admin";
-  if (roles.teacher === true) return "teacher";
-  if (roles.creator === true) return "creator";
-  if (roles.parent === true) return "parent";
-  if (roles.student === true) return "student";
-
-  return null;
-}
-
-function hasMinimumOnboardingData(p: Record<string, unknown>): boolean {
-  const displayName = String(p.displayName ?? "").trim();
-  const org = isRecord(p.org) ? (p.org as Record<string, unknown>) : {};
-  const country = String(org.country ?? "").trim();
-  const municipality = String(org.municipality ?? "").trim();
-
-  return displayName.length > 0 && country.length > 0 && municipality.length > 0;
 }
 
 function normalizeProfile(raw: unknown): UserProfile | null {
@@ -63,12 +17,10 @@ function normalizeProfile(raw: unknown): UserProfile | null {
 
   const p: Record<string, unknown> = { ...raw };
 
-  // full rollemodell
-  const role = normalizeRole(p.role) ?? roleFromRolesMap(p);
+  const role = compatibleUserProfileRole(p);
   if (role) p.role = role;
 
-  // onboarding soft-normalisering
-  if (p.onboardingComplete !== true && hasMinimumOnboardingData(p)) {
+  if (hasCompletedProfileOnboarding(p)) {
     p.onboardingComplete = true;
   }
 

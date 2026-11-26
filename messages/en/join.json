@@ -8,7 +8,9 @@
       "help": "Use the room code from your teacher. Sign in with the email address your teacher invited.",
       "useCode": "Use a personal student code",
       "login": "Sign in to join",
-      "signedIn": "You are signed in as {email}."
+      "signedIn": "You are signed in as {email}.",
+      "switchAccount": "Switch account",
+      "completeProfile": "Complete student profile"
     },
     "fields": {
       "spaceCode": {
@@ -44,8 +46,10 @@
       "switchSignInFailed": "Could not switch how you sign in. Try again.",
       "schoolPupilCodeDisabled": "This school requires a student account. Choose “Join with an account” and use the invited email address and room code.",
       "accountRequired": "Sign in with a student account to join.",
-      "accountEmailUnverified": "Verify your student account email address and try again.",
-      "accountInvitationRequired": "This account has no invitation to the room. Check which account you are using or ask your teacher.",
+      "accountRoleIneligible": "This account's role blocks student access. Switch accounts, or ask for help if this is the account you should use.",
+      "accountProfileIncomplete": "Complete your student profile to join. The room code will be filled in when you return here.",
+      "accountEmailUnverified": "Open the verification link in your email. Return here and select “Join”.",
+      "accountInvitationRequired": "There is no valid invitation for this account. Check the email address above or ask your teacher to check the invitation.",
       "studentCodeAttempts": "Too many code attempts. Wait a little and try again.",
       "spaceNotFound": "We couldn't find that room code. Check the code from your teacher or open the room link again.",
       "authTimeout": "Timed out while waiting for auth user.",

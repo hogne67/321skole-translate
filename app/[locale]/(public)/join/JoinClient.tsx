@@ -14,12 +14,12 @@ type JoinAction = { confirm?: boolean; switchPupil?: boolean; renew?: boolean; c
 
 type Preview = { spaceId: string; title: string; displayName?: string; switchRequired?: boolean; currentDisplayName?: string | null; signedInAccount?: boolean; preview: boolean; approvalRequired?: boolean; approvalCode?: string; expired?: boolean; renewRequired?: boolean; requestState?: "rejected" | "cancelled" | "replace" };
 
-function roomLoginHref(locale: string, code: string, accountJoin: boolean, openContent: boolean) {
+function roomEntryHref(locale: string, code: string, accountJoin: boolean, openContent: boolean, page: "login" | "onboarding" = "login") {
   const params = new URLSearchParams({ code: code.trim() });
   if (accountJoin) params.set("method", "account");
   if (openContent) params.set("next", "content");
   const next = `/${locale}/join?${params}`;
-  return `/${locale}/login?next=${encodeURIComponent(next)}`;
+  return `/${locale}/${page}?next=${encodeURIComponent(next)}`;
 }
 
 export default function JoinClient() {
@@ -57,7 +57,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(Boolean(initialCode.trim() && initialStudentCode.trim()));
   const [error, setError] = useState<string | null>(null);
-  const [policyBlock, setPolicyBlock] = useState<"code" | "provider" | null>(null);
+  const [recovery, setRecovery] = useState<"code" | "provider" | "profile" | null>(null);
   const [accountUser, setAccountUser] = useState<User | null>();
   const automaticCheckStarted = useRef(false);
   const activeRequest = useRef<AbortController | null>(null);
@@ -70,7 +70,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
   const request = useCallback(async ({ confirm, switchPupil, renew, cancel, submit }: JoinAction = {}) => {
     if (activeRequest.current) return;
     const controller = new AbortController(); activeRequest.current = controller;
-    setBusy(true); setError(null); setPolicyBlock(null);
+    setBusy(true); setError(null); setRecovery(null);
     try {
       if (confirm && switchPupil) {
         await signOut(auth);
@@ -78,12 +78,12 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
       }
       await auth.authStateReady();
       if (accountJoin && (!auth.currentUser || auth.currentUser.isAnonymous)) {
-        router.push(roomLoginHref(locale, code, accountJoin, openContent));
+        router.push(roomEntryHref(locale, code, accountJoin, openContent));
         return;
       }
       const user = auth.currentUser ?? await ensureAnonymousUser();
       const response = await fetch("/api/spaces/join", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken(accountJoin)}` },
         body: JSON.stringify(accountJoin
           ? { method: "account", code: code.trim(), submit }
           : { code: code.trim(), studentCode: studentCode.trim(), confirm, renew, cancel, submit }),
@@ -93,9 +93,10 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
       if (controller.signal.aborted || auth.currentUser?.uid !== user.uid) return;
       if (!response.ok) {
         setPreview(null); // Stop polling a rejected/removed/invalid request.
-        if (!accountJoin && ["school_pupil_code_disabled", "school_pupil_account_required"].includes(data.error)) setPolicyBlock("code");
+        if (!accountJoin && ["school_pupil_code_disabled", "school_pupil_account_required"].includes(data.error)) setRecovery("code");
+        if (accountJoin && data.error === "account_profile_incomplete") setRecovery("profile");
         if (data.error === "school_pupil_provider_disabled") {
-          setPolicyBlock("provider");
+          setRecovery("provider");
           const providers = parsePupilAccountProviders(data.pupilAccountProviders);
           if (providers) {
             const methods = new Intl.ListFormat(locale).format(providers.map(provider => t(`account.providers.${provider}`)));
@@ -108,6 +109,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
           manager_account: "managerAccount", student_code_attempts: "studentCodeAttempts",
           request_not_pending: "requestChanged", request_closed: "requestChanged",
           account_required: "accountRequired", account_email_unverified: "accountEmailUnverified",
+          account_role_ineligible: "accountRoleIneligible", account_profile_incomplete: "accountProfileIncomplete",
           account_invitation_required: "accountInvitationRequired",
           account_capacity_reached: "teacherLimitReached",
           school_pupil_code_disabled: "schoolPupilCodeDisabled",
@@ -135,7 +137,7 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
     try {
       await signOut(auth);
       clearLastStudentSpaceId();
-      window.location.replace(roomLoginHref(locale, code, accountJoin, openContent));
+      window.location.replace(roomEntryHref(locale, code, accountJoin, openContent));
     } catch {
       setError(t("errors.switchSignInFailed"));
       setBusy(false);
@@ -175,21 +177,30 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
   if (!accountJoin) alternateParams.set("method", "account");
   if (code.trim()) alternateParams.set("code", code.trim());
   const alternateQuery = alternateParams.toString();
+  const alternateEntry = recovery === "code" || (!initialStudentCode && !openContent && !signedOut) ? (
+    <Link href={`/${locale}/join${alternateQuery ? "?" + alternateQuery : ""}`}
+      className="inline-flex min-h-10 items-center text-sm font-semibold text-emerald-800 underline">
+      {t(accountJoin ? "account.useCode" : "account.title")}
+    </Link>
+  ) : null;
   return <div className="mx-auto max-w-md p-4">
     <h1 className="text-2xl font-semibold">{accountJoin ? t("account.title") : openContent ? tLanding("ctaStudentCode") : t("title")}</h1>
     <p className="mt-2 text-sm text-slate-600">{t(accountJoin ? "account.help" : "subtitle")}</p>
-    {policyBlock === "code" || (!initialStudentCode && !openContent && !signedOut) ? (
-      <Link href={`/${locale}/join${alternateQuery ? "?" + alternateQuery : ""}`}
-        className="inline-flex min-h-10 items-center text-sm font-semibold text-emerald-800 underline">
-        {t(accountJoin ? "account.useCode" : "account.title")}
-      </Link>
-    ) : null}
+    {!accountJoin ? alternateEntry : null}
     {signedOut ? <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-800">{t("session.signedOut")}</p> : null}
     <form autoComplete="off" onSubmit={e => { e.preventDefault(); if (!preview) void request({ submit: true }); }} className="mt-4 grid gap-4 rounded-2xl border bg-white p-4 shadow-sm">
       {codeInput("space-code", "spaceCode", code, setCode)}
       {accountJoin ? (
         <>
-          {useAccount && accountUser.email ? <p className="m-0 break-all text-sm text-slate-600">{t("account.signedIn", { email: accountUser.email })}</p> : null}
+          {useAccount ? (
+            <div className="flex flex-wrap items-center justify-between gap-x-3">
+              {accountUser.email ? <p className="m-0 break-all text-sm text-slate-600">{t("account.signedIn", { email: accountUser.email })}</p> : null}
+              <button type="button" disabled={busy} onClick={() => void switchSignIn()}
+                className="min-h-11 text-sm font-semibold text-emerald-800 underline disabled:opacity-50">
+                {t(recovery === "provider" ? "actions.switchSignIn" : "account.switchAccount")}
+              </button>
+            </div>
+          ) : null}
           <button type="submit" disabled={busy || accountUser === undefined}
             className="rounded-xl bg-slate-950 px-3 py-3 font-semibold text-white disabled:opacity-50">
             {t(busy ? "actions.joining" : useAccount ? "actions.join" : "account.login")}
@@ -219,12 +230,19 @@ function JoinForm({ initialCode, initialStudentCode, signedOut, openContent, acc
         </>
       )}
       {error ? <p role="alert" className="m-0 text-sm text-red-700">{error}</p> : null}
-      {policyBlock === "provider" ? (
+      {recovery === "profile" && useAccount ? (
+        <Link href={roomEntryHref(locale, code, accountJoin, openContent, "onboarding")}
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-solid border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">
+          {t("account.completeProfile")}
+        </Link>
+      ) : null}
+      {recovery === "provider" && !useAccount ? (
         <button type="button" disabled={busy} onClick={() => void switchSignIn()}
           className="min-h-11 rounded-xl border border-solid border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">
           {t("actions.switchSignIn")}
         </button>
       ) : null}
     </form>
+    {accountJoin ? alternateEntry : null}
   </div>;
 }

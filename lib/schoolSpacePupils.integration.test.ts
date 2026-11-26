@@ -837,10 +837,18 @@ test("one school-code login opens all eligible rooms and follows drafts across b
 
     const transferRoom = "pupil-transfer-room-" + suffix;
     const otherRoom = "pupil-transfer-other-room-" + suffix;
+    const oldAccountRoom = "pupil-transfer-existing-account-room-" + suffix;
+    const oldAccountMember = db.doc(`spaceMembers/${oldAccountRoom}_${account.uid}`);
+    const existingAccountMembership = {
+      spaceId: oldAccountRoom, uid: account.uid, participantId: account.uid,
+      role: "student", status: "active", active: true, archived: false,
+    };
     const roomDocument = (ownerId: string, title: string, code: string) => ({ ownerId, title, code, schoolId: school, isOpen: true });
     await Promise.all([
       db.doc("spaces/" + transferRoom).set(roomDocument(teacher.uid, "Koblingsrom", roomCode("TR"))),
       db.doc("spaces/" + otherRoom).set(roomDocument(colleague.uid, "Rom uten kobling", roomCode("TO"))),
+      db.doc("spaces/" + oldAccountRoom).set({ ownerId: teacher.uid, title: "Tidligere rom på kontoen", isOpen: true }),
+      oldAccountMember.set(existingAccountMembership),
       db.doc("schools/" + school).update({ teacherSeatLimit: 5 }),
     ]);
     const pupil = (await write(teacher.auth, transferRoom, { fullName: "Syntetisk Kodeelev", displayName: "Syntetisk" })).member;
@@ -939,6 +947,22 @@ test("one school-code login opens all eligible rooms and follows drafts across b
       invitationId: wrongInvite.id,
     }, "DELETE"), room(transferRoom))).status, 200);
     assert.equal((await sendInvite(teacher.auth, pupil.id, account)).status, 200);
+    const accountProfile = db.doc("users/" + account.uid);
+    const legacyProfile = {
+      roles: { student: true }, displayName: "Syntetisk elev med eldre konto", studentAccessMode: "space_only",
+      org: { country: "NO", municipality: "Oslo" },
+    };
+    await accountProfile.set({ role: "student", ...legacyProfile, roles: { student: true, teacher: true } });
+    const wrongRole = await accept(account.auth);
+    assert.equal(wrongRole.status, 403);
+    assert.equal((await wrongRole.json()).error, "account_role_ineligible");
+    await accountProfile.set({ ...legacyProfile, org: { country: "NO" } });
+    const incomplete = await accept(account.auth);
+    assert.equal(incomplete.status, 403);
+    assert.equal((await incomplete.json()).error, "account_profile_incomplete");
+    assert.deepEqual((await legacyGuestMember.get()).data(), guestBefore);
+    await accountProfile.set(legacyProfile);
+    assert.deepEqual((await visibleRooms(account)).map(value => value.spaceId), [oldAccountRoom]);
     const admitted = await accept(account.auth);
     assert.equal(admitted.status, 200, JSON.stringify(await admitted.clone().json()));
     assert.equal((await accept(account.auth)).status, 200);
@@ -948,6 +972,9 @@ test("one school-code login opens all eligible rooms and follows drafts across b
     assert.equal(linked?.schoolPupilAccountUid, account.uid);
     assert.equal((await db.doc("spaceMembers/" + pupil.id).get()).get("schoolPupilAccountUid"), account.uid);
     assert.equal((await db.doc("spaceMembers/" + otherRoom + "_" + account.uid).get()).exists, false);
+    assert.deepEqual((await accountProfile.get()).data(), legacyProfile);
+    assert.deepEqual((await oldAccountMember.get()).data(), existingAccountMembership);
+    assert.deepEqual((await visibleRooms(account)).map(value => value.spaceId).sort(), [oldAccountRoom, transferRoom].sort());
 
     const work = await loadStudentContentRoom(account.firestore, { spaceId: transferRoom, participantId: pupil.participantId }, account.uid);
     assert.deepEqual(work?.tasks.map(({ id, status }) => [id, status]).sort(), [

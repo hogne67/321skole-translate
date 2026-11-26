@@ -8,7 +8,9 @@
       "help": "Bruk romkoden fra læreren. Logg inn med e-postadressen læreren har invitert.",
       "useCode": "Bruk personlig elevkode",
       "login": "Logg inn for å bli med",
-      "signedIn": "Du er logget inn som {email}."
+      "signedIn": "Du er logget inn som {email}.",
+      "switchAccount": "Bytt konto",
+      "completeProfile": "Fullfør elevprofil"
     },
     "fields": {
       "spaceCode": {
@@ -44,8 +46,10 @@
       "switchSignInFailed": "Kunne ikke bytte innlogging. Prøv igjen.",
       "schoolPupilCodeDisabled": "Skolen krever elevkonto. Velg «Bli med med konto» og bruk den inviterte e-postadressen og romkoden.",
       "accountRequired": "Logg inn med en elevkonto for å bli med.",
-      "accountEmailUnverified": "Bekreft e-postadressen på elevkontoen før du prøver igjen.",
-      "accountInvitationRequired": "Denne kontoen har ingen invitasjon til rommet. Sjekk hvilken konto du bruker, eller spør læreren.",
+      "accountRoleIneligible": "Kontorollen sperrer elevtilgangen. Velg «Bytt konto», eller be om hjelp hvis dette er kontoen du skal bruke.",
+      "accountProfileIncomplete": "Fullfør elevprofilen for å bli med. Romkoden er ferdig utfylt når du kommer tilbake hit.",
+      "accountEmailUnverified": "Åpne bekreftelseslenken i e-posten din. Kom tilbake hit og velg «Bli med».",
+      "accountInvitationRequired": "Det finnes ingen gyldig invitasjon for denne kontoen. Sjekk e-postadressen over, eller be læreren sjekke invitasjonen.",
       "studentCodeAttempts": "For mange kodeforsøk. Vent litt og prøv igjen.",
       "spaceNotFound": "Romkoden ble ikke funnet. Sjekk romkoden du fikk av læreren, eller åpne romlenken på nytt.",
       "authTimeout": "Tidsavbrudd ved innlogging.",

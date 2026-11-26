@@ -12,6 +12,7 @@ import { getSpaceAccess } from "@/lib/security/spaceAccess.server";
 import { getSpaceOwnerUid, hasSpaceOwnerAccess } from "@/lib/security/spaceOwnership";
 import { validSubmissionPart } from "@/lib/security/studentSubmissionPolicy";
 import { joinText } from "@/lib/spaceJoinPolicy";
+import { compatibleUserProfileRole, hasCompletedProfileOnboarding } from "@/lib/userProfileCompatibility";
 import { activeSchoolEnrollment, availableSchoolRoom, documentId } from "./schoolSpacePupilCode";
 import { legacyCodeDeviceUids, planLegacySchoolSubmissionTransfer } from "./legacySchoolSubmissionTransfer";
 import { availableTeacherRosterSlot, readTeacherRosterRooms, teacherRosterLimit } from "./teacherPupilCapacity";
@@ -256,9 +257,15 @@ export async function joinSchoolRoomWithAccount({ db, tx, spaceId, room, actor, 
   const [profileSnap, member, invite] = await tx.getAll(db.doc("users/" + uid), membership, invitation);
   const profile = profileSnap.data();
   assertActiveProfile(profile, actor);
-  if (profile?.role !== "student" || profile.onboardingComplete !== true
-    || profile.roles?.admin === true || profile.roles?.teacher === true || owner === uid) {
-    return { error: "account_required" } as const;
+  const role = profile ? compatibleUserProfileRole(profile) : null;
+  const rawRole = typeof profile?.role === "string" ? profile.role.toLowerCase() : profile?.role;
+  if (owner === uid || profile?.roles?.admin === true || profile?.roles?.teacher === true
+    || (rawRole != null && rawRole !== "" && rawRole !== "student")
+    || (role !== "student" && (role !== null || profile?.onboardingComplete === true))) {
+    return { error: "account_role_ineligible" } as const;
+  }
+  if (!profile || role !== "student" || !hasCompletedProfileOnboarding(profile)) {
+    return { error: "account_profile_incomplete" } as const;
   }
   if (profile.schoolId && (profile.schoolId !== schoolId || profile.schoolStatus !== "active")) {
     return { error: "account_invitation_required" } as const;
