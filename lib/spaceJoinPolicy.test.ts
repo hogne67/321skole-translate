@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { evaluatePupilJoin, type JoinMember } from "./spaceJoinPolicy";
-const pupil: JoinMember = { role: "student", participantId: "room-A-pupil", displayName: "Yara", studentCode: "ABCDE" };
+const pupil: JoinMember = { role: "student", status: "active", participantId: "room-A-pupil", displayName: "Yara", studentCode: "ABCDE" };
 test("the same pupil keeps one identity across guest and account accesses", () => {
   for (const uid of ["guest", "account"]) {
     const result = evaluatePupilJoin({ ...pupil, uid }, [pupil, { ...pupil, uid: "another" }]);
@@ -20,6 +20,7 @@ test("a code for a different pupil on a shared browser requires an explicit swit
 test("removed pupils, missing names and conflicting identities are rejected", () => {
   assert.deepEqual(evaluatePupilJoin(null, [{ ...pupil, archived: true }]), { error: "invalid_student_code" });
   assert.deepEqual(evaluatePupilJoin(null, [{ ...pupil, status: "disabled" }]), { error: "invalid_student_code" });
+  assert.deepEqual(evaluatePupilJoin(null, [{ ...pupil, status: undefined }]), { error: "invalid_student_code" });
   assert.deepEqual(evaluatePupilJoin(null, [{ ...pupil, displayName: "" }]), { error: "missing_pupil_name" });
   assert.deepEqual(evaluatePupilJoin(null, [pupil, { ...pupil, participantId: "other" }]), { error: "identity_conflict" });
 });
